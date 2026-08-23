@@ -1,4 +1,4 @@
-export type DragPoint = { x: number; y: number };
+export type RagdollPoint = { x: number; y: number };
 export type JointRotation = { x: number; y: number; z: number };
 
 export type RagdollTargets = {
@@ -16,7 +16,7 @@ export type RagdollTargets = {
 
 const clamp = (value: number) => Math.max(-1, Math.min(1, value));
 
-export function getRagdollTargets(point: DragPoint): RagdollTargets {
+export function getRagdollTargets(point: RagdollPoint): RagdollTargets {
   const x = clamp(point.x);
   const y = clamp(point.y);
 
@@ -34,9 +34,18 @@ export function getRagdollTargets(point: DragPoint): RagdollTargets {
   };
 }
 
-export function settleDrag(point: DragPoint, dragging: boolean): DragPoint {
-  if (dragging) return { x: clamp(point.x), y: clamp(point.y) };
+export function settleRagdollPoint(point: RagdollPoint): RagdollPoint {
   const x = Math.abs(point.x) < 0.002 ? 0 : point.x * 0.86;
   const y = Math.abs(point.y) < 0.002 ? 0 : point.y * 0.86;
   return { x, y };
+}
+
+export function updateRagdollPoint(
+  current: RagdollPoint,
+  pointer: RagdollPoint,
+  active: boolean,
+): RagdollPoint {
+  return active
+    ? { x: clamp(pointer.x), y: clamp(pointer.y) }
+    : settleRagdollPoint(current);
 }

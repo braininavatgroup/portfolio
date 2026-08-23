@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { getRagdollTargets, settleDrag } from "../../lib/ragdoll";
+import { getRagdollTargets, updateRagdollPoint } from "../../lib/ragdoll";
 import type { SceneQuality } from "../../lib/scene-budget";
 import { BrainShape } from "./BrainShape";
 
@@ -42,21 +42,18 @@ export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
   const leftShin = useRef<THREE.Group>(null);
   const rightLeg = useRef<THREE.Group>(null);
   const rightShin = useRef<THREE.Group>(null);
-  const dragTarget = useRef(new THREE.Vector2());
-  const dragStart = useRef(new THREE.Vector2());
-  const dragging = useRef(false);
-  const dragMoved = useRef(false);
+  const pointerTarget = useRef(new THREE.Vector2());
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, pointer }) => {
     if (
       !rig.current || !head.current || !leftArm.current || !leftForearm.current ||
       !rightArm.current || !rightForearm.current || !leftLeg.current ||
       !leftShin.current || !rightLeg.current || !rightShin.current
     ) return;
 
-    const settled = settleDrag(dragTarget.current, dragging.current);
-    dragTarget.current.set(settled.x, settled.y);
-    const target = getRagdollTargets(settled);
+    const nextPoint = updateRagdollPoint(pointerTarget.current, pointer, visible);
+    pointerTarget.current.set(nextPoint.x, nextPoint.y);
+    const target = getRagdollTargets(nextPoint);
     const [poseX, poseY] = poseLean[pose];
     const drift = quality.pulses ? Math.sin(clock.elapsedTime * 0.72) * 0.018 : 0;
     rig.current.rotation.x = THREE.MathUtils.lerp(
@@ -90,26 +87,7 @@ export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
   if (!visible) return null;
 
   return (
-    <group
-      ref={rig}
-      position={[0, -1.65, 0]}
-      onPointerDown={(event) => {
-        event.stopPropagation();
-        dragging.current = true;
-        dragMoved.current = false;
-        dragStart.current.set(event.pointer.x, event.pointer.y);
-        event.target.setPointerCapture(event.pointerId);
-      }}
-      onPointerUp={(event) => {
-        dragging.current = false;
-        event.target.releasePointerCapture(event.pointerId);
-      }}
-      onPointerMove={(event) => {
-        if (!dragging.current) return;
-        if (dragStart.current.distanceTo(event.pointer) > 0.04) dragMoved.current = true;
-        dragTarget.current.set(event.pointer.x, event.pointer.y);
-      }}
-    >
+    <group ref={rig} position={[0, -1.65, 0]}>
       <mesh position={[0, 1.6, 0]}>
         <capsuleGeometry args={[0.72, 1.75, 8, 16]} />
         <meshStandardMaterial color="#172824" roughness={0.86} />
@@ -170,7 +148,7 @@ export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
         position={[0, 3.42, 0]}
         onClick={(event) => {
           event.stopPropagation();
-          if (!dragMoved.current) onEnter();
+          onEnter();
         }}
       >
         <mesh>
