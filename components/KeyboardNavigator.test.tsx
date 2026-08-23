@@ -64,7 +64,8 @@ describe("keyboard navigator", () => {
       />,
     );
 
-    fireEvent.focus(screen.getByRole("button", { name: "Explore by keyboard" }));
+    const trigger = screen.getByRole("button", { name: "Explore by keyboard" });
+    fireEvent.click(trigger);
     fireEvent.click(screen.getByRole("button", { name: "Next node" }));
 
     expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[2]);
@@ -95,5 +96,92 @@ describe("keyboard navigator", () => {
       }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(screen.queryByRole("button", { name: "Next node" })).toBeNull();
+  });
+
+  it("requires trigger activation before arrow navigation begins", () => {
+    const onNodeFocus = vi.fn();
+    const onNodeSelect = vi.fn();
+    render(
+      <KeyboardNavigator
+        nodes={nodes}
+        onNodeFocus={onNodeFocus}
+        onNodeSelect={onNodeSelect}
+        selectedNodeId={null}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Explore by keyboard" });
+    fireEvent.focus(trigger);
+    fireEvent.keyDown(screen.getByRole("toolbar", { name: "Keyboard map controls" }), {
+      key: "ArrowRight",
+    });
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Next node" })).toBeNull();
+    expect(onNodeFocus).not.toHaveBeenCalled();
+    expect(onNodeSelect).not.toHaveBeenCalled();
+
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(onNodeFocus).toHaveBeenLastCalledWith(nodes[1].id);
+  });
+
+  it("stays collapsed after Escape restores focus to its trigger", () => {
+    const onNodeFocus = vi.fn();
+    const onNodeSelect = vi.fn();
+    render(
+      <KeyboardNavigator
+        nodes={nodes}
+        onNodeFocus={onNodeFocus}
+        onNodeSelect={onNodeSelect}
+        selectedNodeId={null}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Explore by keyboard" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "Next node" }));
+    fireEvent.keyDown(screen.getByRole("toolbar", { name: "Keyboard map controls" }), {
+      key: "Escape",
+    });
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    expect(screen.queryByRole("button", { name: "Next node" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Previous node" })).toBeNull();
+    expect(onNodeFocus).toHaveBeenLastCalledWith(null);
+    expect(onNodeSelect).toHaveBeenLastCalledWith(null);
+  });
+
+  it("collapses and clears focus when its controlled selection closes", () => {
+    const onNodeFocus = vi.fn();
+    const onNodeSelect = vi.fn();
+    const { rerender } = render(
+      <KeyboardNavigator
+        nodes={nodes}
+        onNodeFocus={onNodeFocus}
+        onNodeSelect={onNodeSelect}
+        selectedNodeId={nodes[2].id}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Explore by keyboard" });
+    fireEvent.click(trigger);
+    expect(screen.getByText("Approach")).toBeTruthy();
+
+    rerender(
+      <KeyboardNavigator
+        nodes={nodes}
+        onNodeFocus={onNodeFocus}
+        onNodeSelect={onNodeSelect}
+        selectedNodeId={null}
+      />,
+    );
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("Approach")).toBeNull();
+    expect(screen.queryByText("Instinct")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Next node" })).toBeNull();
+    expect(onNodeFocus).toHaveBeenLastCalledWith(null);
   });
 });

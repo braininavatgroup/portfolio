@@ -1,6 +1,12 @@
 "use client";
 
-import { type KeyboardEvent, type RefObject, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
 import { nodeAction } from "../lib/node-interaction";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
@@ -29,11 +35,20 @@ export function KeyboardNavigator({
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
+  const previousSelectedNodeId = useRef(selectedNodeId);
   const selectedIndex = actionableNodes.findIndex(
     (node) => node.id === selectedNodeId,
   );
   const currentIndex = selectedIndex >= 0 ? selectedIndex : index;
   const current = actionableNodes[currentIndex];
+
+  useEffect(() => {
+    if (previousSelectedNodeId.current !== null && selectedNodeId === null) {
+      setActive(false);
+      onNodeFocus(null);
+    }
+    previousSelectedNodeId.current = selectedNodeId;
+  }, [onNodeFocus, selectedNodeId]);
 
   function select(nextIndex: number) {
     const node = actionableNodes[nextIndex];
@@ -49,6 +64,7 @@ export function KeyboardNavigator({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!active) return;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
       event.preventDefault();
       move("next");
@@ -84,10 +100,6 @@ export function KeyboardNavigator({
         aria-expanded={active}
         disabled={actionableNodes.length === 0}
         onClick={() => {
-          setActive(true);
-          onNodeFocus(current?.id ?? null);
-        }}
-        onFocus={() => {
           setActive(true);
           onNodeFocus(current?.id ?? null);
         }}
