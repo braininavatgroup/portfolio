@@ -17,7 +17,7 @@ describe("graph node interaction", () => {
     expect(nodeAction(node("brain"))).toBe("none");
   });
 
-  it.each(["spec", "system", "artifact", "operation"] as const)(
+  it.each(["spec", "system", "artifact"] as const)(
     "opens %s nodes in the map detail drawer",
     (kind) => {
       expect(nodeAction(node(kind))).toBe("inspect");

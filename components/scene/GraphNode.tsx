@@ -4,6 +4,7 @@ import { Html } from "@react-three/drei";
 import { useState } from "react";
 import { nodeAction } from "../../lib/node-interaction";
 import type { PortfolioNode } from "../../lib/portfolio";
+import { ArtifactToken } from "./ArtifactToken";
 import { BrainShape } from "./BrainShape";
 
 const colors = {
@@ -11,13 +12,11 @@ const colors = {
   spec: "#3f7569",
   system: "#245f52",
   artifact: "#1d2925",
-  operation: "#625a78",
 } as const;
 
 type GraphNodeProps = {
   node: PortfolioNode;
   selected: boolean;
-  domainActive: boolean;
   focused: boolean;
   showLabel: boolean;
   onSelect: (node: PortfolioNode) => void;
@@ -26,7 +25,6 @@ type GraphNodeProps = {
 export function GraphNode({
   node,
   selected,
-  domainActive,
   focused,
   showLabel,
   onSelect,
@@ -34,10 +32,7 @@ export function GraphNode({
   const [hovered, setHovered] = useState(false);
   const action = nodeAction(node);
   const prominent = node.kind === "artifact";
-  const radius = node.kind === "artifact" ? 0.19 : 0.095;
-  const labelVisible = showLabel && (
-    prominent || hovered || focused || selected || domainActive
-  );
+  const labelVisible = showLabel;
 
   if (node.kind === "brain") {
     return (
@@ -50,7 +45,7 @@ export function GraphNode({
 
   return (
     <group position={node.position}>
-      <mesh
+      <group
         scale={hovered || focused || selected ? 1.38 : 1}
         onClick={(event) => {
           event.stopPropagation();
@@ -65,16 +60,27 @@ export function GraphNode({
           document.body.style.cursor = "";
         }}
       >
-        <sphereGeometry args={[radius, 12, 12]} />
-        <meshStandardMaterial
-          color={colors[node.kind]}
-          emissive={colors[node.kind]}
-          emissiveIntensity={prominent ? 0.08 : 0.04}
-          roughness={node.kind === "artifact" ? 0.24 : 0.72}
-        />
-      </mesh>
+        {node.kind === "artifact" && node.token ? (
+          <ArtifactToken kind={node.token} />
+        ) : (
+          <mesh>
+            <sphereGeometry args={[0.095, 12, 12]} />
+            <meshStandardMaterial
+              color={colors[node.kind]}
+              emissive={colors[node.kind]}
+              emissiveIntensity={0.04}
+              roughness={0.72}
+            />
+          </mesh>
+        )}
+      </group>
       {labelVisible ? (
-        <Html center distanceFactor={11} zIndexRange={[10, 0]}>
+        <Html
+          center
+          distanceFactor={11}
+          position={[0, prominent ? -0.48 : 0.2, 0]}
+          zIndexRange={[10, 0]}
+        >
           <button
             className={`graph-node-label graph-node-label-${node.kind} graph-node-button`}
             type="button"

@@ -26,6 +26,7 @@ describe("node drawer", () => {
       "node-drawer-title",
     );
     expect(screen.getByRole("heading").textContent).toBe(artifact.label);
+    expect(screen.getByText("3 of 3 in this chain")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View case study" }).getAttribute("href")).toBe(
       "/work/kickoff-intake",
     );

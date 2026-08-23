@@ -55,6 +55,35 @@ describe("portfolio content contract", () => {
     }
   });
 
+  it("ends every graph chain at its artifact", () => {
+    for (const artifact of artifacts) {
+      const graphNodes = portfolioNodes.filter(
+        (candidate) => candidate.slug === artifact.slug,
+      );
+      expect(graphNodes.map((node) => node.kind)).toEqual([
+        "spec",
+        "system",
+        "artifact",
+      ]);
+
+      const artifactNode = graphNodes.at(-1);
+      expect(artifactNode?.kind).toBe("artifact");
+      expect(
+        portfolioNodes.some((node) => node.parentId === artifactNode?.id),
+      ).toBe(false);
+      expect(artifact.chain.at(-1)?.layer).toBe("operation");
+    }
+  });
+
+  it("assigns every artifact a distinct visual token", () => {
+    const tokens = portfolioNodes
+      .filter((node) => node.kind === "artifact")
+      .map((node) => (node as typeof node & { token?: string }).token);
+
+    expect(tokens.every(Boolean)).toBe(true);
+    expect(new Set(tokens).size).toBe(artifacts.length);
+  });
+
   it("keeps the evidence-backed career sequence linear", () => {
     expect(careerTimeline.map((item) => item.period)).toEqual([
       "Origin / 2016",

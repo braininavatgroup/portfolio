@@ -4,7 +4,7 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { domains, type DomainId, type PortfolioNode } from "../../lib/portfolio";
+import { domains, type PortfolioNode } from "../../lib/portfolio";
 import type { SceneQuality } from "../../lib/scene-budget";
 import type { TransitionPhase } from "../../lib/transition";
 import { CableNetwork } from "./Cable";
@@ -15,7 +15,6 @@ type BrainGraphProps = {
   nodes: PortfolioNode[];
   focusedNodeId: string | null;
   selectedNodeId: string | null;
-  selectedDomain: DomainId | null;
   quality: SceneQuality;
   onSelect: (node: PortfolioNode) => void;
 };
@@ -25,7 +24,6 @@ export function BrainGraph({
   nodes,
   focusedNodeId,
   selectedNodeId,
-  selectedDomain,
   quality,
   onSelect,
 }: BrainGraphProps) {
@@ -48,7 +46,6 @@ export function BrainGraph({
           key={node.id}
           node={node}
           selected={node.id === selectedNodeId}
-          domainActive={selectedDomain !== null && node.domain === selectedDomain}
           focused={node.id === focusedNodeId}
           showLabel={phase === "graph"}
           onSelect={onSelect}

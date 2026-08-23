@@ -224,7 +224,6 @@ body {
 .legend-spec { --legend-color: #8ec5b7; }
 .legend-system { --legend-color: #70a595; }
 .legend-artifact { --legend-color: #f1ead7; }
-.legend-operation { --legend-color: #817f9e; }
 
 .graph-toolbar > p:not(.eyebrow) {
   color: #91a49d;
@@ -1023,7 +1022,6 @@ input:focus-visible {
 .adjacent-nav span { color: #8ab5a9; display: block; font-size: 0.72rem; margin-bottom: 0.5rem; text-transform: uppercase; }
 
 @media (max-width: 760px) {
-  .graph-node-label-artifact { display: none; }
   .graph-node-label-brain { font-size: 0.52rem; }
   .domain-section { grid-template-columns: 1fr; }
   .artifact-index-list { grid-template-columns: 1fr; }

@@ -13,7 +13,6 @@ const kindLabels: Record<Exclude<PortfolioNode["kind"], "brain">, string> = {
   spec: "Model",
   system: "System",
   artifact: "Artifact",
-  operation: "In use",
 };
 
 export function KeyboardNavigator({

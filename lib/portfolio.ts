@@ -6,6 +6,16 @@ export type ChainLayer =
   | "artifact"
   | "operation";
 export type EvidenceStatus = "available" | "partial" | "needed";
+export type ArtifactTokenKind =
+  | "intake"
+  | "selection"
+  | "report"
+  | "tracker"
+  | "road-case"
+  | "audio"
+  | "maturity"
+  | "toolkit"
+  | "spec";
 
 export type ChainEntry = {
   layer: ChainLayer;
@@ -23,6 +33,7 @@ export type ArtifactRecord = {
   slug: string;
   title: string;
   domain: DomainId;
+  token: ArtifactTokenKind;
   summary: string;
   principle: string;
   decision: string;
@@ -36,12 +47,13 @@ export type PortfolioNode = {
   id: string;
   label: string;
   domain: DomainId | "center";
-  kind: "brain" | "spec" | "system" | "artifact" | "operation";
+  kind: "brain" | "spec" | "system" | "artifact";
   position: readonly [number, number, number];
   slug?: string;
   href?: string;
   detail: string;
   parentId?: string;
+  token?: ArtifactTokenKind;
 };
 
 export const domains = [
@@ -84,6 +96,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "kickoff-intake",
     title: "Campaign kickoff and intake",
     domain: "music",
+    token: "intake",
     summary:
       "A campaign intake loop spanning the client form, workflow automation, desktop control, and payment sequencing.",
     principle: "Design the loop rather than do the task.",
@@ -109,6 +122,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "pitching",
     title: "Pitching system",
     domain: "music",
+    token: "selection",
     summary:
       "Research, curator selection, matching, and outreach arranged around a human approval step.",
     principle: "Taste is encodable. The approval step stays human.",
@@ -133,6 +147,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "reporting",
     title: "Campaign reporting",
     domain: "music",
+    token: "report",
     summary:
       "A reporting chain that finds wins, stages evidence, and turns it into client-facing reports.",
     principle: "Judgment does not scale until it is specified.",
@@ -157,6 +172,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "real-estate-deal-tracker",
     title: "Real-estate deal tracker",
     domain: "consulting",
+    token: "tracker",
     summary:
       "A fuzzy team workflow translated into a schema inside the tools the team already used.",
     principle: "The bottleneck is ambiguity, not capability.",
@@ -181,6 +197,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "touring-advancing-tool",
     title: "Touring advancing tool",
     domain: "consulting",
+    token: "road-case",
     summary:
       "A touring workflow modeled and rebuilt inside familiar tools rather than imposed as a replacement platform.",
     principle: "Meet people inside the tools they already use.",
@@ -205,6 +222,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "dubs",
     title: "Dubs",
     domain: "development",
+    token: "audio",
     summary:
       "A shipped app presented as a complete line from judgment through spec, build, and use.",
     principle: "Thinking tools should preserve the shape of the thought.",
@@ -228,6 +246,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "three-maturity-bundle",
     title: "Three stages of becoming real",
     domain: "development",
+    token: "maturity",
     summary:
       "Rit shipped, a notifications app specified, and a conditional alarm clock sketched as one comparison across maturity.",
     principle: "A good idea becomes legible before it becomes complete.",
@@ -253,6 +272,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "personal-tooling",
     title: "Personal tooling",
     domain: "development",
+    token: "toolkit",
     summary:
       "Macros, controls, task systems, a review loop, and an agent-maintained workflow wiki treated as one operating system.",
     principle: "The artifact and the learning record can be the same object.",
@@ -277,6 +297,7 @@ export const artifacts: ArtifactRecord[] = [
     slug: "spec-discipline",
     title: "Spec discipline",
     domain: "development",
+    token: "spec",
     summary:
       "A real specification, the agent work it produced, and the reusable method used to revise both.",
     principle: "Judgment becomes reusable when the contract is concrete enough to test.",
@@ -312,11 +333,10 @@ const domainCounts = new Map(
     artifacts.filter((artifact) => artifact.domain === domain.id).length,
   ]),
 );
-const layerRadius: Record<Exclude<ChainLayer, "judgment">, number> = {
+const layerRadius: Record<"spec" | "system" | "artifact", number> = {
   spec: 1.7,
   system: 3.1,
   artifact: 4.6,
-  operation: 6,
 };
 
 const chainNodes = artifacts.flatMap((artifact) => {
@@ -328,7 +348,12 @@ const chainNodes = artifacts.flatMap((artifact) => {
   const angle = centerAngle + offset;
 
   return artifact.chain
-    .filter((entry): entry is ChainEntry & { layer: Exclude<ChainLayer, "judgment"> } => entry.layer !== "judgment")
+    .filter(
+      (
+        entry,
+      ): entry is ChainEntry & { layer: "spec" | "system" | "artifact" } =>
+        entry.layer !== "judgment" && entry.layer !== "operation",
+    )
     .map((entry, layerIndex) => {
       const radius = layerRadius[entry.layer];
       const elevation = (index % 3 - 1) * 0.34 + layerIndex * 0.08;
@@ -349,6 +374,7 @@ const chainNodes = artifacts.flatMap((artifact) => {
             ? `/work/${artifact.slug}`
             : `/work/${artifact.slug}#${entry.layer}`,
         detail: entry.detail,
+        token: entry.layer === "artifact" ? artifact.token : undefined,
         parentId:
           layerIndex === 0
             ? artifact.domain === "consulting"

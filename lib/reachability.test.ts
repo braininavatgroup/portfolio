@@ -10,7 +10,6 @@ const expectedRoutes = artifacts.flatMap((artifact) => [
     `/work/${artifact.slug}#spec`,
     `/work/${artifact.slug}#system`,
     `/work/${artifact.slug}`,
-    `/work/${artifact.slug}#operation`,
   ]);
 
 describe("three-way artifact reachability", () => {

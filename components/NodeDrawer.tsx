@@ -4,10 +4,9 @@ import type { RefObject } from "react";
 import type { PortfolioNode } from "../lib/portfolio";
 
 const layerDetails = {
-  spec: { label: "Model", position: "1 of 4" },
-  system: { label: "System", position: "2 of 4" },
-  artifact: { label: "Artifact", position: "3 of 4" },
-  operation: { label: "In use", position: "4 of 4" },
+  spec: { label: "Model", position: "1 of 3" },
+  system: { label: "System", position: "2 of 3" },
+  artifact: { label: "Artifact", position: "3 of 3" },
 } as const;
 
 export function NodeDrawer({

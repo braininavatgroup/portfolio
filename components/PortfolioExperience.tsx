@@ -140,7 +140,7 @@ export function PortfolioExperience({
         {transition.phase === "graph" ? (
           <aside className="graph-toolbar" aria-label="Guided graph tour">
             <p className="eyebrow">Portfolio map</p>
-            <p>Follow a cable from the brain through the model, system, artifact, and work in use.</p>
+            <p>Follow a cable from the brain through the model and system to the finished artifact.</p>
             <div className="domain-controls" aria-label="Guided domain tour">
               {domains.map((domain) => (
                 <button
@@ -164,7 +164,6 @@ export function PortfolioExperience({
               <li className="legend-spec">Model</li>
               <li className="legend-system">System</li>
               <li className="legend-artifact">Artifact</li>
-              <li className="legend-operation">In use</li>
             </ul>
             <KeyboardNavigator
               controlRef={keyboardControlRef}
