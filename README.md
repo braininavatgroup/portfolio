@@ -2,8 +2,6 @@
 
 An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns projects into an explorable graph; every project also has a conventional HTML page.
 
-This repository contains the portfolio itself.
-
 ## Run it
 
 Requires Node.js 22.13 or newer.
