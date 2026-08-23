@@ -60,7 +60,9 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   for (const role of ["Instinct", "Approach", "Output"]) {
     assert.match(html, new RegExp(`<li[^>]*>${role}<\\/li>`, "i"));
   }
-  assert.match(html, /<button[^>]*>[\s\S]*?Explore by keyboard[\s\S]*?<\/button>/i);
+  const keyboardButton = [...html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)]
+    .find(([, content]) => /Explore by keyboard/i.test(content));
+  assert.ok(keyboardButton, "keyboard entry is rendered inside one button");
   assert.doesNotMatch(html, />Keyboard map</i);
   assert.doesNotMatch(html, />Explore the work</i);
 });

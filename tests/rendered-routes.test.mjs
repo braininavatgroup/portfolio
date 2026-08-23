@@ -22,7 +22,7 @@ async function render(pathname) {
   );
 }
 
-test("flat index is a compact public directory of every canonical artifact", async () => {
+test("flat index links every canonical artifact to its own five-section case study", async () => {
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -44,20 +44,33 @@ test("flat index is a compact public directory of every canonical artifact", asy
   assert.ok(timelinePosition < musicPosition, "career context precedes the project directory");
   assert.ok(consultingPosition > musicPosition, "domain order remains intact");
 
-  const slugs = [
-    ...new Set(
-      [...html.matchAll(/href=["']\/work\/([^"'#?]+)["']/g)].map(
-        ([, slug]) => slug,
-      ),
-    ),
-  ];
-  assert.ok(slugs.length > 0, "at least one project route is linked");
+  const projectLinks = new Map();
+  for (const [, attributes, content] of html.matchAll(
+    /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
+  )) {
+    const route = attributes.match(/\bhref=["'](\/work\/[^"'#?]+)["']/i)?.[1];
+    if (!route) continue;
 
-  for (const slug of slugs) {
-    const response = await render(`/work/${slug}`);
+    const title = content.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1];
+    assert.ok(title, `${route} index link contains its project title`);
+    projectLinks.set(route, title.trim());
+  }
+  assert.ok(projectLinks.size > 0, "at least one project route is linked");
+
+  for (const [route, expectedTitle] of projectLinks) {
+    const response = await render(route);
     assert.equal(response.status, 200);
     const caseStudyHtml = await response.text();
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
+    const caseStudyTitle = caseStudyHtml.match(
+      /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
+    )?.[1];
+    assert.ok(caseStudyTitle, `${route} renders a case-study title`);
+    assert.equal(
+      caseStudyTitle.trim(),
+      expectedTitle,
+      `${route} renders its linked project`,
+    );
     for (const layer of [
       "Judgment",
       "Spec or model",

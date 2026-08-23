@@ -123,7 +123,7 @@ The renderer keeps visual choices outside entity records:
 
 Selecting a grouped step opens one drawer with the step framing and its underlying entities. A temporary renderer-owned mapping may preserve today's distinct output tokens. It is not part of the content interface.
 
-The case-study page renders instinct, approach, and output in order, then expands each step's entities. The flat index remains project-based and derives routes from project slugs. Filter controls are deferred unless the revised graph needs them for navigation.
+The graph, drawer, and keyboard navigator use the instinct, approach, and output projection in this stage. The case-study page and flat index intentionally remain compatibility consumers of `ArtifactRecord`. Case studies still render the legacy Judgment, Spec or model, System, Artifact, and Other minds sections. A separate case-study workspace owns their migration to stage-model selectors. Filter controls are deferred unless the revised graph needs them for navigation.
 
 ## Validation and failure handling
 
@@ -147,11 +147,12 @@ Static data failures fail tests and the build. The client does not repair malfor
 
 1. Add stage records and pure lookups without changing UI imports.
 2. Editorially map existing content into grouped triplet steps. Judgment, principle, and decision may inform instinct. Model, specification, and system may share approach. Shipped or delivered material may inform output.
-3. Temporarily derive current project, route, and graph exports from the stage model while consumers migrate.
-4. Move the graph, keyboard navigation, drawers, case studies, and index to the new selectors.
-5. Remove `ChainLayer`, the five-entry `chain()` helper, legacy graph construction, and transitional exports.
+3. Temporarily adapt the current `ArtifactRecord[]` input into the stage model while case-study and index consumers remain on their compatibility path.
+4. Move the graph, keyboard navigation, and drawers to the new selectors.
+5. In the separate case-study workspace, migrate case studies and the index to stage-model selectors without changing current routes or presentation prematurely.
+6. After those consumers migrate, remove `ChainLayer`, the five-entry `chain()` helper, legacy graph construction, and transitional exports.
 
-Current slugs and routes remain stable. The old five-section shape is unsupported after transitional exports are removed. The editorial mapping above is not an automatic rule for later records or projection shapes.
+Current slugs and routes remain stable. The five-section shape is the current compatibility contract and becomes unsupported only after its consumers migrate and transitional exports are removed. The editorial mapping above is not an automatic rule for later records or projection shapes.
 
 ## Verification
 
@@ -161,7 +162,7 @@ Final acceptance includes a Conductor preview walk at the allocated port. Check 
 
 ## Implementation record
 
-Implementation completed on 2026-08-23 through the automated verification boundary. `npm test` passed 64 tests in 15 files. `npm run lint` and `npx tsc --noEmit` exited cleanly. `npm run build` completed all five vinext build stages. `npm run test:rendered` rebuilt the application and passed 3 top-level tests, including data-driven traversal of every project route found in the rendered `/work` index. `git diff --check` also exited cleanly.
+Implementation completed on 2026-08-23 through the automated verification boundary. `npm test` passed 64 tests in 15 files. `npm run lint` and `npx tsc --noEmit` exited cleanly. `npm run build` completed all five vinext build stages. `npm run test:rendered` rebuilt the application and passed 3 top-level tests, including data-driven traversal and project-title identity checks for every route found in the rendered `/work` index. `git diff --check` also exited cleanly.
 
 The build emitted vinext's route-classification notice for `/`, `/work`, and `/work/:slug`; it did not report a build error. The interactive Conductor preview walk is still pending main-agent verification. Automated results do not establish label wrapping, output prominence, pointer cues, keyboard focus behavior in a browser, camera navigation, reduced-motion behavior, WebGL fallback, or final cable legibility.
 
