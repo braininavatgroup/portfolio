@@ -139,8 +139,16 @@ export function validatePortfolioData(data: PortfolioStageData): string[] {
       `projections[${projection.id}].branches`,
       projection.branches.map(({ id }) => id),
     );
+    const branchProjectIds = new Set<string>();
 
     for (const branch of projection.branches) {
+      if (branchProjectIds.has(branch.projectId)) {
+        issues.push(
+          `projections[${projection.id}].branches[${branch.id}].projectId duplicates branch projectId: ${branch.projectId}`,
+        );
+      }
+      branchProjectIds.add(branch.projectId);
+
       if (!projectIds.has(branch.projectId)) {
         issues.push(
           `projections[${projection.id}].branches[${branch.id}].projectId references missing project: ${branch.projectId}`,

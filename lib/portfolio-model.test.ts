@@ -100,6 +100,16 @@ const invalidFixtures = [
     issue: "projections[projection:main].branches[branch:example].projectId references missing project: project:missing",
   },
   {
+    name: "duplicate branch project membership",
+    mutate: (data: PortfolioStageData) => {
+      data.projections[0].branches.push({
+        ...data.projections[0].branches[0],
+        id: "branch:duplicate-example",
+      });
+    },
+    issue: "projections[projection:main].branches[branch:duplicate-example].projectId duplicates branch projectId: project:example",
+  },
+  {
     name: "missing project entity reference",
     mutate: (data: PortfolioStageData) => {
       data.projects[0].entityIds[0] = "example:missing-project-entity";
@@ -166,6 +176,23 @@ describe("portfolio stage model", () => {
     expect(model.data.relations[0].type).toBe(
       "supports-in-a-way-not-yet-taxonomized",
     );
+  });
+
+  // Catches mutations that omit the model's public ID and project/projection lookups.
+  it("returns records for public lookup keys and undefined for misses", () => {
+    const model = createPortfolioModel(fixture);
+
+    expect(model.getEntity("example:output")).toBe(fixture.entities[3]);
+    expect(model.getEntity("example:missing")).toBeUndefined();
+    expect(model.getProjection("projection:main")).toBe(
+      fixture.projections[0],
+    );
+    expect(model.getProjection("projection:missing")).toBeUndefined();
+    expect(model.getBranch("project:example", "projection:main")).toBe(
+      fixture.projections[0].branches[0],
+    );
+    expect(model.getBranch("project:missing", "projection:main")).toBeUndefined();
+    expect(model.getBranch("project:example", "projection:missing")).toBeUndefined();
   });
 
   // Catches mutations that omit structural reference and membership validation.
