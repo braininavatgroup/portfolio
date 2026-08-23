@@ -2,7 +2,7 @@
 
 An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns projects into an explorable graph; every project also has a conventional HTML page.
 
-This repository contains the portfolio itself. Job-search research, opportunity tracking, and application materials live elsewhere.
+This repository contains the portfolio itself.
 
 ## Run it
 
