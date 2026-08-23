@@ -143,14 +143,32 @@ body {
   display: block;
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.62rem;
-  max-width: 9rem;
+  max-width: 12rem;
+  min-width: 7rem;
   padding: 0.35rem 0.55rem;
   text-align: center;
   text-decoration: none;
-  white-space: nowrap;
+  text-wrap: balance;
+  white-space: normal;
 }
 
 .graph-node-button { cursor: pointer; }
+
+.graph-node-label strong,
+.graph-node-label span {
+  display: block;
+}
+
+.graph-node-label-role {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.graph-node-label:focus-visible {
+  outline: 3px solid #76951a;
+  outline-offset: 3px;
+}
 
 .domain-space-label {
   color: #d7ff6f;
