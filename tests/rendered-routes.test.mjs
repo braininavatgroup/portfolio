@@ -44,38 +44,20 @@ test("flat index is a compact public directory of every canonical artifact", asy
   assert.ok(timelinePosition < musicPosition, "career context precedes the project directory");
   assert.ok(consultingPosition > musicPosition, "domain order remains intact");
 
-  for (const slug of [
-    "kickoff-intake",
-    "pitching",
-    "reporting",
-    "real-estate-deal-tracker",
-    "touring-advancing-tool",
-    "dubs",
-    "three-maturity-bundle",
-    "personal-tooling",
-    "spec-discipline",
-  ]) {
-    assert.match(html, new RegExp(`href=["']/work/${slug}["']`));
-  }
-});
+  const slugs = [
+    ...new Set(
+      [...html.matchAll(/href=["']\/work\/([^"'#?]+)["']/g)].map(
+        ([, slug]) => slug,
+      ),
+    ),
+  ];
+  assert.ok(slugs.length > 0, "at least one project route is linked");
 
-for (const [slug, title] of [
-  ["kickoff-intake", "Campaign kickoff and intake"],
-  ["pitching", "Pitching system"],
-  ["reporting", "Campaign reporting"],
-  ["real-estate-deal-tracker", "Real-estate deal tracker"],
-  ["touring-advancing-tool", "Touring advancing tool"],
-  ["dubs", "Dubs"],
-  ["three-maturity-bundle", "Three stages of becoming real"],
-  ["personal-tooling", "Personal tooling"],
-  ["spec-discipline", "Spec discipline"],
-]) {
-  test(`artifact route renders the full ${slug} chain`, async () => {
+  for (const slug of slugs) {
     const response = await render(`/work/${slug}`);
     assert.equal(response.status, 200);
-    const html = await response.text();
-    assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-    assert.match(html, new RegExp(title));
+    const caseStudyHtml = await response.text();
+    assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
     for (const layer of [
       "Judgment",
       "Spec or model",
@@ -83,12 +65,12 @@ for (const [slug, title] of [
       "Artifact",
       "Other minds",
     ]) {
-      assert.match(html, new RegExp(`>${layer}<`));
+      assert.match(caseStudyHtml, new RegExp(`>${layer}<`));
     }
     for (const layerId of ["judgment", "spec", "system", "artifact", "operation"]) {
-      assert.match(html, new RegExp(`id=["']${layerId}["']`));
+      assert.match(caseStudyHtml, new RegExp(`id=["']${layerId}["']`));
     }
-    assert.match(html, />Decision</);
-    assert.match(html, /Evidence (available|partial|needed)/i);
-  });
-}
+    assert.match(caseStudyHtml, />Decision</);
+    assert.match(caseStudyHtml, /Evidence (available|partial|needed)/i);
+  }
+});

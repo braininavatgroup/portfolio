@@ -157,7 +157,13 @@ Current slugs and routes remain stable. The old five-section shape is unsupporte
 
 Test-first implementation covers model lookups, grouped entities, open facets and relation types, structural validation, route preservation, projection reachability, interactions, persistent labels, keyboard traversal, grouped drawer content, builds, and rendered HTML routes without WebGL. Tests derive counts from data instead of freezing today's totals.
 
-Browser control is unavailable in this session, so final acceptance includes a Conductor preview walk at the allocated port. Check label wrapping and overlap in overview and domain focus, output prominence, focus indication, and whether secondary relations obscure the triplet.
+Final acceptance includes a Conductor preview walk at the allocated port. Check label wrapping and overlap in overview and domain focus, output prominence, focus indication, and whether secondary relations obscure the triplet.
+
+## Implementation record
+
+Implementation completed on 2026-08-23 through the automated verification boundary. `npm test` passed 64 tests in 15 files. `npm run lint` and `npx tsc --noEmit` exited cleanly. `npm run build` completed all five vinext build stages. `npm run test:rendered` rebuilt the application and passed 3 top-level tests, including data-driven traversal of every project route found in the rendered `/work` index. `git diff --check` also exited cleanly.
+
+The build emitted vinext's route-classification notice for `/`, `/work`, and `/work/:slug`; it did not report a build error. The interactive Conductor preview walk is still pending main-agent verification. Automated results do not establish label wrapping, output prominence, pointer cues, keyboard focus behavior in a browser, camera navigation, reduced-motion behavior, WebGL fallback, or final cable legibility.
 
 ## Deferred
 
