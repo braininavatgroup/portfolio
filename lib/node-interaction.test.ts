@@ -17,14 +17,10 @@ describe("graph node interaction", () => {
     expect(nodeAction(node("brain"))).toBe("none");
   });
 
-  it.each(["spec", "system", "operation"] as const)(
-    "opens %s nodes in the map detail panel",
+  it.each(["spec", "system", "artifact", "operation"] as const)(
+    "opens %s nodes in the map detail drawer",
     (kind) => {
       expect(nodeAction(node(kind))).toBe("inspect");
     },
   );
-
-  it("opens artifact nodes as case studies", () => {
-    expect(nodeAction(node("artifact"))).toBe("navigate");
-  });
 });

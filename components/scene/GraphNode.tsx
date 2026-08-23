@@ -16,16 +16,28 @@ const colors = {
 
 type GraphNodeProps = {
   node: PortfolioNode;
+  selected: boolean;
+  domainActive: boolean;
   focused: boolean;
   showLabel: boolean;
   onSelect: (node: PortfolioNode) => void;
 };
 
-export function GraphNode({ node, focused, showLabel, onSelect }: GraphNodeProps) {
+export function GraphNode({
+  node,
+  selected,
+  domainActive,
+  focused,
+  showLabel,
+  onSelect,
+}: GraphNodeProps) {
   const [hovered, setHovered] = useState(false);
   const action = nodeAction(node);
   const prominent = node.kind === "artifact";
   const radius = node.kind === "artifact" ? 0.19 : 0.095;
+  const labelVisible = showLabel && (
+    prominent || hovered || focused || selected || domainActive
+  );
 
   if (node.kind === "brain") {
     return (
@@ -39,14 +51,10 @@ export function GraphNode({ node, focused, showLabel, onSelect }: GraphNodeProps
   return (
     <group position={node.position}>
       <mesh
-        scale={hovered || focused ? 1.38 : 1}
+        scale={hovered || focused || selected ? 1.38 : 1}
         onClick={(event) => {
           event.stopPropagation();
-          if (action === "navigate" && node.href) {
-            window.location.assign(node.href);
-          } else if (action === "inspect") {
-            onSelect(node);
-          }
+          if (action === "inspect") onSelect(node);
         }}
         onPointerEnter={() => {
           setHovered(true);
@@ -65,24 +73,15 @@ export function GraphNode({ node, focused, showLabel, onSelect }: GraphNodeProps
           roughness={node.kind === "artifact" ? 0.24 : 0.72}
         />
       </mesh>
-      {(prominent || focused) && showLabel ? (
+      {labelVisible ? (
         <Html center distanceFactor={11} zIndexRange={[10, 0]}>
-          {node.kind === "artifact" && node.href ? (
-            <a
-              className={`graph-node-label graph-node-label-${node.kind}`}
-              href={node.href}
-            >
-              {node.label}
-            </a>
-          ) : (
-            <button
-              className={`graph-node-label graph-node-label-${node.kind} graph-node-button`}
-              type="button"
-              onClick={() => onSelect(node)}
-            >
-              {node.label}
-            </button>
-          )}
+          <button
+            className={`graph-node-label graph-node-label-${node.kind} graph-node-button`}
+            type="button"
+            onClick={() => onSelect(node)}
+          >
+            {node.label}
+          </button>
         </Html>
       ) : null}
     </group>

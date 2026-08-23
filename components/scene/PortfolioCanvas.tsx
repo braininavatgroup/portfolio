@@ -128,6 +128,8 @@ export function PortfolioCanvas({
             phase={phase}
             nodes={portfolioNodes}
             focusedNodeId={focusedNodeId}
+            selectedNodeId={selectedNode?.id ?? null}
+            selectedDomain={selectedDomain}
             quality={quality}
             onSelect={setSelectedNode}
           />
