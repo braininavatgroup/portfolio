@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { KeyboardEvent, RefObject, useRef, useState } from "react";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
 import { portfolioNodes, type PortfolioNode } from "../lib/portfolio";
 
@@ -18,30 +18,44 @@ const kindLabels: Record<Exclude<PortfolioNode["kind"], "brain">, string> = {
 
 export function KeyboardNavigator({
   onNodeFocus,
+  onNodeSelect,
+  selectedNodeId,
+  controlRef,
 }: {
   onNodeFocus: (nodeId: string | null) => void;
+  onNodeSelect: (node: PortfolioNode | null) => void;
+  selectedNodeId: string | null;
+  controlRef?: RefObject<HTMLButtonElement | null>;
 }) {
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
-  const current = nodes[index];
+  const selectedIndex = nodes.findIndex((node) => node.id === selectedNodeId);
+  const currentIndex = selectedIndex >= 0 ? selectedIndex : index;
+  const current = nodes[currentIndex];
 
-  useEffect(() => {
-    onNodeFocus(active ? current?.id ?? null : null);
-    return () => onNodeFocus(null);
-  }, [active, current?.id, onNodeFocus]);
+  function select(nextIndex: number) {
+    const node = nodes[nextIndex];
+    if (!node) return;
+    setActive(true);
+    setIndex(nextIndex);
+    onNodeFocus(node.id);
+    onNodeSelect(node);
+  }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+  function move(direction: "next" | "previous") {
+    select(nextKeyboardIndex(currentIndex, direction, nodes.length));
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
       event.preventDefault();
-      setActive(true);
-      setIndex((value) => nextKeyboardIndex(value, "next", nodes.length));
+      move("next");
       return;
     }
     if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
       event.preventDefault();
-      setActive(true);
-      setIndex((value) => nextKeyboardIndex(value, "previous", nodes.length));
+      move("previous");
       return;
     }
     if (event.key === "Enter" && active && current) {
@@ -52,18 +66,33 @@ export function KeyboardNavigator({
     if (event.key === "Escape") {
       event.preventDefault();
       setActive(false);
+      onNodeFocus(null);
+      onNodeSelect(null);
       trigger.current?.focus();
     }
   }
 
   return (
-    <div className={`keyboard-navigator${active ? " keyboard-active" : ""}`}>
+    <div
+      aria-label="Keyboard map controls"
+      className={`keyboard-navigator${active ? " keyboard-active" : ""}`}
+      onKeyDown={handleKeyDown}
+      role="toolbar"
+    >
       <button
         aria-expanded={active}
-        onClick={() => setActive(true)}
-        onFocus={() => setActive(true)}
-        onKeyDown={handleKeyDown}
-        ref={trigger}
+        onClick={() => {
+          setActive(true);
+          onNodeFocus(current?.id ?? null);
+        }}
+        onFocus={() => {
+          setActive(true);
+          onNodeFocus(current?.id ?? null);
+        }}
+        ref={(element) => {
+          trigger.current = element;
+          if (controlRef) controlRef.current = element;
+        }}
         type="button"
       >
         {active && current ? (
@@ -76,7 +105,19 @@ export function KeyboardNavigator({
           "Explore by keyboard"
         )}
       </button>
-      {active ? <p>Arrow keys move. Enter opens. Escape closes.</p> : null}
+      {active ? (
+        <>
+          <div className="keyboard-step-controls">
+            <button aria-label="Previous node" onClick={() => move("previous")} type="button">
+              Previous
+            </button>
+            <button aria-label="Next node" onClick={() => move("next")} type="button">
+              Next
+            </button>
+          </div>
+          <p>Arrow keys move. Enter opens. Escape closes.</p>
+        </>
+      ) : null}
     </div>
   );
 }

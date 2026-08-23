@@ -77,6 +77,8 @@ type PortfolioCanvasProps = {
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
   focusedNodeId: string | null;
+  selectedNodeId: string | null;
+  onNodeSelect: (node: PortfolioNode) => void;
   onEnter: () => void;
 };
 
@@ -86,9 +88,10 @@ export function PortfolioCanvas({
   selectedDomain,
   reducedMotion,
   focusedNodeId,
+  selectedNodeId,
+  onNodeSelect,
   onEnter,
 }: PortfolioCanvasProps) {
-  const [selectedNode, setSelectedNode] = useState<PortfolioNode | null>(null);
   const [lowPower, setLowPower] = useState(
     () => typeof navigator !== "undefined" && (navigator.hardwareConcurrency || 8) <= 4,
   );
@@ -128,10 +131,10 @@ export function PortfolioCanvas({
             phase={phase}
             nodes={portfolioNodes}
             focusedNodeId={focusedNodeId}
-            selectedNodeId={selectedNode?.id ?? null}
+            selectedNodeId={selectedNodeId}
             selectedDomain={selectedDomain}
             quality={quality}
-            onSelect={setSelectedNode}
+            onSelect={onNodeSelect}
           />
           <SceneDirector
             phase={phase}
@@ -152,15 +155,6 @@ export function PortfolioCanvas({
         </Suspense>
       </Canvas>
 
-      {selectedNode && selectedNode.kind !== "brain" ? (
-        <aside className="node-panel" aria-live="polite">
-          <p className="eyebrow">{selectedNode.kind}</p>
-          <h2>{selectedNode.label}</h2>
-          <p>{selectedNode.detail}</p>
-          {selectedNode.href ? <a href={selectedNode.href}>Open in the case study</a> : null}
-          <button type="button" onClick={() => setSelectedNode(null)}>Close</button>
-        </aside>
-      ) : null}
     </div>
   );
 }

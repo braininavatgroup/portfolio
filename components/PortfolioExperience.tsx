@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { lazy, Suspense, useEffect, useReducer, useState } from "react";
-import { domains, type DomainId } from "../lib/portfolio";
+import { lazy, Suspense, useEffect, useReducer, useRef, useState } from "react";
+import { domains, type DomainId, type PortfolioNode } from "../lib/portfolio";
 import {
   transitionDuration,
   transitionReducer,
 } from "../lib/transition";
 import { TransitionStatus } from "./TransitionStatus";
 import { KeyboardNavigator } from "./KeyboardNavigator";
+import { NodeDrawer } from "./NodeDrawer";
 import { PortfolioChat } from "./PortfolioChat";
 import { FrameSampler } from "./FrameSampler";
 import type { PoseState } from "./scene/BodyScene";
@@ -46,6 +47,8 @@ export function PortfolioExperience({
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<PortfolioNode | null>(null);
+  const keyboardControlRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (transition.phase !== "entering") return;
@@ -86,9 +89,18 @@ export function PortfolioExperience({
             selectedDomain={selectedDomain}
             reducedMotion={reducedMotion}
             focusedNodeId={keyboardNodeId}
+            selectedNodeId={selectedNode?.id ?? null}
+            onNodeSelect={setSelectedNode}
             onEnter={() => dispatch({ type: "ENTER" })}
           />
         </Suspense>
+        {selectedNode && selectedNode.kind !== "brain" ? (
+          <NodeDrawer
+            node={selectedNode}
+            onClose={() => setSelectedNode(null)}
+            returnFocusRef={keyboardControlRef}
+          />
+        ) : null}
 
         <div className="scene-copy">
           <p className="eyebrow">Bradley Berkman portfolio</p>
@@ -138,7 +150,12 @@ export function PortfolioExperience({
               <li className="legend-artifact">Artifact</li>
               <li className="legend-operation">In use</li>
             </ul>
-            <KeyboardNavigator onNodeFocus={setKeyboardNodeId} />
+            <KeyboardNavigator
+              controlRef={keyboardControlRef}
+              onNodeFocus={setKeyboardNodeId}
+              onNodeSelect={setSelectedNode}
+              selectedNodeId={selectedNode?.id ?? null}
+            />
           </aside>
         ) : null}
         <PortfolioChat onPoseChange={setPose} />

@@ -111,10 +111,10 @@ body {
   position: absolute;
 }
 
-.node-panel {
+.node-drawer {
   background: #0d1b18eb;
   border: 1px solid #3c5f56;
-  bottom: 2rem;
+  bottom: 10rem;
   max-width: 24rem;
   padding: 1.25rem;
   position: absolute;
@@ -122,10 +122,13 @@ body {
   z-index: 8;
 }
 
-.node-panel h2 { margin: 0.4rem 0 0.75rem; }
-.node-panel p:not(.eyebrow) { color: #b0bfba; line-height: 1.55; }
-.node-panel button { background: transparent; border: 1px solid #6f8e85; color: inherit; cursor: pointer; padding: 0.5rem 0.8rem; }
-.node-panel a { display: inline-block; font-size: 0.75rem; margin: 0 0.8rem 0.8rem 0; }
+.node-drawer-heading { align-items: flex-start; display: flex; justify-content: space-between; }
+.node-drawer-heading p { margin: 0; }
+.node-drawer h2 { margin: 0.65rem 0 0.75rem; }
+.node-drawer > p { color: #b0bfba; line-height: 1.55; }
+.node-drawer button { background: transparent; border: 1px solid #6f8e85; color: inherit; cursor: pointer; padding: 0.5rem 0.8rem; }
+.node-drawer > a { display: inline-block; font-size: 0.75rem; margin-top: 0.8rem; }
+.node-position { color: #91a49d; font-size: 0.68rem; }
 
 .graph-node-label {
   background: #07100fdd;
@@ -367,6 +370,23 @@ body {
   margin: 0.55rem 0 0;
 }
 
+.keyboard-step-controls {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 0.45rem;
+}
+
+.keyboard-step-controls button {
+  background: transparent;
+  border: 1px solid #34534b;
+  color: #a9bbb5;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  padding: 0.45rem;
+}
+
 .keyboard-navigator > button:hover,
 .keyboard-navigator > button:focus-visible { border-color: #d7ff6f; }
 
@@ -569,6 +589,7 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
+  .node-drawer { bottom: 0; left: 0; max-width: none; right: 0; }
   .experience-header { align-items: flex-start; }
   .experience-header nav { flex-direction: column; gap: 0.6rem; }
   .frame-sampler { top: 3.5rem; }
