@@ -31,7 +31,7 @@ export function GraphNodeLabel({
     return (
       <span
         className="graph-node-label"
-        data-emphasized={emphasized ? "true" : undefined}
+        data-emphasized={emphasized ? "true" : "false"}
       >
         <LabelContent node={node} />
       </span>
@@ -42,7 +42,7 @@ export function GraphNodeLabel({
     <button
       aria-label={`${roleLabel(node.role)} ${node.label}`}
       className="graph-node-label graph-node-button"
-      data-emphasized={emphasized ? "true" : undefined}
+      data-emphasized={emphasized ? "true" : "false"}
       onClick={() => onSelect(node)}
       type="button"
     >

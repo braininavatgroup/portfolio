@@ -140,15 +140,18 @@ body {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 0.35rem;
-  color: #c6d6d0;
-  display: block;
+  color: #d5e0dc;
+  display: flex;
+  flex-direction: column;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.52rem;
-  line-height: 1.2;
+  font-size: 0.68rem;
+  justify-content: center;
+  line-height: 1.25;
   max-width: 8.5rem;
-  min-width: 0;
-  opacity: 0.68;
-  padding: 0.18rem 0.28rem;
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+  opacity: 0.9;
+  padding: 0.16rem 0.3rem;
   text-align: center;
   text-decoration: none;
   text-shadow: 0 1px 0.5rem #07100f;
@@ -166,13 +169,13 @@ body {
 }
 
 .graph-node-label strong {
-  font-weight: 520;
+  font-weight: 450;
 }
 
 .graph-node-label-role {
-  font-size: 0.46rem;
+  font-size: 0.52rem;
   letter-spacing: 0.1em;
-  opacity: 0.76;
+  opacity: 0.84;
   text-transform: uppercase;
 }
 
@@ -184,6 +187,12 @@ body {
   box-shadow: 0 0.25rem 1rem #07100f38;
   color: #eef7f2;
   opacity: 1;
+}
+
+.graph-node-label[data-emphasized="true"] strong,
+.graph-node-label:hover strong,
+.graph-node-label:focus-visible strong {
+  font-weight: 600;
 }
 
 .graph-node-label:focus-visible {
@@ -1147,7 +1156,7 @@ input:focus-visible {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  color: #30453e;
+  color: #263a33;
   text-shadow: 0 1px 0.45rem #fffdf8;
 }
 

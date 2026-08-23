@@ -87,7 +87,6 @@ export function GraphNode({
       {showLabel ? (
         <Html
           center
-          distanceFactor={8.5}
           position={[0, prominent ? -0.48 : 0.2, 0]}
           zIndexRange={[10, 0]}
         >

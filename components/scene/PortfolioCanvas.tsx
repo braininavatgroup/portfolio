@@ -4,6 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
 import { domains, type DomainId } from "../../lib/portfolio";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
@@ -16,59 +17,138 @@ type SceneDirectorProps = {
   phase: TransitionPhase;
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
+  mobile: boolean;
+  nodes: readonly SpatialGraphNode[];
 };
 
-function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorProps) {
-  const { camera } = useThree();
+const graphWorldOffset: Point3 = [0, 1.75, 0];
+
+function SceneDirector({
+  phase,
+  selectedDomain,
+  reducedMotion,
+  mobile,
+  nodes,
+}: SceneDirectorProps) {
+  const { camera, size } = useThree();
   const phaseStarted = useRef(0);
   const start = useRef(new THREE.Vector3(0, 1.35, 10));
+  const guiding = useRef(true);
+  const verticalFovDegrees =
+    camera instanceof THREE.PerspectiveCamera
+      ? camera.fov
+      : mobile
+        ? 52
+        : 43;
+  const selectedDomainRecord = domains.find(
+    (candidate) => candidate.id === selectedDomain,
+  );
+  const framedNodes = useMemo(() => {
+    if (!selectedDomain) return nodes;
+
+    const domainNodes = nodes.filter(
+      ({ groupId }) => groupId === selectedDomain,
+    );
+    return domainNodes.length > 0 ? domainNodes : nodes;
+  }, [nodes, selectedDomain]);
+  const graphFrame = useMemo(
+    () =>
+      frameSpatialNodes({
+        nodes: framedNodes,
+        aspect: size.width / Math.max(size.height, 1),
+        verticalFovDegrees,
+        nodeBoundRadius: 0.6,
+        margin: selectedDomain ? 1.22 : 1.16,
+        worldOffset: graphWorldOffset,
+        viewDirection: selectedDomainRecord
+          ? [
+              Math.cos(selectedDomainRecord.angle),
+              0.42,
+              Math.sin(selectedDomainRecord.angle),
+            ]
+          : undefined,
+      }),
+    [
+      framedNodes,
+      selectedDomain,
+      selectedDomainRecord,
+      size.height,
+      size.width,
+      verticalFovDegrees,
+    ],
+  );
+  const destination = useMemo(() => {
+    if (phase === "body") {
+      return {
+        position: [0, 1.35, 10] as Point3,
+        target: [0, 1.35, 0] as Point3,
+      };
+    }
+    if (phase === "entering") {
+      return {
+        position: [0, 1.75, 0.72] as Point3,
+        target: [0, 1.75, 0] as Point3,
+      };
+    }
+    return graphFrame;
+  }, [graphFrame, phase]);
+  const destinationPosition = useMemo(
+    () => new THREE.Vector3(...destination.position),
+    [destination.position],
+  );
+  const destinationTarget = useMemo(
+    () => new THREE.Vector3(...destination.target),
+    [destination.target],
+  );
 
   useEffect(() => {
     phaseStarted.current = performance.now();
     start.current.copy(camera.position);
-  }, [camera, phase]);
+    guiding.current = true;
+  }, [camera, destinationPosition, destinationTarget]);
 
   useFrame(() => {
-    if (phase === "body") {
-      camera.position.lerp(new THREE.Vector3(0, 1.35, 10), 0.06);
-      camera.lookAt(0, 1.35, 0);
-      return;
-    }
+    if (!guiding.current) return;
 
     if (phase === "entering") {
       const elapsed = performance.now() - phaseStarted.current;
       const raw = reducedMotion ? 1 : Math.min(elapsed / 1500, 1);
       const eased = raw * raw * (3 - 2 * raw);
-      const target = new THREE.Vector3(0, 1.75, 0.72);
-      camera.position.copy(start.current.clone().lerp(target, eased));
-      camera.lookAt(0, 1.75, 0);
+      camera.position.copy(
+        start.current.clone().lerp(destinationPosition, eased),
+      );
+      camera.lookAt(destinationTarget);
+      if (raw === 1) guiding.current = false;
       return;
     }
 
-    if (selectedDomain) {
-      const domain = domains.find((candidate) => candidate.id === selectedDomain);
-      if (domain) {
-        const position = new THREE.Vector3(
-          Math.cos(domain.angle) * 9.8,
-          5.1,
-          Math.sin(domain.angle) * 9.8,
-        );
-        const focus = new THREE.Vector3(
-          Math.cos(domain.angle) * 3.7,
-          1.75,
-          Math.sin(domain.angle) * 3.7,
-        );
-        camera.position.lerp(position, 0.055);
-        camera.lookAt(focus);
-        return;
-      }
+    camera.position.lerp(
+      destinationPosition,
+      reducedMotion ? 1 : phase === "body" ? 0.06 : 0.055,
+    );
+    camera.lookAt(destinationTarget);
+    if (camera.position.distanceTo(destinationPosition) < 0.015) {
+      camera.position.copy(destinationPosition);
+      camera.lookAt(destinationTarget);
+      guiding.current = false;
     }
-
-    camera.position.lerp(new THREE.Vector3(0, 7.1, 18.4), 0.045);
-    camera.lookAt(0, 1.4, 0);
   });
 
-  return null;
+  if (phase !== "graph" || mobile) return null;
+
+  return (
+    <OrbitControls
+      enablePan={false}
+      enableZoom
+      maxDistance={graphFrame.distance * 1.3}
+      maxPolarAngle={Math.PI / 2 - 0.08}
+      minDistance={Math.max(graphFrame.distance * 0.36, 4)}
+      minPolarAngle={Math.PI * 0.14}
+      target={graphFrame.target}
+      rotateSpeed={0.35}
+      zoomSpeed={0.5}
+    />
+  );
 }
 
 type PortfolioCanvasProps = {
@@ -97,9 +177,17 @@ export function PortfolioCanvas({
   const [lowPower, setLowPower] = useState(
     () => typeof navigator !== "undefined" && (navigator.hardwareConcurrency || 8) <= 4,
   );
-  const [mobile] = useState(
+  const [mobile, setMobile] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches,
   );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const updateMobile = () => setMobile(media.matches);
+    updateMobile();
+    media.addEventListener("change", updateMobile);
+    return () => media.removeEventListener("change", updateMobile);
+  }, []);
 
   const quality = useMemo(
     () => getSceneQuality({ reducedMotion, lowPower }),
@@ -141,18 +229,9 @@ export function PortfolioCanvas({
             phase={phase}
             selectedDomain={selectedDomain}
             reducedMotion={reducedMotion}
+            mobile={mobile}
+            nodes={nodes}
           />
-          {phase === "graph" && !mobile ? (
-            <OrbitControls
-              enablePan={false}
-              enableZoom
-              maxDistance={21}
-              minDistance={5}
-              target={[0, 1.6, 0]}
-              rotateSpeed={0.35}
-              zoomSpeed={0.5}
-            />
-          ) : null}
         </Suspense>
       </Canvas>
 

@@ -30,11 +30,12 @@ describe("GraphNodeLabel", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", {
-        name: /Approach.+Requirements and field map/,
-      }),
-    ).toBeTruthy();
+    const label = screen.getByRole("button", {
+      name: /Approach.+Requirements and field map/,
+    });
+
+    expect(label).toBeTruthy();
+    expect(label.getAttribute("data-emphasized")).toBe("false");
   });
 
   it("renders an inert label as text without a button", () => {
