@@ -30,10 +30,16 @@ export type SpatialGraphNode = {
 export type SpatialGroup = { id: string; label: string; angle: number };
 
 const radiusByRole: Record<TripletRole, number> = {
-  instinct: 1.7,
-  approach: 3.1,
-  output: 4.6,
+  instinct: 2.1,
+  approach: 4,
+  output: 5.8,
 };
+
+const preferredBranchAngleStep = 0.52;
+const branchHeightStep = 0.34;
+
+const circularDistance = (left: number, right: number) =>
+  Math.abs(Math.atan2(Math.sin(left - right), Math.cos(left - right)));
 
 const unknownGroupId = (project: ProjectRecord) =>
   project.facets?.domain?.[0] ?? "ungrouped";
@@ -73,6 +79,31 @@ export function projectSpatialGraph(input: {
         (input.groups.length + unknownGroups.length),
     ]),
   );
+  const groupAngles = new Map([
+    ...input.groups.map(({ id, angle }) => [id, angle] as const),
+    ...unknownAngles,
+  ]);
+
+  const branchAngleStep = (groupId: string, branchCount: number) => {
+    if (branchCount < 2) return 0;
+
+    const groupAngle = groupAngles.get(groupId)!;
+    const otherAngles = [...groupAngles.entries()].flatMap(([id, angle]) =>
+      id === groupId ? [] : [angle],
+    );
+    const nearestGroupDistance =
+      otherAngles.length > 0
+        ? Math.min(
+            ...otherAngles.map((angle) => circularDistance(groupAngle, angle)),
+          )
+        : Math.PI * 2;
+    const availableFan = nearestGroupDistance * 0.55;
+
+    return Math.min(
+      preferredBranchAngleStep,
+      availableFan / (branchCount - 1),
+    );
+  };
 
   const nodes: SpatialGraphNode[] = [
     {
@@ -92,9 +123,11 @@ export function projectSpatialGraph(input: {
     const groupId = unknownGroupId(project);
     const branches = branchesByGroup.get(groupId)!;
     const branchIndex = branches.indexOf(branch);
+    const centeredBranchIndex = branchIndex - (branches.length - 1) / 2;
     const angle =
-      (groupsById.get(groupId)?.angle ?? unknownAngles.get(groupId)!) +
-      (branchIndex - (branches.length - 1) / 2) * 0.24;
+      groupAngles.get(groupId)! +
+      centeredBranchIndex * branchAngleStep(groupId, branches.length);
+    const height = branches.length > 2 ? centeredBranchIndex * branchHeightStep : 0;
     let parentId = input.root.id;
 
     for (const step of branch.steps) {
@@ -105,7 +138,11 @@ export function projectSpatialGraph(input: {
         label: step.title,
         detail: step.summary,
         role: step.role,
-        position: [Math.cos(angle) * radius, 0, Math.sin(angle) * radius],
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ],
         entityIds: step.entityIds,
         parentId,
         projectId: project.id,

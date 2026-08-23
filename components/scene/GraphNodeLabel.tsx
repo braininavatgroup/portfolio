@@ -5,6 +5,7 @@ import type { SpatialGraphNode } from "../../lib/spatial-graph";
 type GraphNodeLabelProps = {
   node: SpatialGraphNode;
   interactive: boolean;
+  emphasized: boolean;
   onSelect: (node: SpatialGraphNode) => void;
 };
 
@@ -23,11 +24,15 @@ function LabelContent({ node }: { node: SpatialGraphNode }) {
 export function GraphNodeLabel({
   node,
   interactive,
+  emphasized,
   onSelect,
 }: GraphNodeLabelProps) {
   if (!interactive) {
     return (
-      <span className="graph-node-label">
+      <span
+        className="graph-node-label"
+        data-emphasized={emphasized ? "true" : undefined}
+      >
         <LabelContent node={node} />
       </span>
     );
@@ -37,6 +42,7 @@ export function GraphNodeLabel({
     <button
       aria-label={`${roleLabel(node.role)} ${node.label}`}
       className="graph-node-label graph-node-button"
+      data-emphasized={emphasized ? "true" : undefined}
       onClick={() => onSelect(node)}
       type="button"
     >

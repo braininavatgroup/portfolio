@@ -124,6 +124,77 @@ describe("spatial graph projection", () => {
     expect(musicInstincts[0].position).not.toEqual(musicInstincts[1].position);
   });
 
+  it("places each branch role progressively farther from the root", () => {
+    const nodes = projectSpatialGraph({ projection, projects, root, groups });
+    const branchNodes = nodes.filter(
+      ({ projectId }) => projectId === "music-one",
+    );
+    const radialDistance = ({ position }: (typeof branchNodes)[number]) =>
+      Math.hypot(position[0], position[2]);
+
+    expect(radialDistance(branchNodes[0])).toBeLessThan(
+      radialDistance(branchNodes[1]),
+    );
+    expect(radialDistance(branchNodes[1])).toBeLessThan(
+      radialDistance(branchNodes[2]),
+    );
+  });
+
+  it("fans branches across a meaningful share of the space between groups", () => {
+    const crowdedProjects = [
+      project("music-one", "music"),
+      project("music-two", "music"),
+      project("music-three", "music"),
+      project("consulting-one", "consulting"),
+    ];
+    const nodes = projectSpatialGraph({
+      projection: {
+        ...projection,
+        branches: crowdedProjects.map(({ id }) => branch(id)),
+      },
+      projects: crowdedProjects,
+      root,
+      groups,
+    });
+    const musicAngles = nodes
+      .filter(
+        ({ groupId, role }) => groupId === "music" && role === "instinct",
+      )
+      .map(({ position }) => Math.atan2(position[2], position[0]));
+    const fanWidth = Math.max(...musicAngles) - Math.min(...musicAngles);
+    const groupSeparation = Math.PI;
+
+    expect(fanWidth).toBeGreaterThan(groupSeparation / 4);
+  });
+
+  it("vertically staggers crowded branches around their group plane", () => {
+    const crowdedProjects = [
+      project("music-one", "music"),
+      project("music-two", "music"),
+      project("music-three", "music"),
+      project("music-four", "music"),
+      project("consulting-one", "consulting"),
+    ];
+    const nodes = projectSpatialGraph({
+      projection: {
+        ...projection,
+        branches: crowdedProjects.map(({ id }) => branch(id)),
+      },
+      projects: crowdedProjects,
+      root,
+      groups,
+    });
+    const musicHeights = nodes
+      .filter(
+        ({ groupId, role }) => groupId === "music" && role === "instinct",
+      )
+      .map(({ position }) => position[1]);
+
+    expect(new Set(musicHeights).size).toBe(musicHeights.length);
+    expect(Math.min(...musicHeights)).toBeLessThan(0);
+    expect(Math.max(...musicHeights)).toBeGreaterThan(0);
+  });
+
   it("distributes projects without a known group instead of collapsing them", () => {
     const unknownProject = project("unknown", "unclassified");
     const nodes = projectSpatialGraph({

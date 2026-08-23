@@ -136,19 +136,25 @@ body {
 .node-position { color: #91a49d; font-size: 0.68rem; }
 
 .graph-node-label {
-  background: #07100fdd;
-  border: 1px solid #45685f;
-  border-radius: 999px;
-  color: #eef7f2;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: #c6d6d0;
   display: block;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.62rem;
-  max-width: 12rem;
-  min-width: 7rem;
-  padding: 0.35rem 0.55rem;
+  font-size: 0.52rem;
+  line-height: 1.2;
+  max-width: 8.5rem;
+  min-width: 0;
+  opacity: 0.68;
+  padding: 0.18rem 0.28rem;
   text-align: center;
   text-decoration: none;
+  text-shadow: 0 1px 0.5rem #07100f;
   text-wrap: balance;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease, color 120ms ease, opacity 120ms ease;
   white-space: normal;
 }
 
@@ -159,10 +165,25 @@ body {
   display: block;
 }
 
+.graph-node-label strong {
+  font-weight: 520;
+}
+
 .graph-node-label-role {
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+  opacity: 0.76;
   text-transform: uppercase;
+}
+
+.graph-node-label[data-emphasized="true"],
+.graph-node-label:hover,
+.graph-node-label:focus-visible {
+  background: #07100fe8;
+  border-color: #45685f;
+  box-shadow: 0 0.25rem 1rem #07100f38;
+  color: #eef7f2;
+  opacity: 1;
 }
 
 .graph-node-label:focus-visible {
@@ -1123,10 +1144,20 @@ input:focus-visible {
 }
 
 [data-theme="light"] .graph-node-label {
-  background: #fffdf8ed;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #30453e;
+  text-shadow: 0 1px 0.45rem #fffdf8;
+}
+
+[data-theme="light"] .graph-node-label[data-emphasized="true"],
+[data-theme="light"] .graph-node-label:hover,
+[data-theme="light"] .graph-node-label:focus-visible {
+  background: #fffdf8f5;
   border-color: #8da098;
-  color: #17211e;
   box-shadow: 0 0.25rem 1rem #33483f18;
+  color: #17211e;
 }
 
 [data-theme="light"] .domain-space-label {

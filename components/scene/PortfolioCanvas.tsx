@@ -49,14 +49,14 @@ function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorPr
       const domain = domains.find((candidate) => candidate.id === selectedDomain);
       if (domain) {
         const position = new THREE.Vector3(
-          Math.cos(domain.angle) * 8.2,
-          4.4,
-          Math.sin(domain.angle) * 8.2,
+          Math.cos(domain.angle) * 9.8,
+          5.1,
+          Math.sin(domain.angle) * 9.8,
         );
         const focus = new THREE.Vector3(
-          Math.cos(domain.angle) * 2.8,
+          Math.cos(domain.angle) * 3.7,
           1.75,
-          Math.sin(domain.angle) * 2.8,
+          Math.sin(domain.angle) * 3.7,
         );
         camera.position.lerp(position, 0.055);
         camera.lookAt(focus);
@@ -64,8 +64,8 @@ function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorPr
       }
     }
 
-    camera.position.lerp(new THREE.Vector3(0, 5.8, 14.8), 0.045);
-    camera.lookAt(0, 1.3, 0);
+    camera.position.lerp(new THREE.Vector3(0, 7.1, 18.4), 0.045);
+    camera.lookAt(0, 1.4, 0);
   });
 
   return null;
@@ -118,7 +118,7 @@ export function PortfolioCanvas({
         }}
       >
         <color attach="background" args={["#f4f1e8"]} />
-        <fog attach="fog" args={["#f4f1e8", 9, 24]} />
+        <fog attach="fog" args={["#f4f1e8", 11, 30]} />
         <ambientLight intensity={1.05} color="#ffffff" />
         <directionalLight position={[4, 8, 7]} intensity={2} color="#fff4cf" />
         <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />
@@ -146,7 +146,7 @@ export function PortfolioCanvas({
             <OrbitControls
               enablePan={false}
               enableZoom
-              maxDistance={16}
+              maxDistance={21}
               minDistance={5}
               target={[0, 1.6, 0]}
               rotateSpeed={0.35}

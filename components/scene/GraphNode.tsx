@@ -87,13 +87,14 @@ export function GraphNode({
       {showLabel ? (
         <Html
           center
-          distanceFactor={11}
+          distanceFactor={8.5}
           position={[0, prominent ? -0.48 : 0.2, 0]}
           zIndexRange={[10, 0]}
         >
           <GraphNodeLabel
             node={node}
             interactive={interactive}
+            emphasized={hovered || focused || selected}
             onSelect={onSelect}
           />
         </Html>

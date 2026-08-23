@@ -21,7 +21,14 @@ const approachNode: SpatialGraphNode = {
 
 describe("GraphNodeLabel", () => {
   it("exposes the projection role and full title in an interactive label", () => {
-    render(<GraphNodeLabel node={approachNode} interactive onSelect={() => {}} />);
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
 
     expect(
       screen.getByRole("button", {
@@ -31,7 +38,14 @@ describe("GraphNodeLabel", () => {
   });
 
   it("renders an inert label as text without a button", () => {
-    render(<GraphNodeLabel node={approachNode} interactive={false} onSelect={() => {}} />);
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive={false}
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
 
     expect(screen.getByText("Approach")).toBeTruthy();
     expect(screen.getByText("Requirements and field map")).toBeTruthy();
@@ -40,7 +54,14 @@ describe("GraphNodeLabel", () => {
 
   it("selects the node when its interactive label is clicked", () => {
     const onSelect = vi.fn();
-    render(<GraphNodeLabel node={approachNode} interactive onSelect={onSelect} />);
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive
+        emphasized={false}
+        onSelect={onSelect}
+      />,
+    );
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -49,5 +70,24 @@ describe("GraphNodeLabel", () => {
     );
 
     expect(onSelect).toHaveBeenCalledWith(approachNode);
+  });
+
+  it("exposes the emphasized reading state on the rendered label", () => {
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive
+        emphasized
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", {
+          name: /Approach.+Requirements and field map/,
+        })
+        .getAttribute("data-emphasized"),
+    ).toBe("true");
   });
 });
