@@ -13,11 +13,12 @@ import { GraphNode } from "./GraphNode";
 type BrainGraphProps = {
   phase: TransitionPhase;
   nodes: PortfolioNode[];
+  focusedNodeId: string | null;
   quality: SceneQuality;
   onSelect: (node: PortfolioNode) => void;
 };
 
-export function BrainGraph({ phase, nodes, quality, onSelect }: BrainGraphProps) {
+export function BrainGraph({ phase, nodes, focusedNodeId, quality, onSelect }: BrainGraphProps) {
   const group = useRef<THREE.Group>(null);
 
   useFrame(() => {
@@ -36,6 +37,7 @@ export function BrainGraph({ phase, nodes, quality, onSelect }: BrainGraphProps)
         <GraphNode
           key={node.id}
           node={node}
+          focused={node.id === focusedNodeId}
           showLabel={phase === "graph"}
           onSelect={onSelect}
         />

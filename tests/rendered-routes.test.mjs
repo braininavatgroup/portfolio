@@ -26,7 +26,7 @@ test("flat index is a compact public directory of every canonical artifact", asy
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /href=["']\/#brain["']/);
+  assert.match(html, /href=["']\/\?view=graph["']/);
   assert.match(html, />Selected work</);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);

@@ -4,7 +4,7 @@ const routesForNodes = (nodes: PortfolioNode[]) =>
   nodes
     .filter(
       (node): node is PortfolioNode & { href: string } =>
-        typeof node.href === "string",
+        node.kind !== "brain" && typeof node.href === "string",
     )
     .map((node) => node.href);
 

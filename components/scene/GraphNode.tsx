@@ -2,7 +2,9 @@
 
 import { Html } from "@react-three/drei";
 import { useState } from "react";
+import { nodeAction } from "../../lib/node-interaction";
 import type { PortfolioNode } from "../../lib/portfolio";
+import { BrainShape } from "./BrainShape";
 
 const colors = {
   brain: "#d7ff6f",
@@ -14,31 +16,48 @@ const colors = {
 
 type GraphNodeProps = {
   node: PortfolioNode;
+  focused: boolean;
   showLabel: boolean;
   onSelect: (node: PortfolioNode) => void;
 };
 
-export function GraphNode({ node, showLabel, onSelect }: GraphNodeProps) {
+export function GraphNode({ node, focused, showLabel, onSelect }: GraphNodeProps) {
   const [hovered, setHovered] = useState(false);
-  const prominent = node.kind === "brain" || node.kind === "artifact";
-  const radius = node.kind === "brain" ? 0.5 : node.kind === "artifact" ? 0.19 : 0.095;
+  const action = nodeAction(node);
+  const prominent = node.kind === "artifact";
+  const radius = node.kind === "artifact" ? 0.19 : 0.095;
+
+  if (node.kind === "brain") {
+    return (
+      <group position={node.position}>
+        <BrainShape scale={1.35} />
+        <pointLight color="#d7ff6f" intensity={2.6} distance={4.5} />
+      </group>
+    );
+  }
 
   return (
     <group position={node.position}>
       <mesh
-        scale={hovered ? 1.3 : 1}
+        scale={hovered || focused ? 1.38 : 1}
         onClick={(event) => {
           event.stopPropagation();
-          if (node.kind === "artifact" && node.href) {
+          if (action === "navigate" && node.href) {
             window.location.assign(node.href);
-          } else {
+          } else if (action === "inspect") {
             onSelect(node);
           }
         }}
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
+        onPointerEnter={() => {
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerLeave={() => {
+          setHovered(false);
+          document.body.style.cursor = "";
+        }}
       >
-        <sphereGeometry args={[radius, node.kind === "brain" ? 32 : 12, node.kind === "brain" ? 32 : 12]} />
+        <sphereGeometry args={[radius, 12, 12]} />
         <meshStandardMaterial
           color={colors[node.kind]}
           emissive={colors[node.kind]}
@@ -46,7 +65,7 @@ export function GraphNode({ node, showLabel, onSelect }: GraphNodeProps) {
           roughness={node.kind === "artifact" ? 0.24 : 0.72}
         />
       </mesh>
-      {prominent && showLabel ? (
+      {(prominent || focused) && showLabel ? (
         <Html center distanceFactor={11} zIndexRange={[10, 0]}>
           {node.kind === "artifact" && node.href ? (
             <a

@@ -33,14 +33,19 @@ function useReducedMotion() {
   return reduced;
 }
 
-export function PortfolioExperience() {
+export function PortfolioExperience({
+  initialPhase = "body",
+}: {
+  initialPhase?: "body" | "graph";
+}) {
   const [transition, dispatch] = useReducer(transitionReducer, {
-    phase: "body",
+    phase: initialPhase,
     run: 0,
   });
   const reducedMotion = useReducedMotion();
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [pose, setPose] = useState<PoseState>("idle");
+  const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (transition.phase !== "entering") return;
@@ -56,14 +61,15 @@ export function PortfolioExperience() {
       <TransitionStatus phase={transition.phase} />
       <header className="experience-header">
         <Link className="wordmark" href="/">Bradley Berkman</Link>
-        <nav aria-label="Portfolio views">
-          <Link href="/work">Work</Link>
-          {transition.phase === "graph" ? (
+        {transition.phase === "graph" ? (
+          <nav aria-label="Portfolio views">
+            <span aria-current="page">Map</span>
+            <Link href="/work">All work</Link>
             <button type="button" onClick={() => dispatch({ type: "RESET" })}>
-              Replay entry
+              Replay intro
             </button>
-          ) : null}
-        </nav>
+          </nav>
+        ) : null}
       </header>
 
       <section className="scene-shell" id="brain" aria-label="Spatial portfolio preview">
@@ -79,6 +85,7 @@ export function PortfolioExperience() {
             pose={pose}
             selectedDomain={selectedDomain}
             reducedMotion={reducedMotion}
+            focusedNodeId={keyboardNodeId}
             onEnter={() => dispatch({ type: "ENTER" })}
           />
         </Suspense>
@@ -95,7 +102,7 @@ export function PortfolioExperience() {
               type="button"
               onClick={() => dispatch({ type: "ENTER" })}
             >
-              Enter the graph
+              Explore the work
             </button>
           ) : null}
           {transition.phase === "entering" ? (
@@ -104,8 +111,8 @@ export function PortfolioExperience() {
         </div>
         {transition.phase === "graph" ? (
           <aside className="graph-toolbar" aria-label="Guided graph tour">
-            <p className="eyebrow">Graph open</p>
-            <p>Choose a direction. Radial distance marks distance from judgment.</p>
+            <p className="eyebrow">Portfolio map</p>
+            <p>Follow a cable from the brain through the model, system, artifact, and work in use.</p>
             <div className="domain-controls" aria-label="Guided domain tour">
               {domains.map((domain) => (
                 <button
@@ -125,10 +132,15 @@ export function PortfolioExperience() {
                 Overview
               </button>
             </div>
-            <Link href="/work">Browse all work</Link>
+            <ul className="node-legend" aria-label="Map legend">
+              <li className="legend-spec">Model</li>
+              <li className="legend-system">System</li>
+              <li className="legend-artifact">Artifact</li>
+              <li className="legend-operation">In use</li>
+            </ul>
+            <KeyboardNavigator onNodeFocus={setKeyboardNodeId} />
           </aside>
         ) : null}
-        {transition.phase === "graph" ? <KeyboardNavigator /> : null}
         <PortfolioChat onPoseChange={setPose} />
         <FrameSampler />
       </section>

@@ -15,6 +15,7 @@ type SceneDirectorProps = {
   phase: TransitionPhase;
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
+  focusedNodeId: string | null;
 };
 
 function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorProps) {
@@ -75,6 +76,7 @@ type PortfolioCanvasProps = {
   pose: PoseState;
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
+  focusedNodeId: string | null;
   onEnter: () => void;
 };
 
@@ -83,6 +85,7 @@ export function PortfolioCanvas({
   pose,
   selectedDomain,
   reducedMotion,
+  focusedNodeId,
   onEnter,
 }: PortfolioCanvasProps) {
   const [selectedNode, setSelectedNode] = useState<PortfolioNode | null>(null);
@@ -124,6 +127,7 @@ export function PortfolioCanvas({
           <BrainGraph
             phase={phase}
             nodes={portfolioNodes}
+            focusedNodeId={focusedNodeId}
             quality={quality}
             onSelect={setSelectedNode}
           />
@@ -146,12 +150,12 @@ export function PortfolioCanvas({
         </Suspense>
       </Canvas>
 
-      {selectedNode && !selectedNode.href ? (
+      {selectedNode && selectedNode.kind !== "brain" ? (
         <aside className="node-panel" aria-live="polite">
           <p className="eyebrow">{selectedNode.kind}</p>
           <h2>{selectedNode.label}</h2>
           <p>{selectedNode.detail}</p>
-          {selectedNode.href ? <a href={selectedNode.href}>Open in the flat view</a> : null}
+          {selectedNode.href ? <a href={selectedNode.href}>Open in the case study</a> : null}
           <button type="button" onClick={() => setSelectedNode(null)}>Close</button>
         </aside>
       ) : null}

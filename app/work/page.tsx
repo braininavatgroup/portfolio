@@ -13,16 +13,16 @@ export default function WorkIndex() {
     <main className="flat-index" id="main-content">
       <header className="index-header">
         <nav aria-label="Portfolio views">
-          <Link href="/">Back to the spatial view</Link>
+          <Link href="/?view=graph">Back to the map</Link>
         </nav>
         <p className="eyebrow">Portfolio</p>
         <h1>Selected work</h1>
         <p className="lede">{portfolioThroughline}</p>
         <p>{audienceStatement}</p>
         <div className="index-actions">
-          <Link className="brain-index-link" href="/#brain">
+          <Link className="brain-index-link" href="/?view=graph">
             <span>00</span>
-            Explore the brain graph
+            Explore the map
           </Link>
           <nav className="domain-jumps" aria-label="Jump to a domain">
             {domains.map((domain) => (
