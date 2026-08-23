@@ -4,8 +4,9 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { domains, portfolioNodes, type DomainId, type PortfolioNode } from "../../lib/portfolio";
+import { domains, type DomainId } from "../../lib/portfolio";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
+import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import type { TransitionPhase } from "../../lib/transition";
 import { BodyScene, type PoseState } from "./BodyScene";
 import { BrainGraph } from "./BrainGraph";
@@ -15,7 +16,6 @@ type SceneDirectorProps = {
   phase: TransitionPhase;
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
-  focusedNodeId: string | null;
 };
 
 function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorProps) {
@@ -73,17 +73,19 @@ function SceneDirector({ phase, selectedDomain, reducedMotion }: SceneDirectorPr
 
 type PortfolioCanvasProps = {
   phase: TransitionPhase;
+  nodes: readonly SpatialGraphNode[];
   pose: PoseState;
   selectedDomain: DomainId | null;
   reducedMotion: boolean;
   focusedNodeId: string | null;
   selectedNodeId: string | null;
-  onNodeSelect: (node: PortfolioNode) => void;
+  onNodeSelect: (node: SpatialGraphNode) => void;
   onEnter: () => void;
 };
 
 export function PortfolioCanvas({
   phase,
+  nodes,
   pose,
   selectedDomain,
   reducedMotion,
@@ -129,7 +131,7 @@ export function PortfolioCanvas({
           />
           <BrainGraph
             phase={phase}
-            nodes={portfolioNodes}
+            nodes={nodes}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
             quality={quality}

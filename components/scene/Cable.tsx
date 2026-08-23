@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import type { PortfolioNode } from "../../lib/portfolio";
+import type { SpatialGraphNode } from "../../lib/spatial-graph";
 
 type CurveRecord = {
   curve: THREE.QuadraticBezierCurve3;
@@ -14,7 +14,7 @@ export function CableNetwork({
   nodes,
   pulses,
 }: {
-  nodes: PortfolioNode[];
+  nodes: readonly SpatialGraphNode[];
   pulses: boolean;
 }) {
   const pulsePoints = useRef<THREE.Points>(null);

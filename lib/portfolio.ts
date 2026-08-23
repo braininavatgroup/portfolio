@@ -43,19 +43,6 @@ export type ArtifactRecord = {
   evidence: EvidenceItem[];
 };
 
-export type PortfolioNode = {
-  id: string;
-  label: string;
-  domain: DomainId | "center";
-  kind: "brain" | "spec" | "system" | "artifact";
-  position: readonly [number, number, number];
-  slug?: string;
-  href?: string;
-  detail: string;
-  parentId?: string;
-  token?: ArtifactTokenKind;
-};
-
 export const domains = [
   {
     id: "music" as const,
@@ -324,79 +311,6 @@ export const artifactSlugs = artifacts.map((artifact) => artifact.slug);
 
 export const getArtifact = (slug: string) =>
   artifacts.find((artifact) => artifact.slug === slug);
-
-const domainAngles = new Map(domains.map((domain) => [domain.id, domain.angle]));
-const domainOrder = new Map(domains.map((domain) => [domain.id, 0]));
-const domainCounts = new Map(
-  domains.map((domain) => [
-    domain.id,
-    artifacts.filter((artifact) => artifact.domain === domain.id).length,
-  ]),
-);
-const layerRadius: Record<"spec" | "system" | "artifact", number> = {
-  spec: 1.7,
-  system: 3.1,
-  artifact: 4.6,
-};
-
-const chainNodes = artifacts.flatMap((artifact) => {
-  const index = domainOrder.get(artifact.domain) ?? 0;
-  domainOrder.set(artifact.domain, index + 1);
-  const centerAngle = domainAngles.get(artifact.domain) ?? 0;
-  const count = domainCounts.get(artifact.domain) ?? 1;
-  const offset = (index - (count - 1) / 2) * 0.26;
-  const angle = centerAngle + offset;
-
-  return artifact.chain
-    .filter(
-      (
-        entry,
-      ): entry is ChainEntry & { layer: "spec" | "system" | "artifact" } =>
-        entry.layer !== "judgment" && entry.layer !== "operation",
-    )
-    .map((entry, layerIndex) => {
-      const radius = layerRadius[entry.layer];
-      const elevation = (index % 3 - 1) * 0.34 + layerIndex * 0.08;
-      const id = `${artifact.slug}:${entry.layer}`;
-      return {
-        id,
-        label: entry.layer === "artifact" ? artifact.title : entry.title,
-        domain: artifact.domain,
-        kind: entry.layer,
-        position: [
-          Math.cos(angle) * radius,
-          elevation,
-          Math.sin(angle) * radius,
-        ] as const,
-        slug: artifact.slug,
-        href:
-          entry.layer === "artifact"
-            ? `/work/${artifact.slug}`
-            : `/work/${artifact.slug}#${entry.layer}`,
-        detail: entry.detail,
-        token: entry.layer === "artifact" ? artifact.token : undefined,
-        parentId:
-          layerIndex === 0
-            ? artifact.domain === "consulting"
-              ? "reporting:system"
-              : "brain"
-            : `${artifact.slug}:${artifact.chain[layerIndex].layer}`,
-      } satisfies PortfolioNode;
-    });
-});
-
-export const portfolioNodes: PortfolioNode[] = [
-  {
-    id: "brain",
-    label: "Judgment",
-    domain: "center",
-    kind: "brain",
-    position: [0, 0, 0],
-    href: "/#brain",
-    detail: "I find where judgment matters, then build the system around it.",
-  },
-  ...chainNodes,
-];
 
 export const audienceStatement =
   "For AI product teams, music-world collaborators, and consulting clients looking for someone who can turn judgment into a system without sanding away the character of the work.";

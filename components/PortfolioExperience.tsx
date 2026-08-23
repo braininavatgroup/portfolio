@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { lazy, Suspense, useEffect, useReducer, useRef, useState } from "react";
-import { domains, type DomainId, type PortfolioNode } from "../lib/portfolio";
+import { getEntity } from "../lib/portfolio-data";
+import { domains, type DomainId } from "../lib/portfolio";
+import {
+  portfolioNodes,
+  type SpatialGraphNode,
+} from "../lib/spatial-graph";
 import {
   transitionDuration,
   transitionReducer,
@@ -47,8 +52,15 @@ export function PortfolioExperience({
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<PortfolioNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
   const keyboardControlRef = useRef<HTMLButtonElement>(null);
+  const selectedEntities =
+    selectedNode && selectedNode.role !== "root"
+      ? selectedNode.entityIds.flatMap((entityId) => {
+          const entity = getEntity(entityId);
+          return entity ? [entity] : [];
+        })
+      : [];
 
   useEffect(() => {
     if (transition.phase !== "entering") return;
@@ -100,6 +112,7 @@ export function PortfolioExperience({
           }
         >
           <PortfolioCanvas
+            nodes={portfolioNodes}
             phase={transition.phase}
             pose={pose}
             selectedDomain={selectedDomain}
@@ -110,9 +123,10 @@ export function PortfolioExperience({
             onEnter={() => dispatch({ type: "ENTER" })}
           />
         </Suspense>
-        {selectedNode && selectedNode.kind !== "brain" ? (
+        {selectedNode && selectedNode.role !== "root" ? (
           <NodeDrawer
             node={selectedNode}
+            entities={selectedEntities}
             onClose={() => setSelectedNode(null)}
             returnFocusRef={keyboardControlRef}
           />
@@ -140,7 +154,7 @@ export function PortfolioExperience({
         {transition.phase === "graph" ? (
           <aside className="graph-toolbar" aria-label="Guided graph tour">
             <p className="eyebrow">Portfolio map</p>
-            <p>Follow a cable from the brain through the model and system to the finished artifact.</p>
+            <p>Follow a cable from instinct through approach to output.</p>
             <div className="domain-controls" aria-label="Guided domain tour">
               {domains.map((domain) => (
                 <button
@@ -161,12 +175,13 @@ export function PortfolioExperience({
               </button>
             </div>
             <ul className="node-legend" aria-label="Map legend">
-              <li className="legend-spec">Model</li>
-              <li className="legend-system">System</li>
-              <li className="legend-artifact">Artifact</li>
+              <li className="legend-spec">Instinct</li>
+              <li className="legend-system">Approach</li>
+              <li className="legend-artifact">Output</li>
             </ul>
             <KeyboardNavigator
               controlRef={keyboardControlRef}
+              nodes={portfolioNodes}
               onNodeFocus={setKeyboardNodeId}
               onNodeSelect={setSelectedNode}
               selectedNodeId={selectedNode?.id ?? null}

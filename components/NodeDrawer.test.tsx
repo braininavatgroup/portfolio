@@ -3,33 +3,73 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PortfolioNode } from "../lib/portfolio";
+import type { PortfolioEntity } from "../lib/portfolio-model";
+import type { SpatialGraphNode } from "../lib/spatial-graph";
 import { NodeDrawer } from "./NodeDrawer";
 
 afterEach(cleanup);
 
-const artifact: PortfolioNode = {
-  id: "kickoff-intake:artifact",
-  label: "Campaign kickoff and intake",
-  domain: "music",
-  kind: "artifact",
+const approachNode: SpatialGraphNode = {
+  id: "kickoff-intake:approach",
+  label: "Plan the kickoff loop",
+  detail: "The step joins requirements and workflow design.",
+  role: "approach",
   position: [0, 0, 0],
+  entityIds: ["workflow", "requirements"],
+  projectId: "kickoff-intake",
+  projectSlug: "kickoff-intake",
   href: "/work/kickoff-intake",
-  detail: "The visible form and its linked operational workflow.",
 };
 
+const entities: PortfolioEntity[] = [
+  {
+    id: "requirements",
+    title: "Requirements and field map",
+    summary: "The fields, states, and payment sequence.",
+  },
+  {
+    id: "workflow",
+    title: "Kickoff workflow",
+    summary: "The operational handoff and automation path.",
+    links: [
+      { label: "Duplicate case study", href: "/work/kickoff-intake" },
+      { label: "Inspect workflow", href: "/workflows/kickoff" },
+    ],
+  },
+];
+
 describe("node drawer", () => {
-  it("keeps a selected artifact in the map until its case study action is used", () => {
-    render(<NodeDrawer node={artifact} onClose={() => {}} />);
+  it("renders grouped entities in step order without duplicating the canonical case-study link", () => {
+    render(
+      <NodeDrawer
+        node={approachNode}
+        entities={entities}
+        onClose={() => {}}
+      />,
+    );
 
     expect(screen.getByRole("dialog").getAttribute("aria-labelledby")).toBe(
       "node-drawer-title",
     );
-    expect(screen.getByRole("heading").textContent).toBe(artifact.label);
-    expect(screen.getByText("3 of 3 in this chain")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View case study" }).getAttribute("href")).toBe(
-      "/work/kickoff-intake",
-    );
+    expect(screen.getByText("Approach")).toBeTruthy();
+    expect(screen.getByText("2 of 3 in this projection")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 2, name: approachNode.label }),
+    ).toBeTruthy();
+    expect(screen.getByText(approachNode.detail)).toBeTruthy();
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).map(({ textContent }) => textContent),
+    ).toEqual(["Kickoff workflow", "Requirements and field map"]);
+    expect(screen.getByText("The operational handoff and automation path.")).toBeTruthy();
+    expect(screen.getByText("The fields, states, and payment sequence.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Duplicate case study" })).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Inspect workflow" }).getAttribute("href"),
+    ).toBe("/workflows/kickoff");
+    expect(screen.getAllByRole("link", { name: "View case study" })).toHaveLength(1);
+    expect(
+      screen.getByRole("link", { name: "View case study" }).getAttribute("href"),
+    ).toBe("/work/kickoff-intake");
   });
 
   it("closes and restores focus to the supplied control", () => {
@@ -39,7 +79,8 @@ describe("node drawer", () => {
       <>
         <button ref={returnFocusRef} type="button">Map controls</button>
         <NodeDrawer
-          node={artifact}
+          node={approachNode}
+          entities={entities}
           onClose={onClose}
           returnFocusRef={returnFocusRef}
         />

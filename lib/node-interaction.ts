@@ -1,8 +1,8 @@
-import type { PortfolioNode } from "./portfolio";
+import type { SpatialGraphNode } from "./spatial-graph";
 
 export type NodeAction = "none" | "inspect";
 
-export function nodeAction(node: PortfolioNode): NodeAction {
-  if (node.kind === "brain") return "none";
+export function nodeAction(node: SpatialGraphNode): NodeAction {
+  if (node.role === "root" || !node.projectId || !node.href) return "none";
   return "inspect";
 }
