@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CareerTimeline } from "../../components/CareerTimeline";
-import { RosterEvidence } from "../../components/RosterEvidence";
 import {
   artifacts,
   audienceStatement,
@@ -20,10 +19,6 @@ export default function WorkIndex() {
         <p className="lede">{portfolioThroughline}</p>
         <p>{audienceStatement}</p>
         <div className="index-actions">
-          <Link className="brain-index-link" href="/?view=graph">
-            <span>00</span>
-            Explore the map
-          </Link>
           <nav className="domain-jumps" aria-label="Jump to a domain">
             {domains.map((domain) => (
               <a href={`#${domain.id}`} key={domain.id}>{domain.label}</a>
@@ -31,6 +26,8 @@ export default function WorkIndex() {
           </nav>
         </div>
       </header>
+
+      <CareerTimeline />
 
       {domains.map((domain, domainIndex) => {
         const domainArtifacts = artifacts.filter(
@@ -56,12 +53,10 @@ export default function WorkIndex() {
                   </li>
                 ))}
               </ol>
-              {domain.id === "music" ? <RosterEvidence /> : null}
             </div>
           </section>
         );
       })}
-      <CareerTimeline />
     </main>
   );
 }

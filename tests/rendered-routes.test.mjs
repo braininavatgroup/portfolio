@@ -32,13 +32,16 @@ test("flat index is a compact public directory of every canonical artifact", asy
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
   assert.doesNotMatch(html, /Linear time \/ spatial entry at the pivot/i);
+  assert.doesNotMatch(html, />Explore the map</i);
+  assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
 
+  const timelinePosition = html.indexOf("Career timeline");
   const musicPosition = html.indexOf('id="music"');
-  const rosterPosition = html.indexOf("Brain in a Vat roster");
   const consultingPosition = html.indexOf('id="consulting"');
+  assert.ok(timelinePosition >= 0, "career timeline is rendered");
   assert.ok(musicPosition >= 0, "music domain is rendered");
-  assert.ok(rosterPosition > musicPosition, "roster sits inside the music section");
-  assert.ok(consultingPosition > rosterPosition, "roster no longer interrupts the page introduction");
+  assert.ok(timelinePosition < musicPosition, "career context precedes the project directory");
+  assert.ok(consultingPosition > musicPosition, "domain order remains intact");
 
   for (const slug of [
     "kickoff-intake",
