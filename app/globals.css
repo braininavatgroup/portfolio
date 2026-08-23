@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #07100f;
-  --foreground: #edf4f0;
+  --accent: #c8f347;
+  --accent-ink: #182300;
+  --background: #f4f1e8;
+  --foreground: #17211e;
+  --line: #bdc8c1;
+  --muted: #52645e;
+  --surface: #fffdf8;
 }
 
 @theme inline {
@@ -589,7 +594,8 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
-  .node-drawer { bottom: 0; left: 0; max-width: none; right: 0; }
+  .node-drawer { background: var(--surface); bottom: 0; left: 0; max-width: none; right: 0; }
+  .scene-shell-node-open .portfolio-chat { display: none; }
   .experience-header { align-items: flex-start; }
   .experience-header nav { flex-direction: column; gap: 0.6rem; }
   .frame-sampler { top: 3.5rem; }
@@ -1028,4 +1034,174 @@ input:focus-visible {
   .surface-heading-row { display: block; }
   .surface-stage-controls { grid-template-columns: 1fr 1fr; }
   .comparison-slots { grid-template-columns: 1fr; }
+}
+
+/* Light portfolio system */
+[data-theme="light"] {
+  color: var(--foreground);
+}
+
+[data-theme="light"] .experience-header a,
+[data-theme="light"] .experience-header button,
+[data-theme="light"] .experience-header span {
+  color: var(--foreground);
+}
+
+[data-theme="light"] .experience-header span[aria-current="page"],
+[data-theme="light"] .eyebrow,
+[data-theme="light"] .chain-marker,
+[data-theme="light"] .chain-layer,
+[data-theme="light"] .artifact-main-link > span,
+[data-theme="light"] .adjacent-nav span,
+[data-theme="light"] .career-timeline li > p {
+  color: #536d12;
+}
+
+[data-theme="light"] .scene-fallback,
+[data-theme="light"] .scene-loading {
+  background: var(--background);
+  color: var(--muted);
+}
+
+[data-theme="light"] .node-drawer,
+[data-theme="light"] .graph-toolbar,
+[data-theme="light"] .portfolio-chat {
+  background: #fffdf8ed;
+  border-color: var(--line);
+  box-shadow: 0 1rem 3rem #33483f14;
+}
+
+[data-theme="light"] .node-drawer > p,
+[data-theme="light"] .node-position,
+[data-theme="light"] .graph-toolbar > p:not(.eyebrow),
+[data-theme="light"] .scene-copy > p:not(.eyebrow),
+[data-theme="light"] .lede,
+[data-theme="light"] .domain-heading p:last-child,
+[data-theme="light"] .career-timeline > header > p:last-child,
+[data-theme="light"] .career-timeline li div > p,
+[data-theme="light"] .chain-step p:last-child,
+[data-theme="light"] .decision-panel p:last-child,
+[data-theme="light"] .evidence-panel p,
+[data-theme="light"] .surface-output p:last-child,
+[data-theme="light"] .surface-note {
+  color: var(--muted);
+}
+
+[data-theme="light"] .node-drawer button,
+[data-theme="light"] .keyboard-navigator > button,
+[data-theme="light"] .keyboard-step-controls button,
+[data-theme="light"] .domain-controls button,
+[data-theme="light"] .frame-sampler button {
+  background: var(--surface);
+  border-color: #9fafa7;
+  color: #30413b;
+}
+
+[data-theme="light"] .domain-controls button[aria-pressed="true"],
+[data-theme="light"] .enter-button,
+[data-theme="light"] .portfolio-chat form button,
+[data-theme="light"] .surface-stage-controls button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+[data-theme="light"] .graph-node-label {
+  background: #fffdf8ed;
+  border-color: #8da098;
+  color: #17211e;
+  box-shadow: 0 0.25rem 1rem #33483f18;
+}
+
+[data-theme="light"] .domain-space-label {
+  color: #263a33;
+  text-shadow: 0 0 1rem #f4f1e8;
+}
+
+[data-theme="light"] .domain-controls button[aria-pressed="true"] {
+  color: var(--accent-ink);
+}
+
+[data-theme="light"] .node-legend li,
+[data-theme="light"] .keyboard-navigator > p,
+[data-theme="light"] .keyboard-navigator > button > small,
+[data-theme="light"] .keyboard-navigator > button > span {
+  color: var(--muted);
+}
+
+[data-theme="light"] .keyboard-navigator,
+[data-theme="light"] .chat-inspect {
+  border-color: var(--line);
+}
+
+[data-theme="light"] .portfolio-chat input {
+  background: #ffffff;
+  border-color: #9fafa7;
+  color: var(--foreground);
+}
+
+[data-theme="light"] .portfolio-chat input::placeholder {
+  color: #65756f;
+  opacity: 1;
+}
+
+[data-theme="light"] .frame-sampler output,
+[data-theme="light"] .skip-link {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+[data-theme="light"].flat-index,
+[data-theme="light"].artifact-page {
+  background: var(--background);
+}
+
+[data-theme="light"] .index-header,
+[data-theme="light"] .domain-section,
+[data-theme="light"] .career-timeline,
+[data-theme="light"] .career-timeline ol,
+[data-theme="light"] .career-timeline li,
+[data-theme="light"] .chain-step,
+[data-theme="light"] .adjacent-nav,
+[data-theme="light"] .evidence-panel li {
+  border-color: var(--line);
+}
+
+[data-theme="light"] .domain-jumps a,
+[data-theme="light"] .artifact-main-link,
+[data-theme="light"] .artifact-surface,
+[data-theme="light"] .surface-stage-controls button,
+[data-theme="light"] .surface-output,
+[data-theme="light"] .decision-panel,
+[data-theme="light"] .evidence-panel,
+[data-theme="light"] .comparison-slots > div {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--foreground);
+}
+
+[data-theme="light"] .artifact-main-link small,
+[data-theme="light"] .artifact-main-link em,
+[data-theme="light"] .surface-stage-controls button,
+[data-theme="light"] .comparison-slots span {
+  color: var(--muted);
+}
+
+[data-theme="light"] .artifact-main-link:hover strong,
+[data-theme="light"] .node-index-links a:hover {
+  color: #526b00;
+}
+
+[data-theme="light"] .evidence-available { color: #257447; }
+[data-theme="light"] .evidence-partial { color: #855d00; }
+[data-theme="light"] .evidence-needed { color: #a24437; }
+
+[data-theme="light"] .room-grid {
+  background-image: linear-gradient(#8fa09835 1px, transparent 1px), linear-gradient(90deg, #8fa09835 1px, transparent 1px);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline-color: #688500;
 }

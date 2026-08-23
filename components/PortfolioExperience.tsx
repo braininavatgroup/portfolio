@@ -68,7 +68,11 @@ export function PortfolioExperience({
   }
 
   return (
-    <main className={`experience experience-${transition.phase}`} id="main-content">
+    <main
+      className={`experience experience-${transition.phase}`}
+      data-theme="light"
+      id="main-content"
+    >
       <TransitionStatus phase={transition.phase} />
       <header className="experience-header">
         <Link className="wordmark" href="/" onClick={resetExperience}>Bradley Berkman</Link>
@@ -83,7 +87,11 @@ export function PortfolioExperience({
         ) : null}
       </header>
 
-      <section className="scene-shell" id="brain" aria-label="Spatial portfolio preview">
+      <section
+        aria-label="Spatial portfolio preview"
+        className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}`}
+        id="brain"
+      >
         <Suspense
           fallback={
             <div className="scene-loading" role="status">

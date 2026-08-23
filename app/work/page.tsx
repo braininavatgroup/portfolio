@@ -9,7 +9,7 @@ import {
 
 export default function WorkIndex() {
   return (
-    <main className="flat-index" id="main-content">
+    <main className="flat-index" data-theme="light" id="main-content">
       <header className="index-header">
         <nav aria-label="Portfolio views">
           <Link href="/?view=graph">Back to the map</Link>

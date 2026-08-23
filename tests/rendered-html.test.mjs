@@ -31,6 +31,7 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.match(html, /<title>Bradley Berkman \| Judgment at the center<\/title>/i);
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
+  assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, />Explore the work</i);
   assert.doesNotMatch(html, /<header class=["']experience-header["']>[\s\S]*?<nav/i);
   assert.doesNotMatch(html, />All work</i);
@@ -52,6 +53,7 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   assert.equal(response.status, 200);
   const html = await response.text();
 
+  assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
   assert.match(html, /href=["']\/work["'][^>]*>All work</i);
   assert.match(html, />Explore by keyboard</i);

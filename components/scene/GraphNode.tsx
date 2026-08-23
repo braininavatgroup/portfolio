@@ -8,10 +8,10 @@ import { BrainShape } from "./BrainShape";
 
 const colors = {
   brain: "#d7ff6f",
-  spec: "#8ec5b7",
-  system: "#70a595",
-  artifact: "#f1ead7",
-  operation: "#817f9e",
+  spec: "#3f7569",
+  system: "#245f52",
+  artifact: "#1d2925",
+  operation: "#625a78",
 } as const;
 
 type GraphNodeProps = {
@@ -69,7 +69,7 @@ export function GraphNode({
         <meshStandardMaterial
           color={colors[node.kind]}
           emissive={colors[node.kind]}
-          emissiveIntensity={prominent ? 0.42 : 0.12}
+          emissiveIntensity={prominent ? 0.08 : 0.04}
           roughness={node.kind === "artifact" ? 0.24 : 0.72}
         />
       </mesh>

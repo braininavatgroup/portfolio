@@ -62,14 +62,14 @@ export function CableNetwork({
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[segmentPositions, 3]} />
         </bufferGeometry>
-        <lineBasicMaterial color="#4d7469" transparent opacity={0.46} />
+        <lineBasicMaterial color="#3f675d" transparent opacity={0.58} />
       </lineSegments>
       {pulses ? (
         <points ref={pulsePoints}>
           <bufferGeometry>
             <bufferAttribute attach="attributes-position" args={[pulsePositions, 3]} />
           </bufferGeometry>
-          <pointsMaterial color="#d7ff6f" size={0.085} sizeAttenuation transparent opacity={0.9} />
+          <pointsMaterial color="#76951a" size={0.085} sizeAttenuation transparent opacity={0.92} />
         </points>
       ) : null}
     </group>

@@ -34,7 +34,7 @@ export default async function ArtifactPage({ params }: ArtifactPageProps) {
   const next = artifacts[(currentIndex + 1) % artifacts.length];
 
   return (
-    <main className="artifact-page" id="main-content">
+    <main className="artifact-page" data-theme="light" id="main-content">
       <nav className="artifact-nav" aria-label="Artifact navigation">
         <Link href="/?view=graph">Map</Link>
         <Link href="/work">All work</Link>

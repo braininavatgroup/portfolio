@@ -115,11 +115,11 @@ export function PortfolioCanvas({
           if (isSoftwareRenderer(gl.getContext())) setLowPower(true);
         }}
       >
-        <color attach="background" args={["#07100f"]} />
-        <fog attach="fog" args={["#07100f", 9, 24]} />
-        <ambientLight intensity={0.8} color="#9ec2b8" />
-        <directionalLight position={[4, 8, 7]} intensity={2.2} color="#f1ffdb" />
-        <pointLight position={[-5, 1, 2]} intensity={15} distance={12} color="#287b68" />
+        <color attach="background" args={["#f4f1e8"]} />
+        <fog attach="fog" args={["#f4f1e8", 9, 24]} />
+        <ambientLight intensity={1.05} color="#ffffff" />
+        <directionalLight position={[4, 8, 7]} intensity={2} color="#fff4cf" />
+        <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />
         <Suspense fallback={null}>
           <BodyScene
             visible={phase !== "graph"}
