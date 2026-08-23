@@ -50,23 +50,25 @@ export function NodeDrawer({
         </div>
         <button aria-label="Close details" onClick={close} type="button">Close</button>
       </div>
-      <h2 id="node-drawer-title">{node.label}</h2>
-      <p>{node.detail}</p>
-      {orderedEntities.map((entity) => (
-        <section key={entity.id}>
-          <h3>{entity.title}</h3>
-          <p>{entity.summary}</p>
-          {entity.detail ? <p>{entity.detail}</p> : null}
-          {entity.links
-            ?.filter(({ href }) => href !== node.href)
-            .map((link) => (
-              <a href={link.href} key={`${link.label}:${link.href}`}>
-                {link.label}
-              </a>
-            ))}
-        </section>
-      ))}
-      {node.href ? <a href={node.href}>View case study</a> : null}
+      <div className="node-drawer-content">
+        <h2 id="node-drawer-title">{node.label}</h2>
+        <p>{node.detail}</p>
+        {orderedEntities.map((entity) => (
+          <section key={entity.id}>
+            <h3>{entity.title}</h3>
+            <p>{entity.summary}</p>
+            {entity.detail ? <p>{entity.detail}</p> : null}
+            {entity.links
+              ?.filter(({ href }) => href !== node.href)
+              .map((link) => (
+                <a href={link.href} key={`${link.label}:${link.href}`}>
+                  {link.label}
+                </a>
+              ))}
+          </section>
+        ))}
+        {node.href ? <a href={node.href}>View case study</a> : null}
+      </div>
     </aside>
   );
 }

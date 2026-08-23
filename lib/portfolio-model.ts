@@ -85,6 +85,14 @@ export function validatePortfolioData(data: PortfolioStageData): string[] {
   duplicateIds("relations", data.relations.map(({ id }) => id));
   duplicateIds("projections", data.projections.map(({ id }) => id));
 
+  const projectSlugs = new Set<string>();
+  for (const { slug } of data.projects) {
+    if (projectSlugs.has(slug)) {
+      issues.push(`projects has duplicate slug: ${slug}`);
+    }
+    projectSlugs.add(slug);
+  }
+
   const projectIds = new Set(data.projects.map(({ id }) => id));
   const entityIds = new Set(data.entities.map(({ id }) => id));
   const relationIds = new Set(data.relations.map(({ id }) => id));

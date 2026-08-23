@@ -162,9 +162,11 @@ Final acceptance includes a Conductor preview walk at the allocated port. Check 
 
 ## Implementation record
 
-Implementation completed on 2026-08-23 through the automated verification boundary. `npm test` passed 64 tests in 15 files. `npm run lint` and `npx tsc --noEmit` exited cleanly. `npm run build` completed all five vinext build stages. `npm run test:rendered` rebuilt the application and passed 3 top-level tests, including data-driven traversal and project-title identity checks for every route found in the rendered `/work` index. `git diff --check` also exited cleanly.
+Implementation reached the automated verification boundary on 2026-08-23. Fresh post-fix verification recorded `npm test` passing 72 tests in 16 files. `npm run lint` and `npx tsc --noEmit` exited cleanly. `npm run build` completed all five vinext build stages. `npm run test:rendered` rebuilt the application and passed 3 top-level tests, including data-driven traversal and project-title identity checks for every route found in the rendered `/work` index. `git diff --check` also exited cleanly.
 
 The build emitted vinext's route-classification notice for `/`, `/work`, and `/work/:slug`; it did not report a build error. The interactive Conductor preview walk is still pending main-agent verification. Automated results do not establish label wrapping, output prominence, pointer cues, keyboard focus behavior in a browser, camera navigation, reduced-motion behavior, WebGL fallback, or final cable legibility.
+
+The first user preview found excessive clustering and text prominence. The follow-up bounds-fit and unboxed-label correction is present in the implementation. Narrow-phone review and final visual acceptance remain for the user's eye; this record does not claim that visual walk is complete.
 
 ## Deferred
 

@@ -79,6 +79,16 @@ const fixture: PortfolioStageData = {
 
 const invalidFixtures = [
   {
+    name: "duplicate project slugs",
+    mutate: (data: PortfolioStageData) => {
+      data.projects.push({
+        ...data.projects[0],
+        id: "project:duplicate-example",
+      });
+    },
+    issue: "projects has duplicate slug: example",
+  },
+  {
     name: "duplicate IDs",
     mutate: (data: PortfolioStageData) => {
       data.entities.push({ ...data.entities[0] });

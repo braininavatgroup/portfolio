@@ -72,6 +72,32 @@ describe("node drawer", () => {
     ).toBe("/work/kickoff-intake");
   });
 
+  it("keeps the heading and close control outside the scrolling details", () => {
+    render(
+      <NodeDrawer
+        node={approachNode}
+        entities={entities}
+        onClose={() => {}}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const details = dialog.querySelector(".node-drawer-content");
+
+    expect(details).not.toBeNull();
+    if (!details) throw new Error("Drawer details must have their own scroll region.");
+
+    expect(details.contains(
+      screen.getByRole("heading", { level: 2, name: approachNode.label }),
+    )).toBe(true);
+    expect(details.contains(
+      screen.getByRole("heading", { level: 3, name: "Kickoff workflow" }),
+    )).toBe(true);
+    expect(details.contains(
+      screen.getByRole("button", { name: "Close details" }),
+    )).toBe(false);
+  });
+
   it("closes and restores focus to the supplied control", () => {
     const onClose = vi.fn();
     const returnFocusRef = createRef<HTMLButtonElement>();

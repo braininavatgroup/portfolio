@@ -120,19 +120,24 @@ body {
   background: #0d1b18eb;
   border: 1px solid #3c5f56;
   bottom: 10rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 11rem);
   max-width: 24rem;
+  overflow: hidden;
   padding: 1.25rem;
   position: absolute;
   right: 2rem;
   z-index: 8;
 }
 
-.node-drawer-heading { align-items: flex-start; display: flex; justify-content: space-between; }
+.node-drawer-heading { align-items: flex-start; background: inherit; display: flex; flex: 0 0 auto; justify-content: space-between; position: sticky; top: 0; z-index: 1; }
 .node-drawer-heading p { margin: 0; }
+.node-drawer-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .node-drawer h2 { margin: 0.65rem 0 0.75rem; }
-.node-drawer > p { color: #b0bfba; line-height: 1.55; }
+.node-drawer-content > p { color: #b0bfba; line-height: 1.55; }
 .node-drawer button { background: transparent; border: 1px solid #6f8e85; color: inherit; cursor: pointer; padding: 0.5rem 0.8rem; }
-.node-drawer > a { display: inline-block; font-size: 0.75rem; margin-top: 0.8rem; }
+.node-drawer-content > a { display: inline-block; font-size: 0.75rem; margin-top: 0.8rem; }
 .node-position { color: #91a49d; font-size: 0.68rem; }
 
 .graph-node-label {
@@ -641,7 +646,7 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
-  .node-drawer { background: var(--surface); bottom: 0; left: 0; max-width: none; right: 0; }
+  .node-drawer { background: var(--surface); bottom: 0; left: 0; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); max-width: none; right: 0; }
   .scene-shell-node-open .portfolio-chat { display: none; }
   .experience-header { align-items: flex-start; }
   .experience-header nav { flex-direction: column; gap: 0.6rem; }
