@@ -5,30 +5,14 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { classifyPose, poseReply, type PoseReply } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
 
-const questions = [
-  "Where does judgment stay human?",
-  "Show me a system someone else can run.",
-  "Which work actually shipped?",
-  "How did curator selection work?",
-];
-
 export function PortfolioChat({
   onPoseChange,
 }: {
   onPoseChange: (pose: PoseState) => void;
 }) {
   const [input, setInput] = useState("");
-  const [questionIndex, setQuestionIndex] = useState(0);
   const [reply, setReply] = useState<PoseReply | null>(null);
   const idleTimer = useRef<number | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setQuestionIndex((index) => (index + 1) % questions.length),
-      4200,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(
     () => () => {
@@ -64,7 +48,7 @@ export function PortfolioChat({
           id="portfolio-question"
           name="question"
           onChange={(event) => setInput(event.target.value)}
-          placeholder={questions[questionIndex]}
+          placeholder="Ask about the work, decisions, or outcomes."
           type="text"
           value={input}
         />
@@ -75,9 +59,7 @@ export function PortfolioChat({
           <p>{reply.text}</p>
           <Link href={reply.href}>{reply.linkLabel}</Link>
         </div>
-      ) : (
-        <p className="chat-note">Try one of the rotating questions or ask your own.</p>
-      )}
+      ) : null}
     </section>
   );
 }

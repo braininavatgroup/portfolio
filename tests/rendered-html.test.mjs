@@ -36,6 +36,11 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.doesNotMatch(html, />All work</i);
   assert.match(html, /for=["']portfolio-question["']/i);
   assert.match(html, /id=["']portfolio-question["']/i);
+  assert.match(
+    html,
+    /placeholder=["']Ask about the work, decisions, or outcomes\.["']/i,
+  );
+  assert.doesNotMatch(html, /Try one of the rotating questions/i);
   assert.match(html, /aria-live=["']polite["']/i);
   assert.doesNotMatch(html, /No external model is called/i);
   assert.doesNotMatch(html, /Local tool/i);
@@ -50,6 +55,6 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
   assert.match(html, /href=["']\/work["'][^>]*>All work</i);
   assert.match(html, />Explore by keyboard</i);
-  assert.doesNotMatch(html, /Keyboard map/i);
+  assert.doesNotMatch(html, />Keyboard map</i);
   assert.doesNotMatch(html, />Explore the work</i);
 });

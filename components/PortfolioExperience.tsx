@@ -59,16 +59,24 @@ export function PortfolioExperience({
     return () => window.clearTimeout(timer);
   }, [reducedMotion, transition.phase, transition.run]);
 
+  function resetExperience() {
+    setSelectedDomain(null);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+    setPose("idle");
+    dispatch({ type: "RESET" });
+  }
+
   return (
     <main className={`experience experience-${transition.phase}`} id="main-content">
       <TransitionStatus phase={transition.phase} />
       <header className="experience-header">
-        <Link className="wordmark" href="/">Bradley Berkman</Link>
+        <Link className="wordmark" href="/" onClick={resetExperience}>Bradley Berkman</Link>
         {transition.phase === "graph" ? (
           <nav aria-label="Portfolio views">
             <span aria-current="page">Map</span>
             <Link href="/work">All work</Link>
-            <button type="button" onClick={() => dispatch({ type: "RESET" })}>
+            <button type="button" onClick={resetExperience}>
               Replay intro
             </button>
           </nav>
