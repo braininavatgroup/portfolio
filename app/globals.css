@@ -1122,7 +1122,7 @@ input:focus-visible {
   box-shadow: 0 1rem 3rem #33483f14;
 }
 
-[data-theme="light"] .node-drawer > p,
+[data-theme="light"] .node-drawer-content > p,
 [data-theme="light"] .node-position,
 [data-theme="light"] .graph-toolbar > p:not(.eyebrow),
 [data-theme="light"] .scene-copy > p:not(.eyebrow),
