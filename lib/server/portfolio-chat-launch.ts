@@ -46,7 +46,7 @@ export type PortfolioChatLaunchResult =
   | {
       ok: true;
       requestId: string;
-      safetyIdentifier: string;
+      safetyIdentifier?: string;
     }
   | { ok: false; response: Response };
 
@@ -378,6 +378,9 @@ export function createPortfolioChatLaunchGuard({
       record?.({ event: "portfolio_chat_preflight", requestId, outcome });
       return rejection(status, outcome, message);
     };
+    if (!config.previewEnabled && !config.turnstileRequired) {
+      return { ok: true, requestId };
+    }
     if (!isConfigured(config, rateLimiter, verifyTurnstile)) {
       return reject(
         503,
