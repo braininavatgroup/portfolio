@@ -109,14 +109,15 @@
 ### Task 5: Combined proof and delivery
 
 **Files:**
+- Create: `tests/built-worker-chat.test.mjs`
 - Modify: `tests/rendered-html.test.mjs`
 - Modify: `README.md`
 
 **Interfaces:**
-- Proves runtime gates fail closed and a production build with planted server-secret sentinels does not inline those values into any JavaScript, map, or manifest artifact.
+- Proves runtime gates fail closed through the built Worker under local workerd, and a production build with planted server-secret sentinels does not inline those values into any JavaScript, map, or manifest artifact.
 
 - [x] Extend runtime proof for both disabled endpoints and missing-binding failure, then expand built secret-isolation proof.
 - [x] Run targeted unit tests for every changed seam.
-- [ ] Run `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, and `npm run test:rendered` on the final diff.
-- [ ] Inspect `git diff --check`, the staged diff, and `git diff origin/main...HEAD` for unrelated files or activation values.
+- [x] Run `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, and `npm run test:rendered` on the final diff.
+- [x] Inspect `git diff --check`, the staged diff, and `git diff origin/main...HEAD` for unrelated files or activation values.
 - [ ] Commit explicit paths, publish the branch, and prepare a pull request under the configured bot identity when GitHub authentication is available.
