@@ -14,6 +14,7 @@ import { getOutputToken } from "./output-token-map";
 
 const colors: Record<SpatialGraphNode["role"], string> = {
   root: "#d7ff6f",
+  domain: "#8da535",
   instinct: "#3f7569",
   approach: "#245f52",
   output: "#1d2925",
@@ -42,6 +43,7 @@ export function GraphNode({
   const tokenGroup = useRef<THREE.Group>(null);
   const interactive = nodeAction(node) !== "none";
   const prominent = node.role === "output";
+  const processNode = node.role === "instinct" || node.role === "approach";
   const outputToken =
     prominent && node.projectSlug
       ? getOutputToken(node.projectSlug)
@@ -112,12 +114,18 @@ export function GraphNode({
           emphasized
             ? prominent
               ? 1.72
-              : 1.42
+              : processNode
+                ? 1.65
+                : 1.42
             : dimmed
-              ? 0.68
+              ? 0.62
               : prominent
                 ? 1.34
-                : 1
+                : processNode
+                  ? 1.45
+                  : node.role === "domain"
+                    ? 1.12
+                    : 1
         }
         {...(interactive
           ? {
@@ -136,7 +144,24 @@ export function GraphNode({
             }
           : {})}
       >
-        {outputToken ? (
+        {node.role === "domain" ? (
+          <group>
+            <mesh>
+              <icosahedronGeometry args={[0.28, 1]} />
+              <meshStandardMaterial
+                color={colors.domain}
+                emissive="#60791b"
+                emissiveIntensity={0.22}
+                metalness={0.08}
+                roughness={0.62}
+              />
+            </mesh>
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.43, 0.025, 8, 40]} />
+              <meshBasicMaterial color="#657b25" transparent opacity={0.78} />
+            </mesh>
+          </group>
+        ) : outputToken ? (
           <OutputToken kind={outputToken} />
         ) : (
           <group>
@@ -149,7 +174,13 @@ export function GraphNode({
           center
           position={[
             0,
-            prominent ? -0.66 : node.role === "approach" ? 0.46 : 0.38,
+            prominent
+              ? -0.66
+              : node.role === "domain"
+                ? 0.62
+                : node.role === "approach"
+                  ? 0.46
+                  : 0.38,
             0,
           ]}
           zIndexRange={[4, 0]}

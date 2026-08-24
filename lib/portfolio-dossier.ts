@@ -9,7 +9,9 @@ export type PortfolioDossierRecord = CaseStudy & {
 export function getPortfolioDossier(
   node: SpatialGraphNode,
 ): PortfolioDossierRecord | undefined {
-  if (node.role === "root" || !node.projectSlug) return undefined;
+  if (node.role === "root" || node.role === "domain" || !node.projectSlug) {
+    return undefined;
+  }
   const caseStudy = getCaseStudy(node.projectSlug);
   return caseStudy ? { ...caseStudy, selectedRole: node.role } : undefined;
 }

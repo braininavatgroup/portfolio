@@ -1,13 +1,10 @@
 "use client";
 
-import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { nextGraphSpin } from "../../lib/graph-spin";
-import { domains } from "../../lib/portfolio";
 import type { DomainId } from "../../lib/portfolio";
-import { visibleGraphNodes } from "../../lib/graph-emphasis";
 import type { SceneQuality } from "../../lib/scene-budget";
 import { brainWorldOrigin } from "../../lib/scene-origin";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
@@ -35,7 +32,9 @@ export function BrainGraph({
   onSelect,
 }: BrainGraphProps) {
   const group = useRef<THREE.Group>(null);
-  const renderedNodes = visibleGraphNodes(nodes, selectedDomain);
+  const selectedProjectId = nodes.find(
+    ({ id }) => id === selectedNodeId,
+  )?.projectId;
 
   useFrame(() => {
     if (!group.current) return;
@@ -52,38 +51,27 @@ export function BrainGraph({
   return (
     <group ref={group} position={brainWorldOrigin} scale={0.001}>
       <CableNetwork
-        nodes={renderedNodes}
+        nodes={nodes}
         pulses={quality.pulses}
         activeNodeId={focusedNodeId ?? selectedNodeId}
         selectedDomain={selectedDomain}
       />
-      {renderedNodes.map((node) => (
+      {nodes.map((node) => (
         <GraphNode
           key={node.id}
           node={node}
           selected={node.id === selectedNodeId}
           focused={node.id === focusedNodeId}
-          dimmed={false}
+          dimmed={Boolean(
+            selectedProjectId &&
+              node.projectId &&
+              node.projectId !== selectedProjectId,
+          )}
           animated={quality.pulses}
           showLabel={phase === "graph"}
           onSelect={onSelect}
         />
       ))}
-      {phase === "graph" && selectedDomain === null ? domains.map((domain) => (
-        <Html
-          center
-          key={domain.id}
-          position={[
-            Math.cos(domain.angle) * 8.45,
-            0.9,
-            Math.sin(domain.angle) * 8.45,
-          ]}
-          distanceFactor={12}
-          zIndexRange={[3, 0]}
-        >
-          <span className="domain-space-label">{domain.label}</span>
-        </Html>
-      )) : null}
     </group>
   );
 }

@@ -7,11 +7,27 @@ import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./scene/PortfolioCanvas", () => ({
   PortfolioCanvas: ({
+    nodes,
     onNodeSelect,
   }: {
+    nodes: readonly SpatialGraphNode[];
     onNodeSelect: (node: SpatialGraphNode) => void;
   }) => (
     <div data-testid="scene-canvas">
+      <output data-testid="visible-node-roles">
+        {nodes.map(({ role }) => role).join(",")}
+      </output>
+      <button
+        onClick={() => {
+          const domain = nodes.find(
+            (node) => node.role === "domain" && node.groupId === "music",
+          );
+          if (domain) onNodeSelect(domain);
+        }}
+        type="button"
+      >
+        Select Music domain
+      </button>
       <button
         onClick={() =>
           onNodeSelect({
@@ -92,6 +108,39 @@ describe("spatial self-portrait", () => {
 
     expect(screen.queryByRole("button", { name: "Explore the work" })).toBeNull();
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
+  });
+
+  it("starts with the compact hierarchy and lets a domain hub focus its projects", async () => {
+    await renderExperience();
+
+    expect(screen.getByTestId("visible-node-roles").textContent).toBe(
+      [
+        "root",
+        "domain",
+        "domain",
+        "domain",
+        "output",
+        "output",
+        "output",
+        "output",
+        "output",
+        "output",
+        "output",
+        "output",
+        "output",
+      ].join(","),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Music domain" }));
+
+    expect(screen.getByTestId("visible-node-roles").textContent).toBe(
+      ["root", "domain", "output", "output", "output"].join(","),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Music promotion" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 
   it("opens a complete project dossier and lets the Bradley root restore the index", async () => {

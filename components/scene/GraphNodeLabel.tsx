@@ -14,11 +14,27 @@ type GraphNodeLabelProps = {
 const roleLabel = (role: SpatialGraphNode["role"]) =>
   `${role.slice(0, 1).toUpperCase()}${role.slice(1)}`;
 
+const compactStepLabel = {
+  instinct: "01 · Instinct",
+  approach: "02 · Approach",
+  output: "03 · Output",
+} as const;
+
 function LabelContent({ node }: { node: SpatialGraphNode }) {
+  if (node.role === "instinct" || node.role === "approach") {
+    return (
+      <span className="graph-node-label-role">
+        {compactStepLabel[node.role]}
+      </span>
+    );
+  }
+
   return (
     <>
       {node.role === "output" ? (
-        <span className="graph-node-label-role">Output</span>
+        <span className="graph-node-label-role">
+          {compactStepLabel.output}
+        </span>
       ) : null}
       <strong>{node.label}</strong>
     </>

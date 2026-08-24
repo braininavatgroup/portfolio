@@ -20,7 +20,10 @@ export function KeyboardNavigator({
   onNodeSelect: (node: SpatialGraphNode | null) => void;
   selectedNodeId: string | null;
 }) {
-  const actionableNodes = nodes.filter((node) => nodeAction(node) === "inspect");
+  const actionableNodes = nodes.filter((node) => {
+    const action = nodeAction(node);
+    return action === "focus" || action === "inspect";
+  });
   const [index, setIndex] = useState(-1);
   const selectedIndex = actionableNodes.findIndex(
     (node) => node.id === selectedNodeId,

@@ -1,6 +1,7 @@
 "use client";
 
 import { lazy, Suspense, useEffect, useState } from "react";
+import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
@@ -42,6 +43,10 @@ export function PortfolioExperience() {
   const dossier = selectedNode
     ? getPortfolioDossier(selectedNode)
     : undefined;
+  const visibleNodes = visibleGraphNodes(portfolioNodes, {
+    selectedDomain,
+    selectedProjectId: selectedNode?.projectId ?? null,
+  });
 
   function showIndex() {
     setSelectedDomain(null);
@@ -58,6 +63,12 @@ export function PortfolioExperience() {
   function selectNode(node: SpatialGraphNode | null) {
     if (!node || node.role === "root") {
       showIndex();
+      return;
+    }
+
+    if (node.role === "domain") {
+      const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
+      selectDomain(domain);
       return;
     }
 
@@ -92,7 +103,7 @@ export function PortfolioExperience() {
           }
         >
           <PortfolioCanvas
-            nodes={portfolioNodes}
+            nodes={visibleNodes}
             phase="graph"
             pose={pose}
             selectedDomain={selectedDomain}
@@ -111,7 +122,7 @@ export function PortfolioExperience() {
         />
 
         <KeyboardNavigator
-          nodes={portfolioNodes}
+          nodes={visibleNodes}
           onNodeFocus={setKeyboardNodeId}
           onNodeSelect={selectNode}
           selectedNodeId={selectedNode?.id ?? null}

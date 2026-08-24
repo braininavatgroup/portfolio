@@ -61,6 +61,7 @@ export function PortfolioDossier({
         />
       ) : (
         <PortfolioIndex
+          key={selectedDomain ?? "all-domains"}
           onDomainSelect={onDomainSelect}
           onDragStart={onDragStart}
           selectedDomain={selectedDomain}

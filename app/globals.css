@@ -420,11 +420,34 @@ body {
 }
 
 .graph-node-label[data-role="instinct"] {
+  background: #fffdf8e8;
+  border-color: #afbbb5;
   color: #41675e;
+  opacity: 1;
+  padding: 0.22rem 0.34rem;
 }
 
 .graph-node-label[data-role="approach"] {
+  background: #fffdf8e8;
+  border-color: #9eaea6;
   color: #274d44;
+  opacity: 1;
+  padding: 0.22rem 0.34rem;
+}
+
+.graph-node-label[data-role="domain"] {
+  background: #f1f3dee8;
+  border-color: #aeb985;
+  color: #526816;
+  font-size: 0.61rem;
+  letter-spacing: 0.08em;
+  opacity: 1;
+  padding: 0.2rem 0.34rem;
+  text-transform: uppercase;
+}
+
+.graph-node-label[data-role="domain"] strong {
+  font-weight: 650;
 }
 
 .graph-node-label[data-role="output"] {
@@ -446,13 +469,13 @@ body {
   opacity: 0.13;
 }
 
-.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"]) {
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"]):not([data-role="domain"]) {
   opacity: 0;
   pointer-events: none;
 }
 
-.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"])[data-emphasized="true"],
-.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"]):focus-visible {
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"]):not([data-role="domain"])[data-emphasized="true"],
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):not([data-role="root"]):not([data-role="domain"]):focus-visible {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1577,11 +1600,21 @@ input:focus-visible {
 }
 
 [data-theme="light"] .graph-node-label[data-role="instinct"] {
+  background: #fffdf8e8;
+  border-color: #afbbb5;
   color: #41675e;
 }
 
 [data-theme="light"] .graph-node-label[data-role="approach"] {
+  background: #fffdf8e8;
+  border-color: #9eaea6;
   color: #274d44;
+}
+
+[data-theme="light"] .graph-node-label[data-role="domain"] {
+  background: #f1f3dee8;
+  border-color: #aeb985;
+  color: #526816;
 }
 
 [data-theme="light"] .graph-node-label[data-role="output"] {

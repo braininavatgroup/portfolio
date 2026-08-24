@@ -20,7 +20,7 @@ const approachNode: SpatialGraphNode = {
 };
 
 describe("GraphNodeLabel", () => {
-  it("exposes the projection role and full title in an interactive label", () => {
+  it("keeps the full step title accessible while showing a compact role label", () => {
     render(
       <GraphNodeLabel
         node={approachNode}
@@ -36,9 +36,11 @@ describe("GraphNodeLabel", () => {
 
     expect(label).toBeTruthy();
     expect(label.getAttribute("data-emphasized")).toBe("false");
+    expect(screen.getByText("02 · Approach")).toBeTruthy();
+    expect(screen.queryByText("Requirements and field map")).toBeNull();
   });
 
-  it("keeps the role in the accessible name without repeating it visually", () => {
+  it("uses the same compact role label for an inert step", () => {
     render(
       <GraphNodeLabel
         node={approachNode}
@@ -48,8 +50,8 @@ describe("GraphNodeLabel", () => {
       />,
     );
 
-    expect(screen.getByText("Requirements and field map")).toBeTruthy();
-    expect(screen.queryByText("Approach")).toBeNull();
+    expect(screen.getByText("02 · Approach")).toBeTruthy();
+    expect(screen.queryByText("Requirements and field map")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
 

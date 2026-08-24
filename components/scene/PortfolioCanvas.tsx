@@ -5,7 +5,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
-import { visibleGraphNodes } from "../../lib/graph-emphasis";
 import { domains, type DomainId } from "../../lib/portfolio";
 import { brainWorldOrigin } from "../../lib/scene-origin";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
@@ -49,10 +48,9 @@ function SceneDirector({
   const framedNodes = useMemo(() => {
     if (!selectedDomain) return nodes;
 
-    const domainNodes = visibleGraphNodes(nodes, selectedDomain);
     const focusedNodes = mobile
-      ? domainNodes.filter(({ role }) => role !== "root")
-      : domainNodes;
+      ? nodes.filter(({ role }) => role !== "root")
+      : nodes;
     return focusedNodes.length > 0 ? focusedNodes : nodes;
   }, [mobile, nodes, selectedDomain]);
   const graphFrame = useMemo(
@@ -70,8 +68,8 @@ function SceneDirector({
               ? [0, 0.5]
               : [0, 0]
             : selectedDomain
-              ? [-0.9, -0.22]
-              : [-1.55, -0.48],
+              ? [1.8, -0.22]
+              : [1.15, -0.48],
         viewDirection: selectedDomainRecord
           ? mobile
             ? [

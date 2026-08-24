@@ -17,6 +17,16 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["brain"],
   },
   {
+    id: "domain:development",
+    label: "Development",
+    detail: "Development projects",
+    role: "domain",
+    position: [0.5, 0, 0],
+    entityIds: ["domain:development"],
+    parentId: "brain",
+    groupId: "development",
+  },
+  {
     id: "example:instinct",
     label: "Find the costly judgment",
     detail: "Instinct detail",

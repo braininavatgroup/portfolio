@@ -19,6 +19,20 @@ describe("graph node interaction", () => {
     expect(nodeAction(node("root"))).toBe("index");
   });
 
+  it("uses domain hubs to focus their project neighborhood", () => {
+    expect(
+      nodeAction({
+        id: "domain:music",
+        label: "Music promotion",
+        detail: "Music projects",
+        role: "domain",
+        position: [1, 0, 0],
+        entityIds: ["domain:music"],
+        groupId: "music",
+      }),
+    ).toBe("focus");
+  });
+
   it.each(["instinct", "approach", "output"] as const)(
     "opens an actionable %s step in the map detail drawer",
     (role) => {
