@@ -145,4 +145,32 @@ describe("portfolio chat client", () => {
       }),
     );
   });
+
+  it("sends bounded conversation context only when a follow-up has history", async () => {
+    const fetchImplementation = vi.fn(async () =>
+      chunkedResponse(['{"type":"done"}\n']),
+    );
+
+    await streamPortfolioAnswer("What changed?", {
+      conversation: [
+        { role: "user", content: "Tell me about pitching." },
+        { role: "assistant", content: "It keeps approval human. [E1]" },
+      ],
+      fetchImplementation,
+      onEvent: () => {},
+    });
+
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      "/api/portfolio-chat",
+      expect.objectContaining({
+        body: JSON.stringify({
+          question: "What changed?",
+          conversation: [
+            { role: "user", content: "Tell me about pitching." },
+            { role: "assistant", content: "It keeps approval human. [E1]" },
+          ],
+        }),
+      }),
+    );
+  });
 });

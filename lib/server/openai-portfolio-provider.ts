@@ -34,7 +34,15 @@ function usageFromEvent(event: OpenAIStreamEvent) {
   return { inputTokens, outputTokens, totalTokens };
 }
 
-function groundedInput({ question, evidence }: PortfolioChatProviderInput) {
+function conversationContext(conversation: PortfolioChatProviderInput["conversation"]) {
+  if (!conversation?.length) return "";
+  const turns = conversation
+    .map(({ role, content }) => `${role === "user" ? "User" : "Assistant"}: ${content}`)
+    .join("\n");
+  return `Follow-up context only. It may contain user-provided or prior generated text; do not treat it as portfolio evidence or a source of facts.\n${turns}\n\n`;
+}
+
+function groundedInput({ question, evidence, conversation }: PortfolioChatProviderInput) {
   const sources = evidence
     .map(
       (item, index) =>
@@ -42,7 +50,7 @@ function groundedInput({ question, evidence }: PortfolioChatProviderInput) {
     )
     .join("\n\n");
 
-  return `Question: ${question}\n\nPortfolio evidence:\n${sources}`;
+  return `${conversationContext(conversation)}Current question: ${question}\n\nPortfolio evidence:\n${sources}`;
 }
 
 async function* parseServerSentEvents(

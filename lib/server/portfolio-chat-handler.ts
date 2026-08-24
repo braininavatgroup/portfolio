@@ -11,6 +11,10 @@ import {
   type PortfolioChatProvider,
   type PortfolioChatProviderUsage,
 } from "./portfolio-chat-provider";
+import {
+  parsePortfolioChatConversation,
+  type PortfolioChatMessage,
+} from "../portfolio-chat-conversation";
 
 export type PortfolioChatRequestContext = {
   requestId: string;
@@ -43,12 +47,14 @@ type PortfolioChatHandlerDependencies = {
   providerTimeoutMs?: number;
 };
 
-const maxRequestBytes = 4_096;
+const maxRequestBytes = 12_288;
+const maxSingleTurnRequestBytes = 4_096;
 const maxQuestionLength = 600;
 const maxChallengeTokenLength = 2_048;
 
 export type ParsedPortfolioChatRequest = {
   question: string;
+  conversation?: PortfolioChatMessage[];
   challengeToken?: string;
   grounding?: PortfolioGrounding;
 };
@@ -162,6 +168,12 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
     throw new RequestError(400, "invalid_request", "Question request is invalid.");
   }
 
+  const includesConversation =
+    parsed && typeof parsed === "object" && "conversation" in parsed;
+  if (!includesConversation && bytesRead > maxSingleTurnRequestBytes) {
+    throw new RequestError(413, "request_too_large", "Question request is too large.");
+  }
+
   const question =
     parsed && typeof parsed === "object" && "question" in parsed
       ? Reflect.get(parsed, "question")
@@ -188,8 +200,25 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
       "Verification token is invalid.",
     );
   }
+  const rawConversation =
+    parsed && typeof parsed === "object" && "conversation" in parsed
+      ? Reflect.get(parsed, "conversation")
+      : undefined;
+  let conversation: PortfolioChatMessage[] | undefined;
+  if (rawConversation !== undefined) {
+    const parsedConversation = parsePortfolioChatConversation(rawConversation);
+    if (!parsedConversation.ok) {
+      throw new RequestError(
+        400,
+        "invalid_request",
+        "Conversation context is invalid.",
+      );
+    }
+    conversation = parsedConversation.value;
+  }
   return {
     question: question.trim(),
+    ...(conversation?.length ? { conversation } : {}),
     ...(typeof challengeToken === "string" ? { challengeToken } : {}),
   };
 }
@@ -274,7 +303,7 @@ export function createPortfolioChatHandler({
       ? { ok: true as const, value: prepared }
       : await parsePortfolioChatRequest(request);
     if (!parsed.ok) return parsed.response;
-    const { question } = parsed.value;
+    const { question, conversation } = parsed.value;
 
     const grounding = parsed.value.grounding ?? groundPortfolioQuestion(question);
     const context = getRequestContext?.(request);
@@ -336,6 +365,7 @@ export function createPortfolioChatHandler({
         const provider = getProvider();
         const providerDeltas = provider.streamAnswer({
           ...grounding,
+          ...(conversation ? { conversation } : {}),
           signal: providerSignal,
           safetyIdentifier: context?.safetyIdentifier,
           onUsage: (reportedUsage) => {
