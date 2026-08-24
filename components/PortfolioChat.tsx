@@ -240,6 +240,11 @@ export function PortfolioChat({
     }
   }
 
+  const citedEvidence = evidence.flatMap((item, index) => {
+    const label = index + 1;
+    return answer.includes(`[E${label}]`) ? [{ item, label }] : [];
+  });
+
   return (
     <section
       ref={chatRegion}
@@ -298,7 +303,7 @@ export function PortfolioChat({
           </div>
         </form>
       ) : null}
-      {answer || message || evidence.length > 0 || pending ? (
+      {answer || message || citedEvidence.length > 0 || pending ? (
         <div className="chat-reply" aria-live="polite">
           {answer ? (
             <section aria-labelledby="chat-answer-heading" className="chat-answer">
@@ -308,17 +313,17 @@ export function PortfolioChat({
           ) : null}
           {message ? <p className="chat-message">{message}</p> : null}
           {pending && !answer ? <p className="chat-message">Reading the portfolio…</p> : null}
-          {evidence.length > 0 ? (
+          {citedEvidence.length > 0 ? (
             <section
               aria-labelledby="chat-evidence-heading"
               className="chat-evidence"
             >
               <h3 id="chat-evidence-heading">Supporting portfolio evidence</h3>
               <ol>
-                {evidence.map((item, index) => (
+                {citedEvidence.map(({ item, label }) => (
                   <li key={item.id}>
                     <div>
-                      <a href={item.href}>[E{index + 1}] {item.title}</a>
+                      <a href={item.href}>[E{label}] {item.title}</a>
                       <div className="chat-evidence-labels">
                         {item.stageRole ? (
                           <span>{stageRoleLabels[item.stageRole]}</span>

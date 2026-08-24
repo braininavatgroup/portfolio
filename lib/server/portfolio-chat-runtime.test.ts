@@ -230,10 +230,13 @@ describe("portfolio chat runtime", () => {
     expect(getProvider).not.toHaveBeenCalled();
   });
 
-  it("does not consume the provider budget when grounding finds no evidence", async () => {
+  // Owner: portfolio chat runtime. Retire only if unsupported questions no
+  // longer reach the full-context agent or provider budgeting is replaced.
+  it("budgets an unsupported question before the full-context agent refuses", async () => {
     const provider: PortfolioChatProvider = {
-      streamAnswer() {
-        throw new Error("provider must not be called without evidence");
+      async *streamAnswer({ evidence }) {
+        expect(evidence).toHaveLength(10);
+        yield "The portfolio does not publish enough evidence to answer that question.";
       },
     };
     const consume = vi.fn(async () => ({ success: true }));
@@ -286,7 +289,9 @@ describe("portfolio chat runtime", () => {
     const body = await response.text();
 
     expect(body).toContain("insufficient_evidence");
-    expect(namespace.getByName).not.toHaveBeenCalled();
-    expect(consume).not.toHaveBeenCalled();
+    expect(namespace.getByName).toHaveBeenCalledWith(
+      "portfolio-chat-global-budget",
+    );
+    expect(consume).toHaveBeenCalledWith({ limit: 5 });
   });
 });

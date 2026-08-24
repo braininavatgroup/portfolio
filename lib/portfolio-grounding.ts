@@ -1,10 +1,17 @@
 import {
   getBranch,
   getBranchEntities,
+  getEntity,
   mainProjection,
   portfolioData,
 } from "./portfolio-data";
-import type { EvidenceStatus } from "./portfolio";
+import {
+  audienceStatement,
+  careerTimeline,
+  domains,
+  portfolioThroughline,
+  type EvidenceStatus,
+} from "./portfolio";
 import type {
   PortfolioEntity,
   ProjectRecord,
@@ -26,52 +33,6 @@ export type PortfolioGrounding = {
   evidence: PortfolioGroundingEvidence[];
 };
 
-type ScoredEvidence = PortfolioGroundingEvidence & {
-  score: number;
-  order: number;
-};
-
-function stripScore(candidate: ScoredEvidence): PortfolioGroundingEvidence {
-  return {
-    id: candidate.id,
-    title: candidate.title,
-    excerpt: candidate.excerpt,
-    href: candidate.href,
-    evidenceStatus: candidate.evidenceStatus,
-    projectTitle: candidate.projectTitle,
-    ...(candidate.stageRole ? { stageRole: candidate.stageRole } : {}),
-  };
-}
-
-const ignoredWords = new Set([
-  "about",
-  "and",
-  "bradley",
-  "did",
-  "does",
-  "for",
-  "from",
-  "have",
-  "how",
-  "portfolio",
-  "that",
-  "the",
-  "this",
-  "what",
-  "which",
-  "with",
-  "work",
-]);
-
-function words(value: string) {
-  return new Set(
-    value
-      .toLowerCase()
-      .match(/[a-z0-9]+/g)
-      ?.filter((word) => word.length >= 3 && !ignoredWords.has(word)) ?? [],
-  );
-}
-
 function evidenceStatus(
   record: Pick<ProjectRecord | PortfolioEntity, "facets">,
   fallback: EvidenceStatus = "needed",
@@ -82,83 +43,79 @@ function evidenceStatus(
     : fallback;
 }
 
-function scoreText(queryWords: ReadonlySet<string>, values: readonly string[]) {
-  const candidateWords = words(values.join(" "));
-  let score = 0;
-  for (const word of queryWords) {
-    if (candidateWords.has(word)) score += 1;
-  }
-  return score;
+function completeProjectEvidence(
+  project: ProjectRecord,
+): PortfolioGroundingEvidence {
+  const branch = getBranch(project.id, mainProjection.id);
+  const entities = branch ? getBranchEntities(branch) : [];
+  const stageRoles = new Map(
+    branch?.steps.flatMap((step) =>
+      step.entityIds.map((entityId) => [entityId, step.role] as const),
+    ),
+  );
+  const projectStatus = evidenceStatus(project);
+  const lines = [
+    `Summary: ${project.summary}`,
+    ...(project.facets?.domain?.length
+      ? [`Domain: ${project.facets.domain.join(", ")}`]
+      : []),
+    `Project evidence status: ${projectStatus}`,
+    ...entities.map((entity) => {
+      const role = stageRoles.get(entity.id);
+      const status = evidenceStatus(entity, projectStatus);
+      const detail = entity.detail ?? entity.summary;
+      return `${role ? `${role}; ` : ""}evidence ${status}; ${entity.title}: ${detail}`;
+    }),
+  ];
+
+  return {
+    id: `project:${project.id}`,
+    title: project.title,
+    excerpt: lines.join("\n"),
+    href: `/index/${project.slug}`,
+    evidenceStatus: projectStatus,
+    projectTitle: project.title,
+  };
 }
 
-function entityEvidence(
-  entity: PortfolioEntity,
-  project: ProjectRecord,
-  order: number,
-  stageRole: TripletRole,
-): ScoredEvidence {
-  const excerpt = entity.detail ?? entity.summary;
-  return {
-    id: `entity:${entity.id}`,
-    title: entity.title,
-    excerpt,
-    href: `/index/${project.slug}`,
-    evidenceStatus: evidenceStatus(entity, evidenceStatus(project)),
-    projectTitle: project.title,
-    stageRole,
-    score: 0,
-    order,
-  };
+function completePortfolioEvidence() {
+  const root = getEntity(mainProjection.rootEntityId);
+  const portfolioExcerpt = root
+    ? [
+        root.detail ?? root.summary,
+        `Throughline: ${portfolioThroughline}`,
+        `Audience: ${audienceStatement}`,
+        "Domains:",
+        ...domains.map(({ label, description }) => `${label}: ${description}`),
+        "Career:",
+        ...careerTimeline.map(
+          ({ period, title, detail }) => `${period}; ${title}: ${detail}`,
+        ),
+      ].join("\n")
+    : "";
+  return [
+    ...(root
+      ? [
+          {
+            id: `entity:${root.id}`,
+            title: root.title,
+            excerpt: portfolioExcerpt,
+            href: "/",
+            evidenceStatus: "available" as const,
+            projectTitle: "Portfolio",
+          },
+        ]
+      : []),
+    ...portfolioData.projects.map(completeProjectEvidence),
+  ];
 }
 
 export function groundPortfolioQuestion(
   question: string,
-  limit = 6,
+  limit = Number.POSITIVE_INFINITY,
 ): PortfolioGrounding {
-  const queryWords = words(question);
-  if (queryWords.size === 0 || limit <= 0) {
-    return { question, evidence: [] };
-  }
-
-  const candidates: ScoredEvidence[] = [];
-  let order = 0;
-
-  for (const project of portfolioData.projects) {
-    const branch = getBranch(project.id, mainProjection.id);
-    const entities = branch ? getBranchEntities(branch) : [];
-    const stageRoles = new Map(
-      branch?.steps.flatMap((step) =>
-        step.entityIds.map((entityId) => [entityId, step.role] as const),
-      ),
-    );
-    const projectScore = scoreText(queryWords, [project.title, project.summary]);
-
-    candidates.push({
-      id: `project:${project.id}`,
-      title: project.title,
-      excerpt: project.summary,
-      href: `/index/${project.slug}`,
-      evidenceStatus: evidenceStatus(project),
-      projectTitle: project.title,
-      score: projectScore + (projectScore > 0 ? 1 : 0),
-      order: order++,
-    });
-
-    for (const entity of entities) {
-      const stageRole = stageRoles.get(entity.id);
-      if (!stageRole) continue;
-      const evidence = entityEvidence(entity, project, order++, stageRole);
-      evidence.score = scoreText(queryWords, [evidence.title, evidence.excerpt]);
-      candidates.push(evidence);
-    }
-  }
-
   return {
     question,
-    evidence: candidates
-      .filter(({ score }) => score > 0)
-      .sort((left, right) => right.score - left.score || left.order - right.order)
-      .slice(0, limit)
-      .map(stripScore),
+    evidence: completePortfolioEvidence().slice(0, Math.max(0, limit)),
   };
 }

@@ -28,6 +28,12 @@ function deterministicProvider(
   };
 }
 
+function citationFor(input: PortfolioChatProviderInput, evidenceId: string) {
+  const index = input.evidence.findIndex(({ id }) => id === evidenceId);
+  if (index < 0) throw new Error(`Missing eval evidence: ${evidenceId}`);
+  return `[E${index + 1}]`;
+}
+
 const answerCase: PortfolioChatEvalCase = {
   id: "pitching-approval",
   question: "How does pitching preserve human approval and taste?",
@@ -44,10 +50,10 @@ const refusalCase: PortfolioChatEvalCase = {
 
 describe("portfolio chat offline evaluation", () => {
   it("passes a grounded answer and a correct evidence refusal", async () => {
-    const provider = deterministicProvider(({ question }) => ({
-      chunks: question.includes("vendor")
+    const provider = deterministicProvider((input) => ({
+      chunks: input.question.includes("vendor")
         ? [INSUFFICIENT_EVIDENCE_MESSAGE]
-        : ["Human approval remains explicit. ", "[E1]"],
+        : ["Human approval remains explicit. ", citationFor(input, "project:pitching")],
     }));
     const clock = [0, 12, 20, 40];
 
@@ -121,8 +127,8 @@ describe("portfolio chat offline evaluation", () => {
   });
 
   it("rejects an attributed answer that misses the reference answer anchors", async () => {
-    const provider = deterministicProvider(() => ({
-      chunks: ["Bradley won a Grammy. [E1]"],
+    const provider = deterministicProvider((input) => ({
+      chunks: [`Bradley won a Grammy. ${citationFor(input, "project:pitching")}`],
     }));
 
     const run = await runPortfolioChatEval(
@@ -158,10 +164,10 @@ describe("portfolio chat offline evaluation", () => {
 
   it("computes nearest-rank p95 latency and provider-reported usage totals", async () => {
     let call = 0;
-    const provider = deterministicProvider(() => {
+    const provider = deterministicProvider((input) => {
       call += 1;
       return {
-        chunks: ["Grounded answer. [E1]"],
+        chunks: [`Grounded answer. ${citationFor(input, "project:pitching")}`],
         usage: {
           inputTokens: call * 100,
           outputTokens: call * 10,
@@ -191,12 +197,12 @@ describe("portfolio chat offline evaluation", () => {
   });
 
   it("compares named runs and prices only configurations with explicit snapshots", async () => {
-    const fastProvider = deterministicProvider(({ onUsage }) => {
-      onUsage?.({ inputTokens: 1_000_000, outputTokens: 500_000, totalTokens: 1_500_000 });
-      return { chunks: ["Grounded answer. [E1]"] };
+    const fastProvider = deterministicProvider((input) => {
+      input.onUsage?.({ inputTokens: 1_000_000, outputTokens: 500_000, totalTokens: 1_500_000 });
+      return { chunks: [`Grounded answer. ${citationFor(input, "project:pitching")}`] };
     });
-    const slowProvider = deterministicProvider(() => ({
-      chunks: ["Grounded answer. [E1]"],
+    const slowProvider = deterministicProvider((input) => ({
+      chunks: [`Grounded answer. ${citationFor(input, "project:pitching")}`],
     }));
     const fastClock = [0, 10];
     const slowClock = [0, 30];
