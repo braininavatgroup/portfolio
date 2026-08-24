@@ -4,8 +4,10 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
+import { nextGraphSpin } from "../../lib/graph-spin";
 import { domains } from "../../lib/portfolio";
 import type { SceneQuality } from "../../lib/scene-budget";
+import { brainWorldOrigin } from "../../lib/scene-origin";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import type { TransitionPhase } from "../../lib/transition";
 import { CableNetwork } from "./Cable";
@@ -16,6 +18,7 @@ type BrainGraphProps = {
   nodes: readonly SpatialGraphNode[];
   focusedNodeId: string | null;
   selectedNodeId: string | null;
+  domainSelected: boolean;
   quality: SceneQuality;
   onSelect: (node: SpatialGraphNode) => void;
 };
@@ -25,6 +28,7 @@ export function BrainGraph({
   nodes,
   focusedNodeId,
   selectedNodeId,
+  domainSelected,
   quality,
   onSelect,
 }: BrainGraphProps) {
@@ -36,11 +40,14 @@ export function BrainGraph({
     const current = group.current.scale.x;
     const next = THREE.MathUtils.lerp(current, target, phase === "graph" ? 0.07 : 0.04);
     group.current.scale.setScalar(next);
-    group.current.rotation.y += quality.pulses && phase === "graph" ? 0.00045 : 0;
+    group.current.rotation.y = nextGraphSpin(group.current.rotation.y, {
+      spinning: quality.pulses && phase === "graph",
+      aligning: phase === "graph" && domainSelected,
+    });
   });
 
   return (
-    <group ref={group} position={[0, 1.75, 0]} scale={0.001}>
+    <group ref={group} position={brainWorldOrigin} scale={0.001}>
       <CableNetwork nodes={nodes} pulses={quality.pulses} />
       {nodes.map((node) => (
         <GraphNode

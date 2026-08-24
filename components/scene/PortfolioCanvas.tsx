@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
 import { domains, type DomainId } from "../../lib/portfolio";
+import { brainWorldOrigin } from "../../lib/scene-origin";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import type { TransitionPhase } from "../../lib/transition";
@@ -21,7 +22,7 @@ type SceneDirectorProps = {
   nodes: readonly SpatialGraphNode[];
 };
 
-const graphWorldOffset: Point3 = [0, 1.75, 0];
+const graphWorldOffset: Point3 = brainWorldOrigin;
 
 function SceneDirector({
   phase,
@@ -46,10 +47,12 @@ function SceneDirector({
   const framedNodes = useMemo(() => {
     if (!selectedDomain) return nodes;
 
+    // Keep the root entity in every domain frame so cables stay anchored to
+    // the visible graph center instead of running in from off screen.
     const domainNodes = nodes.filter(
-      ({ groupId }) => groupId === selectedDomain,
+      ({ groupId, role }) => role === "root" || groupId === selectedDomain,
     );
-    return domainNodes.length > 0 ? domainNodes : nodes;
+    return domainNodes.length > 1 ? domainNodes : nodes;
   }, [nodes, selectedDomain]);
   const graphFrame = useMemo(
     () =>
@@ -86,8 +89,12 @@ function SceneDirector({
     }
     if (phase === "entering") {
       return {
-        position: [0, 1.75, 0.72] as Point3,
-        target: [0, 1.75, 0] as Point3,
+        position: [
+          brainWorldOrigin[0],
+          brainWorldOrigin[1],
+          brainWorldOrigin[2] + 0.72,
+        ] as Point3,
+        target: brainWorldOrigin,
       };
     }
     return graphFrame;
@@ -160,7 +167,6 @@ type PortfolioCanvasProps = {
   focusedNodeId: string | null;
   selectedNodeId: string | null;
   onNodeSelect: (node: SpatialGraphNode) => void;
-  onEnter: () => void;
 };
 
 export function PortfolioCanvas({
@@ -172,7 +178,6 @@ export function PortfolioCanvas({
   focusedNodeId,
   selectedNodeId,
   onNodeSelect,
-  onEnter,
 }: PortfolioCanvasProps) {
   const [lowPower, setLowPower] = useState(
     () => typeof navigator !== "undefined" && (navigator.hardwareConcurrency || 8) <= 4,
@@ -215,13 +220,13 @@ export function PortfolioCanvas({
             visible={phase !== "graph"}
             pose={pose}
             quality={quality}
-            onEnter={onEnter}
           />
           <BrainGraph
             phase={phase}
             nodes={nodes}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
+            domainSelected={selectedDomain !== null}
             quality={quality}
             onSelect={onNodeSelect}
           />

@@ -22,13 +22,14 @@ async function render(pathname) {
   );
 }
 
-test("flat index links every data-derived project to its canonical case study", async () => {
+test("project index links every data-derived project to its canonical case study", async () => {
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /href=["']\/\?view=graph["']/);
-  assert.match(html, />Selected work</);
+  assert.match(html, /aria-current=["']page["'][^>]*>Project index</i);
+  assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
@@ -36,6 +37,8 @@ test("flat index links every data-derived project to its canonical case study", 
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
 
+  assert.match(html, /aria-label=["']Portfolio views["']/i);
+  assert.doesNotMatch(html, /Evidence undefined/i);
   const musicPosition = html.indexOf('id="music"');
   const consultingPosition = html.indexOf('id="consulting"');
   assert.ok(musicPosition >= 0, "music domain is rendered");
@@ -61,6 +64,15 @@ test("flat index links every data-derived project to its canonical case study", 
     assert.equal(response.status, 200);
     const caseStudyHtml = await response.text();
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
+    assert.match(
+      caseStudyHtml,
+      /href=["']\/\?view=graph["'][^>]*>Portfolio map</i,
+    );
+    assert.match(
+      caseStudyHtml,
+      /href=["']\/work["'][^>]*>Project index</i,
+    );
+    assert.doesNotMatch(caseStudyHtml, />All work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];

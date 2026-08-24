@@ -1,5 +1,18 @@
 import assert from "node:assert/strict";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
+
+async function filesBelow(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  return (
+    await Promise.all(
+      entries.map((entry) => {
+        const entryPath = `${directory}/${entry.name}`;
+        return entry.isDirectory() ? filesBelow(entryPath) : [entryPath];
+      }),
+    )
+  ).flat();
+}
 
 async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -55,7 +68,7 @@ test("map entry reveals view switching and compact keyboard access", async () =>
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>All work</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Project index</i);
   assert.match(html, /Follow a cable from instinct through approach to output\./i);
   for (const role of ["Instinct", "Approach", "Output"]) {
     assert.match(html, new RegExp(`<li[^>]*>${role}<\\/li>`, "i"));
@@ -65,4 +78,45 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   assert.ok(keyboardButton, "keyboard entry is rendered inside one button");
   assert.doesNotMatch(html, />Keyboard map</i);
   assert.doesNotMatch(html, />Explore the work</i);
+});
+
+test("the built chat route stays disabled and client assets contain no provider configuration", async () => {
+  delete process.env.PORTFOLIO_CHAT_LIVE_ENABLED;
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_PORTFOLIO_MODEL;
+
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-chat`);
+  const { default: worker } = await import(workerUrl.href);
+  const response = await worker.fetch(
+    new Request("http://localhost/api/portfolio-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "How does pitching work?" }),
+    }),
+    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    code: "disabled",
+    message: "Ask the portfolio is not enabled.",
+  });
+
+  const clientDirectory = new URL("../dist/client", import.meta.url).pathname;
+  const clientFiles = (await filesBelow(clientDirectory)).filter((entryPath) =>
+    entryPath.endsWith(".js"),
+  );
+  const clientJavaScript = (
+    await Promise.all(clientFiles.map((entryPath) => readFile(entryPath, "utf8")))
+  ).join("\n");
+  for (const serverOnlyValue of [
+    "OPENAI_API_KEY",
+    "OPENAI_PORTFOLIO_MODEL",
+    "PORTFOLIO_CHAT_LIVE_ENABLED",
+    "api.openai.com",
+  ]) {
+    assert.doesNotMatch(clientJavaScript, new RegExp(serverOnlyValue));
+  }
 });

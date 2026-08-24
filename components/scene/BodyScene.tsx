@@ -5,6 +5,7 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { getRagdollTargets, updateRagdollPoint } from "../../lib/ragdoll";
 import type { SceneQuality } from "../../lib/scene-budget";
+import { brainWorldOrigin } from "../../lib/scene-origin";
 import { BrainShape } from "./BrainShape";
 
 export type PoseState =
@@ -19,8 +20,11 @@ type BodySceneProps = {
   visible: boolean;
   pose: PoseState;
   quality: SceneQuality;
-  onEnter: () => void;
 };
+
+const rigOffsetY = -1.65;
+// The head brain rests exactly on the shared origin the graph grows from.
+const headPosition = [0, brainWorldOrigin[1] - rigOffsetY, 0] as const;
 
 const poseLean: Record<PoseState, [number, number]> = {
   idle: [0, 0],
@@ -31,7 +35,7 @@ const poseLean: Record<PoseState, [number, number]> = {
   thinking: [0.06, 0.12],
 };
 
-export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
+export function BodyScene({ visible, pose, quality }: BodySceneProps) {
   const rig = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
   const leftArm = useRef<THREE.Group>(null);
@@ -87,7 +91,7 @@ export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
   if (!visible) return null;
 
   return (
-    <group ref={rig} position={[0, -1.65, 0]}>
+    <group ref={rig} position={[0, rigOffsetY, 0]}>
       <mesh position={[0, 1.6, 0]}>
         <capsuleGeometry args={[0.72, 1.75, 8, 16]} />
         <meshStandardMaterial color="#172824" roughness={0.86} />
@@ -143,14 +147,7 @@ export function BodyScene({ visible, pose, quality, onEnter }: BodySceneProps) {
         </group>
       </group>
 
-      <group
-        ref={head}
-        position={[0, 3.42, 0]}
-        onClick={(event) => {
-          event.stopPropagation();
-          onEnter();
-        }}
-      >
+      <group ref={head} position={headPosition}>
         <mesh>
           <sphereGeometry
             args={[0.86, quality.sphereSegments, quality.sphereSegments]}

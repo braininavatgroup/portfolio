@@ -38,8 +38,8 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   return (
     <main className="artifact-page" data-theme="light" id="main-content">
       <nav className="artifact-nav" aria-label="Case study navigation">
-        <Link href="/?view=graph">Map</Link>
-        <Link href="/work">All work</Link>
+        <Link href="/?view=graph">Portfolio map</Link>
+        <Link href="/work">Project index</Link>
       </nav>
       <CaseStudyArticle caseStudy={caseStudy} />
       {adjacent ? (
