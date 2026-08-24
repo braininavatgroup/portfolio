@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
@@ -39,7 +39,6 @@ export function PortfolioExperience() {
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
-  const keyboardControlRef = useRef<HTMLButtonElement>(null);
   const dossier = selectedNode
     ? getPortfolioDossier(selectedNode)
     : undefined;
@@ -112,15 +111,12 @@ export function PortfolioExperience() {
           selectedDomain={selectedDomain}
         />
 
-        <div className="map-keyboard-tools">
-          <KeyboardNavigator
-            controlRef={keyboardControlRef}
-            nodes={portfolioNodes}
-            onNodeFocus={setKeyboardNodeId}
-            onNodeSelect={selectNode}
-            selectedNodeId={selectedNode?.id ?? null}
-          />
-        </div>
+        <KeyboardNavigator
+          nodes={portfolioNodes}
+          onNodeFocus={setKeyboardNodeId}
+          onNodeSelect={selectNode}
+          selectedNodeId={selectedNode?.id ?? null}
+        />
 
         <PortfolioChat onPoseChange={setPose} />
       </section>

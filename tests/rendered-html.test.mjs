@@ -76,9 +76,7 @@ test("the homepage opens directly on the map with its synchronized index", async
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /Music promotion/i);
   assert.match(html, /Campaign kickoff and intake/i);
-  const keyboardButton = [...html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)]
-    .find(([, content]) => /Explore by keyboard/i.test(content));
-  assert.ok(keyboardButton, "keyboard entry is rendered inside one button");
+  assert.doesNotMatch(html, /Explore by keyboard/i);
   assert.doesNotMatch(html, />Keyboard map</i);
   assert.doesNotMatch(html, />Explore the work</i);
 });

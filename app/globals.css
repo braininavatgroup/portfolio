@@ -612,20 +612,6 @@ body {
   display: none;
 }
 
-.map-keyboard-tools {
-  left: 1.5rem;
-  max-width: 13rem;
-  position: absolute;
-  top: 8rem;
-  width: calc(100% - 3rem);
-  z-index: 7;
-}
-
-.map-keyboard-tools .keyboard-navigator {
-  border-top: 0;
-  padding-top: 0;
-}
-
 .chat-heading-row {
   align-items: flex-start;
   display: flex;
@@ -1077,7 +1063,6 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
-  .map-keyboard-tools { display: none; }
   .experience-graph .scene-canvas-wrap { bottom: 48dvh; }
   .node-drawer { background: var(--surface); bottom: 0; left: 0; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); max-width: none; right: 0; }
   .portfolio-dossier {
