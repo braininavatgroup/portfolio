@@ -6,6 +6,7 @@ import type {
   TripletBranch,
 } from "./portfolio-model";
 import {
+  portfolioNodes,
   projectSpatialGraph,
   terminalNodeIds,
   type SpatialGroup,
@@ -69,6 +70,13 @@ const root: PortfolioEntity = {
 };
 
 describe("spatial graph projection", () => {
+  it("centers the live portfolio on Bradley Berkman", () => {
+    expect(portfolioNodes[0]).toMatchObject({
+      role: "root",
+      label: "Bradley Berkman",
+    });
+  });
+
   it("projects ordered branches into rooted, canonical project routes", () => {
     const nodes = projectSpatialGraph({ projection, projects, root, groups });
 

@@ -12,7 +12,7 @@ export const MAIN_PROJECTION_ID = "instinct-approach-output/v1";
 
 const rootEntity: PortfolioEntity = {
   id: "portfolio:brain",
-  title: "Judgment",
+  title: "Bradley Berkman",
   summary: "I find where judgment matters, then build the system around it.",
 };
 

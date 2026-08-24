@@ -40,7 +40,7 @@ export function GraphNode({
 }: GraphNodeProps) {
   const [hovered, setHovered] = useState(false);
   const tokenGroup = useRef<THREE.Group>(null);
-  const interactive = nodeAction(node) === "inspect";
+  const interactive = nodeAction(node) !== "none";
   const prominent = node.role === "output";
   const outputToken =
     prominent && node.projectSlug
@@ -62,8 +62,44 @@ export function GraphNode({
   if (node.role === "root") {
     return (
       <group position={node.position}>
-        <BrainShape scale={0.78} />
+        <group
+          scale={emphasized ? 1.08 : 1}
+          {...(interactive
+            ? {
+                onClick: (event: ThreeEvent<MouseEvent>) => {
+                  event.stopPropagation();
+                  onSelect(node);
+                },
+                onPointerEnter: () => {
+                  setHovered(true);
+                  document.body.style.cursor = "pointer";
+                },
+                onPointerLeave: () => {
+                  setHovered(false);
+                  document.body.style.cursor = "";
+                },
+              }
+            : {})}
+        >
+          <BrainShape scale={0.78} />
+        </group>
         <pointLight color={colors.root} intensity={1.4} distance={3.2} />
+        {showLabel ? (
+          <Html
+            center
+            position={[0, -0.72, 0]}
+            zIndexRange={[5, 0]}
+          >
+            <GraphNodeLabel
+              node={node}
+              interactive={interactive}
+              emphasized={emphasized}
+              selected={selected}
+              dimmed={dimmed}
+              onSelect={onSelect}
+            />
+          </Html>
+        ) : null}
       </group>
     );
   }

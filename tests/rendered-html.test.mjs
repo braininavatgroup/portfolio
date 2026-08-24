@@ -45,10 +45,13 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-  assert.match(html, />Explore the work</i);
+  assert.doesNotMatch(html, />Explore the work</i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
   assert.match(html, /href=["']\/work["'][^>]*>Work</i);
+  assert.match(html, /aria-label=["']Portfolio index["']/i);
+  assert.match(html, /Give small operators larger-operator leverage/i);
+  assert.match(html, /href=["']\/work\/dubs["']/i);
   assert.match(html, /for=["']portfolio-question["']/i);
   assert.match(html, /id=["']portfolio-question["']/i);
   assert.match(
@@ -56,13 +59,12 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
     /placeholder=["']Ask about the work, decisions, or outcomes\.["']/i,
   );
   assert.doesNotMatch(html, /Try one of the rotating questions/i);
-  assert.match(html, /aria-live=["']polite["']/i);
   assert.doesNotMatch(html, /No external model is called/i);
   assert.doesNotMatch(html, /Local tool/i);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);
 });
 
-test("map entry reveals view switching and compact keyboard access", async () => {
+test("the homepage opens directly on the map with its synchronized index", async () => {
   const response = await render("/?view=graph");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -70,10 +72,10 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
   assert.match(html, /href=["']\/work["'][^>]*>Work</i);
-  assert.match(html, /Follow a cable from instinct through approach to output\./i);
-  for (const role of ["Instinct", "Approach", "Output"]) {
-    assert.match(html, new RegExp(`<li[^>]*>${role}<\\/li>`, "i"));
-  }
+  assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
+  assert.match(html, /aria-label=["']Portfolio index["']/i);
+  assert.match(html, /Music promotion/i);
+  assert.match(html, /Campaign kickoff and intake/i);
   const keyboardButton = [...html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)]
     .find(([, content]) => /Explore by keyboard/i.test(content));
   assert.ok(keyboardButton, "keyboard entry is rendered inside one button");

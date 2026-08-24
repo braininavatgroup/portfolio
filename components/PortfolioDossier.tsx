@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { groupProjectsByFacet } from "../lib/case-study";
 import { domains, portfolioThroughline, type DomainId } from "../lib/portfolio";
 import { portfolioData } from "../lib/portfolio-data";
@@ -53,10 +53,6 @@ function PortfolioIndex({
   const [openDomain, setOpenDomain] = useState<DomainId | null>(
     selectedDomain ?? "music",
   );
-
-  useEffect(() => {
-    if (selectedDomain) setOpenDomain(selectedDomain);
-  }, [selectedDomain]);
 
   return (
     <aside aria-label="Portfolio index" className="portfolio-dossier">

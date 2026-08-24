@@ -1,15 +1,56 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SpatialGraphNode } from "../lib/spatial-graph";
 import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./scene/PortfolioCanvas", () => ({
-  PortfolioCanvas: () => <div data-testid="scene-canvas" />,
+  PortfolioCanvas: ({
+    onNodeSelect,
+  }: {
+    onNodeSelect: (node: SpatialGraphNode) => void;
+  }) => (
+    <div data-testid="scene-canvas">
+      <button
+        onClick={() =>
+          onNodeSelect({
+            id: "dubs:approach",
+            label: "Product spec and build process",
+            detail: "Connect the product spec to implementation.",
+            role: "approach",
+            position: [0, 0, 0],
+            entityIds: ["dubs:spec", "dubs:system"],
+            projectId: "project:dubs",
+            projectSlug: "dubs",
+            href: "/work/dubs",
+            groupId: "development",
+          })
+        }
+        type="button"
+      >
+        Select Dubs approach
+      </button>
+      <button
+        onClick={() =>
+          onNodeSelect({
+            id: "portfolio:brain",
+            label: "Bradley Berkman",
+            detail: "Portfolio root",
+            role: "root",
+            position: [0, 0, 0],
+            entityIds: ["portfolio:brain"],
+          })
+        }
+        type="button"
+      >
+        Select Bradley root
+      </button>
+    </div>
+  ),
 }));
 
-function mockMatchMedia(reducedMotion: boolean) {
+function mockMatchMedia(reducedMotion = false) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: reducedMotion && query.includes("prefers-reduced-motion"),
     media: query,
@@ -20,21 +61,16 @@ function mockMatchMedia(reducedMotion: boolean) {
   }));
 }
 
-async function renderExperience({ reducedMotion = false } = {}) {
-  mockMatchMedia(reducedMotion);
+async function renderExperience() {
+  mockMatchMedia();
   render(<PortfolioExperience />);
   await act(async () => {});
-  return screen.getByTestId("scene-canvas");
 }
 
-afterEach(() => {
-  cleanup();
-  vi.useRealTimers();
-});
+afterEach(cleanup);
 
-describe("landing entry", () => {
-  // Catches the work index disappearing until after the WebGL entry transition.
-  it("keeps both portfolio views available from the landing screen", async () => {
+describe("spatial self-portrait", () => {
+  it("opens with both portfolio views and the project index available", async () => {
     await renderExperience();
 
     const navigation = screen.getByRole("navigation", {
@@ -46,89 +82,36 @@ describe("landing entry", () => {
     expect(
       screen.getByRole("link", { name: "Work" }).getAttribute("href"),
     ).toBe("/work");
-  });
-
-  it("enters from any plain click on the landing canvas", async () => {
-    const canvas = await renderExperience();
-
-    fireEvent.click(canvas);
-
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Explore the work" })).toBeNull();
-  });
-
-  it("keeps chat clicks on the landing screen", async () => {
-    await renderExperience();
-
-    fireEvent.click(screen.getByLabelText("Ask a question about the portfolio"));
-    fireEvent.click(screen.getByText("Find the work behind the question."));
-
-    expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
-  });
-
-  it("keeps starter-question pointer interactions on the landing screen", async () => {
-    await renderExperience();
-    const starter = screen.getByRole("button", {
-      name: "How does the pitching system preserve human approval?",
-    });
-
-    fireEvent.pointerDown(starter);
-    fireEvent.click(starter);
-
-    expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
-  });
-
-  it("keeps frame sampler clicks on the landing screen", async () => {
-    await renderExperience();
-
-    fireEvent.click(screen.getByRole("button", { name: "Show performance" }));
-
-    expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Hide performance" })).toBeDefined();
-  });
-
-  it("keeps a keyboard path through the visible enter button", async () => {
-    await renderExperience();
-    const user = userEvent.setup();
-    const enterButton = screen.getByRole("button", { name: "Explore the work" });
-
-    act(() => enterButton.focus());
-    await user.keyboard("{Enter}");
-
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
-  });
-
-  it("completes the transition into the graph after the travel duration", async () => {
-    vi.useFakeTimers();
-    const canvas = await renderExperience();
-
-    fireEvent.click(canvas);
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
-
-    expect(screen.getByText("Map")).toBeDefined();
     expect(
-      screen.getByText(/Brain graph open/),
-    ).toBeDefined();
-
-    fireEvent.click(canvas);
-    expect(screen.getByText("Map")).toBeDefined();
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
   });
 
-  it("uses the short crossfade for reduced motion", async () => {
-    vi.useFakeTimers();
-    const canvas = await renderExperience({ reducedMotion: true });
+  it("does not gate the map behind the old body transition", async () => {
+    await renderExperience();
 
-    fireEvent.click(canvas);
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Explore the work" })).toBeNull();
+    expect(screen.queryByText("Moving through the glass…")).toBeNull();
+  });
 
-    act(() => {
-      vi.advanceTimersByTime(180);
-    });
+  it("opens a complete project dossier and lets the Bradley root restore the index", async () => {
+    await renderExperience();
 
-    expect(screen.getByText("Map")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+
+    expect(
+      screen.getByRole("complementary", { name: "Dubs project dossier" }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Approach" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Bradley root" }));
+
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
   });
 });

@@ -15,8 +15,8 @@ const node = (role: SpatialGraphNode["role"]): SpatialGraphNode => ({
 });
 
 describe("graph node interaction", () => {
-  it("keeps the root inert even if corrupt data gives it project context", () => {
-    expect(nodeAction(node("root"))).toBe("none");
+  it("uses the portfolio root to restore the index", () => {
+    expect(nodeAction(node("root"))).toBe("index");
   });
 
   it.each(["instinct", "approach", "output"] as const)(
