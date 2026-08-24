@@ -63,16 +63,23 @@ function SceneDirector({
         nodeBoundRadius: 0.6,
         margin: selectedDomain ? 1.22 : 1.16,
         worldOffset: graphWorldOffset,
+        viewPlaneOffset:
+          mobile
+            ? [0, 0]
+            : selectedDomain
+              ? [-0.9, -0.22]
+              : [-1.55, -0.48],
         viewDirection: selectedDomainRecord
           ? [
-              Math.cos(selectedDomainRecord.angle),
-              0.42,
-              Math.sin(selectedDomainRecord.angle),
+              Math.cos(selectedDomainRecord.angle + Math.PI / 4),
+              0.38,
+              Math.sin(selectedDomainRecord.angle + Math.PI / 4),
             ]
           : undefined,
       }),
     [
       framedNodes,
+      mobile,
       selectedDomain,
       selectedDomainRecord,
       size.height,
@@ -226,7 +233,7 @@ export function PortfolioCanvas({
             nodes={nodes}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
-            domainSelected={selectedDomain !== null}
+            selectedDomain={selectedDomain}
             quality={quality}
             onSelect={onNodeSelect}
           />

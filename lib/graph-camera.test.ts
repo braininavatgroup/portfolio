@@ -83,4 +83,24 @@ describe("graph camera framing", () => {
 
     expect(portrait.distance).toBeGreaterThan(landscape.distance);
   });
+
+  it("reserves view-plane space without changing the graph's world positions", () => {
+    const common = {
+      nodes: portfolioNodes,
+      aspect: 16 / 9,
+      verticalFovDegrees: 43,
+      nodeBoundRadius: 0.6,
+      margin: 1.16,
+      worldOffset: [0, 1.75, 0] as Point3,
+    };
+    const centered = frameSpatialNodes(common);
+    const reserved = frameSpatialNodes({
+      ...common,
+      viewPlaneOffset: [-1.4, -0.5],
+    });
+
+    expect(reserved.target[0]).toBeCloseTo(centered.target[0] - 1.4);
+    expect(reserved.target).not.toEqual(centered.target);
+    expect(reserved.distance).toBeGreaterThan(centered.distance);
+  });
 });

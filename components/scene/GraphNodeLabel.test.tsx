@@ -91,4 +91,23 @@ describe("GraphNodeLabel", () => {
         .getAttribute("data-emphasized"),
     ).toBe("true");
   });
+
+  it("exposes the selected node as a pressed control", () => {
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive
+        emphasized
+        selected
+        onSelect={() => {}}
+      />,
+    );
+
+    const label = screen.getByRole("button", {
+      name: /Approach.+Requirements and field map/,
+    });
+
+    expect(label.getAttribute("aria-pressed")).toBe("true");
+    expect(label.getAttribute("data-role")).toBe("approach");
+  });
 });

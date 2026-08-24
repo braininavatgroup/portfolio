@@ -6,6 +6,8 @@ type GraphNodeLabelProps = {
   node: SpatialGraphNode;
   interactive: boolean;
   emphasized: boolean;
+  selected?: boolean;
+  dimmed?: boolean;
   onSelect: (node: SpatialGraphNode) => void;
 };
 
@@ -25,6 +27,8 @@ export function GraphNodeLabel({
   node,
   interactive,
   emphasized,
+  selected = false,
+  dimmed = false,
   onSelect,
 }: GraphNodeLabelProps) {
   if (!interactive) {
@@ -32,6 +36,8 @@ export function GraphNodeLabel({
       <span
         className="graph-node-label"
         data-emphasized={emphasized ? "true" : "false"}
+        data-dimmed={dimmed ? "true" : "false"}
+        data-role={node.role}
       >
         <LabelContent node={node} />
       </span>
@@ -41,8 +47,11 @@ export function GraphNodeLabel({
   return (
     <button
       aria-label={`${roleLabel(node.role)} ${node.label}`}
+      aria-pressed={selected}
       className="graph-node-label graph-node-button"
       data-emphasized={emphasized ? "true" : "false"}
+      data-dimmed={dimmed ? "true" : "false"}
+      data-role={node.role}
       onClick={() => onSelect(node)}
       type="button"
     >
