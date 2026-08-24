@@ -22,13 +22,14 @@ async function render(pathname) {
   );
 }
 
-test("flat index links every canonical artifact to its own five-section case study", async () => {
+test("project index links every canonical project to its own five-section case study", async () => {
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /href=["']\/\?view=graph["']/);
-  assert.match(html, />Selected work</);
+  assert.match(html, /aria-current=["']page["'][^>]*>Project index</i);
+  assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
@@ -36,13 +37,10 @@ test("flat index links every canonical artifact to its own five-section case stu
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
 
-  const timelinePosition = html.indexOf("Career timeline");
-  const musicPosition = html.indexOf('id="music"');
-  const consultingPosition = html.indexOf('id="consulting"');
-  assert.ok(timelinePosition >= 0, "career timeline is rendered");
-  assert.ok(musicPosition >= 0, "music domain is rendered");
-  assert.ok(timelinePosition < musicPosition, "career context precedes the project directory");
-  assert.ok(consultingPosition > musicPosition, "domain order remains intact");
+  assert.match(html, /aria-label=["']Portfolio views["']/i);
+  assert.match(html, /aria-label=["']Portfolio projects["']/i);
+  assert.match(html, />Partial evidence</i);
+  assert.doesNotMatch(html, /Evidence undefined/i);
 
   const projectLinks = new Map();
   for (const [, attributes, content] of html.matchAll(
@@ -62,6 +60,15 @@ test("flat index links every canonical artifact to its own five-section case stu
     assert.equal(response.status, 200);
     const caseStudyHtml = await response.text();
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
+    assert.match(
+      caseStudyHtml,
+      /href=["']\/\?view=graph["'][^>]*>Portfolio map</i,
+    );
+    assert.match(
+      caseStudyHtml,
+      /href=["']\/work["'][^>]*>Project index</i,
+    );
+    assert.doesNotMatch(caseStudyHtml, />All work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];
