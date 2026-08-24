@@ -79,6 +79,12 @@ export function PortfolioExperience({
     dispatch({ type: "RESET" });
   }
 
+  function selectDomain(domain: DomainId | null) {
+    setSelectedDomain(domain);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+  }
+
   return (
     <main
       className={`experience experience-${transition.phase}`}
@@ -105,7 +111,7 @@ export function PortfolioExperience({
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
         aria-label="Spatial portfolio preview"
-        className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}`}
+        className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
         id="brain"
         onClick={() => {
           if (transition.phase === "body") dispatch({ type: "ENTER" });
@@ -168,17 +174,19 @@ export function PortfolioExperience({
               {domains.map((domain) => (
                 <button
                   aria-pressed={selectedDomain === domain.id}
+                  disabled={selectedDomain === domain.id}
                   key={domain.id}
                   type="button"
-                  onClick={() => setSelectedDomain(domain.id)}
+                  onClick={() => selectDomain(domain.id)}
                 >
                   {domain.label}
                 </button>
               ))}
               <button
                 aria-pressed={selectedDomain === null}
+                disabled={selectedDomain === null}
                 type="button"
-                onClick={() => setSelectedDomain(null)}
+                onClick={() => selectDomain(null)}
               >
                 Overview
               </button>

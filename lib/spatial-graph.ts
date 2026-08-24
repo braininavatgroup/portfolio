@@ -30,13 +30,13 @@ export type SpatialGraphNode = {
 export type SpatialGroup = { id: string; label: string; angle: number };
 
 const radiusByRole: Record<TripletRole, number> = {
-  instinct: 2.1,
-  approach: 4,
-  output: 5.8,
+  instinct: 2.8,
+  approach: 5.1,
+  output: 7.5,
 };
 
-const preferredBranchAngleStep = 0.52;
-const branchHeightStep = 0.34;
+const preferredBranchAngleStep = 0.64;
+const branchHeightStep = 0.58;
 
 const circularDistance = (left: number, right: number) =>
   Math.abs(Math.atan2(Math.sin(left - right), Math.cos(left - right)));
@@ -97,7 +97,7 @@ export function projectSpatialGraph(input: {
             ...otherAngles.map((angle) => circularDistance(groupAngle, angle)),
           )
         : Math.PI * 2;
-    const availableFan = nearestGroupDistance * 0.55;
+    const availableFan = nearestGroupDistance * 0.68;
 
     return Math.min(
       preferredBranchAngleStep,

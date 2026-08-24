@@ -8,6 +8,11 @@ export type SpatialCameraFrame = {
   position: Point3;
   target: Point3;
   distance: number;
+  up: Point3;
+  fog: {
+    near: number;
+    far: number;
+  };
 };
 
 type SpatialCameraFrameInput = {
@@ -18,6 +23,8 @@ type SpatialCameraFrameInput = {
   margin: number;
   worldOffset?: Point3;
   viewDirection?: Point3;
+  viewUp?: Point3;
+  viewPlaneOffset?: readonly [number, number];
 };
 
 const add = (left: Point3, right: Point3): Point3 => [
@@ -61,6 +68,8 @@ export function frameSpatialNodes({
   margin,
   worldOffset = [0, 0, 0],
   viewDirection = [0, 0.32, 1],
+  viewUp = [0, 1, 0],
+  viewPlaneOffset = [0, 0],
 }: SpatialCameraFrameInput): SpatialCameraFrame {
   if (nodes.length === 0) throw new Error("Cannot frame an empty spatial graph");
   if (aspect <= 0) throw new Error("Camera aspect must be positive");
@@ -88,19 +97,22 @@ export function frameSpatialNodes({
       max: [0, 0, 0] as [number, number, number],
     },
   );
-  const focus: Point3 = [
+  const boundsCenter: Point3 = [
     (target.min[0] + target.max[0]) / 2,
     (target.min[1] + target.max[1]) / 2,
     (target.min[2] + target.max[2]) / 2,
   ];
   const backward = normalize(viewDirection);
-  const worldUp: Point3 = [0, 1, 0];
-  const lateral = cross(worldUp, backward);
+  const lateral = cross(normalize(viewUp), backward);
   const right =
     Math.hypot(...lateral) > Number.EPSILON
       ? normalize(lateral)
       : ([1, 0, 0] as const);
   const up = normalize(cross(backward, right));
+  const focus = add(
+    boundsCenter,
+    add(scale(right, viewPlaneOffset[0]), scale(up, viewPlaneOffset[1])),
+  );
   const verticalHalfFov = (verticalFovDegrees * Math.PI) / 360;
   const horizontalHalfFov = Math.atan(
     Math.tan(verticalHalfFov) * aspect,
@@ -122,10 +134,21 @@ export function frameSpatialNodes({
       ];
     }),
   );
+  const farthestNodeDepth = Math.max(
+    ...worldPositions.map((position) => {
+      const relative = subtract(position, focus);
+      return distance - dot(relative, backward) + nodeBoundRadius;
+    }),
+  );
 
   return {
     position: add(focus, scale(backward, distance)),
     target: focus,
     distance,
+    up,
+    fog: {
+      near: farthestNodeDepth,
+      far: farthestNodeDepth + 19,
+    },
   };
 }

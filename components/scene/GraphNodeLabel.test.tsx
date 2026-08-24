@@ -38,7 +38,7 @@ describe("GraphNodeLabel", () => {
     expect(label.getAttribute("data-emphasized")).toBe("false");
   });
 
-  it("renders an inert label as text without a button", () => {
+  it("keeps the role in the accessible name without repeating it visually", () => {
     render(
       <GraphNodeLabel
         node={approachNode}
@@ -48,8 +48,8 @@ describe("GraphNodeLabel", () => {
       />,
     );
 
-    expect(screen.getByText("Approach")).toBeTruthy();
     expect(screen.getByText("Requirements and field map")).toBeTruthy();
+    expect(screen.queryByText("Approach")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
@@ -90,5 +90,24 @@ describe("GraphNodeLabel", () => {
         })
         .getAttribute("data-emphasized"),
     ).toBe("true");
+  });
+
+  it("exposes the selected node as a pressed control", () => {
+    render(
+      <GraphNodeLabel
+        node={approachNode}
+        interactive
+        emphasized
+        selected
+        onSelect={() => {}}
+      />,
+    );
+
+    const label = screen.getByRole("button", {
+      name: /Approach.+Requirements and field map/,
+    });
+
+    expect(label.getAttribute("aria-pressed")).toBe("true");
+    expect(label.getAttribute("data-role")).toBe("approach");
   });
 });

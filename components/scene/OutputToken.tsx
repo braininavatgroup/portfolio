@@ -133,9 +133,17 @@ function TokenGlyph({ kind }: { kind: ArtifactTokenKind }) {
 export function OutputToken({ kind }: { kind: ArtifactTokenKind }) {
   return (
     <group>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.46, 0.012, 6, 36]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.42} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} scale={1.18}>
+        <torusGeometry args={[0.46, 0.006, 6, 36]} />
+        <meshBasicMaterial color={mid} transparent opacity={0.28} />
+      </mesh>
       <TokenBody />
       <TokenGlyph kind={kind} />
-      <pointLight color={accent} intensity={0.42} distance={1.2} />
+      <pointLight color={accent} intensity={0.65} distance={1.5} />
     </group>
   );
 }

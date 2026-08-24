@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
+import { visibleGraphNodes } from "../../lib/graph-emphasis";
 import { domains, type DomainId } from "../../lib/portfolio";
 import { brainWorldOrigin } from "../../lib/scene-origin";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
@@ -34,6 +35,7 @@ function SceneDirector({
   const { camera, size } = useThree();
   const phaseStarted = useRef(0);
   const start = useRef(new THREE.Vector3(0, 1.35, 10));
+  const startUp = useRef(new THREE.Vector3(0, 1, 0));
   const guiding = useRef(true);
   const verticalFovDegrees =
     camera instanceof THREE.PerspectiveCamera
@@ -47,32 +49,54 @@ function SceneDirector({
   const framedNodes = useMemo(() => {
     if (!selectedDomain) return nodes;
 
-    // Keep the root entity in every domain frame so cables stay anchored to
-    // the visible graph center instead of running in from off screen.
-    const domainNodes = nodes.filter(
-      ({ groupId, role }) => role === "root" || groupId === selectedDomain,
-    );
-    return domainNodes.length > 1 ? domainNodes : nodes;
-  }, [nodes, selectedDomain]);
+    const domainNodes = visibleGraphNodes(nodes, selectedDomain);
+    const focusedNodes = mobile
+      ? domainNodes.filter(({ role }) => role !== "root")
+      : domainNodes;
+    return focusedNodes.length > 0 ? focusedNodes : nodes;
+  }, [mobile, nodes, selectedDomain]);
   const graphFrame = useMemo(
     () =>
       frameSpatialNodes({
         nodes: framedNodes,
         aspect: size.width / Math.max(size.height, 1),
         verticalFovDegrees,
-        nodeBoundRadius: 0.6,
-        margin: selectedDomain ? 1.22 : 1.16,
+        nodeBoundRadius: selectedDomain ? (mobile ? 1.1 : 1.15) : 0.6,
+        margin: selectedDomain ? (mobile ? 1.6 : 1.28) : 1.16,
         worldOffset: graphWorldOffset,
+        viewPlaneOffset:
+          mobile
+            ? selectedDomain
+              ? [0, 0.5]
+              : [0, 0]
+            : selectedDomain
+              ? [-0.9, -0.22]
+              : [-1.55, -0.48],
         viewDirection: selectedDomainRecord
-          ? [
-              Math.cos(selectedDomainRecord.angle),
-              0.42,
-              Math.sin(selectedDomainRecord.angle),
-            ]
+          ? mobile
+            ? [
+                Math.cos(selectedDomainRecord.angle),
+                0.08,
+                Math.sin(selectedDomainRecord.angle),
+              ]
+            : [
+                Math.cos(selectedDomainRecord.angle + Math.PI / 4),
+                0.38,
+                Math.sin(selectedDomainRecord.angle + Math.PI / 4),
+              ]
           : undefined,
+        viewUp:
+          selectedDomainRecord && mobile
+            ? [
+                -Math.sin(selectedDomainRecord.angle),
+                0,
+                Math.cos(selectedDomainRecord.angle),
+              ]
+            : undefined,
       }),
     [
       framedNodes,
+      mobile,
       selectedDomain,
       selectedDomainRecord,
       size.height,
@@ -85,6 +109,7 @@ function SceneDirector({
       return {
         position: [0, 1.35, 10] as Point3,
         target: [0, 1.35, 0] as Point3,
+        up: [0, 1, 0] as Point3,
       };
     }
     if (phase === "entering") {
@@ -95,6 +120,7 @@ function SceneDirector({
           brainWorldOrigin[2] + 0.72,
         ] as Point3,
         target: brainWorldOrigin,
+        up: [0, 1, 0] as Point3,
       };
     }
     return graphFrame;
@@ -107,12 +133,17 @@ function SceneDirector({
     () => new THREE.Vector3(...destination.target),
     [destination.target],
   );
+  const destinationUp = useMemo(
+    () => new THREE.Vector3(...destination.up),
+    [destination.up],
+  );
 
   useEffect(() => {
     phaseStarted.current = performance.now();
     start.current.copy(camera.position);
+    startUp.current.copy(camera.up);
     guiding.current = true;
-  }, [camera, destinationPosition, destinationTarget]);
+  }, [camera, destinationPosition, destinationTarget, destinationUp]);
 
   useFrame(() => {
     if (!guiding.current) return;
@@ -124,15 +155,15 @@ function SceneDirector({
       camera.position.copy(
         start.current.clone().lerp(destinationPosition, eased),
       );
+      camera.up.lerpVectors(startUp.current, destinationUp, eased).normalize();
       camera.lookAt(destinationTarget);
       if (raw === 1) guiding.current = false;
       return;
     }
 
-    camera.position.lerp(
-      destinationPosition,
-      reducedMotion ? 1 : phase === "body" ? 0.06 : 0.055,
-    );
+    const interpolation = reducedMotion ? 1 : phase === "body" ? 0.06 : 0.055;
+    camera.position.lerp(destinationPosition, interpolation);
+    camera.up.lerp(destinationUp, interpolation).normalize();
     camera.lookAt(destinationTarget);
     if (camera.position.distanceTo(destinationPosition) < 0.015) {
       camera.position.copy(destinationPosition);
@@ -141,20 +172,25 @@ function SceneDirector({
     }
   });
 
-  if (phase !== "graph" || mobile) return null;
+  const fog = phase === "graph" ? graphFrame.fog : { near: 11, far: 30 };
 
   return (
-    <OrbitControls
-      enablePan={false}
-      enableZoom
-      maxDistance={graphFrame.distance * 1.3}
-      maxPolarAngle={Math.PI / 2 - 0.08}
-      minDistance={Math.max(graphFrame.distance * 0.36, 4)}
-      minPolarAngle={Math.PI * 0.14}
-      target={graphFrame.target}
-      rotateSpeed={0.35}
-      zoomSpeed={0.5}
-    />
+    <>
+      <fog attach="fog" args={["#f4f1e8", fog.near, fog.far]} />
+      {phase === "graph" && !mobile ? (
+        <OrbitControls
+          enablePan={false}
+          enableZoom
+          maxDistance={graphFrame.distance * 1.3}
+          maxPolarAngle={Math.PI / 2 - 0.08}
+          minDistance={Math.max(graphFrame.distance * 0.36, 4)}
+          minPolarAngle={Math.PI * 0.14}
+          target={graphFrame.target}
+          rotateSpeed={0.35}
+          zoomSpeed={0.5}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -211,7 +247,6 @@ export function PortfolioCanvas({
         }}
       >
         <color attach="background" args={["#f4f1e8"]} />
-        <fog attach="fog" args={["#f4f1e8", 11, 30]} />
         <ambientLight intensity={1.05} color="#ffffff" />
         <directionalLight position={[4, 8, 7]} intensity={2} color="#fff4cf" />
         <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />
@@ -226,7 +261,7 @@ export function PortfolioCanvas({
             nodes={nodes}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
-            domainSelected={selectedDomain !== null}
+            selectedDomain={selectedDomain}
             quality={quality}
             onSelect={onNodeSelect}
           />

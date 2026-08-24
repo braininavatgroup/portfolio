@@ -6,6 +6,8 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { nextGraphSpin } from "../../lib/graph-spin";
 import { domains } from "../../lib/portfolio";
+import type { DomainId } from "../../lib/portfolio";
+import { visibleGraphNodes } from "../../lib/graph-emphasis";
 import type { SceneQuality } from "../../lib/scene-budget";
 import { brainWorldOrigin } from "../../lib/scene-origin";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
@@ -18,7 +20,7 @@ type BrainGraphProps = {
   nodes: readonly SpatialGraphNode[];
   focusedNodeId: string | null;
   selectedNodeId: string | null;
-  domainSelected: boolean;
+  selectedDomain: DomainId | null;
   quality: SceneQuality;
   onSelect: (node: SpatialGraphNode) => void;
 };
@@ -28,11 +30,12 @@ export function BrainGraph({
   nodes,
   focusedNodeId,
   selectedNodeId,
-  domainSelected,
+  selectedDomain,
   quality,
   onSelect,
 }: BrainGraphProps) {
   const group = useRef<THREE.Group>(null);
+  const renderedNodes = visibleGraphNodes(nodes, selectedDomain);
 
   useFrame(() => {
     if (!group.current) return;
@@ -42,33 +45,41 @@ export function BrainGraph({
     group.current.scale.setScalar(next);
     group.current.rotation.y = nextGraphSpin(group.current.rotation.y, {
       spinning: quality.pulses && phase === "graph",
-      aligning: phase === "graph" && domainSelected,
+      aligning: phase === "graph" && selectedDomain !== null,
     });
   });
 
   return (
     <group ref={group} position={brainWorldOrigin} scale={0.001}>
-      <CableNetwork nodes={nodes} pulses={quality.pulses} />
-      {nodes.map((node) => (
+      <CableNetwork
+        nodes={renderedNodes}
+        pulses={quality.pulses}
+        activeNodeId={focusedNodeId ?? selectedNodeId}
+        selectedDomain={selectedDomain}
+      />
+      {renderedNodes.map((node) => (
         <GraphNode
           key={node.id}
           node={node}
           selected={node.id === selectedNodeId}
           focused={node.id === focusedNodeId}
+          dimmed={false}
+          animated={quality.pulses}
           showLabel={phase === "graph"}
           onSelect={onSelect}
         />
       ))}
-      {phase === "graph" ? domains.map((domain) => (
+      {phase === "graph" && selectedDomain === null ? domains.map((domain) => (
         <Html
           center
           key={domain.id}
           position={[
-            Math.cos(domain.angle) * 6.1,
-            0.6,
-            Math.sin(domain.angle) * 6.1,
+            Math.cos(domain.angle) * 8.45,
+            0.9,
+            Math.sin(domain.angle) * 8.45,
           ]}
           distanceFactor={12}
+          zIndexRange={[3, 0]}
         >
           <span className="domain-space-label">{domain.label}</span>
         </Html>
