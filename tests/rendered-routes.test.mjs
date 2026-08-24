@@ -36,13 +36,12 @@ test("flat index links every data-derived project to its canonical case study", 
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
 
-  const timelinePosition = html.indexOf("Career timeline");
   const musicPosition = html.indexOf('id="music"');
   const consultingPosition = html.indexOf('id="consulting"');
-  assert.ok(timelinePosition >= 0, "career timeline is rendered");
   assert.ok(musicPosition >= 0, "music domain is rendered");
-  assert.ok(timelinePosition < musicPosition, "career context precedes the project directory");
   assert.ok(consultingPosition > musicPosition, "domain order remains intact");
+  assert.doesNotMatch(html, /Career timeline/i);
+  assert.doesNotMatch(html, /For AI product teams/i);
 
   const projectLinks = new Map();
   for (const [, attributes, content] of html.matchAll(

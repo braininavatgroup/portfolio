@@ -709,7 +709,7 @@ input:focus-visible {
   align-content: start;
   display: grid;
   gap: 0 1.25rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .flat-index > .index-header {
@@ -754,32 +754,6 @@ input:focus-visible {
 }
 
 .index-header > p:not(.eyebrow) { max-width: 53rem; }
-
-.index-header > p:not(.eyebrow):not(.lede) { font-size: 0.88rem; }
-
-.index-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  margin-top: 0.5rem;
-}
-
-.domain-jumps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.domain-jumps a {
-  border: 1px solid #34534b;
-  border-radius: 999px;
-  color: #a9bbb5;
-  font-size: 0.72rem;
-  padding: 0.35rem 0.6rem;
-  text-decoration: none;
-}
 
 .domain-section {
   align-content: start;
@@ -858,12 +832,6 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
-.career-timeline .evidence-badge {
-  border: 0;
-  margin-top: 0.25rem;
-  padding: 0;
-}
-
 .artifact-index-entry {
   min-width: 0;
 }
@@ -890,59 +858,6 @@ input:focus-visible {
 }
 
 .node-index-links a:hover { border-color: #d7ff6f; color: #d7ff6f; }
-
-.career-timeline {
-  border-top: 1px solid #28433c;
-  padding: 0.85rem 0 0.5rem;
-}
-
-.career-timeline > header { max-width: 48rem; }
-
-.career-timeline h2 {
-  font-size: 1rem;
-  letter-spacing: -0.02em;
-  margin: 0.25rem 0 0.3rem;
-}
-
-.career-timeline > header > p:last-child {
-  color: #91a49d;
-  font-size: 0.85rem;
-  line-height: 1.55;
-}
-
-.career-timeline ol {
-  display: grid;
-  grid-template-columns: 1fr;
-  list-style: none;
-  margin: 0.35rem 0 0;
-  padding: 0;
-}
-
-.career-timeline li {
-  border-top: 1px solid #28433c;
-  display: flex;
-  flex-direction: column;
-  padding: 0.4rem 0;
-}
-
-.career-timeline li:first-child { border-top: 0; }
-
-.career-timeline li > p {
-  color: #8ab5a9;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.62rem;
-}
-
-.career-timeline h3 { font-size: 0.85rem; line-height: 1.3; margin: 0.3rem 0 0.25rem; }
-.career-timeline li div > p {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-  color: #91a49d;
-  display: -webkit-box;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  overflow: hidden;
-}
 
 .chain-article {
   max-width: 68rem;
@@ -1101,9 +1016,6 @@ input:focus-visible {
   .flat-index { grid-template-columns: 1fr; }
   .domain-section { grid-template-columns: 1fr; }
   .artifact-index-list { grid-template-columns: 1fr; }
-  .career-timeline ol { grid-template-columns: 1fr; }
-  .career-timeline li { border-left: 0; border-top: 1px solid #28433c; padding: 1.25rem 0; }
-  .career-timeline li:first-child { border-top: 0; }
   .chain-step { gap: 1rem; grid-template-columns: 2rem 1fr; }
 }
 
@@ -1123,8 +1035,7 @@ input:focus-visible {
 [data-theme="light"] .chain-marker,
 [data-theme="light"] .chain-layer,
 [data-theme="light"] .artifact-main-link > span,
-[data-theme="light"] .adjacent-nav span,
-[data-theme="light"] .career-timeline li > p {
+[data-theme="light"] .adjacent-nav span {
   color: #536d12;
 }
 
@@ -1148,8 +1059,6 @@ input:focus-visible {
 [data-theme="light"] .scene-copy > p:not(.eyebrow),
 [data-theme="light"] .lede,
 [data-theme="light"] .domain-heading p:last-child,
-[data-theme="light"] .career-timeline > header > p:last-child,
-[data-theme="light"] .career-timeline li div > p,
 [data-theme="light"] .chain-step > div > p:not(.chain-layer),
 [data-theme="light"] .step-entity p:not(.entity-relation):not(.entity-status),
 [data-theme="light"] .entity-evidence p {
@@ -1236,16 +1145,12 @@ input:focus-visible {
 
 [data-theme="light"] .index-header,
 [data-theme="light"] .domain-section,
-[data-theme="light"] .career-timeline,
-[data-theme="light"] .career-timeline ol,
-[data-theme="light"] .career-timeline li,
 [data-theme="light"] .chain-step,
 [data-theme="light"] .adjacent-nav,
 [data-theme="light"] .entity-evidence {
   border-color: var(--line);
 }
 
-[data-theme="light"] .domain-jumps a,
 [data-theme="light"] .artifact-main-link,
 [data-theme="light"] .step-entity {
   background: var(--surface);
