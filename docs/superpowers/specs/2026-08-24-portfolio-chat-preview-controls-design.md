@@ -43,7 +43,7 @@ The chat endpoint keeps its NDJSON stream. Preflight failures use JSON:
 
 The preview endpoint accepts same-origin bounded POST requests containing `{ "accessCode": "..." }`, returns a redacted success document, and sets the HttpOnly session cookie. A separate limiter protects access attempts with an HMAC-pseudonymized Cloudflare connecting-actor key; the raw address is never logged or sent to the provider. Missing trusted connecting-actor context fails closed. Invalid access returns `401 preview_denied`.
 
-The chat request accepts `{ "question": "...", "challengeToken"?: "..." }`. The runtime parses the bounded body once and passes the validated question and token through preflight and into the grounded handler.
+The chat request accepts `{ "question": "...", "conversation"?: [...], "challengeToken"?: "..." }`. The optional conversation contains at most six recent user/assistant messages and 6,000 characters. The runtime parses the bounded body once and passes the validated question, conversation context, and token through preflight and into the grounded handler. Conversation context is untrusted follow-up context, never portfolio evidence.
 
 ## Privacy-safe telemetry
 
@@ -57,7 +57,7 @@ Tests use deterministic providers. Production code contains no fake or fallback 
 
 ## Portfolio-native UI
 
-The chat remains single-turn. Curated starter questions submit through the same client function as typed questions. Supporting evidence displays its project-chain role when available. Preview denial reveals a compact access-code form; success stores only the HttpOnly cookie and asks the visitor to resubmit. Every chat and preview control stays inside the existing event-containment boundary so it cannot start the landing transition.
+The chat keeps one bounded conversation per browser visit. React memory holds at most six recent user/assistant messages and sends them with each follow-up; it does not use localStorage, a database, a conversation ID, or durable provider state. Reloading the page or starting a new visit clears the context. Prior turns help resolve follow-up references only; current grounded evidence remains the sole factual source. Curated starter questions submit through the same client function as typed questions. Supporting evidence displays its project-chain role when available. Preview denial reveals a compact access-code form; success stores only the HttpOnly cookie and asks the visitor to resubmit. Every chat and preview control stays inside the existing event-containment boundary so it cannot start the landing transition.
 
 The request and server-validation contracts accept Turnstile tokens, validate the `portfolio_chat` action and request hostname, and enforce a five-second Siteverify timeout. BIV-308 intentionally does not ship or configure a browser widget. Client widget integration and test-key proof remain activation prerequisites; setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true` before that work fails closed.
 

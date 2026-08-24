@@ -108,6 +108,35 @@ describe("portfolio chat", () => {
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 
+  it("keeps follow-up context in the current visit without persisting it", async () => {
+    const requests: Array<{
+      question: string;
+      conversation?: readonly { role: "user" | "assistant"; content: string }[];
+    }> = [];
+    const askPortfolio: AskPortfolio = async (question, options) => {
+      requests.push({ question, conversation: options.conversation });
+      options.onEvent({ type: "answer_delta", delta: `${question} answer. [E1]` });
+      options.onEvent({ type: "done" });
+    };
+
+    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.change(input, { target: { value: "Tell me about pitching." } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(requests).toHaveLength(1));
+
+    fireEvent.change(input, { target: { value: "What changed?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+
+    expect(requests[0]?.conversation).toBeUndefined();
+    expect(requests[1]?.conversation).toEqual([
+      { role: "user", content: "Tell me about pitching." },
+      { role: "assistant", content: "Tell me about pitching. answer. [E1]" },
+    ]);
+  });
+
   it("reveals preview access after denial and preserves the question after unlock", async () => {
     const askPortfolio = vi.fn<AskPortfolio>(async () => {
       throw new PortfolioChatClientError(

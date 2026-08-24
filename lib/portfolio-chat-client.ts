@@ -1,8 +1,10 @@
 import type { PortfolioChatEvent } from "./portfolio-chat-protocol";
+import type { PortfolioChatMessage } from "./portfolio-chat-conversation";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
   challengeToken?: string;
+  conversation?: readonly PortfolioChatMessage[];
   onEvent(event: PortfolioChatEvent): void;
   fetchImplementation?: typeof fetch;
 };
@@ -84,9 +86,19 @@ async function responseError(response: Response) {
 
 export const streamPortfolioAnswer: AskPortfolio = async (
   question,
-  { signal, challengeToken, onEvent, fetchImplementation = fetch },
+  {
+    signal,
+    challengeToken,
+    conversation,
+    onEvent,
+    fetchImplementation = fetch,
+  },
 ) => {
-  const body = challengeToken ? { question, challengeToken } : { question };
+  const body = {
+    question,
+    ...(conversation?.length ? { conversation } : {}),
+    ...(challengeToken ? { challengeToken } : {}),
+  };
   const response = await fetchImplementation("/api/portfolio-chat", {
     method: "POST",
     headers: { "content-type": "application/json" },

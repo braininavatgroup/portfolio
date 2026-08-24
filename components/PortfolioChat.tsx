@@ -13,6 +13,10 @@ import {
   type TurnstileController,
   type TurnstileRenderer,
 } from "../lib/portfolio-chat-turnstile";
+import {
+  appendPortfolioChatTurn,
+  type PortfolioChatMessage,
+} from "../lib/portfolio-chat-conversation";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { classifyPose } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
@@ -46,6 +50,7 @@ export function PortfolioChat({
   const [previewPending, setPreviewPending] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
+  const conversation = useRef<PortfolioChatMessage[]>([]);
   const idleTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
   const previewController = useRef<AbortController | null>(null);
@@ -132,25 +137,45 @@ export function PortfolioChat({
     setMessage("");
     setPreviewRequired(false);
     setPending(true);
+    const conversationAtStart = conversation.current;
+    let streamedAnswer = "";
+    let streamFailed = false;
 
     try {
       await askPortfolio(question, {
         signal: controller.signal,
+        ...(conversationAtStart.length
+          ? { conversation: conversationAtStart }
+          : {}),
         ...(questionChallengeToken
           ? { challengeToken: questionChallengeToken }
           : {}),
         onEvent: (event) => {
           if (event.type === "evidence") setEvidence(event.evidence);
           if (event.type === "answer_delta") {
+            streamedAnswer += event.delta;
             setAnswer((current) => current + event.delta);
           }
           if (event.type === "notice" || event.type === "error") {
+            if (event.type === "error") streamFailed = true;
             if (event.type === "error") setAnswer("");
             setMessage(event.message);
           }
           if (event.type === "done") setPending(false);
         },
       });
+      if (
+        !controller.signal.aborted &&
+        !streamFailed &&
+        streamedAnswer.trim() &&
+        requestController.current === controller
+      ) {
+        conversation.current = appendPortfolioChatTurn(
+          conversation.current,
+          question,
+          streamedAnswer,
+        );
+      }
     } catch (error) {
       if (controller.signal.aborted) return;
       setAnswer("");

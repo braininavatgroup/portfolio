@@ -3,11 +3,14 @@ import { createPortfolioChatHandler } from "./portfolio-chat-handler";
 import type { PortfolioChatProvider } from "./portfolio-chat-provider";
 import type { PortfolioChatEvent } from "../portfolio-chat-protocol";
 
-function questionRequest(question: string) {
+function questionRequest(
+  question: string,
+  conversation?: Array<{ role: "user" | "assistant"; content: string }>,
+) {
   return new Request("http://portfolio.test/api/portfolio-chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(conversation ? { conversation } : {}) }),
   });
 }
 
@@ -80,6 +83,30 @@ describe("portfolio chat route handler", () => {
       },
       { type: "done" },
     ]);
+  });
+
+  it("passes visit conversation context to the provider while grounding the current question", async () => {
+    const conversation = [
+      { role: "user" as const, content: "Tell me about pitching." },
+      { role: "assistant" as const, content: "It keeps approval human. [E1]" },
+    ];
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ question, conversation: receivedConversation }) {
+        expect(question).toBe("What changed?");
+        expect(receivedConversation).toEqual(conversation);
+        yield "The approval step remains explicit. [E1]";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What changed?", conversation)),
+    );
+
+    expect(events.at(-1)).toEqual({ type: "done" });
   });
 
   it("does not call a provider when the portfolio has no supporting evidence", async () => {

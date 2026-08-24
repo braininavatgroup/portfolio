@@ -97,6 +97,39 @@ describe("OpenAI portfolio provider", () => {
     });
   });
 
+  it("uses prior turns only as follow-up context alongside current evidence", async () => {
+    let requestBody = "";
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async (_input, init) => {
+        requestBody = String(init?.body);
+        return sseResponse([
+          { type: "response.output_text.delta", delta: "Grounded. [E1]" },
+          { type: "response.completed", response: { status: "completed" } },
+        ]);
+      },
+    });
+
+    for await (const chunk of provider.streamAnswer({
+      question: "What changed?",
+      conversation: [
+        { role: "user", content: "Tell me about pitching." },
+        { role: "assistant", content: "It keeps approval human. [E1]" },
+      ],
+      evidence,
+    })) {
+      expect(typeof chunk).toBe("string");
+      // Drain the stream.
+    }
+
+    expect(requestBody).toContain("Follow-up context only");
+    expect(requestBody).toContain("User: Tell me about pitching.");
+    expect(requestBody).toContain("Assistant: It keeps approval human. [E1]");
+    expect(requestBody).toContain("Current question: What changed?");
+    expect(requestBody).toContain("project:pitching");
+  });
+
   it("does not expose an upstream error body", async () => {
     const upstreamSecret = "upstream-secret-detail";
     const provider = createOpenAIPortfolioProvider({
