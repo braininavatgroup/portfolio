@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bradley-portfolio-preview",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PORTFOLIO_CHAT_LIVE_ENABLED": "true",
+    "PORTFOLIO_CHAT_PREVIEW_ENABLED": "false",
+    "PORTFOLIO_CHAT_TURNSTILE_REQUIRED": "false",
+    "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT": "200",
+    "OPENAI_PORTFOLIO_MODEL": "gpt-5.4-2026-03-05",
+    "OPENAI_PORTFOLIO_REASONING_EFFORT": "low"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PORTFOLIO_CHAT_BUDGET",
+        "class_name": "PortfolioChatBudgetObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PortfolioChatBudgetObject"]
+    }
+  ],
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.js", "**/*.mjs"]
+    }
+  ],
+  "no_bundle": true,
+  "assets": {
+    "directory": "dist/client"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

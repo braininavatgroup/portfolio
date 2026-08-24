@@ -62,6 +62,42 @@ describe("portfolio chat runtime", () => {
     expect(stub.fetch).not.toHaveBeenCalled();
   });
 
+  // Catches the dedicated Worker accidentally depending on the older access-code stack.
+  // Owner: BIV-317 direct-live runtime; signed-preview tests own the access-gated branch.
+  // Retire after the solo preview Worker is decommissioned or adopts a different access contract.
+  it("serves the dedicated live Worker without the older preview access stack", async () => {
+    const seenSafetyIdentifiers: Array<string | undefined> = [];
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ safetyIdentifier }) {
+        seenSafetyIdentifiers.push(safetyIdentifier);
+        yield "The final approval remains human. [E1]";
+      },
+    };
+    const consume = vi.fn(async () => ({ success: true }));
+    const { namespace } = budgetNamespace(consume);
+    const runtime = createPortfolioChatRuntime({
+      env: {
+        PORTFOLIO_CHAT_LIVE_ENABLED: "true",
+        PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
+        PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
+        OPENAI_API_KEY: "sk-server-only",
+        OPENAI_PORTFOLIO_MODEL: "gpt-5.4-2026-03-05",
+        OPENAI_PORTFOLIO_REASONING_EFFORT: "low",
+        PORTFOLIO_CHAT_BUDGET: namespace,
+      },
+      getProvider: () => provider,
+      randomId: () => "direct-request",
+      record: () => {},
+    });
+
+    const response = await runtime.handleChat(chatRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"answer_delta"');
+    expect(consume).toHaveBeenCalledWith({ limit: 200 });
+    expect(seenSafetyIdentifiers).toEqual([undefined]);
+  });
+
   it("uses the signed preview session for preflight and provider safety identity", async () => {
     const seenSafetyIdentifiers: Array<string | undefined> = [];
     const provider: PortfolioChatProvider = {

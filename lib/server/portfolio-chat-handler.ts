@@ -18,7 +18,7 @@ import {
 
 export type PortfolioChatRequestContext = {
   requestId: string;
-  safetyIdentifier: string;
+  safetyIdentifier?: string;
   providerModel: string;
 };
 

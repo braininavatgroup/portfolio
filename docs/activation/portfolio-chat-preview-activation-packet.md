@@ -1,62 +1,98 @@
 # Portfolio chat preview activation packet
 
-Status: dormant preparation only. This packet does not authorize provisioning,
-deployment, preview access, public exposure, or provider spend.
+Status: BIV-317 authorizes one single-operator preview deployment. No deployment
+has been recorded yet. Cloudflare reported that `bradley-portfolio-preview` did
+not exist on 2026-08-24 at 16:51 America/New_York.
 
-## Prepared surface
+## Bound release
 
-- The client renders an explicit Cloudflare Turnstile widget only when
-  `VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` is present. The default is absent,
-  so the merged application remains unchanged and dormant.
-- A verified browser token is sent as `challengeToken` and the widget resets
-  after each request. The server-side verifier remains controlled by
-  `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` and fails closed when required material
-  is missing or invalid.
-- The shared runtime already exposes typed contracts for the route limiters
-  and the `PORTFOLIO_CHAT_BUDGET` Durable Object namespace. No production
-  binding, migration, secret, or real site key is committed here.
+- Target Worker: `bradley-portfolio-preview`.
+- Access boundary: the generated
+  `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname returned
+  by Wrangler. The URL is intentionally usable by anyone who obtains it.
+- Routes: Workers.dev only. Do not add a custom domain, zone route, or public
+  portfolio hostname.
+- Operator: Bradley is the only intended visitor during this preview.
+- Window: seven days from the successful deployment timestamp, unless Bradley
+  ends or extends it first. Record the exact expiry with the deployment proof.
+- Artifact: deploy the exact independently reviewed PR head after GitHub records
+  that tree as merged to `main`. Record its commit before deployment.
 
-## Activation inputs to choose and authorize
+## Runtime configuration
 
-Record the exact values in the deployment change or its protected release
-record; never add them to this repository:
+`wrangler.preview.jsonc` owns the non-secret release configuration:
 
-| Input | Required decision |
+| Setting | Value |
 | --- | --- |
-| Target hostname(s) | Exact preview hostnames allowed by the Turnstile site key and smoke test |
-| `VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` | Public site key restricted to the target hostname(s) |
-| `TURNSTILE_SECRET_KEY` | Server-only secret for the matching site key |
-| `PORTFOLIO_CHAT_LIVE_ENABLED` | Keep `false` until the private-preview smoke test is ready |
-| `PORTFOLIO_CHAT_PREVIEW_ENABLED` | Set `true` only for the authorized preview window |
-| `PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE` | Server-only high-entropy access code, at least 24 characters |
-| `PORTFOLIO_CHAT_SESSION_SECRET` | Server-only signing secret, at least 32 characters |
-| `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | Explicit UTC-day provider budget; no permissive default |
-| `OPENAI_API_KEY` / `OPENAI_PORTFOLIO_MODEL` | Server-only provider configuration and approved model |
-| `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `true` for the authorized preview after widget proof |
-| Cloudflare route limiters | Provision and bind both chat and preview-attempt limiters |
-| `PORTFOLIO_CHAT_BUDGET` | Provision the Durable Object namespace and migration before enabling provider calls |
+| `PORTFOLIO_CHAT_LIVE_ENABLED` | `true` |
+| `PORTFOLIO_CHAT_PREVIEW_ENABLED` | `false` |
+| `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `false` |
+| `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `200` |
+| `OPENAI_PORTFOLIO_MODEL` | `gpt-5.4-2026-03-05` |
+| `OPENAI_PORTFOLIO_REASONING_EFFORT` | `low` |
 
-## Required proof before enabling the preview
+The existing provider ceiling remains 450 output tokens. Store
+`OPENAI_API_KEY` only as an encrypted Worker secret. Do not configure the older
+preview access code, session secret, Turnstile keys, chat route limiter, or
+preview-attempt route limiter for this Worker.
 
-1. Run the full repository verification suite and the deterministic offline
-   evaluation. Record the exact artifact, commit, model label, request limit,
-   and evaluation report.
-2. Verify the Turnstile test-key flow in a browser on the exact target
-   hostname: no token blocks submission, a valid token reaches the server, an
-   expired token blocks the next request, and the widget resets after use.
-3. Verify the private preview with a bounded smoke matrix: disabled response,
-   preview denial, valid access-cookie exchange, challenge failure, rate-limit
-   rejection, budget exhaustion, grounded answer, and provider failure. Confirm
-   no secret, token, access code, question, answer, or address appears in
-   client assets or telemetry.
-4. Confirm the kill switch by setting the live gate false in a reversible
-   configuration change, then retain the previous immutable artifact and the
-   exact rollback command in the release record.
+The config binds `PORTFOLIO_CHAT_BUDGET` to
+`PortfolioChatBudgetObject` and provisions it with the `v1`
+`new_sqlite_classes` migration. This UTC-day budget is the provider spend
+boundary for the solo preview.
 
-## Release boundary
+## Proof before deployment
 
-Only a separately authorized release may provision the listed Cloudflare
-resources, store secrets, deploy an immutable artifact, or enable the preview.
-The person or runner receiving that authorization must have only the scoped,
-short-lived capability needed for that release. A code review or merge of this
-preparation does not itself activate the chat.
+Record all proof against one commit:
+
+1. `npm test`, `npm run lint`, `npx tsc --noEmit`, and
+   `npm run test:rendered` pass.
+2. `tests/preview-worker-config.test.mjs` confirms Wrangler accepts the built
+   Worker, the SQLite migration, the Workers.dev-only route, and the absence of
+   secret or access-stack configuration.
+3. The deterministic offline evaluation passes.
+4. Client and build artifacts contain none of the planted secret sentinels.
+5. The exact-head pull request is approved, merged, and still matches the
+   artifact selected for deployment.
+
+## Live smoke matrix
+
+After deployment, record the hostname, Worker version, deployment timestamp,
+seven-day expiry, and each result below:
+
+| Check | Expected result |
+| --- | --- |
+| Page | Workers.dev root returns the portfolio without a custom-domain route |
+| Direct chat | A grounded question streams an answer without access code, cookie, Turnstile, or route-limiter configuration |
+| Conversation | One follow-up uses at most six in-memory user and assistant messages; reload clears them |
+| Budget | The Durable Object receives a limit of 200 and rejects exhaustion before provider construction |
+| Provider failure | The route returns the redacted provider error contract without leaking upstream detail |
+| Secret isolation | No key, prompt, answer, IP address, access token, or secret appears in client assets or structured telemetry |
+| Disabled gate | A build of the same artifact with `PORTFOLIO_CHAT_LIVE_ENABLED=false` returns the disabled contract before provider construction |
+
+The budget exhaustion and provider-failure checks use deterministic local or
+isolated test inputs. They do not consume the live 200-request allowance merely
+to force failure states.
+
+## Containment and rollback
+
+There is no previous deployment to restore. The first containment target is the
+same immutable artifact with its live gate disabled:
+
+```sh
+npx wrangler deploy --config wrangler.preview.jsonc \
+  --var PORTFOLIO_CHAT_LIVE_ENABLED:false \
+  --message "BIV-317 preview kill switch"
+```
+
+Verify that `/api/portfolio-chat` returns the disabled response after this
+command. If the hostname itself must stop serving, delete only the dedicated
+Worker:
+
+```sh
+npx wrangler delete bradley-portfolio-preview \
+  --config wrangler.preview.jsonc
+```
+
+Do not run `--force`. Record the contained or deleted state in BIV-317 before
+closing the preview window.
