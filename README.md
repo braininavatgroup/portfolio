@@ -53,6 +53,6 @@ npm run build
 npm run test:rendered
 ```
 
-`Show performance` appears only in development and reports a rolling browser frame rate. The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
+The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
 This prototype is local only. No deployment or public activation is configured or authorized.

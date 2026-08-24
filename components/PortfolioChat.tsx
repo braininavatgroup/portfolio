@@ -12,12 +12,6 @@ import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { classifyPose } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
 
-const starterQuestions = [
-  "How does the pitching system preserve human approval?",
-  "How does reporting turn campaign activity into client evidence?",
-  "How does Bradley decide what to automate?",
-] as const;
-
 const stageRoleLabels = {
   instinct: "Instinct",
   approach: "Approach",
@@ -120,15 +114,8 @@ export function PortfolioChat({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const submitter = (event.nativeEvent as SubmitEvent).submitter;
-    const starterQuestion =
-      submitter instanceof HTMLButtonElement &&
-      submitter.name === "starterQuestion"
-        ? submitter.value
-        : "";
-    const question = starterQuestion || input.trim();
+    const question = input.trim();
     if (!question) return;
-    if (starterQuestion) setInput(starterQuestion);
     setPoseForQuestion(question);
     void runQuestion(question);
   }
@@ -174,20 +161,6 @@ export function PortfolioChat({
           <p className="eyebrow">Ask the portfolio</p>
           <h2 id="chat-heading">Find the work behind the question.</h2>
         </div>
-      </div>
-      <div className="chat-starters" aria-label="Suggested portfolio questions">
-        {starterQuestions.map((question) => (
-          <button
-            disabled={pending}
-            form="portfolio-question-form"
-            key={question}
-            name="starterQuestion"
-            type="submit"
-            value={question}
-          >
-            {question}
-          </button>
-        ))}
       </div>
       <form id="portfolio-question-form" onSubmit={submit}>
         <label className="sr-only" htmlFor="portfolio-question">

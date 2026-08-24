@@ -1,137 +1,99 @@
 "use client";
 
-import {
-  type KeyboardEvent,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef } from "react";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
 import { nodeAction } from "../lib/node-interaction";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
 
-const roleLabels: Record<SpatialGraphNode["role"], string> = {
-  root: "Root",
-  instinct: "Instinct",
-  approach: "Approach",
-  output: "Output",
-};
+function isIgnoredTarget(target: EventTarget | null) {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLButtonElement ||
+    target instanceof HTMLAnchorElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
 
 export function KeyboardNavigator({
   nodes,
   onNodeFocus,
   onNodeSelect,
   selectedNodeId,
-  controlRef,
 }: {
   nodes: readonly SpatialGraphNode[];
   onNodeFocus: (nodeId: string | null) => void;
   onNodeSelect: (node: SpatialGraphNode | null) => void;
   selectedNodeId: string | null;
-  controlRef?: RefObject<HTMLButtonElement | null>;
 }) {
   const actionableNodes = nodes.filter((node) => nodeAction(node) === "inspect");
-  const [active, setActive] = useState(false);
-  const [index, setIndex] = useState(0);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const indexRef = useRef(-1);
   const previousSelectedNodeId = useRef(selectedNodeId);
   const selectedIndex = actionableNodes.findIndex(
     (node) => node.id === selectedNodeId,
   );
-  const currentIndex = selectedIndex >= 0 ? selectedIndex : index;
-  const current = actionableNodes[currentIndex];
 
   useEffect(() => {
     if (previousSelectedNodeId.current !== null && selectedNodeId === null) {
-      setActive(false);
+      indexRef.current = -1;
       onNodeFocus(null);
     }
     previousSelectedNodeId.current = selectedNodeId;
   }, [onNodeFocus, selectedNodeId]);
 
-  function select(nextIndex: number) {
-    const node = actionableNodes[nextIndex];
-    if (!node) return;
-    setActive(true);
-    setIndex(nextIndex);
-    onNodeFocus(node.id);
-    onNodeSelect(node);
-  }
+  useEffect(() => {
+    function select(index: number) {
+      const node = actionableNodes[index];
+      if (!node) return;
+      indexRef.current = index;
+      onNodeFocus(node.id);
+      onNodeSelect(node);
+    }
 
-  function move(direction: "next" | "previous") {
-    select(nextKeyboardIndex(currentIndex, direction, actionableNodes.length));
-  }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || isIgnoredTarget(event.target)) return;
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (!active) return;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      event.preventDefault();
-      move("next");
-      return;
-    }
-    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      event.preventDefault();
-      move("previous");
-      return;
-    }
-    if (event.key === "Enter" && active && current?.href) {
-      event.preventDefault();
-      window.location.assign(current.href);
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setActive(false);
-      onNodeFocus(null);
-      onNodeSelect(null);
-      trigger.current?.focus();
-    }
-  }
+      const direction =
+        event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? "next"
+          : event.key === "ArrowLeft" || event.key === "ArrowUp"
+            ? "previous"
+            : null;
 
-  return (
-    <div
-      aria-label="Keyboard map controls"
-      className={`keyboard-navigator${active ? " keyboard-active" : ""}`}
-      onKeyDown={handleKeyDown}
-      role="toolbar"
-    >
-      <button
-        aria-expanded={active}
-        disabled={actionableNodes.length === 0}
-        onClick={() => {
-          setActive(true);
-          onNodeFocus(current?.id ?? null);
-        }}
-        ref={(element) => {
-          trigger.current = element;
-          if (controlRef) controlRef.current = element;
-        }}
-        type="button"
-      >
-        {active && current ? (
-          <>
-            <span>{roleLabels[current.role]}</span>
-            <strong>{current.label}</strong>
-            <small>{currentIndex + 1} of {actionableNodes.length}</small>
-          </>
-        ) : (
-          "Explore by keyboard"
-        )}
-      </button>
-      {active && current ? (
-        <>
-          <div className="keyboard-step-controls">
-            <button aria-label="Previous node" onClick={() => move("previous")} type="button">
-              Previous
-            </button>
-            <button aria-label="Next node" onClick={() => move("next")} type="button">
-              Next
-            </button>
-          </div>
-          <p>Arrow keys move. Enter opens. Escape closes.</p>
-        </>
-      ) : null}
-    </div>
-  );
+      if (direction && actionableNodes.length > 0) {
+        event.preventDefault();
+        const currentIndex = selectedIndex >= 0 ? selectedIndex : indexRef.current;
+        const nextIndex =
+          currentIndex < 0
+            ? direction === "next"
+              ? 0
+              : actionableNodes.length - 1
+            : nextKeyboardIndex(currentIndex, direction, actionableNodes.length);
+        select(nextIndex);
+        return;
+      }
+
+      if (event.key === "Enter" && selectedIndex >= 0) {
+        const node = actionableNodes[selectedIndex];
+        if (node?.href) {
+          event.preventDefault();
+          window.location.assign(node.href);
+        }
+        return;
+      }
+
+      if (event.key === "Escape" && (selectedIndex >= 0 || indexRef.current >= 0)) {
+        event.preventDefault();
+        indexRef.current = -1;
+        onNodeFocus(null);
+        onNodeSelect(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [actionableNodes, onNodeFocus, onNodeSelect, selectedIndex]);
+
+  return null;
 }

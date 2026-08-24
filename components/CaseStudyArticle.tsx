@@ -39,13 +39,10 @@ export function CaseStudyArticle({ caseStudy }: { caseStudy: CaseStudy }) {
       </header>
 
       <ol className="chain-list" aria-label="Case study steps">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
           const summary = dedupe(seen, step.summary);
           return (
             <li className="chain-step" id={`step-${step.role}`} key={step.role}>
-              <div className="chain-marker" aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </div>
               <div>
                 <p className="chain-layer">{roleLabel(step.role)}</p>
                 <h2>{step.title}</h2>

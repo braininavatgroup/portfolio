@@ -112,6 +112,7 @@ describe("CaseStudyArticle", () => {
     ).toEqual(["Instinct step", "Approach step", "Output step"]);
 
     const article = screen.getByRole("list", { name: "Case study steps" });
+    expect(article.querySelectorAll(".chain-marker")).toHaveLength(0);
     expect(article.textContent).toContain("Instinct");
     expect(article.textContent).toContain("Approach");
     expect(article.textContent).toContain("Output");

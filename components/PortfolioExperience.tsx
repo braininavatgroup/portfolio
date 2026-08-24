@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { lazy, Suspense, useEffect, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useReducer, useState } from "react";
 import { getEntity } from "../lib/portfolio-data";
 import { domains, type DomainId } from "../lib/portfolio";
 import {
@@ -15,8 +14,8 @@ import {
 import { TransitionStatus } from "./TransitionStatus";
 import { KeyboardNavigator } from "./KeyboardNavigator";
 import { NodeDrawer } from "./NodeDrawer";
+import { PortfolioHeader } from "./PortfolioHeader";
 import { PortfolioChat } from "./PortfolioChat";
-import { FrameSampler } from "./FrameSampler";
 import type { PoseState } from "./scene/BodyScene";
 
 const PortfolioCanvas = lazy(() =>
@@ -53,7 +52,6 @@ export function PortfolioExperience({
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
-  const keyboardControlRef = useRef<HTMLButtonElement>(null);
   const selectedEntities =
     selectedNode && selectedNode.role !== "root"
       ? selectedNode.entityIds.flatMap((entityId) => {
@@ -92,22 +90,13 @@ export function PortfolioExperience({
       id="main-content"
     >
       <TransitionStatus phase={transition.phase} />
-      <header className="experience-header">
-        <Link className="wordmark" href="/" onClick={resetExperience}>Bradley Berkman</Link>
-        {transition.phase === "graph" ? (
-          <nav aria-label="Portfolio views">
-            <span aria-current="page">Map</span>
-            <Link href="/work">Project index</Link>
-            <button type="button" onClick={resetExperience}>
-              Replay intro
-            </button>
-          </nav>
-        ) : null}
-      </header>
+      <PortfolioHeader
+        currentView={transition.phase === "graph" ? "map" : null}
+        onWordmarkClick={resetExperience}
+      />
 
       {/* Any non-control click on the landing canvas enters; explicit
-          controls inside the shell stop propagation instead. Keyboard entry
-          stays on the visible enter button. */}
+          controls inside the shell stop propagation instead. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
         aria-label="Spatial portfolio preview"
@@ -140,31 +129,11 @@ export function PortfolioExperience({
             node={selectedNode}
             entities={selectedEntities}
             onClose={() => setSelectedNode(null)}
-            returnFocusRef={keyboardControlRef}
           />
         ) : null}
 
         <div className="scene-copy">
-          <p className="eyebrow">Bradley Berkman portfolio</p>
           <h1>I find where judgment matters, then build the system around it.</h1>
-          <p>
-            Click anywhere to step inside, then follow the work outward.
-          </p>
-          {transition.phase === "body" ? (
-            <button
-              className="enter-button"
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                dispatch({ type: "ENTER" });
-              }}
-            >
-              Explore the work
-            </button>
-          ) : null}
-          {transition.phase === "entering" ? (
-            <p className="transition-label">Moving through the glass…</p>
-          ) : null}
         </div>
         {transition.phase === "graph" ? (
           <aside className="graph-toolbar" aria-label="Guided graph tour">
@@ -174,8 +143,10 @@ export function PortfolioExperience({
               {domains.map((domain) => (
                 <button
                   aria-pressed={selectedDomain === domain.id}
+                  data-domain={domain.id}
                   disabled={selectedDomain === domain.id}
                   key={domain.id}
+                  style={{ borderColor: domain.color, color: domain.color }}
                   type="button"
                   onClick={() => selectDomain(domain.id)}
                 >
@@ -197,7 +168,6 @@ export function PortfolioExperience({
               <li className="legend-artifact">Output</li>
             </ul>
             <KeyboardNavigator
-              controlRef={keyboardControlRef}
               nodes={portfolioNodes}
               onNodeFocus={setKeyboardNodeId}
               onNodeSelect={setSelectedNode}
@@ -206,7 +176,6 @@ export function PortfolioExperience({
           </aside>
         ) : null}
         <PortfolioChat onPoseChange={setPose} />
-        <FrameSampler />
       </section>
     </main>
   );
