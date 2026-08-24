@@ -226,6 +226,7 @@ export function PortfolioCanvas({
             nodes={nodes}
             focusedNodeId={focusedNodeId}
             selectedNodeId={selectedNodeId}
+            domainSelected={selectedDomain !== null}
             quality={quality}
             onSelect={onNodeSelect}
           />
