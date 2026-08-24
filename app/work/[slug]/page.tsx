@@ -1,55 +1,59 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChainArticle } from "../../../components/ChainArticle";
-import { artifactSlugs, artifacts, getArtifact } from "../../../lib/portfolio";
+import { CaseStudyArticle } from "../../../components/CaseStudyArticle";
+import {
+  caseStudySlugs,
+  getAdjacentProjects,
+  getCaseStudy,
+} from "../../../lib/case-study";
 
-type ArtifactPageProps = {
+type CaseStudyPageProps = {
   params: Promise<{ slug: string }>;
 };
 
 export function generateStaticParams() {
-  return artifactSlugs.map((slug) => ({ slug }));
+  return caseStudySlugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
-}: ArtifactPageProps): Promise<Metadata> {
+}: CaseStudyPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const artifact = getArtifact(slug);
-  if (!artifact) return {};
+  const caseStudy = getCaseStudy(slug);
+  if (!caseStudy) return {};
   return {
-    title: `${artifact.title} | Bradley Berkman`,
-    description: artifact.summary,
+    title: `${caseStudy.project.title} | Bradley Berkman`,
+    description: caseStudy.project.summary,
   };
 }
 
-export default async function ArtifactPage({ params }: ArtifactPageProps) {
+export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   const { slug } = await params;
-  const artifact = getArtifact(slug);
-  if (!artifact) notFound();
+  const caseStudy = getCaseStudy(slug);
+  if (!caseStudy) notFound();
 
-  const currentIndex = artifacts.findIndex((item) => item.slug === artifact.slug);
-  const previous = artifacts[(currentIndex - 1 + artifacts.length) % artifacts.length];
-  const next = artifacts[(currentIndex + 1) % artifacts.length];
+  const adjacent = getAdjacentProjects(caseStudy.project.slug);
 
   return (
     <main className="artifact-page" data-theme="light" id="main-content">
-      <nav className="artifact-nav" aria-label="Artifact navigation">
+      <nav className="artifact-nav" aria-label="Case study navigation">
         <Link href="/?view=graph">Portfolio map</Link>
         <Link href="/work">Project index</Link>
       </nav>
-      <ChainArticle artifact={artifact} />
-      <nav className="adjacent-nav" aria-label="Adjacent artifacts">
-        <Link href={`/work/${previous.slug}`}>
-          <span>Previous</span>
-          {previous.title}
-        </Link>
-        <Link href={`/work/${next.slug}`}>
-          <span>Next</span>
-          {next.title}
-        </Link>
-      </nav>
+      <CaseStudyArticle caseStudy={caseStudy} />
+      {adjacent ? (
+        <nav className="adjacent-nav" aria-label="Adjacent case studies">
+          <Link href={`/work/${adjacent.previous.slug}`}>
+            <span>Previous</span>
+            {adjacent.previous.title}
+          </Link>
+          <Link href={`/work/${adjacent.next.slug}`}>
+            <span>Next</span>
+            {adjacent.next.title}
+          </Link>
+        </nav>
+      ) : null}
     </main>
   );
 }

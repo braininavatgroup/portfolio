@@ -22,7 +22,7 @@ async function render(pathname) {
   );
 }
 
-test("project index links every canonical project to its own five-section case study", async () => {
+test("project index links every data-derived project to its canonical case study", async () => {
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -38,9 +38,13 @@ test("project index links every canonical project to its own five-section case s
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
 
   assert.match(html, /aria-label=["']Portfolio views["']/i);
-  assert.match(html, /aria-label=["']Portfolio projects["']/i);
-  assert.match(html, />Partial evidence</i);
   assert.doesNotMatch(html, /Evidence undefined/i);
+  const musicPosition = html.indexOf('id="music"');
+  const consultingPosition = html.indexOf('id="consulting"');
+  assert.ok(musicPosition >= 0, "music domain is rendered");
+  assert.ok(consultingPosition > musicPosition, "domain order remains intact");
+  assert.doesNotMatch(html, /Career timeline/i);
+  assert.doesNotMatch(html, /For AI product teams/i);
 
   const projectLinks = new Map();
   for (const [, attributes, content] of html.matchAll(
@@ -78,19 +82,24 @@ test("project index links every canonical project to its own five-section case s
       expectedTitle,
       `${route} renders its linked project`,
     );
-    for (const layer of [
-      "Judgment",
-      "Spec or model",
-      "System",
-      "Artifact",
-      "Other minds",
-    ]) {
-      assert.match(caseStudyHtml, new RegExp(`>${layer}<`));
+    for (const role of ["Instinct", "Approach", "Output"]) {
+      assert.match(caseStudyHtml, new RegExp(`>${role}<`));
     }
-    for (const layerId of ["judgment", "spec", "system", "artifact", "operation"]) {
-      assert.match(caseStudyHtml, new RegExp(`id=["']${layerId}["']`));
+    for (const stepId of ["step-instinct", "step-approach", "step-output"]) {
+      assert.match(caseStudyHtml, new RegExp(`id=["']${stepId}["']`));
     }
-    assert.match(caseStudyHtml, />Decision</);
+    for (const legacyLabel of ["Spec or model", "Other minds"]) {
+      assert.doesNotMatch(caseStudyHtml, new RegExp(`>${legacyLabel}<`));
+    }
+    for (const legacyId of ["judgment", "spec", "system", "artifact", "operation"]) {
+      assert.doesNotMatch(caseStudyHtml, new RegExp(`id=["']${legacyId}["']`));
+    }
+    assert.match(caseStudyHtml, /Supporting material for /i);
     assert.match(caseStudyHtml, /Evidence (available|partial|needed)/i);
+    assert.doesNotMatch(
+      caseStudyHtml,
+      new RegExp(`<a[^>]*href=["']${route}["'][^>]*>View case study<`, "i"),
+      `${route} does not link its own canonical route as a case-study link`,
+    );
   }
 });
