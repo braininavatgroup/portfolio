@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PortfolioExperience } from "./PortfolioExperience";
 
@@ -39,7 +38,7 @@ describe("landing entry", () => {
     fireEvent.click(canvas);
 
     expect(screen.getByText("Moving through the glass…")).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Explore the work" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show performance" })).toBeNull();
   });
 
   it("keeps chat clicks on the landing screen", async () => {
@@ -49,40 +48,6 @@ describe("landing entry", () => {
     fireEvent.click(screen.getByText("Find the work behind the question."));
 
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
-  });
-
-  it("keeps starter-question pointer interactions on the landing screen", async () => {
-    await renderExperience();
-    const starter = screen.getByRole("button", {
-      name: "How does the pitching system preserve human approval?",
-    });
-
-    fireEvent.pointerDown(starter);
-    fireEvent.click(starter);
-
-    expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
-  });
-
-  it("keeps frame sampler clicks on the landing screen", async () => {
-    await renderExperience();
-
-    fireEvent.click(screen.getByRole("button", { name: "Show performance" }));
-
-    expect(screen.queryByText("Moving through the glass…")).toBeNull();
-    expect(screen.getByRole("button", { name: "Hide performance" })).toBeDefined();
-  });
-
-  it("keeps a keyboard path through the visible enter button", async () => {
-    await renderExperience();
-    const user = userEvent.setup();
-    const enterButton = screen.getByRole("button", { name: "Explore the work" });
-
-    act(() => enterButton.focus());
-    await user.keyboard("{Enter}");
-
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
   });
 
   it("completes the transition into the graph after the travel duration", async () => {

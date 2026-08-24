@@ -31,6 +31,7 @@ test("project index links every data-derived project to its canonical case study
   assert.match(html, /aria-current=["']page["'][^>]*>Project index</i);
   assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
+  assert.doesNotMatch(html, /Portfolio · \d+ projects/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
   assert.doesNotMatch(html, /Linear time \/ spatial entry at the pivot/i);
@@ -66,7 +67,7 @@ test("project index links every data-derived project to its canonical case study
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
     assert.match(
       caseStudyHtml,
-      /href=["']\/\?view=graph["'][^>]*>Portfolio map</i,
+      /href=["']\/\?view=graph["'][^>]*>Map</i,
     );
     assert.match(
       caseStudyHtml,
@@ -88,6 +89,7 @@ test("project index links every data-derived project to its canonical case study
     for (const stepId of ["step-instinct", "step-approach", "step-output"]) {
       assert.match(caseStudyHtml, new RegExp(`id=["']${stepId}["']`));
     }
+    assert.doesNotMatch(caseStudyHtml, /class=["']chain-marker["']/i);
     for (const legacyLabel of ["Spec or model", "Other minds"]) {
       assert.doesNotMatch(caseStudyHtml, new RegExp(`>${legacyLabel}<`));
     }

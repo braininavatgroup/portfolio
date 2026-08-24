@@ -81,7 +81,13 @@ export function BrainGraph({
           distanceFactor={12}
           zIndexRange={[3, 0]}
         >
-          <span className="domain-space-label">{domain.label}</span>
+          <span
+            className="domain-space-label"
+            data-domain={domain.id}
+            style={{ color: domain.color }}
+          >
+            {domain.label}
+          </span>
         </Html>
       )) : null}
     </group>
