@@ -22,7 +22,7 @@ async function render(pathname) {
   );
 }
 
-test("flat index links every canonical artifact to its own five-section case study", async () => {
+test("flat index links every data-derived project to its canonical case study", async () => {
   const response = await render("/work");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -71,19 +71,24 @@ test("flat index links every canonical artifact to its own five-section case stu
       expectedTitle,
       `${route} renders its linked project`,
     );
-    for (const layer of [
-      "Judgment",
-      "Spec or model",
-      "System",
-      "Artifact",
-      "Other minds",
-    ]) {
-      assert.match(caseStudyHtml, new RegExp(`>${layer}<`));
+    for (const role of ["Instinct", "Approach", "Output"]) {
+      assert.match(caseStudyHtml, new RegExp(`>${role}<`));
     }
-    for (const layerId of ["judgment", "spec", "system", "artifact", "operation"]) {
-      assert.match(caseStudyHtml, new RegExp(`id=["']${layerId}["']`));
+    for (const stepId of ["step-instinct", "step-approach", "step-output"]) {
+      assert.match(caseStudyHtml, new RegExp(`id=["']${stepId}["']`));
     }
-    assert.match(caseStudyHtml, />Decision</);
+    for (const legacyLabel of ["Spec or model", "Other minds"]) {
+      assert.doesNotMatch(caseStudyHtml, new RegExp(`>${legacyLabel}<`));
+    }
+    for (const legacyId of ["judgment", "spec", "system", "artifact", "operation"]) {
+      assert.doesNotMatch(caseStudyHtml, new RegExp(`id=["']${legacyId}["']`));
+    }
+    assert.match(caseStudyHtml, /Supporting material for /i);
     assert.match(caseStudyHtml, /Evidence (available|partial|needed)/i);
+    assert.doesNotMatch(
+      caseStudyHtml,
+      new RegExp(`<a[^>]*href=["']${route}["'][^>]*>View case study<`, "i"),
+      `${route} does not link its own canonical route as a case-study link`,
+    );
   }
 });

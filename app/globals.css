@@ -761,9 +761,7 @@ input:focus-visible {
   scroll-margin-top: 2rem;
 }
 
-.domain-heading h2,
-.decision-panel h2,
-.evidence-panel h2 {
+.domain-heading h2 {
   font-size: clamp(1.8rem, 3vw, 3rem);
   letter-spacing: -0.035em;
   margin: 0.75rem 0 1rem;
@@ -898,78 +896,6 @@ input:focus-visible {
   max-width: 68rem;
 }
 
-.artifact-surface {
-  background: #0b1714;
-  border: 1px solid #34534b;
-  margin: 0 0 6rem;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
-}
-
-.surface-heading-row {
-  align-items: flex-start;
-  display: flex;
-  gap: 2rem;
-  justify-content: space-between;
-}
-
-.surface-heading-row h2 { font-size: clamp(1.6rem, 3vw, 2.8rem); margin: 0.4rem 0 0; }
-
-.surface-stage-controls {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(4, 1fr);
-  margin: 2rem 0 0.75rem;
-}
-
-.surface-stage-controls button {
-  background: #101f1b;
-  border: 1px solid #34534b;
-  color: #a9bbb5;
-  cursor: pointer;
-  font: inherit;
-  padding: 0.85rem;
-  text-align: left;
-}
-
-.surface-stage-controls button span {
-  color: #71968b;
-  display: block;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.58rem;
-  margin-bottom: 0.35rem;
-}
-
-.surface-stage-controls button[aria-pressed="true"] {
-  background: #d7ff6f;
-  border-color: #d7ff6f;
-  color: #07100f;
-}
-
-.surface-stage-controls button[aria-pressed="true"] span { color: #405021; }
-
-.surface-output {
-  background: #07100f;
-  border: 1px solid #29443d;
-  min-height: 12rem;
-  padding: clamp(1.25rem, 3vw, 2rem);
-}
-
-.surface-output h3 { font-size: clamp(1.4rem, 2.6vw, 2.2rem); margin: 0.6rem 0 0.8rem; }
-.surface-output p:last-child { color: #9eb0aa; line-height: 1.65; max-width: 48rem; }
-
-.comparison-slots {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 1fr 1fr;
-  margin-top: 0.75rem;
-}
-
-.comparison-slots > div { border: 1px dashed #536f67; min-height: 8rem; padding: 1rem; }
-.comparison-slots p { font-family: var(--font-geist-mono), monospace; font-size: 0.7rem; margin: 0 0 2.4rem; text-transform: uppercase; }
-.comparison-slots span { color: #ef9d91; font-size: 0.75rem; }
-
-.surface-note { color: #71867f; font-size: 0.68rem; line-height: 1.5; margin: 1rem 0 0; }
-
 .chain-header {
   margin-bottom: 6rem;
   max-width: 58rem;
@@ -1019,34 +945,69 @@ input:focus-visible {
   margin: 0.5rem 0 1rem;
 }
 
-.chain-step p:last-child,
-.decision-panel p:last-child,
-.evidence-panel p {
+.chain-step > div > p:not(.chain-layer),
+.step-entity p:not(.entity-relation):not(.entity-status),
+.entity-evidence p {
   color: #a7b7b1;
   line-height: 1.7;
   max-width: 50rem;
 }
 
-.decision-panel,
-.evidence-panel {
-  background: #0d1b18;
-  border: 1px solid #28433c;
-  margin-top: 4rem;
-  padding: clamp(1.5rem, 4vw, 3.5rem);
-}
-
-.evidence-panel ul {
+.step-entities {
+  display: grid;
+  gap: 0.75rem;
   list-style: none;
   margin: 2rem 0 0;
   padding: 0;
 }
 
-.evidence-panel li {
+.step-entity {
+  background: #0d1b18;
+  border: 1px solid #28433c;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.step-entity h3 {
+  font-size: 1.15rem;
+  line-height: 1.35;
+  margin: 0 0 0.6rem;
+}
+
+.step-entity > a {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+.entity-relation,
+.entity-status {
+  align-items: center;
+  color: #8ab5a9;
+  display: flex;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  gap: 0.5rem;
+  letter-spacing: 0.08em;
+  margin-top: 1rem;
+  text-transform: uppercase;
+}
+
+.entity-evidence {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+
+.entity-evidence li {
   border-top: 1px solid #28433c;
   display: grid;
   gap: 1rem;
   grid-template-columns: 0.75rem 1fr;
-  padding: 1.25rem 0;
+  padding: 1rem 0;
+}
+
+.entity-evidence strong {
+  display: block;
+  margin-bottom: 0.3rem;
 }
 
 .evidence-dot {
@@ -1082,9 +1043,6 @@ input:focus-visible {
   .career-timeline li { border-left: 0; border-top: 1px solid #28433c; padding: 1.25rem 0; }
   .career-timeline li:first-child { border-top: 0; }
   .chain-step { gap: 1rem; grid-template-columns: 2rem 1fr; }
-  .surface-heading-row { display: block; }
-  .surface-stage-controls { grid-template-columns: 1fr 1fr; }
-  .comparison-slots { grid-template-columns: 1fr; }
 }
 
 /* Light portfolio system */
@@ -1130,11 +1088,9 @@ input:focus-visible {
 [data-theme="light"] .domain-heading p:last-child,
 [data-theme="light"] .career-timeline > header > p:last-child,
 [data-theme="light"] .career-timeline li div > p,
-[data-theme="light"] .chain-step p:last-child,
-[data-theme="light"] .decision-panel p:last-child,
-[data-theme="light"] .evidence-panel p,
-[data-theme="light"] .surface-output p:last-child,
-[data-theme="light"] .surface-note {
+[data-theme="light"] .chain-step > div > p:not(.chain-layer),
+[data-theme="light"] .step-entity p:not(.entity-relation):not(.entity-status),
+[data-theme="light"] .entity-evidence p {
   color: var(--muted);
 }
 
@@ -1150,8 +1106,7 @@ input:focus-visible {
 
 [data-theme="light"] .domain-controls button[aria-pressed="true"],
 [data-theme="light"] .enter-button,
-[data-theme="light"] .portfolio-chat form button,
-[data-theme="light"] .surface-stage-controls button[aria-pressed="true"] {
+[data-theme="light"] .portfolio-chat form button {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
@@ -1224,28 +1179,26 @@ input:focus-visible {
 [data-theme="light"] .career-timeline li,
 [data-theme="light"] .chain-step,
 [data-theme="light"] .adjacent-nav,
-[data-theme="light"] .evidence-panel li {
+[data-theme="light"] .entity-evidence li {
   border-color: var(--line);
 }
 
 [data-theme="light"] .domain-jumps a,
 [data-theme="light"] .artifact-main-link,
-[data-theme="light"] .artifact-surface,
-[data-theme="light"] .surface-stage-controls button,
-[data-theme="light"] .surface-output,
-[data-theme="light"] .decision-panel,
-[data-theme="light"] .evidence-panel,
-[data-theme="light"] .comparison-slots > div {
+[data-theme="light"] .step-entity {
   background: var(--surface);
   border-color: var(--line);
   color: var(--foreground);
 }
 
 [data-theme="light"] .artifact-main-link small,
-[data-theme="light"] .artifact-main-link em,
-[data-theme="light"] .surface-stage-controls button,
-[data-theme="light"] .comparison-slots span {
+[data-theme="light"] .artifact-main-link em {
   color: var(--muted);
+}
+
+[data-theme="light"] .entity-relation,
+[data-theme="light"] .entity-status {
+  color: #536d12;
 }
 
 [data-theme="light"] .artifact-main-link:hover strong,
