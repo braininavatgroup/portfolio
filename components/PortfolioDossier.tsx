@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { groupProjectsByFacet } from "../lib/case-study";
 import { domains, portfolioThroughline, type DomainId } from "../lib/portfolio";
 import { portfolioData } from "../lib/portfolio-data";
@@ -33,33 +40,140 @@ export function PortfolioDossier({
   onDomainSelect,
   onShowIndex,
 }: PortfolioDossierProps) {
-  if (dossier) {
-    return <ProjectDossier dossier={dossier} onShowIndex={onShowIndex} />;
-  }
+  const { onDragStart, panelRef, style } = useDossierDrag();
+  const label = dossier
+    ? `${dossier.project.title} project dossier`
+    : "Portfolio index";
 
   return (
-    <PortfolioIndex
-      onDomainSelect={onDomainSelect}
-      selectedDomain={selectedDomain}
-    />
+    <aside
+      aria-label={label}
+      className={`portfolio-dossier${dossier ? " portfolio-project-dossier" : ""}`}
+      ref={panelRef}
+      style={style}
+    >
+      {dossier ? (
+        <ProjectDossier
+          dossier={dossier}
+          key={`${dossier.project.slug}:${dossier.selectedRole}`}
+          onDragStart={onDragStart}
+          onShowIndex={onShowIndex}
+        />
+      ) : (
+        <PortfolioIndex
+          onDomainSelect={onDomainSelect}
+          onDragStart={onDragStart}
+          selectedDomain={selectedDomain}
+        />
+      )}
+    </aside>
   );
+}
+
+type PanelPosition = { x: number; y: number };
+
+function useDossierDrag() {
+  const panelRef = useRef<HTMLElement>(null);
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [position, setPosition] = useState<PanelPosition | null>(null);
+
+  useEffect(() => {
+    const margin = 12;
+
+    function move(event: PointerEvent) {
+      const active = drag.current;
+      if (!active || event.pointerId !== active.pointerId) return;
+      const maxX = Math.max(margin, window.innerWidth - active.width - margin);
+      const maxY = Math.max(margin, window.innerHeight - active.height - margin);
+      setPosition({
+        x: Math.min(
+          Math.max(active.originX + event.clientX - active.startX, margin),
+          maxX,
+        ),
+        y: Math.min(
+          Math.max(active.originY + event.clientY - active.startY, margin),
+          maxY,
+        ),
+      });
+    }
+
+    function stop(event: PointerEvent) {
+      if (drag.current?.pointerId !== event.pointerId) return;
+      drag.current = null;
+      document.body.style.cursor = "";
+    }
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      document.body.style.cursor = "";
+    };
+  }, []);
+
+  function onDragStart(event: ReactPointerEvent<HTMLElement>) {
+    if (event.button !== 0 || window.innerWidth <= 760) return;
+    const bounds = panelRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    event.preventDefault();
+    drag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: bounds.left,
+      originY: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    document.body.style.cursor = "grabbing";
+  }
+
+  const style: CSSProperties | undefined = position
+    ? {
+        bottom: "auto",
+        left: `${position.x}px`,
+        right: "auto",
+        top: `${position.y}px`,
+        transform: "none",
+      }
+    : undefined;
+
+  return { onDragStart, panelRef, style };
 }
 
 function PortfolioIndex({
   selectedDomain,
   onDomainSelect,
-}: Pick<PortfolioDossierProps, "selectedDomain" | "onDomainSelect">) {
+  onDragStart,
+}: Pick<PortfolioDossierProps, "selectedDomain" | "onDomainSelect"> & {
+  onDragStart: (event: ReactPointerEvent<HTMLElement>) => void;
+}) {
   const id = useId();
   const [openDomain, setOpenDomain] = useState<DomainId | null>(
-    selectedDomain ?? "music",
+    selectedDomain,
   );
 
   return (
-    <aside aria-label="Portfolio index" className="portfolio-dossier">
-      <header className="dossier-header">
+    <>
+      <div
+        aria-label="Move portfolio panel"
+        className="dossier-header dossier-drag-handle"
+        onPointerDown={onDragStart}
+      >
         <p className="eyebrow">Portfolio index</p>
         <p>{portfolioThroughline}</p>
-      </header>
+      </div>
       <div className="dossier-scroll">
         {projectGroups.map((group) => {
           const expanded = openDomain === group.id;
@@ -100,15 +214,17 @@ function PortfolioIndex({
       <footer className="dossier-footer">
         <Link href="/work">Open the full project index</Link>
       </footer>
-    </aside>
+    </>
   );
 }
 
 function ProjectDossier({
   dossier,
+  onDragStart,
   onShowIndex,
 }: {
   dossier: PortfolioDossierRecord;
+  onDragStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onShowIndex: () => void;
 }) {
   const id = useId();
@@ -120,14 +236,15 @@ function ProjectDossier({
   const evidenceStatus = dossier.project.facets?.evidenceStatus?.[0];
 
   return (
-    <aside
-      aria-label={`${dossier.project.title} project dossier`}
-      className="portfolio-dossier portfolio-project-dossier"
-    >
+    <>
       <button className="dossier-back" onClick={onShowIndex} type="button">
         <span aria-hidden="true">←</span> Portfolio index
       </button>
-      <header className="dossier-header">
+      <div
+        aria-label="Move portfolio panel"
+        className="dossier-header dossier-drag-handle"
+        onPointerDown={onDragStart}
+      >
         {domain ? <p className="eyebrow">{domain.label}</p> : null}
         <h1>{dossier.project.title}</h1>
         <p>{dossier.project.summary}</p>
@@ -136,7 +253,7 @@ function ProjectDossier({
             Evidence {evidenceStatus}
           </span>
         ) : null}
-      </header>
+      </div>
       <div className="dossier-scroll">
         {dossier.steps.map((step) => {
           const role = step.role as TripletRole;
@@ -188,6 +305,6 @@ function ProjectDossier({
           Read the full {dossier.project.title} case study
         </Link>
       </footer>
-    </aside>
+    </>
   );
 }

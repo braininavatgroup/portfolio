@@ -30,8 +30,9 @@ test("project index links every data-derived project to its canonical case study
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
   assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Work</i);
+  assert.match(html, /aria-current=["']page["'][^>]*>Index</i);
   assert.match(html, />Project index</i);
+  assert.doesNotMatch(html, /Portfolio\s*[·•]\s*\d+\s+projects?/i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
@@ -69,7 +70,7 @@ test("project index links every data-derived project to its canonical case study
     assert.match(caseStudyHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
     assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
     assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
-    assert.match(caseStudyHtml, /href=["']\/work["'][^>]*>Work</i);
+    assert.match(caseStudyHtml, /href=["']\/work["'][^>]*>Index</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];

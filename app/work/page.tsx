@@ -10,16 +10,11 @@ const projectGroups = groupProjectsByFacet(
   domains,
 );
 
-const projectCount = portfolioData.projects.length;
-
 export default function WorkIndex() {
   return (
     <main className="flat-index" data-theme="light" id="main-content">
       <PortfolioHeader activeView="work" />
       <header className="index-header">
-        <p className="eyebrow">
-          Portfolio · {projectCount} {projectCount === 1 ? "project" : "projects"}
-        </p>
         <h1>Project index</h1>
         <p className="lede">{portfolioThroughline}</p>
       </header>

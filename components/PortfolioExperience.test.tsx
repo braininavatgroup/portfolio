@@ -80,7 +80,7 @@ describe("spatial self-portrait", () => {
       "Map",
     );
     expect(
-      screen.getByRole("link", { name: "Work" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Index" }).getAttribute("href"),
     ).toBe("/work");
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
@@ -113,5 +113,46 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
+  });
+
+  it("keeps the dossier position when graph selection changes its contents", async () => {
+    await renderExperience();
+    const panel = screen.getByRole("complementary", {
+      name: "Portfolio index",
+    });
+    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 600,
+      right: 984,
+      top: 100,
+      width: 384,
+      x: 600,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(screen.getByLabelText("Move portfolio panel"), {
+      button: 0,
+      clientX: 700,
+      clientY: 130,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, {
+      clientX: 200,
+      clientY: 200,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(window, { pointerId: 1 });
+
+    expect(panel.style.left).toBe("100px");
+    expect(panel.style.top).toBe("170px");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+
+    const projectPanel = screen.getByRole("complementary", {
+      name: "Dubs project dossier",
+    });
+    expect(projectPanel.style.left).toBe("100px");
+    expect(projectPanel.style.top).toBe("170px");
   });
 });

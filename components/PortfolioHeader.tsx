@@ -27,9 +27,9 @@ export function PortfolioHeader({
           <Link href="/?view=graph">Map</Link>
         )}
         {activeView === "work" ? (
-          <span aria-current="page">Work</span>
+          <span aria-current="page">Index</span>
         ) : (
-          <Link href="/work">Work</Link>
+          <Link href="/work">Index</Link>
         )}
         {onReplay ? (
           <button type="button" onClick={onReplay}>

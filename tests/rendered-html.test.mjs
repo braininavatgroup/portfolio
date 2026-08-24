@@ -48,7 +48,7 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.doesNotMatch(html, />Explore the work</i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>Work</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Index</i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /Give small operators larger-operator leverage/i);
   assert.match(html, /href=["']\/work\/dubs["']/i);
@@ -71,7 +71,7 @@ test("the homepage opens directly on the map with its synchronized index", async
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>Work</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Index</i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /Music promotion/i);

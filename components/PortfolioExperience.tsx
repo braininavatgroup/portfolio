@@ -105,7 +105,6 @@ export function PortfolioExperience() {
 
         <PortfolioDossier
           dossier={dossier}
-          key={selectedNode?.id ?? "portfolio-index"}
           onDomainSelect={selectDomain}
           onShowIndex={showIndex}
           selectedDomain={selectedDomain}

@@ -178,11 +178,20 @@ body {
   max-height: min(76dvh, 46rem);
   overflow: hidden;
   position: absolute;
-  right: clamp(1.25rem, 4vw, 4.5rem);
-  top: 50%;
-  transform: translateY(-50%);
+  right: clamp(1.25rem, 3vw, 3rem);
+  top: clamp(5.25rem, 9vh, 7rem);
   width: min(24rem, calc(100vw - 3rem));
   z-index: 8;
+}
+
+.dossier-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.dossier-drag-handle:active {
+  cursor: grabbing;
 }
 
 .dossier-header {
@@ -602,9 +611,9 @@ body {
 }
 
 .experience-graph .portfolio-chat {
-  left: 1.5rem;
-  max-width: 23rem;
-  transform: none;
+  left: 50%;
+  max-width: 32rem;
+  transform: translateX(-50%);
   width: calc(100% - 3rem);
 }
 
@@ -1108,11 +1117,17 @@ body {
     width: calc(100% - 1.5rem);
   }
   .experience-graph .portfolio-chat {
-    bottom: auto;
-    left: 0.75rem;
-    max-width: 15rem;
-    top: 4.5rem;
+    bottom: calc(48dvh + 1rem);
+    left: 50%;
+    max-width: 22rem;
+    top: auto;
+    transform: translateX(-50%);
     width: calc(100% - 1.5rem);
+  }
+  .dossier-drag-handle {
+    cursor: auto;
+    touch-action: auto;
+    user-select: auto;
   }
   .experience-graph .portfolio-chat .eyebrow,
   .experience-graph .chat-heading-row h2 { display: none; }
@@ -1229,7 +1244,6 @@ input:focus-visible {
 
 .domain-section {
   align-content: start;
-  border-top: 1px solid #28433c;
   display: grid;
   gap: 0.6rem;
   grid-template-columns: 1fr;
@@ -1307,8 +1321,6 @@ input:focus-visible {
 .artifact-index-entry {
   min-width: 0;
 }
-
-.artifact-index-entry .artifact-main-link { border-top: 0; }
 
 .node-index-links {
   display: flex;
