@@ -49,18 +49,21 @@ export const domains = [
     label: "Music promotion",
     description: "Taste, selection, client systems, and delegated reporting.",
     angle: 0.28,
+    color: "#a85f2a",
   },
   {
     id: "consulting" as const,
     label: "Consulting",
     description: "Ambiguous workflows translated into systems people can use.",
     angle: 2.45,
+    color: "#287f74",
   },
   {
     id: "development" as const,
     label: "Development",
     description: "Specs, shipped tools, and the operating system behind the work.",
     angle: 4.55,
+    color: "#687f1d",
   },
 ] as const;
 

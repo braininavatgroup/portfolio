@@ -34,11 +34,22 @@ test("project index links every data-derived project to its canonical case study
   assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Portfolio\s*[·•]\s*\d+\s+projects?/i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
+  assert.doesNotMatch(html, /Portfolio · \d+ projects/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
   assert.doesNotMatch(html, /The roster is the scale proof/i);
   assert.doesNotMatch(html, /Linear time \/ spatial entry at the pivot/i);
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
+  assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
+  assert.match(html, /data-project-count=["']3["'][^>]*id=["']music["']/i);
+  assert.match(html, /data-project-count=["']2["'][^>]*id=["']consulting["']/i);
+  assert.match(html, /data-project-count=["']4["'][^>]*id=["']development["']/i);
+  assert.equal(
+    (html.match(/class=["'][^"']*artifact-index-entry[^"']*["']/gi) ?? [])
+      .length,
+    9,
+    "stacked editorial index renders every project as an entry",
+  );
 
   assert.match(html, /aria-label=["']Portfolio views["']/i);
   assert.doesNotMatch(html, /Evidence undefined/i);
@@ -71,6 +82,7 @@ test("project index links every data-derived project to its canonical case study
     assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
     assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
     assert.match(caseStudyHtml, /href=["']\/index["'][^>]*>Index</i);
+    assert.doesNotMatch(caseStudyHtml, />All work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];
@@ -86,6 +98,7 @@ test("project index links every data-derived project to its canonical case study
     for (const stepId of ["step-instinct", "step-approach", "step-output"]) {
       assert.match(caseStudyHtml, new RegExp(`id=["']${stepId}["']`));
     }
+    assert.doesNotMatch(caseStudyHtml, /class=["']chain-marker["']/i);
     for (const legacyLabel of ["Spec or model", "Other minds"]) {
       assert.doesNotMatch(caseStudyHtml, new RegExp(`>${legacyLabel}<`));
     }

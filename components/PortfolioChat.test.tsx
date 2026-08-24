@@ -53,32 +53,6 @@ describe("portfolio chat", () => {
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 
-  it("submits a curated starter question through the same ask path", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "done" });
-    });
-
-    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "How does the pitching system preserve human approval?",
-      }),
-    );
-
-    await waitFor(() =>
-      expect(askPortfolio).toHaveBeenCalledWith(
-        "How does the pitching system preserve human approval?",
-        expect.objectContaining({ onEvent: expect.any(Function) }),
-      ),
-    );
-    expect(
-      screen.getByLabelText("Ask a question about the portfolio"),
-    ).toHaveProperty(
-      "value",
-      "How does the pitching system preserve human approval?",
-    );
-  });
-
   it("reveals preview access after denial and preserves the question after unlock", async () => {
     const askPortfolio = vi.fn<AskPortfolio>(async () => {
       throw new PortfolioChatClientError(
@@ -296,7 +270,7 @@ describe("portfolio chat", () => {
     expect(onLandingClick).not.toHaveBeenCalled();
   });
 
-  it("contains starter and preview-control pointer interactions", async () => {
+  it("contains preview-control pointer interactions", async () => {
     const onLandingClick = vi.fn();
     const onLandingPointerDown = vi.fn();
     const onLandingPointerUp = vi.fn();
@@ -320,12 +294,11 @@ describe("portfolio chat", () => {
     );
     landingSurfaceRef.current?.addEventListener("pointerup", onLandingPointerUp);
 
-    const starter = screen.getByRole("button", {
-      name: "How does the pitching system preserve human approval?",
-    });
-    fireEvent.pointerDown(starter);
-    fireEvent.pointerUp(starter);
-    fireEvent.click(starter);
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    fireEvent.change(input, { target: { value: "How does pitching work?" } });
+    fireEvent.pointerDown(input);
+    fireEvent.pointerUp(input);
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
     const accessInput = await screen.findByLabelText("Preview access code");
     fireEvent.pointerDown(accessInput);
     fireEvent.pointerUp(accessInput);

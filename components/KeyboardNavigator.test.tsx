@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
 import { KeyboardNavigator } from "./KeyboardNavigator";
@@ -64,52 +64,39 @@ const nodes: SpatialGraphNode[] = [
 function renderNavigator() {
   const onNodeFocus = vi.fn();
   const onNodeSelect = vi.fn();
-  const view = render(
-    <>
-      <KeyboardNavigator
-        nodes={nodes}
-        onNodeFocus={onNodeFocus}
-        onNodeSelect={onNodeSelect}
-        selectedNodeId={null}
-      />
-      <label>
-        Portfolio question
-        <input />
-      </label>
-    </>,
+  const { container } = render(
+    <KeyboardNavigator
+      nodes={nodes}
+      onNodeFocus={onNodeFocus}
+      onNodeSelect={onNodeSelect}
+      selectedNodeId={null}
+    />,
   );
-  return { ...view, onNodeFocus, onNodeSelect };
+  return { container, onNodeFocus, onNodeSelect };
 }
 
-describe("keyboard navigator", () => {
-  it("traverses graph nodes immediately without rendering a launcher", () => {
+describe("automatic graph keyboard navigation", () => {
+  it("starts on the first node and wraps through arrow navigation", () => {
     const { onNodeFocus, onNodeSelect } = renderNavigator();
 
-    expect(
-      screen.queryByRole("button", { name: "Explore by keyboard" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("toolbar", { name: "Keyboard map controls" }),
-    ).toBeNull();
-
-    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(document, { key: "ArrowRight" });
     expect(onNodeFocus).toHaveBeenLastCalledWith(nodes[1].id);
     expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[1]);
 
-    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(document, { key: "ArrowRight" });
     expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[2]);
 
-    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
     expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[1]);
   });
 
-  it("leaves arrow keys alone while the visitor is typing", () => {
+  it("ignores keys originating in controls and editable fields", () => {
     const { onNodeFocus, onNodeSelect } = renderNavigator();
+    const input = document.body.appendChild(document.createElement("input"));
+    const button = document.body.appendChild(document.createElement("button"));
 
-    fireEvent.keyDown(screen.getByLabelText("Portfolio question"), {
-      key: "ArrowRight",
-    });
-
+    fireEvent.keyDown(input, { key: "ArrowRight" });
+    fireEvent.keyDown(button, { key: "ArrowRight" });
     expect(onNodeFocus).not.toHaveBeenCalled();
     expect(onNodeSelect).not.toHaveBeenCalled();
   });
@@ -117,13 +104,13 @@ describe("keyboard navigator", () => {
   it("uses Escape to restore the index without disabling later traversal", () => {
     const { onNodeFocus, onNodeSelect } = renderNavigator();
 
-    fireEvent.keyDown(window, { key: "ArrowRight" });
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    fireEvent.keyDown(document, { key: "Escape" });
 
     expect(onNodeFocus).toHaveBeenLastCalledWith(null);
     expect(onNodeSelect).toHaveBeenLastCalledWith(null);
 
-    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(document, { key: "ArrowRight" });
     expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[1]);
   });
 
@@ -139,9 +126,14 @@ describe("keyboard navigator", () => {
       />,
     );
 
-    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(document, { key: "ArrowRight" });
 
     expect(onNodeFocus).not.toHaveBeenCalled();
     expect(onNodeSelect).not.toHaveBeenCalled();
+  });
+
+  it("renders no keyboard-control UI", () => {
+    const { container } = renderNavigator();
+    expect(container.querySelector(".keyboard-navigator")).toBeNull();
   });
 });

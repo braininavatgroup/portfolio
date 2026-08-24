@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
 import { nodeAction } from "../lib/node-interaction";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
 
-const isEditableTarget = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.matches("input, textarea, select") || target.isContentEditable);
+function isIgnoredTarget(target: EventTarget | null) {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLButtonElement ||
+    target instanceof HTMLAnchorElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
 
 export function KeyboardNavigator({
   nodes,
@@ -24,64 +31,82 @@ export function KeyboardNavigator({
     const action = nodeAction(node);
     return action === "focus" || action === "inspect";
   });
-  const [index, setIndex] = useState(-1);
+  const indexRef = useRef(-1);
+  const previousSelectedNodeId = useRef(selectedNodeId);
   const selectedIndex = actionableNodes.findIndex(
     (node) => node.id === selectedNodeId,
   );
-  const currentIndex = selectedIndex >= 0 ? selectedIndex : index;
 
   useEffect(() => {
-    function select(nextIndex: number) {
-      const node = actionableNodes[nextIndex];
+    if (previousSelectedNodeId.current !== null && selectedNodeId === null) {
+      indexRef.current = -1;
+      onNodeFocus(null);
+    }
+    previousSelectedNodeId.current = selectedNodeId;
+  }, [onNodeFocus, selectedNodeId]);
+
+  useEffect(() => {
+    function select(index: number) {
+      const node = actionableNodes[index];
       if (!node) return;
-      setIndex(nextIndex);
+      indexRef.current = index;
       onNodeFocus(node.id);
       onNodeSelect(node);
     }
 
-    function move(direction: "next" | "previous") {
-      const nextIndex =
-        currentIndex < 0
-          ? direction === "next"
-            ? 0
-            : actionableNodes.length - 1
-          : nextKeyboardIndex(currentIndex, direction, actionableNodes.length);
-      select(nextIndex);
-    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || isIgnoredTarget(event.target)) return;
 
-    function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (isEditableTarget(event.target)) return;
+      const direction =
+        event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? "next"
+          : event.key === "ArrowLeft" || event.key === "ArrowUp"
+            ? "previous"
+            : null;
 
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-        if (actionableNodes.length === 0) return;
+      if (direction && actionableNodes.length > 0) {
         event.preventDefault();
-        move("next");
+        const currentIndex =
+          selectedIndex >= 0 ? selectedIndex : indexRef.current;
+        const nextIndex =
+          currentIndex < 0
+            ? direction === "next"
+              ? 0
+              : actionableNodes.length - 1
+            : nextKeyboardIndex(
+                currentIndex,
+                direction,
+                actionableNodes.length,
+              );
+        select(nextIndex);
         return;
       }
-      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        if (actionableNodes.length === 0) return;
-        event.preventDefault();
-        move("previous");
+
+      if (event.key === "Enter") {
+        const currentIndex =
+          selectedIndex >= 0 ? selectedIndex : indexRef.current;
+        const node = actionableNodes[currentIndex];
+        if (node?.href) {
+          event.preventDefault();
+          window.location.assign(node.href);
+        }
         return;
       }
-      if (event.key === "Enter" && currentIndex >= 0) {
-        const current = actionableNodes[currentIndex];
-        if (!current?.href) return;
+
+      if (
+        event.key === "Escape" &&
+        (selectedIndex >= 0 || indexRef.current >= 0)
+      ) {
         event.preventDefault();
-        window.location.assign(current.href);
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setIndex(-1);
+        indexRef.current = -1;
         onNodeFocus(null);
         onNodeSelect(null);
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [actionableNodes, currentIndex, onNodeFocus, onNodeSelect]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [actionableNodes, onNodeFocus, onNodeSelect, selectedIndex]);
 
   return null;
 }

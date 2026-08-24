@@ -102,8 +102,9 @@ describe("spatial self-portrait", () => {
     );
     expect(screen.queryByRole("complementary")).toBeNull();
     expect(screen.queryByLabelText("Keyboard map navigation")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enter map" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Enter map" }));
+    fireEvent.click(screen.getByLabelText("Bradley Berkman landing"));
 
     expect(document.querySelector(".experience-entering")).toBeTruthy();
     expect(window.location.search).toBe("?view=graph");

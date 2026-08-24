@@ -159,8 +159,8 @@ export function PortfolioExperience({
         activeView={transition.phase === "body" ? "bradley" : "map"}
         overlay
       />
-      {/* The full figure is a pointer entry surface; the visible button is
-          the equivalent keyboard target. Nested controls remain independent. */}
+      {/* Any non-control click on the landing canvas enters. Header Map is
+          the explicit keyboard path; nested controls remain independent. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
         aria-label={
@@ -192,21 +192,7 @@ export function PortfolioExperience({
         </Suspense>
 
         <div className="scene-copy">
-          <p className="eyebrow">Bradley Berkman portfolio</p>
           <h1>I find where judgment matters, then build the system around it.</h1>
-          <p>Start with Bradley, then follow the work outward.</p>
-          {transition.phase === "body" ? (
-            <button
-              className="enter-button"
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                enterMap();
-              }}
-            >
-              Enter map
-            </button>
-          ) : null}
         </div>
 
         {transition.phase === "graph" ? (
