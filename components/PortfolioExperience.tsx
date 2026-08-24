@@ -79,6 +79,12 @@ export function PortfolioExperience({
     dispatch({ type: "RESET" });
   }
 
+  function selectDomain(domain: DomainId | null) {
+    setSelectedDomain(domain);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+  }
+
   return (
     <main
       className={`experience experience-${transition.phase}`}
@@ -171,7 +177,7 @@ export function PortfolioExperience({
                   disabled={selectedDomain === domain.id}
                   key={domain.id}
                   type="button"
-                  onClick={() => setSelectedDomain(domain.id)}
+                  onClick={() => selectDomain(domain.id)}
                 >
                   {domain.label}
                 </button>
@@ -180,7 +186,7 @@ export function PortfolioExperience({
                 aria-pressed={selectedDomain === null}
                 disabled={selectedDomain === null}
                 type="button"
-                onClick={() => setSelectedDomain(null)}
+                onClick={() => selectDomain(null)}
               >
                 Overview
               </button>

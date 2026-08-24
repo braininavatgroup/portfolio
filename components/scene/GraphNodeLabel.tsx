@@ -17,7 +17,9 @@ const roleLabel = (role: SpatialGraphNode["role"]) =>
 function LabelContent({ node }: { node: SpatialGraphNode }) {
   return (
     <>
-      <span className="graph-node-label-role">{roleLabel(node.role)}</span>
+      {node.role === "output" ? (
+        <span className="graph-node-label-role">Output</span>
+      ) : null}
       <strong>{node.label}</strong>
     </>
   );

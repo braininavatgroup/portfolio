@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SpatialGraphNode } from "./spatial-graph";
-import { deriveGraphEdgeStates } from "./graph-emphasis";
+import { deriveGraphEdgeStates, visibleGraphNodes } from "./graph-emphasis";
 
 const nodes: SpatialGraphNode[] = [
   {
@@ -77,5 +77,17 @@ describe("graph edge emphasis", () => {
     expect(
       edges.find(({ childId }) => childId === "consulting:instinct")?.dimmed,
     ).toBe(true);
+  });
+
+  it("keeps only the root and selected domain in a focused view", () => {
+    expect(
+      visibleGraphNodes(nodes, "music").map(({ id }) => id),
+    ).toEqual([
+      "brain",
+      "music:instinct",
+      "music:approach",
+      "music:output",
+    ]);
+    expect(visibleGraphNodes(nodes, null)).toEqual(nodes);
   });
 });

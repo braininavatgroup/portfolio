@@ -216,8 +216,15 @@ body {
   opacity: 0.13;
 }
 
-.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]) strong {
-  display: none;
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"])[data-emphasized="true"],
+.scene-shell:not(.scene-shell-domain-focus) .graph-node-label:not([data-role="output"]):focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .scene-shell-domain-focus .graph-node-label[data-dimmed="true"] {
@@ -322,6 +329,20 @@ body {
 .legend-spec { --legend-color: #8ec5b7; }
 .legend-system { --legend-color: #70a595; }
 .legend-artifact { --legend-color: #f1ead7; }
+
+.legend-spec::before {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 61% 36%, 100% 50%, 61% 64%, 50% 100%, 39% 64%, 0 50%, 39% 36%);
+}
+
+.legend-system::before {
+  border-radius: 1px;
+  box-shadow: 0.18rem -0.1rem 0 var(--legend-color), 0.36rem -0.2rem 0 var(--legend-color);
+  margin-right: 0.7rem;
+  transform: scale(0.58);
+}
+
+.legend-artifact::before { border-radius: 0.12rem; }
 
 .graph-toolbar > p:not(.eyebrow) {
   color: #91a49d;

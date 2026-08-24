@@ -8,6 +8,7 @@ export type SpatialCameraFrame = {
   position: Point3;
   target: Point3;
   distance: number;
+  up: Point3;
   fog: {
     near: number;
     far: number;
@@ -22,6 +23,7 @@ type SpatialCameraFrameInput = {
   margin: number;
   worldOffset?: Point3;
   viewDirection?: Point3;
+  viewUp?: Point3;
   viewPlaneOffset?: readonly [number, number];
 };
 
@@ -66,6 +68,7 @@ export function frameSpatialNodes({
   margin,
   worldOffset = [0, 0, 0],
   viewDirection = [0, 0.32, 1],
+  viewUp = [0, 1, 0],
   viewPlaneOffset = [0, 0],
 }: SpatialCameraFrameInput): SpatialCameraFrame {
   if (nodes.length === 0) throw new Error("Cannot frame an empty spatial graph");
@@ -100,8 +103,7 @@ export function frameSpatialNodes({
     (target.min[2] + target.max[2]) / 2,
   ];
   const backward = normalize(viewDirection);
-  const worldUp: Point3 = [0, 1, 0];
-  const lateral = cross(worldUp, backward);
+  const lateral = cross(normalize(viewUp), backward);
   const right =
     Math.hypot(...lateral) > Number.EPSILON
       ? normalize(lateral)
@@ -143,6 +145,7 @@ export function frameSpatialNodes({
     position: add(focus, scale(backward, distance)),
     target: focus,
     distance,
+    up,
     fog: {
       near: farthestNodeDepth,
       far: farthestNodeDepth + 19,

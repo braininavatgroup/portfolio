@@ -9,6 +9,17 @@ export type GraphEdgeState = {
   dimmed: boolean;
 };
 
+export function visibleGraphNodes(
+  nodes: readonly SpatialGraphNode[],
+  selectedDomain: DomainId | null,
+): readonly SpatialGraphNode[] {
+  if (selectedDomain === null) return nodes;
+
+  return nodes.filter(
+    (node) => node.role === "root" || node.groupId === selectedDomain,
+  );
+}
+
 export function deriveGraphEdgeStates(
   nodes: readonly SpatialGraphNode[],
   {

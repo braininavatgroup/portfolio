@@ -9,6 +9,7 @@ import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import { BrainShape } from "./BrainShape";
 import { GraphNodeLabel } from "./GraphNodeLabel";
 import { OutputToken } from "./OutputToken";
+import { ApproachGlyph, InstinctGlyph } from "./RoleGlyph";
 import { getOutputToken } from "./output-token-map";
 
 const colors: Record<SpatialGraphNode["role"], string> = {
@@ -47,8 +48,13 @@ export function GraphNode({
       : undefined;
   const emphasized = hovered || focused || selected;
 
-  useFrame(({ clock }) => {
-    if (!tokenGroup.current || !prominent || !animated) return;
+  useFrame(({ camera, clock }) => {
+    if (!tokenGroup.current) return;
+    if (!prominent) {
+      tokenGroup.current.quaternion.copy(camera.quaternion);
+      return;
+    }
+    if (!animated) return;
     tokenGroup.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.12;
     tokenGroup.current.rotation.z = Math.sin(clock.elapsedTime * 0.34) * 0.025;
   });
@@ -98,39 +104,7 @@ export function GraphNode({
           <OutputToken kind={outputToken} />
         ) : (
           <group>
-            {node.role === "instinct" ? (
-              <>
-                <mesh>
-                  <sphereGeometry args={[0.13, 16, 16]} />
-                  <meshStandardMaterial
-                    color={colors.instinct}
-                    emissive={colors.instinct}
-                    emissiveIntensity={0.12}
-                    roughness={0.52}
-                  />
-                </mesh>
-                <mesh rotation={[Math.PI / 2, 0, 0]}>
-                  <torusGeometry args={[0.22, 0.014, 6, 24]} />
-                  <meshBasicMaterial color="#7bb6a7" transparent opacity={0.72} />
-                </mesh>
-              </>
-            ) : (
-              <>
-                <mesh rotation={[0, 0, Math.PI / 4]}>
-                  <octahedronGeometry args={[0.19, 0]} />
-                  <meshStandardMaterial
-                    color={colors.approach}
-                    emissive={colors.approach}
-                    emissiveIntensity={0.08}
-                    roughness={0.62}
-                  />
-                </mesh>
-                <mesh rotation={[Math.PI / 2, 0, 0]}>
-                  <torusGeometry args={[0.29, 0.01, 6, 28]} />
-                  <meshBasicMaterial color="#315f54" transparent opacity={0.48} />
-                </mesh>
-              </>
-            )}
+            {node.role === "instinct" ? <InstinctGlyph /> : <ApproachGlyph />}
           </group>
         )}
       </group>

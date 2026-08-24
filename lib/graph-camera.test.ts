@@ -136,4 +136,18 @@ describe("graph camera framing", () => {
     }
     expect(frame.fog.far).toBeGreaterThan(frame.fog.near);
   });
+
+  it("uses a supplied up axis for portrait domain framing", () => {
+    const frame = frameSpatialNodes({
+      nodes: portfolioNodes,
+      aspect: 390 / 844,
+      verticalFovDegrees: 52,
+      nodeBoundRadius: 0.75,
+      margin: 1.16,
+      viewDirection: [1, 0, 0],
+      viewUp: [0, 0, 1],
+    });
+
+    expect(frame.up).toEqual([0, 0, 1]);
+  });
 });
