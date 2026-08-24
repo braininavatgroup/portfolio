@@ -12,7 +12,7 @@ describe("portfolio chat grounding", () => {
       title: "Pitching system",
       excerpt:
         "Research, curator selection, matching, and outreach arranged around a human approval step.",
-      href: "/work/pitching",
+      href: "/index/pitching",
       evidenceStatus: "needed",
       projectTitle: "Pitching system",
     });
@@ -21,7 +21,7 @@ describe("portfolio chat grounding", () => {
       title: "Taste is encodable. The approval step stays human.",
       excerpt:
         "A useful system should increase the quality of attention without pretending uncertainty has disappeared.",
-      href: "/work/pitching",
+      href: "/index/pitching",
       evidenceStatus: "needed",
       projectTitle: "Pitching system",
       stageRole: "instinct",
@@ -43,7 +43,7 @@ describe("portfolio chat grounding", () => {
 
     expect(grounding.evidence).toHaveLength(3);
     expect(new Set(grounding.evidence.map(({ id }) => id)).size).toBe(3);
-    expect(grounding.evidence[0]?.href).toBe("/work/reporting");
+    expect(grounding.evidence[0]?.href).toBe("/index/reporting");
   });
 
   it("uses the evidence item's own status and only scores published excerpts", () => {

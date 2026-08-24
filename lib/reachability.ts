@@ -16,4 +16,4 @@ export const keyboardNodeRoutes = (nodes: readonly SpatialGraphNode[]) =>
   routesForNodes(nodes);
 
 export const projectRoutes = (projects: readonly ProjectRecord[]) =>
-  projects.map(({ slug }) => `/work/${slug}`);
+  projects.map(({ slug }) => `/index/${slug}`);

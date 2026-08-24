@@ -35,7 +35,7 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the portfolio shell and accessibility exits", async () => {
+test("server-renders Bradley as the landing state with direct navigation exits", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -45,13 +45,13 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-  assert.doesNotMatch(html, />Explore the work</i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>Index</i);
-  assert.match(html, /aria-label=["']Portfolio index["']/i);
-  assert.match(html, /Give small operators larger-operator leverage/i);
-  assert.match(html, /href=["']\/work\/dubs["']/i);
+  assert.match(html, /aria-current=["']page["'][^>]*>Bradley Berkman</i);
+  assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
+  assert.match(html, /href=["']\/index["'][^>]*>Index</i);
+  assert.match(html, />Enter map</i);
+  assert.doesNotMatch(html, /aria-label=["']Portfolio index["']/i);
+  assert.doesNotMatch(html, /Give small operators larger-operator leverage/i);
   assert.match(html, /for=["']portfolio-question["']/i);
   assert.match(html, /id=["']portfolio-question["']/i);
   assert.match(
@@ -71,14 +71,14 @@ test("the homepage opens directly on the map with its synchronized index", async
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>Index</i);
+  assert.match(html, /href=["']\/index["'][^>]*>Index</i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /Music promotion/i);
   assert.match(html, /Campaign kickoff and intake/i);
   assert.doesNotMatch(html, /Explore by keyboard/i);
   assert.doesNotMatch(html, />Keyboard map</i);
-  assert.doesNotMatch(html, />Explore the work</i);
+  assert.doesNotMatch(html, />Enter map</i);
 });
 
 test("the production build does not inline server secrets into artifacts", async () => {

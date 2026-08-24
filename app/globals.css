@@ -1095,6 +1095,10 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
+  .scene-shell:not(.scene-shell-domain-focus) .graph-node-label[data-role="output"],
+  .scene-shell:not(.scene-shell-domain-focus) .graph-node-label[data-role="domain"] {
+    display: none;
+  }
   .experience-graph .scene-canvas-wrap { bottom: 48dvh; }
   .node-drawer { background: var(--surface); bottom: 0; left: 0; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); max-width: none; right: 0; }
   .portfolio-dossier {

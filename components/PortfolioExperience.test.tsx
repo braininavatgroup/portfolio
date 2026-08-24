@@ -39,7 +39,7 @@ vi.mock("./scene/PortfolioCanvas", () => ({
             entityIds: ["dubs:spec", "dubs:system"],
             projectId: "project:dubs",
             projectSlug: "dubs",
-            href: "/work/dubs",
+            href: "/index/dubs",
             groupId: "development",
           })
         }
@@ -77,15 +77,47 @@ function mockMatchMedia(reducedMotion = false) {
   }));
 }
 
-async function renderExperience() {
+async function renderExperience(initialPhase: "body" | "graph" = "graph") {
   mockMatchMedia();
-  render(<PortfolioExperience />);
+  render(<PortfolioExperience initialPhase={initialPhase} />);
   await act(async () => {});
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  window.history.replaceState({}, "", "/");
+});
 
 describe("spatial self-portrait", () => {
+  it("opens on Bradley and enters the map from the figure without exposing graph UI early", async () => {
+    vi.useFakeTimers();
+    await renderExperience("body");
+
+    expect(
+      screen.getByText("Bradley Berkman").getAttribute("aria-current"),
+    ).toBe("page");
+    expect(screen.getByRole("link", { name: "Map" }).getAttribute("href")).toBe(
+      "/?view=graph",
+    );
+    expect(screen.queryByRole("complementary")).toBeNull();
+    expect(screen.queryByLabelText("Keyboard map navigation")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Enter map" }));
+
+    expect(document.querySelector(".experience-entering")).toBeTruthy();
+    expect(window.location.search).toBe("?view=graph");
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(document.querySelector(".experience-graph")).toBeTruthy();
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+  });
+
   it("opens with both portfolio views and the project index available", async () => {
     await renderExperience();
 
@@ -97,17 +129,34 @@ describe("spatial self-portrait", () => {
     );
     expect(
       screen.getByRole("link", { name: "Index" }).getAttribute("href"),
-    ).toBe("/work");
+    ).toBe("/index");
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
   });
 
-  it("does not gate the map behind the old body transition", async () => {
+  it("lets a direct map visit bypass the landing transition", async () => {
     await renderExperience();
 
-    expect(screen.queryByRole("button", { name: "Explore the work" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enter map" })).toBeNull();
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
+  });
+
+  it("restores the Bradley landing when top-level navigation removes the map query", async () => {
+    mockMatchMedia();
+    const experience = render(<PortfolioExperience initialPhase="graph" />);
+    await act(async () => {});
+
+    expect(document.querySelector(".experience-graph")).toBeTruthy();
+
+    experience.rerender(<PortfolioExperience initialPhase="body" />);
+    await act(async () => {});
+
+    expect(document.querySelector(".experience-body")).toBeTruthy();
+    expect(
+      screen.getByText("Bradley Berkman").getAttribute("aria-current"),
+    ).toBe("page");
+    expect(screen.queryByRole("complementary")).toBeNull();
   });
 
   it("starts with the compact hierarchy and lets a domain hub focus its projects", async () => {

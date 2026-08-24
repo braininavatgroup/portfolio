@@ -37,27 +37,27 @@ export function classifyPose(input: string): PoseState {
 const replies: Record<Exclude<PoseState, "idle">, PoseReply> = {
   music: {
     text: "The pitching chain is the clearest place to see taste modeled without removing the human approval step.",
-    href: "/work/pitching",
+    href: "/index/pitching",
     linkLabel: "Open the pitching chain",
   },
   systems: {
     text: "The real-estate deal tracker shows an ambiguous process translated into a schema inside familiar tools.",
-    href: "/work/real-estate-deal-tracker",
+    href: "/index/real-estate-deal-tracker",
     linkLabel: "Open the deal-tracker chain",
   },
   building: {
     text: "The three-maturity bundle separates what shipped, what was specified, and what remains a sketch.",
-    href: "/work/three-maturity-bundle",
+    href: "/index/three-maturity-bundle",
     linkLabel: "Open the development bundle",
   },
   thinking: {
     text: "The spec-discipline chain shows where product judgment becomes a contract another agent can execute and review.",
-    href: "/work/spec-discipline",
+    href: "/index/spec-discipline",
     linkLabel: "Open the spec record",
   },
   listening: {
     text: "The work directory is the fastest overview of the music, consulting, and development projects.",
-    href: "/work",
+    href: "/index",
     linkLabel: "Browse all work",
   },
 };

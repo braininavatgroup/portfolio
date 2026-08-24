@@ -16,7 +16,7 @@ const approachNode: SpatialGraphNode = {
   entityIds: ["field-map"],
   projectId: "field-map",
   projectSlug: "field-map",
-  href: "/work/field-map",
+  href: "/index/field-map",
 };
 
 describe("GraphNodeLabel", () => {

@@ -28,6 +28,13 @@ describe("portfolio transition", () => {
     expect(transitionReducer(reset, { type: "ENTER" }).run).toBe(3);
   });
 
+  it("opens the graph directly when browser navigation returns to its URL", () => {
+    expect(transitionReducer(body, { type: "SHOW_GRAPH" })).toEqual({
+      phase: "graph",
+      run: 0,
+    });
+  });
+
   it("uses a short crossfade for reduced motion", () => {
     expect(transitionDuration(false)).toBe(1500);
     expect(transitionDuration(true)).toBe(180);

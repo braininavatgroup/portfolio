@@ -8,7 +8,7 @@ const evidence: PortfolioGroundingEvidence[] = [
     title: "Pitching system",
     excerpt:
       "Research, curator selection, matching, and outreach arranged around a human approval step.",
-    href: "/work/pitching",
+    href: "/index/pitching",
     evidenceStatus: "needed",
     projectTitle: "Pitching system",
   },

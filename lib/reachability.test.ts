@@ -7,7 +7,7 @@ import {
 } from "./reachability";
 import { portfolioNodes } from "./spatial-graph";
 
-const expectedRoutes = portfolioData.projects.map(({ slug }) => `/work/${slug}`);
+const expectedRoutes = portfolioData.projects.map(({ slug }) => `/index/${slug}`);
 
 describe("spatial graph reachability", () => {
   it("keeps every actionable graph and keyboard node on a canonical project route", () => {

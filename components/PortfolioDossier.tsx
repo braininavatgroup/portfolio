@@ -200,7 +200,7 @@ function PortfolioIndex({
                 <ol className="dossier-project-list">
                   {group.projects.map((project) => (
                     <li key={project.slug}>
-                      <Link href={`/work/${project.slug}`}>
+                      <Link href={`/index/${project.slug}`}>
                         <strong>{project.title}</strong>
                         <span>{project.summary}</span>
                       </Link>
@@ -213,7 +213,7 @@ function PortfolioIndex({
         })}
       </div>
       <footer className="dossier-footer">
-        <Link href="/work">Open the full project index</Link>
+        <Link href="/index">Open the full project index</Link>
       </footer>
     </>
   );
@@ -302,7 +302,7 @@ function ProjectDossier({
         })}
       </div>
       <footer className="dossier-footer">
-        <Link href={`/work/${dossier.project.slug}`}>
+        <Link href={`/index/${dossier.project.slug}`}>
           Read the full {dossier.project.title} case study
         </Link>
       </footer>

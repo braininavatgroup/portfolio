@@ -17,7 +17,7 @@ describe("deterministic portfolio pose events", () => {
   it("returns a local navigation suggestion without impersonating Bradley", () => {
     const reply = poseReply("How does pitching work?", "music");
     expect(reply.text).toMatch(/pitching/i);
-    expect(reply.href).toBe("/work/pitching");
+    expect(reply.href).toBe("/index/pitching");
     expect(reply.text).not.toMatch(/I am Bradley|I'm Bradley/i);
   });
 });

@@ -2,7 +2,14 @@
 
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+} from "react";
 import * as THREE from "three";
 import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
 import { domains, type DomainId } from "../../lib/portfolio";
@@ -36,6 +43,8 @@ function SceneDirector({
   const start = useRef(new THREE.Vector3(0, 1.35, 10));
   const startUp = useRef(new THREE.Vector3(0, 1, 0));
   const guiding = useRef(true);
+  const directGraphEntry = useRef(phase === "graph");
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   const verticalFovDegrees =
     camera instanceof THREE.PerspectiveCamera
       ? camera.fov
@@ -141,10 +150,25 @@ function SceneDirector({
     start.current.copy(camera.position);
     startUp.current.copy(camera.up);
     guiding.current = true;
+    if (controls.current) controls.current.enabled = false;
   }, [camera, destinationPosition, destinationTarget, destinationUp]);
 
   useFrame(() => {
     if (!guiding.current) return;
+
+    if (directGraphEntry.current && phase === "graph") {
+      directGraphEntry.current = false;
+      camera.position.copy(destinationPosition);
+      camera.up.copy(destinationUp);
+      camera.lookAt(destinationTarget);
+      guiding.current = false;
+      if (controls.current) {
+        controls.current.target.copy(destinationTarget);
+        controls.current.update();
+        controls.current.enabled = true;
+      }
+      return;
+    }
 
     if (phase === "entering") {
       const elapsed = performance.now() - phaseStarted.current;
@@ -167,6 +191,11 @@ function SceneDirector({
       camera.position.copy(destinationPosition);
       camera.lookAt(destinationTarget);
       guiding.current = false;
+      if (controls.current && phase === "graph") {
+        controls.current.target.copy(destinationTarget);
+        controls.current.update();
+        controls.current.enabled = true;
+      }
     }
   });
 
@@ -177,6 +206,8 @@ function SceneDirector({
       <fog attach="fog" args={["#f4f1e8", fog.near, fog.far]} />
       {phase === "graph" && !mobile ? (
         <OrbitControls
+          ref={controls}
+          enabled
           enablePan={false}
           enableZoom
           maxDistance={graphFrame.distance * 1.3}

@@ -70,7 +70,7 @@ describe("portfolio chat route handler", () => {
     expect(events[0].evidence[0]).toMatchObject({
       id: "project:pitching",
       title: "Pitching system",
-      href: "/work/pitching",
+      href: "/index/pitching",
       evidenceStatus: "needed",
     });
     expect(events.slice(1)).toEqual([

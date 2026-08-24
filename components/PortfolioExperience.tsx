@@ -1,6 +1,13 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useReducer,
+  useState,
+  type MouseEvent,
+} from "react";
 import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioDossier } from "../lib/portfolio-dossier";
@@ -8,10 +15,16 @@ import {
   portfolioNodes,
   type SpatialGraphNode,
 } from "../lib/spatial-graph";
+import {
+  transitionDuration,
+  transitionReducer,
+  type TransitionPhase,
+} from "../lib/transition";
 import { KeyboardNavigator } from "./KeyboardNavigator";
 import { PortfolioChat } from "./PortfolioChat";
 import { PortfolioDossier } from "./PortfolioDossier";
 import { PortfolioHeader } from "./PortfolioHeader";
+import { TransitionStatus } from "./TransitionStatus";
 import type { PoseState } from "./scene/BodyScene";
 
 const PortfolioCanvas = lazy(() =>
@@ -34,7 +47,15 @@ function useReducedMotion() {
   return reduced;
 }
 
-export function PortfolioExperience() {
+export function PortfolioExperience({
+  initialPhase = "body",
+}: {
+  initialPhase?: Extract<TransitionPhase, "body" | "graph">;
+}) {
+  const [transition, dispatch] = useReducer(transitionReducer, {
+    phase: initialPhase,
+    run: 0,
+  });
   const reducedMotion = useReducedMotion();
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
   const [pose, setPose] = useState<PoseState>("idle");
@@ -47,6 +68,33 @@ export function PortfolioExperience() {
     selectedDomain,
     selectedProjectId: selectedNode?.projectId ?? null,
   });
+
+  useEffect(() => {
+    dispatch({ type: initialPhase === "graph" ? "SHOW_GRAPH" : "RESET" });
+  }, [initialPhase]);
+
+  useEffect(() => {
+    if (transition.phase !== "entering") return;
+    const timer = window.setTimeout(
+      () => dispatch({ type: "COMPLETE" }),
+      transitionDuration(reducedMotion),
+    );
+    return () => window.clearTimeout(timer);
+  }, [reducedMotion, transition.phase, transition.run]);
+
+  useEffect(() => {
+    const syncWithLocation = () => {
+      const graphRequested =
+        new URLSearchParams(window.location.search).get("view") === "graph";
+      setSelectedDomain(null);
+      setSelectedNode(null);
+      setKeyboardNodeId(null);
+      setPose("idle");
+      dispatch({ type: graphRequested ? "SHOW_GRAPH" : "RESET" });
+    };
+    window.addEventListener("popstate", syncWithLocation);
+    return () => window.removeEventListener("popstate", syncWithLocation);
+  }, []);
 
   function showIndex() {
     setSelectedDomain(null);
@@ -83,17 +131,46 @@ export function PortfolioExperience() {
     setSelectedNode(node);
   }
 
+  function enterMap() {
+    if (transition.phase !== "body") return;
+    window.history.pushState({}, "", "/?view=graph");
+    dispatch({ type: "ENTER" });
+  }
+
+  function handleLandingClick(event: MouseEvent<HTMLElement>) {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest("a, button, input, textarea, select, .portfolio-chat")
+    ) {
+      return;
+    }
+    enterMap();
+  }
+
   return (
     <main
-      className="experience experience-graph"
+      className={`experience experience-${transition.phase}`}
       data-theme="light"
       id="main-content"
     >
-      <PortfolioHeader activeView="map" onHome={showIndex} overlay />
+      <TransitionStatus phase={transition.phase} />
+      <PortfolioHeader
+        activeView={transition.phase === "body" ? "bradley" : "map"}
+        overlay
+      />
+      {/* The full figure is a pointer entry surface; the visible button is
+          the equivalent keyboard target. Nested controls remain independent. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
-        aria-label="Spatial portfolio map"
+        aria-label={
+          transition.phase === "body"
+            ? "Bradley Berkman landing"
+            : "Spatial portfolio map"
+        }
         className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
         id="brain"
+        onClick={handleLandingClick}
       >
         <Suspense
           fallback={
@@ -104,7 +181,7 @@ export function PortfolioExperience() {
         >
           <PortfolioCanvas
             nodes={visibleNodes}
-            phase="graph"
+            phase={transition.phase}
             pose={pose}
             selectedDomain={selectedDomain}
             reducedMotion={reducedMotion}
@@ -114,19 +191,41 @@ export function PortfolioExperience() {
           />
         </Suspense>
 
-        <PortfolioDossier
-          dossier={dossier}
-          onDomainSelect={selectDomain}
-          onShowIndex={showIndex}
-          selectedDomain={selectedDomain}
-        />
+        <div className="scene-copy">
+          <p className="eyebrow">Bradley Berkman portfolio</p>
+          <h1>I find where judgment matters, then build the system around it.</h1>
+          <p>Start with Bradley, then follow the work outward.</p>
+          {transition.phase === "body" ? (
+            <button
+              className="enter-button"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                enterMap();
+              }}
+            >
+              Enter map
+            </button>
+          ) : null}
+        </div>
 
-        <KeyboardNavigator
-          nodes={visibleNodes}
-          onNodeFocus={setKeyboardNodeId}
-          onNodeSelect={selectNode}
-          selectedNodeId={selectedNode?.id ?? null}
-        />
+        {transition.phase === "graph" ? (
+          <>
+            <PortfolioDossier
+              dossier={dossier}
+              onDomainSelect={selectDomain}
+              onShowIndex={showIndex}
+              selectedDomain={selectedDomain}
+            />
+
+            <KeyboardNavigator
+              nodes={visibleNodes}
+              onNodeFocus={setKeyboardNodeId}
+              onNodeSelect={selectNode}
+              selectedNodeId={selectedNode?.id ?? null}
+            />
+          </>
+        ) : null}
 
         <PortfolioChat onPoseChange={setPose} />
       </section>

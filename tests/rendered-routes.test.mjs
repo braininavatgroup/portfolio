@@ -23,7 +23,7 @@ async function render(pathname) {
 }
 
 test("project index links every data-derived project to its canonical case study", async () => {
-  const response = await render("/work");
+  const response = await render("/index");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
@@ -53,7 +53,7 @@ test("project index links every data-derived project to its canonical case study
   for (const [, attributes, content] of html.matchAll(
     /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
   )) {
-    const route = attributes.match(/\bhref=["'](\/work\/[^"'#?]+)["']/i)?.[1];
+    const route = attributes.match(/\bhref=["'](\/index\/[^"'#?]+)["']/i)?.[1];
     if (!route) continue;
 
     const title = content.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1];
@@ -70,7 +70,7 @@ test("project index links every data-derived project to its canonical case study
     assert.match(caseStudyHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
     assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
     assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
-    assert.match(caseStudyHtml, /href=["']\/work["'][^>]*>Index</i);
+    assert.match(caseStudyHtml, /href=["']\/index["'][^>]*>Index</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];
@@ -100,4 +100,17 @@ test("project index links every data-derived project to its canonical case study
       `${route} does not link its own canonical route as a case-study link`,
     );
   }
+});
+
+test("legacy work routes redirect to the canonical index routes", async () => {
+  const indexResponse = await render("/work");
+  assert.ok([301, 302, 307, 308].includes(indexResponse.status));
+  assert.equal(new URL(indexResponse.headers.get("location"), "http://localhost").pathname, "/index");
+
+  const caseStudyResponse = await render("/work/dubs");
+  assert.ok([301, 302, 307, 308].includes(caseStudyResponse.status));
+  assert.equal(
+    new URL(caseStudyResponse.headers.get("location"), "http://localhost").pathname,
+    "/index/dubs",
+  );
 });

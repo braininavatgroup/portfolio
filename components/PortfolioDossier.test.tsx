@@ -39,7 +39,7 @@ describe("portfolio dossier", () => {
       screen
         .getByRole("link", { name: /Campaign kickoff and intake/ })
         .getAttribute("href"),
-    ).toBe("/work/kickoff-intake");
+    ).toBe("/index/kickoff-intake");
   });
 
   it("drags the dossier by its header and keeps it inside the viewport", () => {
@@ -147,6 +147,6 @@ describe("portfolio dossier", () => {
       screen
         .getByRole("link", { name: "Read the full Dubs case study" })
         .getAttribute("href"),
-    ).toBe("/work/dubs");
+    ).toBe("/index/dubs");
   });
 });

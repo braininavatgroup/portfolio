@@ -8,7 +8,8 @@ export type TransitionState = {
 export type TransitionEvent =
   | { type: "ENTER" }
   | { type: "COMPLETE" }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "SHOW_GRAPH" };
 
 export const transitionDuration = (reducedMotion: boolean) =>
   reducedMotion ? 180 : 1500;
@@ -26,5 +27,7 @@ export function transitionReducer(
       return { ...state, phase: "graph" };
     case "RESET":
       return { ...state, phase: "body" };
+    case "SHOW_GRAPH":
+      return { ...state, phase: "graph" };
   }
 }

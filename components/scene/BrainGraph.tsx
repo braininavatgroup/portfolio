@@ -49,7 +49,11 @@ export function BrainGraph({
   });
 
   return (
-    <group ref={group} position={brainWorldOrigin} scale={0.001}>
+    <group
+      ref={group}
+      position={brainWorldOrigin}
+      scale={phase === "graph" ? 1 : 0.001}
+    >
       <CableNetwork
         nodes={nodes}
         pulses={quality.pulses}

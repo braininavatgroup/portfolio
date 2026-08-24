@@ -35,7 +35,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["instinct"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
   {
     id: "example:approach",
@@ -46,7 +46,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["approach"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
   {
     id: "example:output",
@@ -57,7 +57,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["output"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
 ];
 

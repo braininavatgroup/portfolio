@@ -112,9 +112,9 @@ describe("spatial graph projection", () => {
         "output",
       ]);
       expect(branchNodes.map(({ href }) => href)).toEqual([
-        `/work/${project.slug}`,
-        `/work/${project.slug}`,
-        `/work/${project.slug}`,
+        `/index/${project.slug}`,
+        `/index/${project.slug}`,
+        `/index/${project.slug}`,
       ]);
       expect(branchNodes[0].parentId).toBe(
         `domain:${project.facets?.domain?.[0]}`,

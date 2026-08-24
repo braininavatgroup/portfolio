@@ -173,7 +173,7 @@ export function projectSpatialGraph(input: {
         parentId,
         projectId: project.id,
         projectSlug: project.slug,
-        href: `/work/${project.slug}`,
+        href: `/index/${project.slug}`,
         groupId,
       });
       parentId = id;

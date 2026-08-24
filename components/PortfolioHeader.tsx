@@ -1,41 +1,38 @@
 import Link from "next/link";
 
 type PortfolioHeaderProps = {
-  activeView?: "map" | "work";
+  activeView?: "bradley" | "map" | "index";
   overlay?: boolean;
-  onHome?: () => void;
-  onReplay?: () => void;
 };
 
 export function PortfolioHeader({
   activeView,
   overlay = false,
-  onHome,
-  onReplay,
 }: PortfolioHeaderProps) {
   return (
     <header
       className={`portfolio-header${overlay ? " portfolio-header-overlay" : ""}`}
     >
-      <Link className="wordmark" href="/" onClick={onHome}>
-        Bradley Berkman
-      </Link>
+      {activeView === "bradley" ? (
+        <span aria-current="page" className="wordmark">
+          Bradley Berkman
+        </span>
+      ) : (
+        <Link className="wordmark" href="/">
+          Bradley Berkman
+        </Link>
+      )}
       <nav aria-label="Portfolio views">
         {activeView === "map" ? (
           <span aria-current="page">Map</span>
         ) : (
           <Link href="/?view=graph">Map</Link>
         )}
-        {activeView === "work" ? (
+        {activeView === "index" ? (
           <span aria-current="page">Index</span>
         ) : (
-          <Link href="/work">Index</Link>
+          <Link href="/index">Index</Link>
         )}
-        {onReplay ? (
-          <button type="button" onClick={onReplay}>
-            Replay intro
-          </button>
-        ) : null}
       </nav>
     </header>
   );

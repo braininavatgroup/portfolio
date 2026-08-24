@@ -11,7 +11,7 @@ const node = (role: SpatialGraphNode["role"]): SpatialGraphNode => ({
   entityIds: [role],
   projectId: "example",
   projectSlug: "example",
-  href: "/work/example",
+  href: "/index/example",
 });
 
 describe("graph node interaction", () => {
@@ -41,7 +41,7 @@ describe("graph node interaction", () => {
   );
 
   it.each([
-    { missing: "projectId", projectId: undefined, href: "/work/example" },
+    { missing: "projectId", projectId: undefined, href: "/index/example" },
     { missing: "href", projectId: "example", href: undefined },
   ])("keeps a step missing $missing inert", ({ projectId, href }) => {
     expect(
