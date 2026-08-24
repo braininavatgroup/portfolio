@@ -112,21 +112,10 @@ function SceneDirector({
     ],
   );
   const destination = useMemo(() => {
-    if (phase === "body") {
+    if (phase === "body" || phase === "returning") {
       return {
         position: [0, 1.35, 10] as Point3,
         target: [0, 1.35, 0] as Point3,
-        up: [0, 1, 0] as Point3,
-      };
-    }
-    if (phase === "entering") {
-      return {
-        position: [
-          brainWorldOrigin[0],
-          brainWorldOrigin[1],
-          brainWorldOrigin[2] + 0.72,
-        ] as Point3,
-        target: brainWorldOrigin,
         up: [0, 1, 0] as Point3,
       };
     }
@@ -231,6 +220,7 @@ type PortfolioCanvasProps = {
   reducedMotion: boolean;
   focusedNodeId: string | null;
   selectedNodeId: string | null;
+  onEnter: () => void;
   onNodeSelect: (node: SpatialGraphNode) => void;
 };
 
@@ -242,6 +232,7 @@ export function PortfolioCanvas({
   reducedMotion,
   focusedNodeId,
   selectedNodeId,
+  onEnter,
   onNodeSelect,
 }: PortfolioCanvasProps) {
   const [lowPower, setLowPower] = useState(
@@ -281,7 +272,8 @@ export function PortfolioCanvas({
         <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />
         <Suspense fallback={null}>
           <BodyScene
-            visible={phase !== "graph"}
+            interactive={phase === "body"}
+            onActivate={onEnter}
             pose={pose}
             quality={quality}
           />

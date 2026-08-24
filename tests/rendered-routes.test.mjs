@@ -30,7 +30,7 @@ test("project index links every data-derived project to its canonical case study
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
   assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Index</i);
+  assert.doesNotMatch(html, />Index</i);
   assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Portfolio\s*[·•]\s*\d+\s+projects?/i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
@@ -41,6 +41,8 @@ test("project index links every data-derived project to its canonical case study
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
   assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
+  assert.doesNotMatch(html, /class=["'][^"']*domain-heading-meta/i);
+  assert.doesNotMatch(html, /class=["'][^"']*artifact-index-number/i);
   assert.match(html, /data-project-count=["']3["'][^>]*id=["']music["']/i);
   assert.match(html, /data-project-count=["']2["'][^>]*id=["']consulting["']/i);
   assert.match(html, /data-project-count=["']4["'][^>]*id=["']development["']/i);
@@ -81,7 +83,7 @@ test("project index links every data-derived project to its canonical case study
     assert.match(caseStudyHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
     assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
     assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
-    assert.match(caseStudyHtml, /href=["']\/index["'][^>]*>Index</i);
+    assert.doesNotMatch(caseStudyHtml, />Index</i);
     assert.doesNotMatch(caseStudyHtml, />All work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,

@@ -6,14 +6,12 @@ import { useRef, useState } from "react";
 import * as THREE from "three";
 import { nodeAction } from "../../lib/node-interaction";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
-import { BrainShape } from "./BrainShape";
 import { GraphNodeLabel } from "./GraphNodeLabel";
 import { OutputToken } from "./OutputToken";
 import { ApproachGlyph, InstinctGlyph } from "./RoleGlyph";
 import { getOutputToken } from "./output-token-map";
 
-const colors: Record<SpatialGraphNode["role"], string> = {
-  root: "#d7ff6f",
+const colors: Record<Exclude<SpatialGraphNode["role"], "root">, string> = {
   domain: "#8da535",
   instinct: "#3f7569",
   approach: "#245f52",
@@ -26,6 +24,7 @@ type GraphNodeProps = {
   focused: boolean;
   dimmed: boolean;
   animated: boolean;
+  enabled: boolean;
   showLabel: boolean;
   onSelect: (node: SpatialGraphNode) => void;
 };
@@ -36,12 +35,13 @@ export function GraphNode({
   focused,
   dimmed,
   animated,
+  enabled,
   showLabel,
   onSelect,
 }: GraphNodeProps) {
   const [hovered, setHovered] = useState(false);
   const tokenGroup = useRef<THREE.Group>(null);
-  const interactive = nodeAction(node) !== "none";
+  const interactive = enabled && nodeAction(node) !== "none";
   const prominent = node.role === "output";
   const processNode = node.role === "instinct" || node.role === "approach";
   const outputToken =
@@ -62,48 +62,7 @@ export function GraphNode({
   });
 
   if (node.role === "root") {
-    return (
-      <group position={node.position}>
-        <group
-          scale={emphasized ? 1.08 : 1}
-          {...(interactive
-            ? {
-                onClick: (event: ThreeEvent<MouseEvent>) => {
-                  event.stopPropagation();
-                  onSelect(node);
-                },
-                onPointerEnter: () => {
-                  setHovered(true);
-                  document.body.style.cursor = "pointer";
-                },
-                onPointerLeave: () => {
-                  setHovered(false);
-                  document.body.style.cursor = "";
-                },
-              }
-            : {})}
-        >
-          <BrainShape scale={0.78} />
-        </group>
-        <pointLight color={colors.root} intensity={1.4} distance={3.2} />
-        {showLabel ? (
-          <Html
-            center
-            position={[0, -0.72, 0]}
-            zIndexRange={[5, 0]}
-          >
-            <GraphNodeLabel
-              node={node}
-              interactive={interactive}
-              emphasized={emphasized}
-              selected={selected}
-              dimmed={dimmed}
-              onSelect={onSelect}
-            />
-          </Html>
-        ) : null}
-      </group>
-    );
+    return null;
   }
 
   return (

@@ -31,11 +31,6 @@ function LabelContent({ node }: { node: SpatialGraphNode }) {
 
   return (
     <>
-      {node.role === "output" ? (
-        <span className="graph-node-label-role">
-          {compactStepLabel.output}
-        </span>
-      ) : null}
       <strong>{node.label}</strong>
     </>
   );
@@ -49,6 +44,8 @@ export function GraphNodeLabel({
   dimmed = false,
   onSelect,
 }: GraphNodeLabelProps) {
+  if (node.role === "root") return null;
+
   if (!interactive) {
     return (
       <span

@@ -8,15 +8,20 @@ import { PortfolioExperience } from "./PortfolioExperience";
 vi.mock("./scene/PortfolioCanvas", () => ({
   PortfolioCanvas: ({
     nodes,
+    onEnter,
     onNodeSelect,
   }: {
     nodes: readonly SpatialGraphNode[];
+    onEnter: () => void;
     onNodeSelect: (node: SpatialGraphNode) => void;
   }) => (
     <div data-testid="scene-canvas">
       <output data-testid="visible-node-roles">
         {nodes.map(({ role }) => role).join(",")}
       </output>
+      <button onClick={onEnter} type="button">
+        Select Bradley body
+      </button>
       <button
         onClick={() => {
           const domain = nodes.find(
@@ -46,21 +51,6 @@ vi.mock("./scene/PortfolioCanvas", () => ({
         type="button"
       >
         Select Dubs approach
-      </button>
-      <button
-        onClick={() =>
-          onNodeSelect({
-            id: "portfolio:brain",
-            label: "Bradley Berkman",
-            detail: "Portfolio root",
-            role: "root",
-            position: [0, 0, 0],
-            entityIds: ["portfolio:brain"],
-          })
-        }
-        type="button"
-      >
-        Select Bradley root
       </button>
     </div>
   ),
@@ -104,7 +94,7 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByLabelText("Keyboard map navigation")).toBeNull();
     expect(screen.queryByRole("button", { name: "Enter map" })).toBeNull();
 
-    fireEvent.click(screen.getByLabelText("Bradley Berkman landing"));
+    fireEvent.click(screen.getByRole("button", { name: "Select Bradley body" }));
 
     expect(document.querySelector(".experience-entering")).toBeTruthy();
     expect(window.location.search).toBe("?view=graph");
@@ -119,7 +109,7 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
-  it("opens with both portfolio views and the project index available", async () => {
+  it("keeps the map primary while exposing the standalone index as a list fallback", async () => {
     await renderExperience();
 
     const navigation = screen.getByRole("navigation", {
@@ -128,8 +118,9 @@ describe("spatial self-portrait", () => {
     expect(navigation.querySelector('[aria-current="page"]')?.textContent).toBe(
       "Map",
     );
+    expect(screen.queryByRole("link", { name: "Index" })).toBeNull();
     expect(
-      screen.getByRole("link", { name: "Index" }).getAttribute("href"),
+      screen.getByRole("link", { name: "View as list" }).getAttribute("href"),
     ).toBe("/index");
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
@@ -143,15 +134,21 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
   });
 
-  it("restores the Bradley landing when top-level navigation removes the map query", async () => {
-    mockMatchMedia();
-    const experience = render(<PortfolioExperience initialPhase="graph" />);
-    await act(async () => {});
+  it("reverses into the Bradley landing from the header without remounting the scene", async () => {
+    vi.useFakeTimers();
+    await renderExperience("graph");
 
     expect(document.querySelector(".experience-graph")).toBeTruthy();
 
-    experience.rerender(<PortfolioExperience initialPhase="body" />);
-    await act(async () => {});
+    fireEvent.click(screen.getByRole("link", { name: "Bradley Berkman" }));
+
+    expect(document.querySelector(".experience-returning")).toBeTruthy();
+    expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
 
     expect(document.querySelector(".experience-body")).toBeTruthy();
     expect(
@@ -193,7 +190,7 @@ describe("spatial self-portrait", () => {
     ).toBe("true");
   });
 
-  it("opens a complete project dossier and lets the Bradley root restore the index", async () => {
+  it("opens a complete project dossier and restores the index from its back control", async () => {
     await renderExperience();
 
     fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
@@ -207,7 +204,7 @@ describe("spatial self-portrait", () => {
         .getAttribute("aria-expanded"),
     ).toBe("true");
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Bradley root" }));
+    fireEvent.click(screen.getByRole("button", { name: /Portfolio index/ }));
 
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),

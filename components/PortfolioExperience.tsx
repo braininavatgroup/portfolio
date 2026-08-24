@@ -6,7 +6,6 @@ import {
   useEffect,
   useReducer,
   useState,
-  type MouseEvent,
 } from "react";
 import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
@@ -74,7 +73,9 @@ export function PortfolioExperience({
   }, [initialPhase]);
 
   useEffect(() => {
-    if (transition.phase !== "entering") return;
+    if (transition.phase !== "entering" && transition.phase !== "returning") {
+      return;
+    }
     const timer = window.setTimeout(
       () => dispatch({ type: "COMPLETE" }),
       transitionDuration(reducedMotion),
@@ -90,7 +91,7 @@ export function PortfolioExperience({
       setSelectedNode(null);
       setKeyboardNodeId(null);
       setPose("idle");
-      dispatch({ type: graphRequested ? "SHOW_GRAPH" : "RESET" });
+      dispatch({ type: graphRequested ? "ENTER" : "EXIT" });
     };
     window.addEventListener("popstate", syncWithLocation);
     return () => window.removeEventListener("popstate", syncWithLocation);
@@ -137,15 +138,15 @@ export function PortfolioExperience({
     dispatch({ type: "ENTER" });
   }
 
-  function handleLandingClick(event: MouseEvent<HTMLElement>) {
-    const target = event.target;
-    if (
-      target instanceof Element &&
-      target.closest("a, button, input, textarea, select, .portfolio-chat")
-    ) {
+  function exitMap() {
+    if (transition.phase !== "graph" && transition.phase !== "entering") {
       return;
     }
-    enterMap();
+    window.history.pushState({}, "", "/");
+    setSelectedDomain(null);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+    dispatch({ type: "EXIT" });
   }
 
   return (
@@ -156,12 +157,15 @@ export function PortfolioExperience({
     >
       <TransitionStatus phase={transition.phase} />
       <PortfolioHeader
-        activeView={transition.phase === "body" ? "bradley" : "map"}
+        activeView={
+          transition.phase === "body" || transition.phase === "returning"
+            ? "bradley"
+            : "map"
+        }
+        onBradleySelect={exitMap}
+        onMapSelect={enterMap}
         overlay
       />
-      {/* Any non-control click on the landing canvas enters. Header Map is
-          the explicit keyboard path; nested controls remain independent. */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
         aria-label={
           transition.phase === "body"
@@ -170,7 +174,6 @@ export function PortfolioExperience({
         }
         className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
         id="brain"
-        onClick={handleLandingClick}
       >
         <Suspense
           fallback={
@@ -187,6 +190,7 @@ export function PortfolioExperience({
             reducedMotion={reducedMotion}
             focusedNodeId={keyboardNodeId}
             selectedNodeId={selectedNode?.id ?? null}
+            onEnter={enterMap}
             onNodeSelect={selectNode}
           />
         </Suspense>

@@ -1,4 +1,4 @@
-export type TransitionPhase = "body" | "entering" | "graph";
+export type TransitionPhase = "body" | "entering" | "graph" | "returning";
 
 export type TransitionState = {
   phase: TransitionPhase;
@@ -7,6 +7,7 @@ export type TransitionState = {
 
 export type TransitionEvent =
   | { type: "ENTER" }
+  | { type: "EXIT" }
   | { type: "COMPLETE" }
   | { type: "RESET" }
   | { type: "SHOW_GRAPH" };
@@ -22,9 +23,13 @@ export function transitionReducer(
     case "ENTER":
       if (state.phase !== "body") return state;
       return { phase: "entering", run: state.run + 1 };
+    case "EXIT":
+      if (state.phase !== "graph" && state.phase !== "entering") return state;
+      return { phase: "returning", run: state.run + 1 };
     case "COMPLETE":
-      if (state.phase !== "entering") return state;
-      return { ...state, phase: "graph" };
+      if (state.phase === "entering") return { ...state, phase: "graph" };
+      if (state.phase === "returning") return { ...state, phase: "body" };
+      return state;
     case "RESET":
       return { ...state, phase: "body" };
     case "SHOW_GRAPH":

@@ -31,6 +31,7 @@ export function BrainGraph({
   quality,
   onSelect,
 }: BrainGraphProps) {
+  const landingScale = 0.001;
   const group = useRef<THREE.Group>(null);
   const selectedProjectId = nodes.find(
     ({ id }) => id === selectedNodeId,
@@ -38,7 +39,8 @@ export function BrainGraph({
 
   useFrame(() => {
     if (!group.current) return;
-    const target = phase === "body" ? 0.001 : phase === "entering" ? 0.38 : 1;
+    const target =
+      phase === "body" || phase === "returning" ? landingScale : 1;
     const current = group.current.scale.x;
     const next = THREE.MathUtils.lerp(current, target, phase === "graph" ? 0.07 : 0.04);
     group.current.scale.setScalar(next);
@@ -52,7 +54,7 @@ export function BrainGraph({
     <group
       ref={group}
       position={brainWorldOrigin}
-      scale={phase === "graph" ? 1 : 0.001}
+      scale={phase === "graph" ? 1 : landingScale}
     >
       <CableNetwork
         nodes={nodes}
@@ -72,6 +74,7 @@ export function BrainGraph({
               node.projectId !== selectedProjectId,
           )}
           animated={quality.pulses}
+          enabled={phase === "graph"}
           showLabel={phase === "graph"}
           onSelect={onSelect}
         />

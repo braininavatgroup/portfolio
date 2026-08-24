@@ -7,7 +7,5 @@ export default async function Home({
 }) {
   const { view } = await searchParams;
   const initialPhase = view === "graph" ? "graph" : "body";
-  return (
-    <PortfolioExperience initialPhase={initialPhase} key={initialPhase} />
-  );
+  return <PortfolioExperience initialPhase={initialPhase} />;
 }

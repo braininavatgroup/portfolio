@@ -19,6 +19,22 @@ const approachNode: SpatialGraphNode = {
   href: "/index/field-map",
 };
 
+const outputNode: SpatialGraphNode = {
+  ...approachNode,
+  id: "field-map:output",
+  label: "Field map",
+  role: "output",
+};
+
+const rootNode: SpatialGraphNode = {
+  id: "portfolio:brain",
+  label: "Bradley Berkman",
+  detail: "Portfolio root",
+  role: "root",
+  position: [0, 0, 0],
+  entityIds: ["portfolio:brain"],
+};
+
 describe("GraphNodeLabel", () => {
   it("keeps the full step title accessible while showing a compact role label", () => {
     render(
@@ -111,5 +127,32 @@ describe("GraphNodeLabel", () => {
 
     expect(label.getAttribute("aria-pressed")).toBe("true");
     expect(label.getAttribute("data-role")).toBe("approach");
+  });
+
+  it("shows an output title without repeating its numbered role", () => {
+    render(
+      <GraphNodeLabel
+        node={outputNode}
+        interactive
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Field map")).toBeTruthy();
+    expect(screen.queryByText("03 · Output")).toBeNull();
+  });
+
+  it("does not render a separate label or button for the Bradley root", () => {
+    const { container } = render(
+      <GraphNodeLabel
+        node={rootNode}
+        interactive={false}
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(container.innerHTML).toBe("");
   });
 });

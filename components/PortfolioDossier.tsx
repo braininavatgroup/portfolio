@@ -213,7 +213,7 @@ function PortfolioIndex({
         })}
       </div>
       <footer className="dossier-footer">
-        <Link href="/index">Open the full project index</Link>
+        <Link href="/index">View as list</Link>
       </footer>
     </>
   );

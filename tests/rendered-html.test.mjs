@@ -48,7 +48,7 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Bradley Berkman</i);
   assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/index["'][^>]*>Index</i);
+  assert.doesNotMatch(html, />Index</i);
   assert.doesNotMatch(html, />Enter map</i);
   assert.doesNotMatch(html, /aria-label=["']Portfolio index["']/i);
   assert.doesNotMatch(html, /Give small operators larger-operator leverage/i);
@@ -76,7 +76,8 @@ test("the homepage opens directly on the map with its synchronized index", async
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/index["'][^>]*>Index</i);
+  assert.doesNotMatch(html, />Index</i);
+  assert.match(html, /href=["']\/index["'][^>]*>View as list</i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /Music promotion/i);

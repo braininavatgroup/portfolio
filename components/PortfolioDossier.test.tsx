@@ -40,6 +40,9 @@ describe("portfolio dossier", () => {
         .getByRole("link", { name: /Campaign kickoff and intake/ })
         .getAttribute("href"),
     ).toBe("/index/kickoff-intake");
+    expect(
+      screen.getByRole("link", { name: "View as list" }).getAttribute("href"),
+    ).toBe("/index");
   });
 
   it("drags the dossier by its header and keeps it inside the viewport", () => {

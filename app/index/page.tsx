@@ -24,7 +24,7 @@ export default function ProjectIndex() {
         <p className="lede">{portfolioThroughline}</p>
       </header>
 
-      {projectGroups.map((group, groupIndex) => (
+      {projectGroups.map((group) => (
         <section
           className="domain-section"
           data-project-count={group.projects.length}
@@ -32,10 +32,6 @@ export default function ProjectIndex() {
           key={group.id}
         >
           <div className="domain-heading">
-            <div className="domain-heading-meta">
-              <span>{String(groupIndex + 1).padStart(2, "0")}</span>
-              <span>{`${group.projects.length} projects`}</span>
-            </div>
             <div>
               <h2>{group.label}</h2>
               {group.description ? <p>{group.description}</p> : null}
@@ -43,7 +39,7 @@ export default function ProjectIndex() {
           </div>
           <div className="domain-work">
             <ol className="artifact-index-list">
-              {group.projects.map((project, projectIndex) => {
+              {group.projects.map((project) => {
                 const evidenceStatus = project.facets?.evidenceStatus?.[0];
                 return (
                   <li className="artifact-index-entry" key={project.slug}>
@@ -51,9 +47,6 @@ export default function ProjectIndex() {
                       className="artifact-main-link"
                       href={`/index/${project.slug}`}
                     >
-                      <span className="artifact-index-number">
-                        {String(projectIndex + 1).padStart(2, "0")}
-                      </span>
                       <span className="artifact-index-copy">
                         <strong>{project.title}</strong>
                         <small>{project.summary}</small>

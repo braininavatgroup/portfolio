@@ -15,8 +15,8 @@ const node = (role: SpatialGraphNode["role"]): SpatialGraphNode => ({
 });
 
 describe("graph node interaction", () => {
-  it("uses the portfolio root to restore the index", () => {
-    expect(nodeAction(node("root"))).toBe("index");
+  it("keeps the portfolio root as a non-interactive cable anchor", () => {
+    expect(nodeAction(node("root"))).toBe("none");
   });
 
   it("uses domain hubs to focus their project neighborhood", () => {
