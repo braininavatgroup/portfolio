@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useReducer, useState } from "react";
 import { getEntity } from "../lib/portfolio-data";
 import { domains, type DomainId } from "../lib/portfolio";
+import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
 import {
   portfolioNodes,
   type SpatialGraphNode,
@@ -175,7 +176,10 @@ export function PortfolioExperience({
             />
           </aside>
         ) : null}
-        <PortfolioChat onPoseChange={setPose} />
+        <PortfolioChat
+          onPoseChange={setPose}
+          turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
+        />
       </section>
     </main>
   );
