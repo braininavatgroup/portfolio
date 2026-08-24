@@ -99,10 +99,17 @@ export function PortfolioExperience({
         ) : null}
       </header>
 
+      {/* Any non-control click on the landing canvas enters; explicit
+          controls inside the shell stop propagation instead. Keyboard entry
+          stays on the visible enter button. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
         aria-label="Spatial portfolio preview"
         className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}`}
         id="brain"
+        onClick={() => {
+          if (transition.phase === "body") dispatch({ type: "ENTER" });
+        }}
       >
         <Suspense
           fallback={
@@ -120,7 +127,6 @@ export function PortfolioExperience({
             focusedNodeId={keyboardNodeId}
             selectedNodeId={selectedNode?.id ?? null}
             onNodeSelect={setSelectedNode}
-            onEnter={() => dispatch({ type: "ENTER" })}
           />
         </Suspense>
         {selectedNode && selectedNode.role !== "root" ? (
@@ -136,13 +142,16 @@ export function PortfolioExperience({
           <p className="eyebrow">Bradley Berkman portfolio</p>
           <h1>I find where judgment matters, then build the system around it.</h1>
           <p>
-            Start with the brain, then follow the work outward.
+            Click anywhere to step inside, then follow the work outward.
           </p>
           {transition.phase === "body" ? (
             <button
               className="enter-button"
               type="button"
-              onClick={() => dispatch({ type: "ENTER" })}
+              onClick={(event) => {
+                event.stopPropagation();
+                dispatch({ type: "ENTER" });
+              }}
             >
               Explore the work
             </button>
