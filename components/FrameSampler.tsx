@@ -33,7 +33,10 @@ export function FrameSampler() {
   if (process.env.NODE_ENV === "production") return null;
 
   return (
-    <div className="frame-sampler">
+    // Dev-only control over the landing canvas; keep its clicks out of the
+    // canvas-wide entry handler.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div className="frame-sampler" onClick={(event) => event.stopPropagation()}>
       <button type="button" onClick={() => setEnabled((value) => !value)}>
         {enabled ? "Hide performance" : "Show performance"}
       </button>

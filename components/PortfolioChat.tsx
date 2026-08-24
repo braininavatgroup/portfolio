@@ -33,7 +33,14 @@ export function PortfolioChat({
   }
 
   return (
-    <section className="portfolio-chat" aria-labelledby="chat-heading">
+    // The chat is an explicit control over the landing canvas; its clicks
+    // must never bubble into the canvas-wide entry handler.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
+    <section
+      className="portfolio-chat"
+      aria-labelledby="chat-heading"
+      onClick={(event) => event.stopPropagation()}
+    >
       <div className="chat-heading-row">
         <div>
           <p className="eyebrow">Ask the portfolio</p>

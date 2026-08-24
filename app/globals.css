@@ -90,6 +90,10 @@ body {
   position: absolute;
 }
 
+.experience-body .scene-shell { cursor: pointer; }
+.experience-body .scene-shell .portfolio-chat,
+.experience-body .scene-shell .frame-sampler { cursor: auto; }
+
 .scene-canvas-wrap canvas {
   display: block;
   height: 100%;

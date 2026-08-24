@@ -6,6 +6,7 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { domains } from "../../lib/portfolio";
 import type { SceneQuality } from "../../lib/scene-budget";
+import { brainWorldOrigin } from "../../lib/scene-origin";
 import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import type { TransitionPhase } from "../../lib/transition";
 import { CableNetwork } from "./Cable";
@@ -40,7 +41,7 @@ export function BrainGraph({
   });
 
   return (
-    <group ref={group} position={[0, 1.75, 0]} scale={0.001}>
+    <group ref={group} position={brainWorldOrigin} scale={0.001}>
       <CableNetwork nodes={nodes} pulses={quality.pulses} />
       {nodes.map((node) => (
         <GraphNode
