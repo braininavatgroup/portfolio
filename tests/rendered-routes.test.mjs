@@ -37,6 +37,16 @@ test("project index links every data-derived project to its canonical case study
   assert.doesNotMatch(html, /Linear time \/ spatial entry at the pivot/i);
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
+  assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
+  assert.match(html, /data-project-count=["']3["'][^>]*id=["']music["']/i);
+  assert.match(html, /data-project-count=["']2["'][^>]*id=["']consulting["']/i);
+  assert.match(html, /data-project-count=["']4["'][^>]*id=["']development["']/i);
+  assert.equal(
+    (html.match(/class=["'][^"']*artifact-index-entry[^"']*["']/gi) ?? [])
+      .length,
+    9,
+    "stacked editorial index renders every project as an entry",
+  );
 
   assert.match(html, /aria-label=["']Portfolio views["']/i);
   assert.doesNotMatch(html, /Evidence undefined/i);
