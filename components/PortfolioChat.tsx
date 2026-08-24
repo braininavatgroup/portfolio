@@ -8,6 +8,11 @@ import {
   type AskPortfolio,
   type RequestPortfolioChatPreviewAccess,
 } from "../lib/portfolio-chat-client";
+import {
+  renderTurnstile,
+  type TurnstileController,
+  type TurnstileRenderer,
+} from "../lib/portfolio-chat-turnstile";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { classifyPose } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
@@ -22,10 +27,14 @@ export function PortfolioChat({
   onPoseChange,
   askPortfolio = streamPortfolioAnswer,
   requestPreviewAccess = requestPortfolioChatPreviewAccess,
+  renderTurnstile: renderTurnstileWidget = renderTurnstile,
+  turnstileSiteKey,
 }: {
   onPoseChange: (pose: PoseState) => void;
   askPortfolio?: AskPortfolio;
   requestPreviewAccess?: RequestPortfolioChatPreviewAccess;
+  renderTurnstile?: TurnstileRenderer;
+  turnstileSiteKey?: string;
 }) {
   const [input, setInput] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -35,10 +44,54 @@ export function PortfolioChat({
   const [pending, setPending] = useState(false);
   const [previewRequired, setPreviewRequired] = useState(false);
   const [previewPending, setPreviewPending] = useState(false);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [challengeMessage, setChallengeMessage] = useState("");
   const idleTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
   const previewController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
+  const turnstileContainer = useRef<HTMLDivElement | null>(null);
+  const turnstileController = useRef<TurnstileController | null>(null);
+
+  useEffect(() => {
+    if (!turnstileSiteKey || !turnstileContainer.current) return;
+    let active = true;
+    setChallengeMessage("Preparing verification…");
+    void renderTurnstileWidget(turnstileContainer.current, turnstileSiteKey, {
+      onToken: (token) => {
+        if (!active) return;
+        setChallengeToken(token);
+        setChallengeMessage("");
+      },
+      onError: () => {
+        if (!active) return;
+        setChallengeToken(null);
+        setChallengeMessage("Verification is unavailable. Try again.");
+      },
+      onExpired: () => {
+        if (!active) return;
+        setChallengeToken(null);
+        setChallengeMessage("Complete verification before asking.");
+      },
+    })
+      .then((controller) => {
+        if (!active) {
+          controller.remove();
+          return;
+        }
+        turnstileController.current = controller;
+        setChallengeMessage("");
+      })
+      .catch(() => {
+        if (active) setChallengeMessage("Verification is unavailable. Try again.");
+      });
+
+    return () => {
+      active = false;
+      turnstileController.current?.remove();
+      turnstileController.current = null;
+    };
+  }, [renderTurnstileWidget, turnstileSiteKey]);
 
   useEffect(() => {
     const region = chatRegion.current;
@@ -66,6 +119,11 @@ export function PortfolioChat({
   }
 
   async function runQuestion(question: string) {
+    if (turnstileSiteKey && !challengeToken) {
+      setChallengeMessage("Complete verification before asking.");
+      return;
+    }
+    const questionChallengeToken = challengeToken ?? undefined;
     requestController.current?.abort();
     const controller = new AbortController();
     requestController.current = controller;
@@ -78,6 +136,9 @@ export function PortfolioChat({
     try {
       await askPortfolio(question, {
         signal: controller.signal,
+        ...(questionChallengeToken
+          ? { challengeToken: questionChallengeToken }
+          : {}),
         onEvent: (event) => {
           if (event.type === "evidence") setEvidence(event.evidence);
           if (event.type === "answer_delta") {
@@ -105,6 +166,10 @@ export function PortfolioChat({
           : "The answer service is temporarily unavailable.",
       );
     } finally {
+      if (turnstileSiteKey) {
+        setChallengeToken(null);
+        turnstileController.current?.reset();
+      }
       if (requestController.current === controller) {
         requestController.current = null;
         setPending(false);
@@ -178,6 +243,18 @@ export function PortfolioChat({
           {pending ? "Asking…" : "Ask"}
         </button>
       </form>
+      {turnstileSiteKey ? (
+        <div
+          aria-label="Security verification"
+          className="chat-turnstile"
+          role="group"
+        >
+          <div ref={turnstileContainer} />
+          {challengeMessage ? (
+            <p className="chat-note">{challengeMessage}</p>
+          ) : null}
+        </div>
+      ) : null}
       {previewRequired ? (
         <form className="chat-preview-access" onSubmit={submitPreviewAccess}>
           <label htmlFor="portfolio-preview-code">Preview access code</label>

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
+import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
 import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
   portfolioNodes,
@@ -216,8 +217,10 @@ export function PortfolioExperience({
             />
           </>
         ) : null}
-
-        <PortfolioChat onPoseChange={setPose} />
+        <PortfolioChat
+          onPoseChange={setPose}
+          turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
+        />
       </section>
     </main>
   );

@@ -7,6 +7,7 @@ import {
   PortfolioChatClientError,
   type AskPortfolio,
 } from "../lib/portfolio-chat-client";
+import type { TurnstileRenderer } from "../lib/portfolio-chat-turnstile";
 import { PortfolioChat } from "./PortfolioChat";
 
 afterEach(cleanup);
@@ -23,6 +24,60 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("does not submit a question until configured Turnstile verification completes", async () => {
+    const askPortfolio = vi.fn<AskPortfolio>(async () => {});
+    const renderTurnstile: TurnstileRenderer = vi.fn(async () => ({
+      remove: vi.fn(),
+      reset: vi.fn(),
+    }));
+
+    render(
+      <PortfolioChat
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+        renderTurnstile={renderTurnstile}
+        turnstileSiteKey="site-key"
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    fireEvent.change(input, { target: { value: "How does reporting work?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(
+      await screen.findByText("Complete verification before asking."),
+    ).toBeTruthy();
+    expect(askPortfolio).not.toHaveBeenCalled();
+  });
+
+  it("forwards a Turnstile token and resets the widget after asking", async () => {
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
+      expect(options.challengeToken).toBe("challenge-token");
+      options.onEvent({ type: "done" });
+    });
+    const controller = { remove: vi.fn(), reset: vi.fn() };
+    const renderTurnstile: TurnstileRenderer = vi.fn(
+      async (_container, _siteKey, callbacks) => {
+        callbacks.onToken("challenge-token");
+        return controller;
+      },
+    );
+
+    render(
+      <PortfolioChat
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+        renderTurnstile={renderTurnstile}
+        turnstileSiteKey="site-key"
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    fireEvent.change(input, { target: { value: "How does reporting work?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(1));
+    expect(controller.reset).toHaveBeenCalledTimes(1);
+  });
+
   it("streams a labeled answer separately from its supporting evidence", async () => {
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [evidence] });
