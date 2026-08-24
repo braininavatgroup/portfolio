@@ -55,7 +55,7 @@ test("map entry reveals view switching and compact keyboard access", async () =>
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>All work</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Project index</i);
   assert.match(html, /Follow a cable from instinct through approach to output\./i);
   for (const role of ["Instinct", "Approach", "Output"]) {
     assert.match(html, new RegExp(`<li[^>]*>${role}<\\/li>`, "i"));

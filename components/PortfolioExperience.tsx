@@ -91,7 +91,7 @@ export function PortfolioExperience({
         {transition.phase === "graph" ? (
           <nav aria-label="Portfolio views">
             <span aria-current="page">Map</span>
-            <Link href="/work">All work</Link>
+            <Link href="/work">Project index</Link>
             <button type="button" onClick={resetExperience}>
               Replay intro
             </button>

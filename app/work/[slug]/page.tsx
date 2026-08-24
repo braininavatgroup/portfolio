@@ -36,8 +36,8 @@ export default async function ArtifactPage({ params }: ArtifactPageProps) {
   return (
     <main className="artifact-page" data-theme="light" id="main-content">
       <nav className="artifact-nav" aria-label="Artifact navigation">
-        <Link href="/?view=graph">Map</Link>
-        <Link href="/work">All work</Link>
+        <Link href="/?view=graph">Portfolio map</Link>
+        <Link href="/work">Project index</Link>
       </nav>
       <ChainArticle artifact={artifact} />
       <nav className="adjacent-nav" aria-label="Adjacent artifacts">
