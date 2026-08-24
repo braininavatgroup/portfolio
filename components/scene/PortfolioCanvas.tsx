@@ -148,20 +148,25 @@ function SceneDirector({
     }
   });
 
-  if (phase !== "graph" || mobile) return null;
+  const fog = phase === "graph" ? graphFrame.fog : { near: 11, far: 30 };
 
   return (
-    <OrbitControls
-      enablePan={false}
-      enableZoom
-      maxDistance={graphFrame.distance * 1.3}
-      maxPolarAngle={Math.PI / 2 - 0.08}
-      minDistance={Math.max(graphFrame.distance * 0.36, 4)}
-      minPolarAngle={Math.PI * 0.14}
-      target={graphFrame.target}
-      rotateSpeed={0.35}
-      zoomSpeed={0.5}
-    />
+    <>
+      <fog attach="fog" args={["#f4f1e8", fog.near, fog.far]} />
+      {phase === "graph" && !mobile ? (
+        <OrbitControls
+          enablePan={false}
+          enableZoom
+          maxDistance={graphFrame.distance * 1.3}
+          maxPolarAngle={Math.PI / 2 - 0.08}
+          minDistance={Math.max(graphFrame.distance * 0.36, 4)}
+          minPolarAngle={Math.PI * 0.14}
+          target={graphFrame.target}
+          rotateSpeed={0.35}
+          zoomSpeed={0.5}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -218,7 +223,6 @@ export function PortfolioCanvas({
         }}
       >
         <color attach="background" args={["#f4f1e8"]} />
-        <fog attach="fog" args={["#f4f1e8", 11, 30]} />
         <ambientLight intensity={1.05} color="#ffffff" />
         <directionalLight position={[4, 8, 7]} intensity={2} color="#fff4cf" />
         <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />

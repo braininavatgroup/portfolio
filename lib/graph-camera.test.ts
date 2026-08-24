@@ -103,4 +103,37 @@ describe("graph camera framing", () => {
     expect(reserved.target).not.toEqual(centered.target);
     expect(reserved.distance).toBeGreaterThan(centered.distance);
   });
+
+  it("keeps graph fog behind every node at a narrow desktop viewport", () => {
+    const nodeBoundRadius = 0.6;
+    const worldOffset: Point3 = [0, 1.75, 0];
+    const frame = frameSpatialNodes({
+      nodes: portfolioNodes,
+      aspect: 876 / 910,
+      verticalFovDegrees: 43,
+      nodeBoundRadius,
+      margin: 1.16,
+      worldOffset,
+      viewPlaneOffset: [-1.55, -0.48],
+    });
+    const backward = normalize(subtract(frame.position, frame.target));
+    const cameraDistance = Math.hypot(
+      ...subtract(frame.position, frame.target),
+    );
+
+    for (const node of portfolioNodes) {
+      const worldPosition: Point3 = [
+        node.position[0] + worldOffset[0],
+        node.position[1] + worldOffset[1],
+        node.position[2] + worldOffset[2],
+      ];
+      const relative = subtract(worldPosition, frame.target);
+      const nodeDepth = cameraDistance - dot(relative, backward);
+
+      expect(frame.fog.near).toBeGreaterThanOrEqual(
+        nodeDepth + nodeBoundRadius,
+      );
+    }
+    expect(frame.fog.far).toBeGreaterThan(frame.fog.near);
+  });
 });

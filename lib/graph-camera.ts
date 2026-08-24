@@ -8,6 +8,10 @@ export type SpatialCameraFrame = {
   position: Point3;
   target: Point3;
   distance: number;
+  fog: {
+    near: number;
+    far: number;
+  };
 };
 
 type SpatialCameraFrameInput = {
@@ -128,10 +132,20 @@ export function frameSpatialNodes({
       ];
     }),
   );
+  const farthestNodeDepth = Math.max(
+    ...worldPositions.map((position) => {
+      const relative = subtract(position, focus);
+      return distance - dot(relative, backward) + nodeBoundRadius;
+    }),
+  );
 
   return {
     position: add(focus, scale(backward, distance)),
     target: focus,
     distance,
+    fog: {
+      near: farthestNodeDepth,
+      far: farthestNodeDepth + 19,
+    },
   };
 }
