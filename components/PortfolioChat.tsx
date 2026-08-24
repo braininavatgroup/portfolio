@@ -3,27 +3,47 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   PortfolioChatClientError,
+  requestPortfolioChatPreviewAccess,
   streamPortfolioAnswer,
   type AskPortfolio,
+  type RequestPortfolioChatPreviewAccess,
 } from "../lib/portfolio-chat-client";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { classifyPose } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
 
+const starterQuestions = [
+  "How does the pitching system preserve human approval?",
+  "How does reporting turn campaign activity into client evidence?",
+  "How does Bradley decide what to automate?",
+] as const;
+
+const stageRoleLabels = {
+  instinct: "Instinct",
+  approach: "Approach",
+  output: "Output",
+} as const;
+
 export function PortfolioChat({
   onPoseChange,
   askPortfolio = streamPortfolioAnswer,
+  requestPreviewAccess = requestPortfolioChatPreviewAccess,
 }: {
   onPoseChange: (pose: PoseState) => void;
   askPortfolio?: AskPortfolio;
+  requestPreviewAccess?: RequestPortfolioChatPreviewAccess;
 }) {
   const [input, setInput] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [answer, setAnswer] = useState("");
   const [evidence, setEvidence] = useState<PortfolioGroundingEvidence[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [previewRequired, setPreviewRequired] = useState(false);
+  const [previewPending, setPreviewPending] = useState(false);
   const idleTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
+  const previewController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -36,6 +56,7 @@ export function PortfolioChat({
     return () => {
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
       requestController.current?.abort();
+      previewController.current?.abort();
       region?.removeEventListener("click", containInteraction);
       region?.removeEventListener("pointerdown", containInteraction);
       region?.removeEventListener("pointerup", containInteraction);
@@ -57,6 +78,7 @@ export function PortfolioChat({
     setAnswer("");
     setEvidence([]);
     setMessage("");
+    setPreviewRequired(false);
     setPending(true);
 
     try {
@@ -77,6 +99,12 @@ export function PortfolioChat({
     } catch (error) {
       if (controller.signal.aborted) return;
       setAnswer("");
+      if (
+        error instanceof PortfolioChatClientError &&
+        error.code === "preview_required"
+      ) {
+        setPreviewRequired(true);
+      }
       setMessage(
         error instanceof PortfolioChatClientError
           ? error.message
@@ -92,10 +120,47 @@ export function PortfolioChat({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const question = input.trim();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const starterQuestion =
+      submitter instanceof HTMLButtonElement &&
+      submitter.name === "starterQuestion"
+        ? submitter.value
+        : "";
+    const question = starterQuestion || input.trim();
     if (!question) return;
+    if (starterQuestion) setInput(starterQuestion);
     setPoseForQuestion(question);
     void runQuestion(question);
+  }
+
+  async function submitPreviewAccess(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = accessCode.trim();
+    if (!code) return;
+    previewController.current?.abort();
+    const controller = new AbortController();
+    previewController.current = controller;
+    setPreviewPending(true);
+    setMessage("");
+
+    try {
+      await requestPreviewAccess(code, { signal: controller.signal });
+      setAccessCode("");
+      setPreviewRequired(false);
+      setMessage("Preview access ready. Ask again when you're ready.");
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setMessage(
+        error instanceof PortfolioChatClientError
+          ? error.message
+          : "The answer service is temporarily unavailable.",
+      );
+    } finally {
+      if (previewController.current === controller) {
+        previewController.current = null;
+        setPreviewPending(false);
+      }
+    }
   }
 
   return (
@@ -110,7 +175,21 @@ export function PortfolioChat({
           <h2 id="chat-heading">Find the work behind the question.</h2>
         </div>
       </div>
-      <form onSubmit={submit}>
+      <div className="chat-starters" aria-label="Suggested portfolio questions">
+        {starterQuestions.map((question) => (
+          <button
+            disabled={pending}
+            form="portfolio-question-form"
+            key={question}
+            name="starterQuestion"
+            type="submit"
+            value={question}
+          >
+            {question}
+          </button>
+        ))}
+      </div>
+      <form id="portfolio-question-form" onSubmit={submit}>
         <label className="sr-only" htmlFor="portfolio-question">
           Ask a question about the portfolio
         </label>
@@ -126,6 +205,24 @@ export function PortfolioChat({
           {pending ? "Asking…" : "Ask"}
         </button>
       </form>
+      {previewRequired ? (
+        <form className="chat-preview-access" onSubmit={submitPreviewAccess}>
+          <label htmlFor="portfolio-preview-code">Preview access code</label>
+          <div>
+            <input
+              autoComplete="off"
+              id="portfolio-preview-code"
+              name="accessCode"
+              onChange={(event) => setAccessCode(event.target.value)}
+              type="password"
+              value={accessCode}
+            />
+            <button disabled={previewPending} type="submit">
+              {previewPending ? "Unlocking…" : "Unlock preview"}
+            </button>
+          </div>
+        </form>
+      ) : null}
       {answer || message || evidence.length > 0 || pending ? (
         <div className="chat-reply" aria-live="polite">
           {answer ? (
@@ -147,7 +244,12 @@ export function PortfolioChat({
                   <li key={item.id}>
                     <div>
                       <a href={item.href}>[E{index + 1}] {item.title}</a>
-                      <span>Evidence {item.evidenceStatus}</span>
+                      <div className="chat-evidence-labels">
+                        {item.stageRole ? (
+                          <span>{stageRoleLabels[item.stageRole]}</span>
+                        ) : null}
+                        <span>Evidence {item.evidenceStatus}</span>
+                      </div>
                     </div>
                     <p>{item.excerpt}</p>
                   </li>

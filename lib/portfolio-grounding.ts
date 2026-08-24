@@ -5,7 +5,11 @@ import {
   portfolioData,
 } from "./portfolio-data";
 import type { EvidenceStatus } from "./portfolio";
-import type { PortfolioEntity, ProjectRecord } from "./portfolio-model";
+import type {
+  PortfolioEntity,
+  ProjectRecord,
+  TripletRole,
+} from "./portfolio-model";
 
 export type PortfolioGroundingEvidence = {
   id: string;
@@ -14,6 +18,7 @@ export type PortfolioGroundingEvidence = {
   href: string;
   evidenceStatus: EvidenceStatus;
   projectTitle: string;
+  stageRole?: TripletRole;
 };
 
 export type PortfolioGrounding = {
@@ -34,6 +39,7 @@ function stripScore(candidate: ScoredEvidence): PortfolioGroundingEvidence {
     href: candidate.href,
     evidenceStatus: candidate.evidenceStatus,
     projectTitle: candidate.projectTitle,
+    ...(candidate.stageRole ? { stageRole: candidate.stageRole } : {}),
   };
 }
 
@@ -89,6 +95,7 @@ function entityEvidence(
   entity: PortfolioEntity,
   project: ProjectRecord,
   order: number,
+  stageRole: TripletRole,
 ): ScoredEvidence {
   const excerpt = entity.detail ?? entity.summary;
   return {
@@ -98,6 +105,7 @@ function entityEvidence(
     href: `/work/${project.slug}`,
     evidenceStatus: evidenceStatus(entity, evidenceStatus(project)),
     projectTitle: project.title,
+    stageRole,
     score: 0,
     order,
   };
@@ -118,6 +126,11 @@ export function groundPortfolioQuestion(
   for (const project of portfolioData.projects) {
     const branch = getBranch(project.id, mainProjection.id);
     const entities = branch ? getBranchEntities(branch) : [];
+    const stageRoles = new Map(
+      branch?.steps.flatMap((step) =>
+        step.entityIds.map((entityId) => [entityId, step.role] as const),
+      ),
+    );
     const projectScore = scoreText(queryWords, [project.title, project.summary]);
 
     candidates.push({
@@ -132,7 +145,9 @@ export function groundPortfolioQuestion(
     });
 
     for (const entity of entities) {
-      const evidence = entityEvidence(entity, project, order++);
+      const stageRole = stageRoles.get(entity.id);
+      if (!stageRole) continue;
+      const evidence = entityEvidence(entity, project, order++, stageRole);
       evidence.score = scoreText(queryWords, [evidence.title, evidence.excerpt]);
       candidates.push(evidence);
     }

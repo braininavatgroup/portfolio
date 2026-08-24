@@ -381,6 +381,30 @@ body {
   margin: 0.15rem 0 0.65rem;
 }
 
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.7rem;
+}
+
+.chat-starters button {
+  background: transparent;
+  border: 1px solid #496a61;
+  border-radius: 999px;
+  color: #b6c9c2;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.65rem;
+  padding: 0.38rem 0.55rem;
+  text-align: left;
+}
+
+.chat-starters button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .local-tool-label {
   border: 1px solid #496a61;
   border-radius: 999px;
@@ -420,6 +444,26 @@ body {
 .portfolio-chat form button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.portfolio-chat .chat-preview-access {
+  border-top: 1px solid #29443d;
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.7rem;
+}
+
+.chat-preview-access > label {
+  color: #b6c9c2;
+  display: block;
+  font-size: 0.68rem;
+  margin-bottom: 0.4rem;
+}
+
+.chat-preview-access > div {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr auto;
 }
 
 .chat-reply {
@@ -469,6 +513,11 @@ body {
   flex-wrap: wrap;
   gap: 0.35rem 0.7rem;
   justify-content: space-between;
+}
+
+.chat-evidence-labels {
+  display: flex;
+  gap: 0.35rem;
 }
 
 .chat-evidence a {
@@ -1257,6 +1306,7 @@ input:focus-visible {
 [data-theme="light"] .keyboard-navigator > button,
 [data-theme="light"] .keyboard-step-controls button,
 [data-theme="light"] .domain-controls button,
+[data-theme="light"] .chat-starters button,
 [data-theme="light"] .frame-sampler button {
   background: var(--surface);
   border-color: #9fafa7;
@@ -1328,6 +1378,7 @@ input:focus-visible {
 }
 
 [data-theme="light"] .keyboard-navigator,
+[data-theme="light"] .chat-preview-access,
 [data-theme="light"] .chat-inspect,
 [data-theme="light"] .chat-evidence li {
   border-color: var(--line);
@@ -1351,6 +1402,11 @@ input:focus-visible {
 [data-theme="light"] .portfolio-chat input::placeholder {
   color: #65756f;
   opacity: 1;
+}
+
+[data-theme="light"] .chat-preview-access > label,
+[data-theme="light"] .chat-starters button {
+  color: var(--muted);
 }
 
 [data-theme="light"] .frame-sampler output,

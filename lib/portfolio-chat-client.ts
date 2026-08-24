@@ -2,6 +2,7 @@ import type { PortfolioChatEvent } from "./portfolio-chat-protocol";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
+  challengeToken?: string;
   onEvent(event: PortfolioChatEvent): void;
   fetchImplementation?: typeof fetch;
 };
@@ -9,6 +10,16 @@ export type AskPortfolioOptions = {
 export type AskPortfolio = (
   question: string,
   options: AskPortfolioOptions,
+) => Promise<void>;
+
+export type PortfolioChatPreviewAccessOptions = {
+  signal?: AbortSignal;
+  fetchImplementation?: typeof fetch;
+};
+
+export type RequestPortfolioChatPreviewAccess = (
+  accessCode: string,
+  options?: PortfolioChatPreviewAccessOptions,
 ) => Promise<void>;
 
 export class PortfolioChatClientError extends Error {
@@ -73,12 +84,14 @@ async function responseError(response: Response) {
 
 export const streamPortfolioAnswer: AskPortfolio = async (
   question,
-  { signal, onEvent, fetchImplementation = fetch },
+  { signal, challengeToken, onEvent, fetchImplementation = fetch },
 ) => {
+  const body = challengeToken ? { question, challengeToken } : { question };
   const response = await fetchImplementation("/api/portfolio-chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(body),
+    credentials: "same-origin",
     signal,
   });
   if (!response.ok) throw await responseError(response);
@@ -111,3 +124,18 @@ export const streamPortfolioAnswer: AskPortfolio = async (
     reader.releaseLock();
   }
 };
+
+export const requestPortfolioChatPreviewAccess: RequestPortfolioChatPreviewAccess =
+  async (
+    accessCode,
+    { signal, fetchImplementation = fetch } = {},
+  ) => {
+    const response = await fetchImplementation("/api/portfolio-chat/preview", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ accessCode: accessCode.trim() }),
+      credentials: "same-origin",
+      signal,
+    });
+    if (!response.ok) throw await responseError(response);
+  };

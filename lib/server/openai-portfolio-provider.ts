@@ -7,13 +7,32 @@ import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
 type OpenAIPortfolioProviderOptions = {
   apiKey: string;
   model: string;
+  reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
   fetchImplementation?: typeof fetch;
 };
 
 type OpenAIStreamEvent = {
   type?: unknown;
   delta?: unknown;
+  response?: unknown;
 };
+
+function usageFromEvent(event: OpenAIStreamEvent) {
+  if (!event.response || typeof event.response !== "object") return undefined;
+  const usage = Reflect.get(event.response, "usage");
+  if (!usage || typeof usage !== "object") return undefined;
+  const inputTokens = Reflect.get(usage, "input_tokens");
+  const outputTokens = Reflect.get(usage, "output_tokens");
+  const totalTokens = Reflect.get(usage, "total_tokens");
+  if (
+    typeof inputTokens !== "number" ||
+    typeof outputTokens !== "number" ||
+    typeof totalTokens !== "number"
+  ) {
+    return undefined;
+  }
+  return { inputTokens, outputTokens, totalTokens };
+}
 
 function groundedInput({ question, evidence }: PortfolioChatProviderInput) {
   const sources = evidence
@@ -69,6 +88,7 @@ async function* parseServerSentEvents(
 export function createOpenAIPortfolioProvider({
   apiKey,
   model,
+  reasoningEffort,
   fetchImplementation = fetch,
 }: OpenAIPortfolioProviderOptions): PortfolioChatProvider {
   return {
@@ -86,6 +106,12 @@ export function createOpenAIPortfolioProvider({
             stream: true,
             store: false,
             max_output_tokens: 450,
+            ...(reasoningEffort
+              ? { reasoning: { effort: reasoningEffort } }
+              : {}),
+            ...(input.safetyIdentifier
+              ? { safety_identifier: input.safetyIdentifier }
+              : {}),
             instructions:
               `Use only the supplied portfolio evidence. Do not add portfolio facts from memory or inference. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`,
             input: groundedInput(input),
@@ -104,7 +130,11 @@ export function createOpenAIPortfolioProvider({
         if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
           yield event.delta;
         }
-        if (event.type === "response.completed") completed = true;
+        if (event.type === "response.completed") {
+          completed = true;
+          const usage = usageFromEvent(event);
+          if (usage) input.onUsage?.(usage);
+        }
         if (
           event.type === "response.failed" ||
           event.type === "response.incomplete" ||

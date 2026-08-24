@@ -52,6 +52,19 @@ describe("landing entry", () => {
     expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
   });
 
+  it("keeps starter-question pointer interactions on the landing screen", async () => {
+    await renderExperience();
+    const starter = screen.getByRole("button", {
+      name: "How does the pitching system preserve human approval?",
+    });
+
+    fireEvent.pointerDown(starter);
+    fireEvent.click(starter);
+
+    expect(screen.queryByText("Moving through the glass…")).toBeNull();
+    expect(screen.getByRole("button", { name: "Explore the work" })).toBeDefined();
+  });
+
   it("keeps frame sampler clicks on the landing screen", async () => {
     await renderExperience();
 
