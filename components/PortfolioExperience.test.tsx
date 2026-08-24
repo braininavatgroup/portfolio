@@ -37,7 +37,7 @@ describe("landing entry", () => {
 
     fireEvent.click(canvas);
 
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
+    expect(screen.queryByText("Moving through the glass…")).toBeNull();
     expect(screen.queryByRole("button", { name: "Show performance" })).toBeNull();
   });
 
@@ -73,7 +73,7 @@ describe("landing entry", () => {
     const canvas = await renderExperience({ reducedMotion: true });
 
     fireEvent.click(canvas);
-    expect(screen.getByText("Moving through the glass…")).toBeDefined();
+    expect(screen.queryByText("Moving through the glass…")).toBeNull();
 
     act(() => {
       vi.advanceTimersByTime(180);

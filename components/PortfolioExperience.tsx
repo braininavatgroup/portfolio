@@ -134,9 +134,6 @@ export function PortfolioExperience({
 
         <div className="scene-copy">
           <h1>I find where judgment matters, then build the system around it.</h1>
-          {transition.phase === "entering" ? (
-            <p className="transition-label">Moving through the glass…</p>
-          ) : null}
         </div>
         {transition.phase === "graph" ? (
           <aside className="graph-toolbar" aria-label="Guided graph tour">

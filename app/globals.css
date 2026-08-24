@@ -668,8 +668,6 @@ body {
   max-width: 34rem;
 }
 
-.transition-label { font-family: var(--font-geist-mono), monospace; }
-
 .experience-entering .body-placeholder {
   opacity: 0;
   transform: translateX(-50%) scale(12);
