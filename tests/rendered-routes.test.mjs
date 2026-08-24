@@ -27,8 +27,10 @@ test("project index links every data-derived project to its canonical case study
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-  assert.match(html, /href=["']\/\?view=graph["']/);
-  assert.match(html, /aria-current=["']page["'][^>]*>Project index</i);
+  assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
+  assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
+  assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
+  assert.match(html, /aria-current=["']page["'][^>]*>Work</i);
   assert.match(html, />Project index</i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
@@ -64,15 +66,10 @@ test("project index links every data-derived project to its canonical case study
     assert.equal(response.status, 200);
     const caseStudyHtml = await response.text();
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
-    assert.match(
-      caseStudyHtml,
-      /href=["']\/\?view=graph["'][^>]*>Portfolio map</i,
-    );
-    assert.match(
-      caseStudyHtml,
-      /href=["']\/work["'][^>]*>Project index</i,
-    );
-    assert.doesNotMatch(caseStudyHtml, />All work</i);
+    assert.match(caseStudyHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
+    assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
+    assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
+    assert.match(caseStudyHtml, /href=["']\/work["'][^>]*>Work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
     )?.[1];

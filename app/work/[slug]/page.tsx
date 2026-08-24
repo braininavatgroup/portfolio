@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CaseStudyArticle } from "../../../components/CaseStudyArticle";
+import { PortfolioHeader } from "../../../components/PortfolioHeader";
 import {
   caseStudySlugs,
   getAdjacentProjects,
@@ -37,10 +38,7 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
 
   return (
     <main className="artifact-page" data-theme="light" id="main-content">
-      <nav className="artifact-nav" aria-label="Case study navigation">
-        <Link href="/?view=graph">Portfolio map</Link>
-        <Link href="/work">Project index</Link>
-      </nav>
+      <PortfolioHeader />
       <CaseStudyArticle caseStudy={caseStudy} />
       {adjacent ? (
         <nav className="adjacent-nav" aria-label="Adjacent case studies">

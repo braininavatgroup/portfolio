@@ -45,10 +45,13 @@ body {
   position: relative;
 }
 
-.experience-header {
+.portfolio-header {
   align-items: center;
   display: flex;
   justify-content: space-between;
+}
+
+.portfolio-header-overlay {
   left: 0;
   padding: 1.25rem clamp(1.25rem, 3vw, 3rem);
   position: absolute;
@@ -57,27 +60,47 @@ body {
   z-index: 10;
 }
 
-.experience-header nav {
+.portfolio-header:not(.portfolio-header-overlay) {
+  border-bottom: 1px solid var(--line);
+  grid-column: 1 / -1;
+  margin-bottom: 2.25rem;
+  padding-bottom: 1rem;
+}
+
+.portfolio-header nav {
   align-items: center;
   display: flex;
-  gap: 1.25rem;
+  font-family: var(--font-geist-mono), monospace;
+  gap: 1rem;
+  letter-spacing: 0.04em;
 }
 
-.experience-header a,
-.experience-header button,
-.experience-header span {
+.portfolio-header a,
+.portfolio-header button,
+.portfolio-header span {
   background: none;
   border: 0;
-  color: #d6e0dc;
+  color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   padding: 0;
+  text-decoration: none;
 }
 
-.experience-header span[aria-current="page"] { color: #d7ff6f; }
+.portfolio-header nav a:hover,
+.portfolio-header nav button:hover,
+.portfolio-header span[aria-current="page"] {
+  color: #536d12;
+}
 
-.wordmark { font-weight: 650; text-decoration: none; }
+.portfolio-header .wordmark {
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
 
 .scene-shell {
   min-height: 100vh;
@@ -818,11 +841,12 @@ body {
   .keyboard-navigator { display: none; }
   .node-drawer { background: var(--surface); bottom: 0; left: 0; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); max-width: none; right: 0; }
   .scene-shell-node-open .portfolio-chat { display: none; }
-  .experience-header { align-items: flex-start; padding: 1rem; }
-  .experience-header nav { flex-direction: column; gap: 0.45rem; }
-  .experience-header a,
-  .experience-header button,
-  .experience-header span { font-size: 0.72rem; }
+  .portfolio-header-overlay { padding: 1rem; }
+  .portfolio-header nav { gap: 0.65rem; }
+  .portfolio-header a,
+  .portfolio-header button,
+  .portfolio-header span { font-size: 0.68rem; }
+  .portfolio-header .wordmark { font-size: 0.72rem; }
   .frame-sampler { top: 3.5rem; }
   .scene-copy { padding: 0 1.1rem; top: 6rem; }
   .scene-copy h1 { font-size: clamp(2rem, 9.5vw, 3.4rem); }
@@ -944,14 +968,6 @@ input:focus-visible {
   padding-bottom: 1rem;
 }
 
-.index-header nav,
-.artifact-nav {
-  display: flex;
-  font-size: 0.85rem;
-  gap: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
 .index-header h1,
 .chain-header h1 {
   font-size: clamp(1.5rem, 2.5vw, 2rem);
@@ -962,35 +978,6 @@ input:focus-visible {
 }
 
 .index-header > p:not(.eyebrow) { max-width: 53rem; }
-
-.portfolio-view-nav {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.76rem;
-  gap: 0;
-  letter-spacing: 0.04em;
-}
-
-.portfolio-view-nav a,
-.portfolio-view-nav span {
-  border: 1px solid var(--line);
-  color: var(--muted);
-  padding: 0.4rem 0.6rem;
-  text-decoration: none;
-}
-
-.portfolio-view-nav span[aria-current="page"] {
-  background: var(--foreground);
-  border-color: var(--foreground);
-  color: var(--background);
-}
-
-.portfolio-view-nav a:hover {
-  background: var(--surface);
-  color: var(--foreground);
-}
 
 .domain-section {
   align-content: start;
@@ -1261,13 +1248,13 @@ input:focus-visible {
   color: var(--foreground);
 }
 
-[data-theme="light"] .experience-header a,
-[data-theme="light"] .experience-header button,
-[data-theme="light"] .experience-header span {
+[data-theme="light"] .portfolio-header a,
+[data-theme="light"] .portfolio-header button,
+[data-theme="light"] .portfolio-header span {
   color: var(--foreground);
 }
 
-[data-theme="light"] .experience-header span[aria-current="page"],
+[data-theme="light"] .portfolio-header span[aria-current="page"],
 [data-theme="light"] .eyebrow,
 [data-theme="light"] .chain-marker,
 [data-theme="light"] .chain-layer,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PortfolioHeader } from "../../components/PortfolioHeader";
 import { groupProjectsByFacet } from "../../lib/case-study";
 import { domains, portfolioThroughline } from "../../lib/portfolio";
 import { portfolioData } from "../../lib/portfolio-data";
@@ -14,11 +15,8 @@ const projectCount = portfolioData.projects.length;
 export default function WorkIndex() {
   return (
     <main className="flat-index" data-theme="light" id="main-content">
+      <PortfolioHeader activeView="work" />
       <header className="index-header">
-        <nav className="portfolio-view-nav" aria-label="Portfolio views">
-          <Link href="/?view=graph">Portfolio map</Link>
-          <span aria-current="page">Project index</span>
-        </nav>
         <p className="eyebrow">
           Portfolio · {projectCount} {projectCount === 1 ? "project" : "projects"}
         </p>

@@ -46,8 +46,9 @@ test("server-renders the portfolio shell and accessibility exits", async () => {
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, />Explore the work</i);
-  assert.doesNotMatch(html, /<header class=["']experience-header["']>[\s\S]*?<nav/i);
-  assert.doesNotMatch(html, />All work</i);
+  assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
+  assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Work</i);
   assert.match(html, /for=["']portfolio-question["']/i);
   assert.match(html, /id=["']portfolio-question["']/i);
   assert.match(
@@ -68,7 +69,7 @@ test("map entry reveals view switching and compact keyboard access", async () =>
 
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.match(html, /href=["']\/work["'][^>]*>Project index</i);
+  assert.match(html, /href=["']\/work["'][^>]*>Work</i);
   assert.match(html, /Follow a cable from instinct through approach to output\./i);
   for (const role of ["Instinct", "Approach", "Output"]) {
     assert.match(html, new RegExp(`<li[^>]*>${role}<\\/li>`, "i"));

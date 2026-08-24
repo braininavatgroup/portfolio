@@ -33,6 +33,21 @@ afterEach(() => {
 });
 
 describe("landing entry", () => {
+  // Catches the work index disappearing until after the WebGL entry transition.
+  it("keeps both portfolio views available from the landing screen", async () => {
+    await renderExperience();
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Portfolio views",
+    });
+    expect(navigation.querySelector('[aria-current="page"]')?.textContent).toBe(
+      "Map",
+    );
+    expect(
+      screen.getByRole("link", { name: "Work" }).getAttribute("href"),
+    ).toBe("/work");
+  });
+
   it("enters from any plain click on the landing canvas", async () => {
     const canvas = await renderExperience();
 

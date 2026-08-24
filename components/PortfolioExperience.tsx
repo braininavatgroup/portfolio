@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { lazy, Suspense, useEffect, useReducer, useRef, useState } from "react";
 import { getEntity } from "../lib/portfolio-data";
 import { domains, type DomainId } from "../lib/portfolio";
@@ -17,6 +16,7 @@ import { KeyboardNavigator } from "./KeyboardNavigator";
 import { NodeDrawer } from "./NodeDrawer";
 import { PortfolioChat } from "./PortfolioChat";
 import { FrameSampler } from "./FrameSampler";
+import { PortfolioHeader } from "./PortfolioHeader";
 import type { PoseState } from "./scene/BodyScene";
 
 const PortfolioCanvas = lazy(() =>
@@ -92,18 +92,12 @@ export function PortfolioExperience({
       id="main-content"
     >
       <TransitionStatus phase={transition.phase} />
-      <header className="experience-header">
-        <Link className="wordmark" href="/" onClick={resetExperience}>Bradley Berkman</Link>
-        {transition.phase === "graph" ? (
-          <nav aria-label="Portfolio views">
-            <span aria-current="page">Map</span>
-            <Link href="/work">Project index</Link>
-            <button type="button" onClick={resetExperience}>
-              Replay intro
-            </button>
-          </nav>
-        ) : null}
-      </header>
+      <PortfolioHeader
+        activeView="map"
+        onHome={resetExperience}
+        onReplay={transition.phase === "graph" ? resetExperience : undefined}
+        overlay
+      />
 
       {/* Any non-control click on the landing canvas enters; explicit
           controls inside the shell stop propagation instead. Keyboard entry
