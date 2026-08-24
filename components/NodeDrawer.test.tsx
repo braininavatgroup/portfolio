@@ -18,7 +18,7 @@ const approachNode: SpatialGraphNode = {
   entityIds: ["workflow", "requirements"],
   projectId: "kickoff-intake",
   projectSlug: "kickoff-intake",
-  href: "/work/kickoff-intake",
+  href: "/index/kickoff-intake",
 };
 
 const entities: PortfolioEntity[] = [
@@ -32,7 +32,7 @@ const entities: PortfolioEntity[] = [
     title: "Kickoff workflow",
     summary: "The operational handoff and automation path.",
     links: [
-      { label: "Duplicate case study", href: "/work/kickoff-intake" },
+      { label: "Duplicate case study", href: "/index/kickoff-intake" },
       { label: "Inspect workflow", href: "/workflows/kickoff" },
     ],
   },
@@ -69,7 +69,7 @@ describe("node drawer", () => {
     expect(screen.getAllByRole("link", { name: "View case study" })).toHaveLength(1);
     expect(
       screen.getByRole("link", { name: "View case study" }).getAttribute("href"),
-    ).toBe("/work/kickoff-intake");
+    ).toBe("/index/kickoff-intake");
   });
 
   it("keeps the heading and close control outside the scrolling details", () => {

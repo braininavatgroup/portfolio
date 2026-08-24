@@ -23,7 +23,7 @@ export function NodeDrawer({
   onClose,
   returnFocusRef,
 }: NodeDrawerProps) {
-  if (node.role === "root") return null;
+  if (node.role === "root" || node.role === "domain") return null;
   const role = roleDetails[node.role];
   const entitiesById = new Map(entities.map((entity) => [entity.id, entity]));
   const orderedEntities = node.entityIds.flatMap((entityId) => {

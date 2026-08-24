@@ -20,7 +20,7 @@ const dedupe = (seen: Set<string>, text: string | undefined) => {
 
 export function CaseStudyArticle({ caseStudy }: { caseStudy: CaseStudy }) {
   const { project, steps } = caseStudy;
-  const canonicalHref = `/work/${project.slug}`;
+  const canonicalHref = `/index/${project.slug}`;
   const domain = project.facets?.domain?.[0];
   const evidenceStatus = project.facets?.evidenceStatus?.[0];
   const seen = new Set<string>([project.title.trim(), project.summary.trim()]);

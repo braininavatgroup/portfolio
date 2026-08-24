@@ -11,12 +11,26 @@ const node = (role: SpatialGraphNode["role"]): SpatialGraphNode => ({
   entityIds: [role],
   projectId: "example",
   projectSlug: "example",
-  href: "/work/example",
+  href: "/index/example",
 });
 
 describe("graph node interaction", () => {
-  it("keeps the root inert even if corrupt data gives it project context", () => {
+  it("keeps the portfolio root as a non-interactive cable anchor", () => {
     expect(nodeAction(node("root"))).toBe("none");
+  });
+
+  it("uses domain hubs to focus their project neighborhood", () => {
+    expect(
+      nodeAction({
+        id: "domain:music",
+        label: "Music promotion",
+        detail: "Music projects",
+        role: "domain",
+        position: [1, 0, 0],
+        entityIds: ["domain:music"],
+        groupId: "music",
+      }),
+    ).toBe("focus");
   });
 
   it.each(["instinct", "approach", "output"] as const)(
@@ -27,7 +41,7 @@ describe("graph node interaction", () => {
   );
 
   it.each([
-    { missing: "projectId", projectId: undefined, href: "/work/example" },
+    { missing: "projectId", projectId: undefined, href: "/index/example" },
     { missing: "href", projectId: "example", href: undefined },
   ])("keeps a step missing $missing inert", ({ projectId, href }) => {
     expect(

@@ -6,6 +6,7 @@ import type {
   TripletBranch,
 } from "./portfolio-model";
 import {
+  portfolioNodes,
   projectSpatialGraph,
   terminalNodeIds,
   type SpatialGroup,
@@ -69,6 +70,13 @@ const root: PortfolioEntity = {
 };
 
 describe("spatial graph projection", () => {
+  it("centers the live portfolio on Bradley Berkman", () => {
+    expect(portfolioNodes[0]).toMatchObject({
+      role: "root",
+      label: "Bradley Berkman",
+    });
+  });
+
   it("projects ordered branches into rooted, canonical project routes", () => {
     const nodes = projectSpatialGraph({ projection, projects, root, groups });
 
@@ -78,6 +86,19 @@ describe("spatial graph projection", () => {
       parentId: undefined,
       href: undefined,
     });
+
+    expect(
+      nodes
+        .filter(({ role }) => role === "domain")
+        .map(({ id, label, parentId }) => ({ id, label, parentId })),
+    ).toEqual([
+      { id: "domain:music", label: "Music", parentId: "portfolio:brain" },
+      {
+        id: "domain:consulting",
+        label: "Consulting",
+        parentId: "portfolio:brain",
+      },
+    ]);
 
     for (const branch of projection.branches) {
       const project = projects.find(({ id }) => id === branch.projectId)!;
@@ -91,11 +112,13 @@ describe("spatial graph projection", () => {
         "output",
       ]);
       expect(branchNodes.map(({ href }) => href)).toEqual([
-        `/work/${project.slug}`,
-        `/work/${project.slug}`,
-        `/work/${project.slug}`,
+        `/index/${project.slug}`,
+        `/index/${project.slug}`,
+        `/index/${project.slug}`,
       ]);
-      expect(branchNodes[0].parentId).toBe("portfolio:brain");
+      expect(branchNodes[0].parentId).toBe(
+        `domain:${project.facets?.domain?.[0]}`,
+      );
       expect(branchNodes[1].parentId).toBe(branchNodes[0].id);
       expect(branchNodes[2].parentId).toBe(branchNodes[1].id);
       expect(branchNodes.map(({ entityIds }) => entityIds)).toEqual(
@@ -126,12 +149,16 @@ describe("spatial graph projection", () => {
 
   it("places each branch role progressively farther from the root", () => {
     const nodes = projectSpatialGraph({ projection, projects, root, groups });
+    const domainNode = nodes.find(({ id }) => id === "domain:music")!;
     const branchNodes = nodes.filter(
       ({ projectId }) => projectId === "music-one",
     );
-    const radialDistance = ({ position }: (typeof branchNodes)[number]) =>
+    const radialDistance = ({ position }: { position: readonly number[] }) =>
       Math.hypot(position[0], position[2]);
 
+    expect(radialDistance(domainNode)).toBeLessThan(
+      radialDistance(branchNodes[0]),
+    );
     expect(radialDistance(branchNodes[0])).toBeLessThan(
       radialDistance(branchNodes[1]),
     );

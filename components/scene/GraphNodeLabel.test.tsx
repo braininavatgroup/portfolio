@@ -16,11 +16,27 @@ const approachNode: SpatialGraphNode = {
   entityIds: ["field-map"],
   projectId: "field-map",
   projectSlug: "field-map",
-  href: "/work/field-map",
+  href: "/index/field-map",
+};
+
+const outputNode: SpatialGraphNode = {
+  ...approachNode,
+  id: "field-map:output",
+  label: "Field map",
+  role: "output",
+};
+
+const rootNode: SpatialGraphNode = {
+  id: "portfolio:brain",
+  label: "Bradley Berkman",
+  detail: "Portfolio root",
+  role: "root",
+  position: [0, 0, 0],
+  entityIds: ["portfolio:brain"],
 };
 
 describe("GraphNodeLabel", () => {
-  it("exposes the projection role and full title in an interactive label", () => {
+  it("keeps the full step title accessible while showing a compact role label", () => {
     render(
       <GraphNodeLabel
         node={approachNode}
@@ -36,9 +52,11 @@ describe("GraphNodeLabel", () => {
 
     expect(label).toBeTruthy();
     expect(label.getAttribute("data-emphasized")).toBe("false");
+    expect(screen.getByText("02 · Approach")).toBeTruthy();
+    expect(screen.queryByText("Requirements and field map")).toBeNull();
   });
 
-  it("keeps the role in the accessible name without repeating it visually", () => {
+  it("uses the same compact role label for an inert step", () => {
     render(
       <GraphNodeLabel
         node={approachNode}
@@ -48,8 +66,8 @@ describe("GraphNodeLabel", () => {
       />,
     );
 
-    expect(screen.getByText("Requirements and field map")).toBeTruthy();
-    expect(screen.queryByText("Approach")).toBeNull();
+    expect(screen.getByText("02 · Approach")).toBeTruthy();
+    expect(screen.queryByText("Requirements and field map")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
@@ -109,5 +127,32 @@ describe("GraphNodeLabel", () => {
 
     expect(label.getAttribute("aria-pressed")).toBe("true");
     expect(label.getAttribute("data-role")).toBe("approach");
+  });
+
+  it("shows an output title without repeating its numbered role", () => {
+    render(
+      <GraphNodeLabel
+        node={outputNode}
+        interactive
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Field map")).toBeTruthy();
+    expect(screen.queryByText("03 · Output")).toBeNull();
+  });
+
+  it("does not render a separate label or button for the Bradley root", () => {
+    const { container } = render(
+      <GraphNodeLabel
+        node={rootNode}
+        interactive={false}
+        emphasized={false}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(container.innerHTML).toBe("");
   });
 });

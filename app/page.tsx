@@ -6,5 +6,6 @@ export default async function Home({
   searchParams: Promise<{ view?: string }>;
 }) {
   const { view } = await searchParams;
-  return <PortfolioExperience initialPhase={view === "graph" ? "graph" : "body"} />;
+  const initialPhase = view === "graph" ? "graph" : "body";
+  return <PortfolioExperience initialPhase={initialPhase} />;
 }

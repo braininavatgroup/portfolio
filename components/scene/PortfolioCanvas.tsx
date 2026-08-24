@@ -2,10 +2,16 @@
 
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+} from "react";
 import * as THREE from "three";
 import { frameSpatialNodes, type Point3 } from "../../lib/graph-camera";
-import { visibleGraphNodes } from "../../lib/graph-emphasis";
 import { domains, type DomainId } from "../../lib/portfolio";
 import { brainWorldOrigin } from "../../lib/scene-origin";
 import { getSceneQuality, isSoftwareRenderer } from "../../lib/scene-budget";
@@ -37,6 +43,8 @@ function SceneDirector({
   const start = useRef(new THREE.Vector3(0, 1.35, 10));
   const startUp = useRef(new THREE.Vector3(0, 1, 0));
   const guiding = useRef(true);
+  const directGraphEntry = useRef(phase === "graph");
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   const verticalFovDegrees =
     camera instanceof THREE.PerspectiveCamera
       ? camera.fov
@@ -49,10 +57,9 @@ function SceneDirector({
   const framedNodes = useMemo(() => {
     if (!selectedDomain) return nodes;
 
-    const domainNodes = visibleGraphNodes(nodes, selectedDomain);
     const focusedNodes = mobile
-      ? domainNodes.filter(({ role }) => role !== "root")
-      : domainNodes;
+      ? nodes.filter(({ role }) => role !== "root")
+      : nodes;
     return focusedNodes.length > 0 ? focusedNodes : nodes;
   }, [mobile, nodes, selectedDomain]);
   const graphFrame = useMemo(
@@ -70,8 +77,8 @@ function SceneDirector({
               ? [0, 0.5]
               : [0, 0]
             : selectedDomain
-              ? [-0.9, -0.22]
-              : [-1.55, -0.48],
+              ? [1.8, -0.22]
+              : [1.15, -0.48],
         viewDirection: selectedDomainRecord
           ? mobile
             ? [
@@ -105,21 +112,10 @@ function SceneDirector({
     ],
   );
   const destination = useMemo(() => {
-    if (phase === "body") {
+    if (phase === "body" || phase === "returning") {
       return {
         position: [0, 1.35, 10] as Point3,
         target: [0, 1.35, 0] as Point3,
-        up: [0, 1, 0] as Point3,
-      };
-    }
-    if (phase === "entering") {
-      return {
-        position: [
-          brainWorldOrigin[0],
-          brainWorldOrigin[1],
-          brainWorldOrigin[2] + 0.72,
-        ] as Point3,
-        target: brainWorldOrigin,
         up: [0, 1, 0] as Point3,
       };
     }
@@ -143,10 +139,25 @@ function SceneDirector({
     start.current.copy(camera.position);
     startUp.current.copy(camera.up);
     guiding.current = true;
+    if (controls.current) controls.current.enabled = false;
   }, [camera, destinationPosition, destinationTarget, destinationUp]);
 
   useFrame(() => {
     if (!guiding.current) return;
+
+    if (directGraphEntry.current && phase === "graph") {
+      directGraphEntry.current = false;
+      camera.position.copy(destinationPosition);
+      camera.up.copy(destinationUp);
+      camera.lookAt(destinationTarget);
+      guiding.current = false;
+      if (controls.current) {
+        controls.current.target.copy(destinationTarget);
+        controls.current.update();
+        controls.current.enabled = true;
+      }
+      return;
+    }
 
     if (phase === "entering") {
       const elapsed = performance.now() - phaseStarted.current;
@@ -169,6 +180,11 @@ function SceneDirector({
       camera.position.copy(destinationPosition);
       camera.lookAt(destinationTarget);
       guiding.current = false;
+      if (controls.current && phase === "graph") {
+        controls.current.target.copy(destinationTarget);
+        controls.current.update();
+        controls.current.enabled = true;
+      }
     }
   });
 
@@ -179,6 +195,8 @@ function SceneDirector({
       <fog attach="fog" args={["#f4f1e8", fog.near, fog.far]} />
       {phase === "graph" && !mobile ? (
         <OrbitControls
+          ref={controls}
+          enabled
           enablePan={false}
           enableZoom
           maxDistance={graphFrame.distance * 1.3}
@@ -202,6 +220,7 @@ type PortfolioCanvasProps = {
   reducedMotion: boolean;
   focusedNodeId: string | null;
   selectedNodeId: string | null;
+  onEnter: () => void;
   onNodeSelect: (node: SpatialGraphNode) => void;
 };
 
@@ -213,6 +232,7 @@ export function PortfolioCanvas({
   reducedMotion,
   focusedNodeId,
   selectedNodeId,
+  onEnter,
   onNodeSelect,
 }: PortfolioCanvasProps) {
   const [lowPower, setLowPower] = useState(
@@ -252,7 +272,8 @@ export function PortfolioCanvas({
         <pointLight position={[-5, 1, 2]} intensity={8} distance={12} color="#3d7c6c" />
         <Suspense fallback={null}>
           <BodyScene
-            visible={phase !== "graph"}
+            interactive={phase === "body"}
+            onActivate={onEnter}
             pose={pose}
             quality={quality}
           />

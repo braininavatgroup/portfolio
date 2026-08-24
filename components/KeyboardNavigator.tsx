@@ -27,7 +27,10 @@ export function KeyboardNavigator({
   onNodeSelect: (node: SpatialGraphNode | null) => void;
   selectedNodeId: string | null;
 }) {
-  const actionableNodes = nodes.filter((node) => nodeAction(node) === "inspect");
+  const actionableNodes = nodes.filter((node) => {
+    const action = nodeAction(node);
+    return action === "focus" || action === "inspect";
+  });
   const indexRef = useRef(-1);
   const previousSelectedNodeId = useRef(selectedNodeId);
   const selectedIndex = actionableNodes.findIndex(
@@ -63,19 +66,26 @@ export function KeyboardNavigator({
 
       if (direction && actionableNodes.length > 0) {
         event.preventDefault();
-        const currentIndex = selectedIndex >= 0 ? selectedIndex : indexRef.current;
+        const currentIndex =
+          selectedIndex >= 0 ? selectedIndex : indexRef.current;
         const nextIndex =
           currentIndex < 0
             ? direction === "next"
               ? 0
               : actionableNodes.length - 1
-            : nextKeyboardIndex(currentIndex, direction, actionableNodes.length);
+            : nextKeyboardIndex(
+                currentIndex,
+                direction,
+                actionableNodes.length,
+              );
         select(nextIndex);
         return;
       }
 
-      if (event.key === "Enter" && selectedIndex >= 0) {
-        const node = actionableNodes[selectedIndex];
+      if (event.key === "Enter") {
+        const currentIndex =
+          selectedIndex >= 0 ? selectedIndex : indexRef.current;
+        const node = actionableNodes[currentIndex];
         if (node?.href) {
           event.preventDefault();
           window.location.assign(node.href);
@@ -83,7 +93,10 @@ export function KeyboardNavigator({
         return;
       }
 
-      if (event.key === "Escape" && (selectedIndex >= 0 || indexRef.current >= 0)) {
+      if (
+        event.key === "Escape" &&
+        (selectedIndex >= 0 || indexRef.current >= 0)
+      ) {
         event.preventDefault();
         indexRef.current = -1;
         onNodeFocus(null);

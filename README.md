@@ -16,8 +16,9 @@ The development server prints its local URL, normally `http://localhost:3000`.
 ## Routes
 
 - `/` contains the pointer-responsive figure, transition into the graph, graph controls, node details, and portfolio chat.
-- `/work` is the complete HTML project index and works without WebGL.
-- `/work/[slug]` contains a project's case study and evidence state.
+- `/index` is the complete HTML project index and works without WebGL.
+- `/index/[slug]` contains a project's case study and evidence state.
+- Legacy `/work` routes redirect to their canonical `/index` equivalents.
 
 The HTML index and case studies keep their current presentation while the graph uses the new stage model.
 

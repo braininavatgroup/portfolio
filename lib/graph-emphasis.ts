@@ -11,13 +11,30 @@ export type GraphEdgeState = {
 
 export function visibleGraphNodes(
   nodes: readonly SpatialGraphNode[],
-  selectedDomain: DomainId | null,
+  {
+    selectedDomain,
+    selectedProjectId,
+  }: {
+    selectedDomain: DomainId | null;
+    selectedProjectId: string | null;
+  },
 ): readonly SpatialGraphNode[] {
-  if (selectedDomain === null) return nodes;
+  const visibleNodes = nodes.filter((node) => {
+    if (node.role === "root") return true;
+    if (selectedDomain !== null && node.groupId !== selectedDomain) return false;
+    if (node.role === "domain" || node.role === "output") return true;
+    return node.projectId === selectedProjectId;
+  });
+  const visibleIds = new Set(visibleNodes.map(({ id }) => id));
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
 
-  return nodes.filter(
-    (node) => node.role === "root" || node.groupId === selectedDomain,
-  );
+  return visibleNodes.map((node) => {
+    let parentId = node.parentId;
+    while (parentId && !visibleIds.has(parentId)) {
+      parentId = nodesById.get(parentId)?.parentId;
+    }
+    return parentId === node.parentId ? node : { ...node, parentId };
+  });
 }
 
 export function deriveGraphEdgeStates(
@@ -33,6 +50,7 @@ export function deriveGraphEdgeStates(
   const nodesById = new Map(nodes.map((node) => [node.id, node]));
   const activeChildren = new Set<string>();
   let activeNode = activeNodeId ? nodesById.get(activeNodeId) : undefined;
+  const activeProjectId = activeNode?.projectId;
 
   while (activeNode?.parentId) {
     activeChildren.add(activeNode.id);
@@ -48,7 +66,12 @@ export function deriveGraphEdgeStates(
             role: node.role,
             active: activeChildren.has(node.id),
             dimmed:
-              selectedDomain !== null && node.groupId !== selectedDomain,
+              (selectedDomain !== null && node.groupId !== selectedDomain) ||
+              Boolean(
+                activeProjectId &&
+                  node.projectId &&
+                  node.projectId !== activeProjectId,
+              ),
           },
         ]
       : [],

@@ -1,32 +1,68 @@
-import Link from "next/link";
+"use client";
 
-export type PortfolioView = "map" | "index" | "case-study" | null;
+import Link from "next/link";
+import type { MouseEvent } from "react";
+
+type PortfolioHeaderProps = {
+  activeView?: "bradley" | "map" | "index";
+  overlay?: boolean;
+  onBradleySelect?: () => void;
+  onMapSelect?: () => void;
+};
+
+function handleLocalNavigation(
+  event: MouseEvent<HTMLAnchorElement>,
+  onSelect: (() => void) | undefined,
+) {
+  if (
+    !onSelect ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  onSelect();
+}
 
 export function PortfolioHeader({
-  currentView,
-  onWordmarkClick,
-}: {
-  currentView: PortfolioView;
-  onWordmarkClick?: () => void;
-}) {
+  activeView,
+  overlay = false,
+  onBradleySelect,
+  onMapSelect,
+}: PortfolioHeaderProps) {
   return (
-    <header className="portfolio-header">
-      <Link className="wordmark" href="/" onClick={onWordmarkClick}>
-        Bradley Berkman
-      </Link>
+    <header
+      className={`portfolio-header${overlay ? " portfolio-header-overlay" : ""}`}
+    >
+      {activeView === "bradley" ? (
+        <span aria-current="page" className="wordmark">
+          Bradley Berkman
+        </span>
+      ) : (
+        <Link
+          className="wordmark"
+          href="/"
+          onClick={(event) => handleLocalNavigation(event, onBradleySelect)}
+        >
+          Bradley Berkman
+        </Link>
+      )}
       <nav aria-label="Portfolio views">
-        <Link
-          aria-current={currentView === "map" ? "page" : undefined}
-          href="/?view=graph"
-        >
-          Map
-        </Link>
-        <Link
-          aria-current={currentView === "index" ? "page" : undefined}
-          href="/work"
-        >
-          Project index
-        </Link>
+        {activeView === "map" ? (
+          <span aria-current="page">Map</span>
+        ) : (
+          <Link
+            href="/?view=graph"
+            onClick={(event) => handleLocalNavigation(event, onMapSelect)}
+          >
+            Map
+          </Link>
+        )}
       </nav>
     </header>
   );

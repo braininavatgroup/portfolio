@@ -11,7 +11,7 @@ import type {
   TripletRole,
 } from "./portfolio-model";
 
-export type SpatialNodeRole = "root" | TripletRole;
+export type SpatialNodeRole = "root" | "domain" | TripletRole;
 
 export type SpatialGraphNode = {
   id: string;
@@ -27,7 +27,14 @@ export type SpatialGraphNode = {
   groupId?: string;
 };
 
-export type SpatialGroup = { id: string; label: string; angle: number };
+export type SpatialGroup = {
+  id: string;
+  label: string;
+  angle: number;
+  description?: string;
+};
+
+const domainRadius = 1.65;
 
 const radiusByRole: Record<TripletRole, number> = {
   instinct: 2.8,
@@ -118,6 +125,25 @@ export function projectSpatialGraph(input: {
     },
   ];
 
+  for (const [groupId] of branchesByGroup) {
+    const group = groupsById.get(groupId);
+    const angle = groupAngles.get(groupId)!;
+    nodes.push({
+      id: `domain:${groupId}`,
+      label: group?.label ?? groupId,
+      detail: group?.description ?? `${group?.label ?? groupId} projects`,
+      role: "domain",
+      position: [
+        Math.cos(angle) * domainRadius,
+        0,
+        Math.sin(angle) * domainRadius,
+      ],
+      entityIds: [`domain:${groupId}`],
+      parentId: input.root.id,
+      groupId,
+    });
+  }
+
   for (const branch of input.projection.branches) {
     const project = projectsById.get(branch.projectId)!;
     const groupId = unknownGroupId(project);
@@ -128,7 +154,7 @@ export function projectSpatialGraph(input: {
       groupAngles.get(groupId)! +
       centeredBranchIndex * branchAngleStep(groupId, branches.length);
     const height = branches.length > 2 ? centeredBranchIndex * branchHeightStep : 0;
-    let parentId = input.root.id;
+    let parentId = `domain:${groupId}`;
 
     for (const step of branch.steps) {
       const radius = radiusByRole[step.role];
@@ -147,7 +173,7 @@ export function projectSpatialGraph(input: {
         parentId,
         projectId: project.id,
         projectSlug: project.slug,
-        href: `/work/${project.slug}`,
+        href: `/index/${project.slug}`,
         groupId,
       });
       parentId = id;

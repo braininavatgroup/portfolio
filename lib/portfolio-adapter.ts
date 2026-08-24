@@ -12,7 +12,7 @@ export const MAIN_PROJECTION_ID = "instinct-approach-output/v1";
 
 const rootEntity: PortfolioEntity = {
   id: "portfolio:brain",
-  title: "Judgment",
+  title: "Bradley Berkman",
   summary: "I find where judgment matters, then build the system around it.",
 };
 
@@ -90,7 +90,7 @@ export function adaptArtifactRecords(
         summary: record.summary,
         detail: artifact.detail,
         facets: { sourceLayer: [artifact.layer] },
-        links: [{ label: "View case study", href: `/work/${record.slug}` }],
+        links: [{ label: "View case study", href: `/index/${record.slug}` }],
       },
       {
         id: outputIds[1],

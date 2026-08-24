@@ -1,6 +1,6 @@
 "use client";
 
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { getRagdollTargets, updateRagdollPoint } from "../../lib/ragdoll";
@@ -17,7 +17,8 @@ export type PoseState =
   | "thinking";
 
 type BodySceneProps = {
-  visible: boolean;
+  interactive: boolean;
+  onActivate: () => void;
   pose: PoseState;
   quality: SceneQuality;
 };
@@ -35,7 +36,12 @@ const poseLean: Record<PoseState, [number, number]> = {
   thinking: [0.06, 0.12],
 };
 
-export function BodyScene({ visible, pose, quality }: BodySceneProps) {
+export function BodyScene({
+  interactive,
+  onActivate,
+  pose,
+  quality,
+}: BodySceneProps) {
   const rig = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
   const leftArm = useRef<THREE.Group>(null);
@@ -55,7 +61,11 @@ export function BodyScene({ visible, pose, quality }: BodySceneProps) {
       !leftShin.current || !rightLeg.current || !rightShin.current
     ) return;
 
-    const nextPoint = updateRagdollPoint(pointerTarget.current, pointer, visible);
+    const nextPoint = updateRagdollPoint(
+      pointerTarget.current,
+      pointer,
+      interactive,
+    );
     pointerTarget.current.set(nextPoint.x, nextPoint.y);
     const target = getRagdollTargets(nextPoint);
     const [poseX, poseY] = poseLean[pose];
@@ -88,10 +98,25 @@ export function BodyScene({ visible, pose, quality }: BodySceneProps) {
     apply(rightShin.current, target.rightShin);
   });
 
-  if (!visible) return null;
-
   return (
-    <group ref={rig} position={[0, rigOffsetY, 0]}>
+    <group
+      ref={rig}
+      position={[0, rigOffsetY, 0]}
+      {...(interactive
+        ? {
+            onClick: (event: ThreeEvent<MouseEvent>) => {
+              event.stopPropagation();
+              onActivate();
+            },
+            onPointerEnter: () => {
+              document.body.style.cursor = "pointer";
+            },
+            onPointerLeave: () => {
+              document.body.style.cursor = "";
+            },
+          }
+        : {})}
+    >
       <mesh position={[0, 1.6, 0]}>
         <capsuleGeometry args={[0.72, 1.75, 8, 16]} />
         <meshStandardMaterial color="#172824" roughness={0.86} />

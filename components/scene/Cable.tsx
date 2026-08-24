@@ -15,12 +15,13 @@ type CurveRecord = {
 };
 
 const roleColors = {
+  domain: "#8da535",
   instinct: "#7fb8aa",
   approach: "#477d70",
   output: "#263f38",
 } as const;
 
-const roles = ["instinct", "approach", "output"] as const;
+const roles = ["domain", "instinct", "approach", "output"] as const;
 
 function appendCurveSegments(
   target: number[],
@@ -58,6 +59,7 @@ export function CableNetwork({
     });
     const edgeCurves: CurveRecord[] = [];
     const roleSegments: Record<(typeof roles)[number], number[]> = {
+      domain: [],
       instinct: [],
       approach: [],
       output: [],
@@ -132,7 +134,13 @@ export function CableNetwork({
         line(
           rolePositions[role],
           roleColors[role],
-          role === "output" ? 0.72 : role === "approach" ? 0.58 : 0.44,
+          role === "output"
+            ? 0.72
+            : role === "domain"
+              ? 0.68
+              : role === "approach"
+                ? 0.58
+                : 0.44,
           role,
         ),
       )}

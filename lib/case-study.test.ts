@@ -23,7 +23,7 @@ const entities: PortfolioEntity[] = [
     title: "Shipped tool",
     summary: "The visible output.",
     links: [
-      { label: "View case study", href: "/work/example" },
+      { label: "View case study", href: "/index/example" },
       { label: "Spec document", href: "/docs/example-spec" },
     ],
   },

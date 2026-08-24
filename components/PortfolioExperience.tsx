@@ -1,9 +1,16 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useReducer, useState } from "react";
-import { getEntity } from "../lib/portfolio-data";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
+import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
+import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
   portfolioNodes,
   type SpatialGraphNode,
@@ -11,12 +18,13 @@ import {
 import {
   transitionDuration,
   transitionReducer,
+  type TransitionPhase,
 } from "../lib/transition";
-import { TransitionStatus } from "./TransitionStatus";
 import { KeyboardNavigator } from "./KeyboardNavigator";
-import { NodeDrawer } from "./NodeDrawer";
-import { PortfolioHeader } from "./PortfolioHeader";
 import { PortfolioChat } from "./PortfolioChat";
+import { PortfolioDossier } from "./PortfolioDossier";
+import { PortfolioHeader } from "./PortfolioHeader";
+import { TransitionStatus } from "./TransitionStatus";
 import type { PoseState } from "./scene/BodyScene";
 
 const PortfolioCanvas = lazy(() =>
@@ -42,7 +50,7 @@ function useReducedMotion() {
 export function PortfolioExperience({
   initialPhase = "body",
 }: {
-  initialPhase?: "body" | "graph";
+  initialPhase?: Extract<TransitionPhase, "body" | "graph">;
 }) {
   const [transition, dispatch] = useReducer(transitionReducer, {
     phase: initialPhase,
@@ -53,16 +61,22 @@ export function PortfolioExperience({
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
-  const selectedEntities =
-    selectedNode && selectedNode.role !== "root"
-      ? selectedNode.entityIds.flatMap((entityId) => {
-          const entity = getEntity(entityId);
-          return entity ? [entity] : [];
-        })
-      : [];
+  const dossier = selectedNode
+    ? getPortfolioDossier(selectedNode)
+    : undefined;
+  const visibleNodes = visibleGraphNodes(portfolioNodes, {
+    selectedDomain,
+    selectedProjectId: selectedNode?.projectId ?? null,
+  });
 
   useEffect(() => {
-    if (transition.phase !== "entering") return;
+    dispatch({ type: initialPhase === "graph" ? "SHOW_GRAPH" : "RESET" });
+  }, [initialPhase]);
+
+  useEffect(() => {
+    if (transition.phase !== "entering" && transition.phase !== "returning") {
+      return;
+    }
     const timer = window.setTimeout(
       () => dispatch({ type: "COMPLETE" }),
       transitionDuration(reducedMotion),
@@ -70,18 +84,70 @@ export function PortfolioExperience({
     return () => window.clearTimeout(timer);
   }, [reducedMotion, transition.phase, transition.run]);
 
-  function resetExperience() {
+  useEffect(() => {
+    const syncWithLocation = () => {
+      const graphRequested =
+        new URLSearchParams(window.location.search).get("view") === "graph";
+      setSelectedDomain(null);
+      setSelectedNode(null);
+      setKeyboardNodeId(null);
+      setPose("idle");
+      dispatch({ type: graphRequested ? "ENTER" : "EXIT" });
+    };
+    window.addEventListener("popstate", syncWithLocation);
+    return () => window.removeEventListener("popstate", syncWithLocation);
+  }, []);
+
+  function showIndex() {
     setSelectedDomain(null);
     setSelectedNode(null);
     setKeyboardNodeId(null);
-    setPose("idle");
-    dispatch({ type: "RESET" });
   }
 
   function selectDomain(domain: DomainId | null) {
     setSelectedDomain(domain);
     setSelectedNode(null);
     setKeyboardNodeId(null);
+  }
+
+  function selectNode(node: SpatialGraphNode | null) {
+    if (!node || node.role === "root") {
+      showIndex();
+      return;
+    }
+
+    if (node.role === "domain") {
+      const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
+      selectDomain(domain);
+      return;
+    }
+
+    const nextDossier = getPortfolioDossier(node);
+    if (!nextDossier) {
+      showIndex();
+      return;
+    }
+
+    const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
+    setSelectedDomain(domain);
+    setSelectedNode(node);
+  }
+
+  function enterMap() {
+    if (transition.phase !== "body") return;
+    window.history.pushState({}, "", "/?view=graph");
+    dispatch({ type: "ENTER" });
+  }
+
+  function exitMap() {
+    if (transition.phase !== "graph" && transition.phase !== "entering") {
+      return;
+    }
+    window.history.pushState({}, "", "/");
+    setSelectedDomain(null);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+    dispatch({ type: "EXIT" });
   }
 
   return (
@@ -92,20 +158,23 @@ export function PortfolioExperience({
     >
       <TransitionStatus phase={transition.phase} />
       <PortfolioHeader
-        currentView={transition.phase === "graph" ? "map" : null}
-        onWordmarkClick={resetExperience}
+        activeView={
+          transition.phase === "body" || transition.phase === "returning"
+            ? "bradley"
+            : "map"
+        }
+        onBradleySelect={exitMap}
+        onMapSelect={enterMap}
+        overlay
       />
-
-      {/* Any non-control click on the landing canvas enters; explicit
-          controls inside the shell stop propagation instead. */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <section
-        aria-label="Spatial portfolio preview"
+        aria-label={
+          transition.phase === "body"
+            ? "Bradley Berkman landing"
+            : "Spatial portfolio map"
+        }
         className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
         id="brain"
-        onClick={() => {
-          if (transition.phase === "body") dispatch({ type: "ENTER" });
-        }}
       >
         <Suspense
           fallback={
@@ -115,66 +184,38 @@ export function PortfolioExperience({
           }
         >
           <PortfolioCanvas
-            nodes={portfolioNodes}
+            nodes={visibleNodes}
             phase={transition.phase}
             pose={pose}
             selectedDomain={selectedDomain}
             reducedMotion={reducedMotion}
             focusedNodeId={keyboardNodeId}
             selectedNodeId={selectedNode?.id ?? null}
-            onNodeSelect={setSelectedNode}
+            onEnter={enterMap}
+            onNodeSelect={selectNode}
           />
         </Suspense>
-        {selectedNode && selectedNode.role !== "root" ? (
-          <NodeDrawer
-            node={selectedNode}
-            entities={selectedEntities}
-            onClose={() => setSelectedNode(null)}
-          />
-        ) : null}
 
         <div className="scene-copy">
           <h1>I find where judgment matters, then build the system around it.</h1>
         </div>
+
         {transition.phase === "graph" ? (
-          <aside className="graph-toolbar" aria-label="Guided graph tour">
-            <p className="eyebrow">Portfolio map</p>
-            <p>Follow a cable from instinct through approach to output.</p>
-            <div className="domain-controls" aria-label="Guided domain tour">
-              {domains.map((domain) => (
-                <button
-                  aria-pressed={selectedDomain === domain.id}
-                  data-domain={domain.id}
-                  disabled={selectedDomain === domain.id}
-                  key={domain.id}
-                  style={{ borderColor: domain.color, color: domain.color }}
-                  type="button"
-                  onClick={() => selectDomain(domain.id)}
-                >
-                  {domain.label}
-                </button>
-              ))}
-              <button
-                aria-pressed={selectedDomain === null}
-                disabled={selectedDomain === null}
-                type="button"
-                onClick={() => selectDomain(null)}
-              >
-                Overview
-              </button>
-            </div>
-            <ul className="node-legend" aria-label="Map legend">
-              <li className="legend-spec">Instinct</li>
-              <li className="legend-system">Approach</li>
-              <li className="legend-artifact">Output</li>
-            </ul>
+          <>
+            <PortfolioDossier
+              dossier={dossier}
+              onDomainSelect={selectDomain}
+              onShowIndex={showIndex}
+              selectedDomain={selectedDomain}
+            />
+
             <KeyboardNavigator
-              nodes={portfolioNodes}
+              nodes={visibleNodes}
               onNodeFocus={setKeyboardNodeId}
-              onNodeSelect={setSelectedNode}
+              onNodeSelect={selectNode}
               selectedNodeId={selectedNode?.id ?? null}
             />
-          </aside>
+          </>
         ) : null}
         <PortfolioChat
           onPoseChange={setPose}

@@ -88,14 +88,14 @@ async function startBuiltWorker(port) {
 }
 
 test("the built Worker keeps both portfolio chat routes disabled", async () => {
-  const port = await availablePort();
-  const worker = await startBuiltWorker(port);
+  for (const pathname of [
+    "/api/portfolio-chat",
+    "/api/portfolio-chat/preview",
+  ]) {
+    const port = await availablePort();
+    const worker = await startBuiltWorker(port);
 
-  try {
-    for (const pathname of [
-      "/api/portfolio-chat",
-      "/api/portfolio-chat/preview",
-    ]) {
+    try {
       const response = await fetch(`http://127.0.0.1:${port}${pathname}`, {
         method: "POST",
         headers: {
@@ -121,8 +121,8 @@ test("the built Worker keeps both portfolio chat routes disabled", async () => {
         code: "disabled",
         message: "Ask the portfolio is not enabled.",
       });
+    } finally {
+      await worker.stop();
     }
-  } finally {
-    await worker.stop();
   }
 });

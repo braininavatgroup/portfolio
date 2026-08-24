@@ -10,11 +10,21 @@ afterEach(cleanup);
 const nodes: SpatialGraphNode[] = [
   {
     id: "brain",
-    label: "Judgment",
+    label: "Bradley Berkman",
     detail: "Portfolio root",
     role: "root",
     position: [0, 0, 0],
     entityIds: ["brain"],
+  },
+  {
+    id: "domain:development",
+    label: "Development",
+    detail: "Development projects",
+    role: "domain",
+    position: [0.5, 0, 0],
+    entityIds: ["domain:development"],
+    parentId: "brain",
+    groupId: "development",
   },
   {
     id: "example:instinct",
@@ -25,7 +35,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["instinct"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
   {
     id: "example:approach",
@@ -36,7 +46,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["approach"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
   {
     id: "example:output",
@@ -47,7 +57,7 @@ const nodes: SpatialGraphNode[] = [
     entityIds: ["output"],
     projectId: "example",
     projectSlug: "example",
-    href: "/work/example",
+    href: "/index/example",
   },
 ];
 
@@ -87,12 +97,11 @@ describe("automatic graph keyboard navigation", () => {
 
     fireEvent.keyDown(input, { key: "ArrowRight" });
     fireEvent.keyDown(button, { key: "ArrowRight" });
-
     expect(onNodeFocus).not.toHaveBeenCalled();
     expect(onNodeSelect).not.toHaveBeenCalled();
   });
 
-  it("clears the focused node on Escape", () => {
+  it("uses Escape to restore the index without disabling later traversal", () => {
     const { onNodeFocus, onNodeSelect } = renderNavigator();
 
     fireEvent.keyDown(document, { key: "ArrowRight" });
@@ -100,6 +109,27 @@ describe("automatic graph keyboard navigation", () => {
 
     expect(onNodeFocus).toHaveBeenLastCalledWith(null);
     expect(onNodeSelect).toHaveBeenLastCalledWith(null);
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(onNodeSelect).toHaveBeenLastCalledWith(nodes[1]);
+  });
+
+  it("does nothing when the graph has no project nodes", () => {
+    const onNodeFocus = vi.fn();
+    const onNodeSelect = vi.fn();
+    render(
+      <KeyboardNavigator
+        nodes={[nodes[0]]}
+        onNodeFocus={onNodeFocus}
+        onNodeSelect={onNodeSelect}
+        selectedNodeId={null}
+      />,
+    );
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+
+    expect(onNodeFocus).not.toHaveBeenCalled();
+    expect(onNodeSelect).not.toHaveBeenCalled();
   });
 
   it("renders no keyboard-control UI", () => {

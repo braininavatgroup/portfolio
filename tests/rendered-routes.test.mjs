@@ -23,13 +23,16 @@ async function render(pathname) {
 }
 
 test("project index links every data-derived project to its canonical case study", async () => {
-  const response = await render("/work");
+  const response = await render("/index");
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-  assert.match(html, /href=["']\/\?view=graph["']/);
-  assert.match(html, /aria-current=["']page["'][^>]*>Project index</i);
+  assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
+  assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
+  assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
+  assert.doesNotMatch(html, />Index</i);
   assert.match(html, />Project index</i);
+  assert.doesNotMatch(html, /Portfolio\s*[·•]\s*\d+\s+projects?/i);
   assert.doesNotMatch(html, /Flat index \/ no WebGL required/i);
   assert.doesNotMatch(html, /Portfolio · \d+ projects/i);
   assert.doesNotMatch(html, /Brain in a Vat \/ container/i);
@@ -38,6 +41,8 @@ test("project index links every data-derived project to its canonical case study
   assert.doesNotMatch(html, />Explore the map</i);
   assert.doesNotMatch(html, /Brain in a Vat roster|Material pending/i);
   assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
+  assert.doesNotMatch(html, /class=["'][^"']*domain-heading-meta/i);
+  assert.doesNotMatch(html, /class=["'][^"']*artifact-index-number/i);
   assert.match(html, /data-project-count=["']3["'][^>]*id=["']music["']/i);
   assert.match(html, /data-project-count=["']2["'][^>]*id=["']consulting["']/i);
   assert.match(html, /data-project-count=["']4["'][^>]*id=["']development["']/i);
@@ -61,7 +66,7 @@ test("project index links every data-derived project to its canonical case study
   for (const [, attributes, content] of html.matchAll(
     /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
   )) {
-    const route = attributes.match(/\bhref=["'](\/work\/[^"'#?]+)["']/i)?.[1];
+    const route = attributes.match(/\bhref=["'](\/index\/[^"'#?]+)["']/i)?.[1];
     if (!route) continue;
 
     const title = content.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1];
@@ -75,14 +80,10 @@ test("project index links every data-derived project to its canonical case study
     assert.equal(response.status, 200);
     const caseStudyHtml = await response.text();
     assert.match(caseStudyHtml, /<main[^>]*data-theme=["']light["']/i);
-    assert.match(
-      caseStudyHtml,
-      /href=["']\/\?view=graph["'][^>]*>Map</i,
-    );
-    assert.match(
-      caseStudyHtml,
-      /href=["']\/work["'][^>]*>Project index</i,
-    );
+    assert.match(caseStudyHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
+    assert.match(caseStudyHtml, /href=["']\/["'][^>]*>Bradley Berkman</i);
+    assert.match(caseStudyHtml, /href=["']\/\?view=graph["'][^>]*>Map</i);
+    assert.doesNotMatch(caseStudyHtml, />Index</i);
     assert.doesNotMatch(caseStudyHtml, />All work</i);
     const caseStudyTitle = caseStudyHtml.match(
       /<h1\b[^>]*>([\s\S]*?)<\/h1>/i,
@@ -114,4 +115,17 @@ test("project index links every data-derived project to its canonical case study
       `${route} does not link its own canonical route as a case-study link`,
     );
   }
+});
+
+test("legacy work routes redirect to the canonical index routes", async () => {
+  const indexResponse = await render("/work");
+  assert.ok([301, 302, 307, 308].includes(indexResponse.status));
+  assert.equal(new URL(indexResponse.headers.get("location"), "http://localhost").pathname, "/index");
+
+  const caseStudyResponse = await render("/work/dubs");
+  assert.ok([301, 302, 307, 308].includes(caseStudyResponse.status));
+  assert.equal(
+    new URL(caseStudyResponse.headers.get("location"), "http://localhost").pathname,
+    "/index/dubs",
+  );
 });
