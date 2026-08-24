@@ -109,8 +109,14 @@ test("the built Worker keeps both portfolio chat routes disabled", async () => {
         signal: AbortSignal.timeout(5_000),
       });
 
-      const body = await response.json();
-      assert.equal(response.status, 503, `${pathname}: ${JSON.stringify(body)}`);
+      const responseText = await response.text();
+      let body;
+      try {
+        body = JSON.parse(responseText);
+      } catch {
+        body = responseText;
+      }
+      assert.equal(response.status, 503, `${pathname}: ${responseText}`);
       assert.deepEqual(body, {
         code: "disabled",
         message: "Ask the portfolio is not enabled.",
