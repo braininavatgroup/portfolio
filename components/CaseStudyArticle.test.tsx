@@ -148,6 +148,48 @@ describe("CaseStudyArticle", () => {
     expect(screen.getAllByText("Evidence partial").length).toBeGreaterThan(0);
   });
 
+  // Catches adapter-duplicated prose rendering more than once and re-inflating the page.
+  it("renders repeated verbatim text only at its first appearance", () => {
+    const repeated: CaseStudy = {
+      project: {
+        ...caseStudy.project,
+        summary: "One shared sentence.",
+      },
+      steps: [
+        {
+          role: "instinct",
+          title: "Instinct step",
+          summary: "One shared sentence.",
+          items: [
+            {
+              entity: {
+                id: "a",
+                title: "First claim",
+                summary: "Another repeated reason.",
+              },
+              support: [],
+              leads: [],
+            },
+            {
+              entity: {
+                id: "b",
+                title: "Second claim",
+                summary: "Another repeated reason.",
+              },
+              support: [],
+              leads: [],
+            },
+          ],
+        },
+      ],
+    };
+    render(<CaseStudyArticle caseStudy={repeated} />);
+
+    expect(screen.getAllByText("One shared sentence.")).toHaveLength(1);
+    expect(screen.getAllByText("Another repeated reason.")).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 3, name: "Second claim" })).toBeDefined();
+  });
+
   // Catches a self-referencing canonical link while preserving outbound links.
   it("filters the page's own canonical route from entity links", () => {
     render(<CaseStudyArticle caseStudy={caseStudy} />);

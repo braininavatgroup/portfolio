@@ -45,7 +45,7 @@ export default function WorkIndex() {
           </div>
           <div className="domain-work">
             <ol className="artifact-index-list">
-              {group.projects.map((project, index) => {
+              {group.projects.map((project) => {
                 const evidenceStatus = project.facets?.evidenceStatus?.[0];
                 return (
                   <li className="artifact-index-entry" key={project.slug}>
@@ -53,7 +53,6 @@ export default function WorkIndex() {
                       className="artifact-main-link"
                       href={`/work/${project.slug}`}
                     >
-                      <span>{String(index + 1).padStart(2, "0")}</span>
                       <strong>{project.title}</strong>
                       <small>{project.summary}</small>
                       {evidenceStatus ? (
