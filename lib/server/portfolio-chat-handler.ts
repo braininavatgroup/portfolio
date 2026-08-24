@@ -62,7 +62,7 @@ export type ParsedPortfolioChatRequest = {
 class InsufficientEvidenceError extends Error {}
 
 function validateCitedSegment(segment: string, evidenceCount: number) {
-  const labels = [...segment.matchAll(/\[E(\d+)\]/g)];
+  const labels = [...segment.matchAll(/\[E([1-9]\d*)\]/g)];
   if (labels.length === 0) throw new Error("Provider output is not attributed.");
   for (const label of labels) {
     const evidenceNumber = Number(label[1]);
@@ -71,7 +71,7 @@ function validateCitedSegment(segment: string, evidenceCount: number) {
     }
   }
 
-  const claim = segment.replace(/(?:\s*\[E\d+\])+\s*$/, "").trim();
+  const claim = segment.replace(/(?:\s*\[E[1-9]\d*\])+\s*$/, "").trim();
   if (!claim || /[.!?]["')\]]?\s+\S/.test(claim)) {
     throw new Error("Provider output contains an unattributed sentence.");
   }
@@ -82,7 +82,9 @@ async function* validatedAnswerDeltas(
   evidenceCount: number,
 ) {
   let buffer = "";
-  const followedCitation = /\[E\d+\](?:\s*\[E\d+\])*(?=\s+[^\s[])/;
+  let yieldedAnswer = false;
+  const followedCitation =
+    /\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
 
   for await (const delta of deltas) {
     buffer += delta;
@@ -91,6 +93,7 @@ async function* validatedAnswerDeltas(
       const end = boundary.index + boundary[0].length;
       const segment = buffer.slice(0, end).trim();
       validateCitedSegment(segment, evidenceCount);
+      yieldedAnswer = true;
       yield `${segment} `;
       buffer = buffer.slice(end).trimStart();
       boundary = followedCitation.exec(buffer);
@@ -100,6 +103,9 @@ async function* validatedAnswerDeltas(
   const finalSegment = buffer.trim();
   if (!finalSegment) return;
   if (finalSegment === INSUFFICIENT_EVIDENCE_MESSAGE) {
+    if (yieldedAnswer) {
+      throw new Error("Provider output mixed an answer with an evidence refusal.");
+    }
     throw new InsufficientEvidenceError(finalSegment);
   }
   validateCitedSegment(finalSegment, evidenceCount);

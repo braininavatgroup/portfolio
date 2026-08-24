@@ -47,9 +47,11 @@ describe("portfolio chat route handler", () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ question, evidence }) {
         expect(question).toBe("How does pitching preserve human approval and taste?");
-        expect(evidence[0]?.id).toBe("project:pitching");
+        expect(evidence).toContainEqual(
+          expect.objectContaining({ id: "project:pitching" }),
+        );
         yield "It keeps the final ";
-        yield "approval human. [E1]";
+        yield "approval human. [E3]";
       },
     };
     const handler = createPortfolioChatHandler({
@@ -70,16 +72,16 @@ describe("portfolio chat route handler", () => {
     if (events[0]?.type !== "evidence") {
       throw new Error("First stream event must carry portfolio evidence.");
     }
-    expect(events[0].evidence[0]).toMatchObject({
+    expect(events[0].evidence).toContainEqual(expect.objectContaining({
       id: "project:pitching",
       title: "Pitching system",
       href: "/index/pitching",
       evidenceStatus: "needed",
-    });
+    }));
     expect(events.slice(1)).toEqual([
       {
         type: "answer_delta",
-        delta: "It keeps the final approval human. [E1]",
+        delta: "It keeps the final approval human. [E3]",
       },
       { type: "done" },
     ]);
@@ -109,8 +111,14 @@ describe("portfolio chat route handler", () => {
     expect(events.at(-1)).toEqual({ type: "done" });
   });
 
-  it("does not call a provider when the portfolio has no supporting evidence", async () => {
-    const getProvider = vi.fn<() => PortfolioChatProvider>();
+  it("lets the provider decide when complete portfolio context cannot answer", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ evidence }) {
+        expect(evidence).toHaveLength(10);
+        yield "The portfolio does not publish enough evidence to answer that question.";
+      },
+    };
+    const getProvider = vi.fn(() => provider);
     const handler = createPortfolioChatHandler({
       isEnabled: () => true,
       getProvider,
@@ -123,7 +131,7 @@ describe("portfolio chat route handler", () => {
     );
 
     expect(events).toEqual([
-      { type: "evidence", evidence: [] },
+      expect.objectContaining({ type: "evidence" }),
       {
         type: "notice",
         code: "insufficient_evidence",
@@ -132,7 +140,7 @@ describe("portfolio chat route handler", () => {
       },
       { type: "done" },
     ]);
-    expect(getProvider).not.toHaveBeenCalled();
+    expect(getProvider).toHaveBeenCalledOnce();
   });
 
   it("maps a provider evidence-gap result to the evidence-gap notice", async () => {
@@ -160,6 +168,31 @@ describe("portfolio chat route handler", () => {
       },
       { type: "done" },
     ]);
+  });
+
+  it("maps an answer followed by an evidence-gap result to a clearing error", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer() {
+        yield "Published answer. [E1] ";
+        yield "The portfolio does not publish enough evidence to answer that question.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("Tell me about Bradley.")),
+    );
+
+    expect(events.some((event) => event.type === "answer_delta")).toBe(true);
+    expect(events.some((event) => event.type === "notice")).toBe(false);
+    expect(events).toContainEqual({
+      type: "error",
+      code: "provider_unavailable",
+      message: "The answer service is temporarily unavailable.",
+    });
   });
 
   it("redacts provider failures from an in-progress stream", async () => {
@@ -194,6 +227,7 @@ describe("portfolio chat route handler", () => {
   it.each([
     ["This claim has no citation.", "missing citations"],
     ["This claim cites missing evidence. [E99]", "unknown citations"],
+    ["This claim uses a noncanonical citation. [E01]", "zero-padded citations"],
     ["First claim. Second claim. [E1]", "uncited sentences"],
   ])("rejects provider output with %s", async (output) => {
     const provider: PortfolioChatProvider = {

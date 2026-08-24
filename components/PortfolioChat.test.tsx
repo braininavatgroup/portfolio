@@ -108,6 +108,34 @@ describe("portfolio chat", () => {
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 
+  // Owner: portfolio chat UI. Retire only if the server sends cited evidence
+  // after generation instead of the complete context before generation.
+  it("shows only the complete-context sources cited by the answer", async () => {
+    const reportingEvidence = {
+      ...evidence,
+      id: "project:reporting",
+      title: "Campaign reporting",
+      href: "/index/reporting",
+      projectTitle: "Campaign reporting",
+    };
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [evidence, reportingEvidence] });
+      onEvent({ type: "answer_delta", delta: "Reporting stays reviewable. [E2]" });
+      onEvent({ type: "done" });
+    };
+
+    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
+      target: { value: "How does reporting work?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(
+      await screen.findByRole("link", { name: "[E2] Campaign reporting" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "[E1] Pitching system" })).toBeNull();
+  });
+
   it("keeps follow-up context in the current visit without persisting it", async () => {
     const requests: Array<{
       question: string;
@@ -214,7 +242,7 @@ describe("portfolio chat", () => {
     expect(screen.getByLabelText("Preview access code")).toBeTruthy();
   });
 
-  it("keeps supporting evidence visible when the provider stream fails", async () => {
+  it("does not expose uncited full context when the provider stream fails", async () => {
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [evidence] });
       onEvent({
@@ -236,7 +264,9 @@ describe("portfolio chat", () => {
     expect(
       await screen.findByText("The answer service is temporarily unavailable."),
     ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "[E1] Pitching system" })).toBeTruthy();
+    expect(
+      screen.queryByRole("heading", { name: "Supporting portfolio evidence" }),
+    ).toBeNull();
   });
 
   it("clears a partial answer when the provider fails mid-stream", async () => {
@@ -290,7 +320,7 @@ describe("portfolio chat", () => {
 
   it("shows the evidence gap instead of inventing an answer", async () => {
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [] });
+      onEvent({ type: "evidence", evidence: [evidence] });
       onEvent({
         type: "notice",
         code: "insufficient_evidence",
@@ -314,6 +344,9 @@ describe("portfolio chat", () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Answer" })).toBeNull();
+    expect(
+      screen.queryByRole("heading", { name: "Supporting portfolio evidence" }),
+    ).toBeNull();
   });
 
   it("stops chat pointer and click events before they reach the landing surface", async () => {

@@ -1,90 +1,80 @@
 import { describe, expect, it } from "vitest";
+import { portfolioData } from "./portfolio-data";
+import {
+  audienceStatement,
+  careerTimeline,
+  domains,
+  portfolioThroughline,
+} from "./portfolio";
 import { groundPortfolioQuestion } from "./portfolio-grounding";
 
 describe("portfolio chat grounding", () => {
-  it("selects exact merged portfolio evidence for a matching question", () => {
-    const grounding = groundPortfolioQuestion(
-      "How does the pitching system preserve human approval and taste?",
-    );
+  // Owner: portfolio chat grounding. Retire only when a replacement context
+  // provider proves that ordinary questions still reach the agent with every
+  // published project and unsupported questions remain safely refused.
+  it.each([
+    "Tell me about yourself.",
+    "What do you do?",
+    "What kind of work do you do?",
+    "What quantum-computing patents did Bradley file?",
+  ])("loads the complete published portfolio for %s", (question) => {
+    const grounding = groundPortfolioQuestion(question);
 
-    expect(grounding.evidence[0]).toEqual({
-      id: "project:pitching",
-      title: "Pitching system",
-      excerpt:
-        "Research, curator selection, matching, and outreach arranged around a human approval step.",
-      href: "/index/pitching",
-      evidenceStatus: "needed",
-      projectTitle: "Pitching system",
+    expect(grounding.evidence).toHaveLength(portfolioData.projects.length + 1);
+    expect(grounding.evidence[0]).toMatchObject({
+      id: "entity:portfolio:brain",
+      title: "Bradley Berkman",
+      href: "/",
     });
-    expect(grounding.evidence).toContainEqual({
-      id: "entity:pitching:principle",
-      title: "Taste is encodable. The approval step stays human.",
-      excerpt:
-        "A useful system should increase the quality of attention without pretending uncertainty has disappeared.",
-      href: "/index/pitching",
-      evidenceStatus: "needed",
-      projectTitle: "Pitching system",
-      stageRole: "instinct",
-    });
-  });
-
-  it("returns no supporting evidence when the portfolio has no matching facts", () => {
     expect(
-      groundPortfolioQuestion("What quantum-computing patents did Bradley file?")
-        .evidence,
-    ).toEqual([]);
+      grounding.evidence.filter(({ id }) => id.startsWith("project:")),
+    ).toHaveLength(portfolioData.projects.length);
+
+    const portfolio = grounding.evidence[0];
+    expect(portfolio.excerpt).toContain(portfolioThroughline);
+    expect(portfolio.excerpt).toContain(audienceStatement);
+    for (const domain of domains) {
+      expect(portfolio.excerpt).toContain(
+        `${domain.label}: ${domain.description}`,
+      );
+    }
+    for (const milestone of careerTimeline) {
+      expect(portfolio.excerpt).toContain(
+        `${milestone.period}; ${milestone.title}: ${milestone.detail}`,
+      );
+    }
   });
 
-  it("limits attribution to the strongest distinct portfolio records", () => {
-    const grounding = groundPortfolioQuestion(
-      "Which work involves reporting, reports, and client evidence?",
-      3,
+  // Owner: portfolio chat grounding. Retire with complete-project context.
+  it("groups every published field for a project into one citable source", () => {
+    const pitching = groundPortfolioQuestion("Any question").evidence.find(
+      ({ id }) => id === "project:pitching",
     );
+
+    expect(pitching).toMatchObject({
+      title: "Pitching system",
+      href: "/index/pitching",
+      evidenceStatus: "needed",
+      projectTitle: "Pitching system",
+    });
+    expect(pitching?.excerpt).toContain(
+      "Research, curator selection, matching, and outreach",
+    );
+    expect(pitching?.excerpt).toContain(
+      "Taste is encodable. The approval step stays human.",
+    );
+    expect(pitching?.excerpt).toContain("Curator taxonomy and matching model");
+    expect(pitching?.excerpt).toContain("Outcome evidence");
+  });
+
+  it("retains an explicit caller limit without selecting by question words", () => {
+    const grounding = groundPortfolioQuestion("reporting", 3);
 
     expect(grounding.evidence).toHaveLength(3);
-    expect(new Set(grounding.evidence.map(({ id }) => id)).size).toBe(3);
-    expect(grounding.evidence[0]?.href).toBe("/index/reporting");
-  });
-
-  it("uses the evidence item's own status and only scores published excerpts", () => {
-    const grounding = groundPortfolioQuestion("screenshots published");
-    const matchingEvidence = grounding.evidence.find(({ id }) =>
-      id.includes(":evidence:"),
-    );
-
-    expect(matchingEvidence?.evidenceStatus).toBe("needed");
-    expect(grounding.evidence[0]?.id).toContain(":evidence:");
-  });
-
-  it("does not rank an entity from summary text omitted from its excerpt", () => {
-    const grounding = groundPortfolioQuestion("payment sequencing");
-
-    expect(grounding.evidence.map(({ id }) => id)).not.toContain(
-      "entity:kickoff-intake:artifact",
-    );
-  });
-
-  it.each([
-    ["preserve taste", "entity:pitching:judgment", "instinct"],
-    ["selection workflow", "entity:pitching:system", "approach"],
-    ["human-approved operation", "entity:pitching:operation", "output"],
-  ] as const)(
-    "labels %s evidence with its merged projection role",
-    (question, entityId, stageRole) => {
-      const grounding = groundPortfolioQuestion(question);
-
-      expect(grounding.evidence).toContainEqual(
-        expect.objectContaining({ id: entityId, stageRole }),
-      );
-    },
-  );
-
-  it("does not assign a projection role to project-level evidence", () => {
-    const grounding = groundPortfolioQuestion("pitching system");
-
-    expect(grounding.evidence[0]).toEqual(
-      expect.objectContaining({ id: "project:pitching" }),
-    );
-    expect(grounding.evidence[0]).not.toHaveProperty("stageRole");
+    expect(grounding.evidence.map(({ id }) => id)).toEqual([
+      "entity:portfolio:brain",
+      "project:kickoff-intake",
+      "project:pitching",
+    ]);
   });
 });

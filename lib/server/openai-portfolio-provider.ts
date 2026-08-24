@@ -46,7 +46,7 @@ function groundedInput({ question, evidence, conversation }: PortfolioChatProvid
   const sources = evidence
     .map(
       (item, index) =>
-        `[E${index + 1}] id=${item.id}\nProject: ${item.projectTitle}\nTitle: ${item.title}\nEvidence status: ${item.evidenceStatus}\nPublished excerpt: ${item.excerpt}\nPortfolio link: ${item.href}`,
+        `[E${index + 1}] id=${item.id}\nProject: ${item.projectTitle}\nTitle: ${item.title}\nSupporting-material status: ${item.evidenceStatus}\nPublished excerpt: ${item.excerpt}\nPortfolio link: ${item.href}`,
     )
     .join("\n\n");
 
@@ -121,7 +121,7 @@ export function createOpenAIPortfolioProvider({
               ? { safety_identifier: input.safetyIdentifier }
               : {}),
             instructions:
-              `Use only the supplied portfolio evidence. Do not add portfolio facts from memory or inference. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`,
+              `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`,
             input: groundedInput(input),
           }),
           signal: input.signal,
