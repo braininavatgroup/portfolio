@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
 
@@ -39,19 +39,33 @@ describe("OpenAI portfolio provider", () => {
         { type: "response.created" },
         { type: "response.output_text.delta", delta: "Human approval " },
         { type: "response.output_text.delta", delta: "stays explicit. [E1]" },
-        { type: "response.completed", response: { status: "completed" } },
+        {
+          type: "response.completed",
+          response: {
+            status: "completed",
+            usage: {
+              input_tokens: 37,
+              output_tokens: 11,
+              total_tokens: 48,
+            },
+          },
+        },
       ]);
     };
     const provider = createOpenAIPortfolioProvider({
       apiKey,
       model: "portfolio-model-test",
+      reasoningEffort: "low",
       fetchImplementation,
     });
 
     const chunks: string[] = [];
+    const onUsage = vi.fn();
     for await (const chunk of provider.streamAnswer({
       question: "How does pitching preserve approval?",
       evidence,
+      safetyIdentifier: "pc_anonymous-session-hash",
+      onUsage,
     })) {
       chunks.push(chunk);
     }
@@ -69,11 +83,18 @@ describe("OpenAI portfolio provider", () => {
       model: "portfolio-model-test",
       stream: true,
       store: false,
+      reasoning: { effort: "low" },
+      safety_identifier: "pc_anonymous-session-hash",
     });
     expect(JSON.stringify(body)).toContain("project:pitching");
     expect(JSON.stringify(body)).toContain(
       "Use only the supplied portfolio evidence",
     );
+    expect(onUsage).toHaveBeenCalledWith({
+      inputTokens: 37,
+      outputTokens: 11,
+      totalTokens: 48,
+    });
   });
 
   it("does not expose an upstream error body", async () => {

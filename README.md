@@ -33,6 +33,16 @@ The prototype never invents campaign counts, outcomes, artist photos, screenshot
 
 Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Rit builds, three-maturity interfaces, the personal-tooling map, and one complete spec-to-agent record.
 
+## Portfolio chat launch controls
+
+The model-backed chat is false by default. The canonical App Router endpoints read server-only Cloudflare bindings and refuse requests before provider construction unless every required preview control is present.
+
+The dormant runtime supports a signed HttpOnly preview session, a privacy-safe per-actor preview-attempt limiter, a per-session chat limiter, a global Durable Object request budget, bounded request bodies, a 15-second provider timeout, privacy-safe telemetry, and an OpenAI `safety_identifier` derived from the opaque preview session. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, cookies, access codes, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
+
+This branch does not configure the Cloudflare rate-limit bindings, Durable Object binding or migration, secrets, models, or daily request limit. A later authorized activation change must supply them. It must also add and verify the browser Turnstile widget before setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true`; only the bounded request contract and server-side Siteverify validation exist here.
+
+`lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It reports reference-answer/refusal correctness, citation failures, required evidence, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
+
 ## Verification
 
 ```bash

@@ -2,10 +2,10 @@ import { env } from "cloudflare:workers";
 import {
   createPortfolioChatRuntime,
   type PortfolioChatRuntimeEnv,
-} from "../../../lib/server/portfolio-chat-runtime";
+} from "../../../../lib/server/portfolio-chat-runtime";
 
 export async function POST(request: Request) {
   return createPortfolioChatRuntime({
     env: env as unknown as PortfolioChatRuntimeEnv,
-  }).handleChat(request);
+  }).handlePreview(request);
 }

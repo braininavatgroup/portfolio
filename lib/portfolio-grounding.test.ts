@@ -24,6 +24,7 @@ describe("portfolio chat grounding", () => {
       href: "/work/pitching",
       evidenceStatus: "needed",
       projectTitle: "Pitching system",
+      stageRole: "instinct",
     });
   });
 
@@ -61,5 +62,29 @@ describe("portfolio chat grounding", () => {
     expect(grounding.evidence.map(({ id }) => id)).not.toContain(
       "entity:kickoff-intake:artifact",
     );
+  });
+
+  it.each([
+    ["preserve taste", "entity:pitching:judgment", "instinct"],
+    ["selection workflow", "entity:pitching:system", "approach"],
+    ["human-approved operation", "entity:pitching:operation", "output"],
+  ] as const)(
+    "labels %s evidence with its merged projection role",
+    (question, entityId, stageRole) => {
+      const grounding = groundPortfolioQuestion(question);
+
+      expect(grounding.evidence).toContainEqual(
+        expect.objectContaining({ id: entityId, stageRole }),
+      );
+    },
+  );
+
+  it("does not assign a projection role to project-level evidence", () => {
+    const grounding = groundPortfolioQuestion("pitching system");
+
+    expect(grounding.evidence[0]).toEqual(
+      expect.objectContaining({ id: "project:pitching" }),
+    );
+    expect(grounding.evidence[0]).not.toHaveProperty("stageRole");
   });
 });

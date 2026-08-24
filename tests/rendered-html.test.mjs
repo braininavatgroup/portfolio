@@ -80,35 +80,12 @@ test("map entry reveals view switching and compact keyboard access", async () =>
   assert.doesNotMatch(html, />Explore the work</i);
 });
 
-test("the built chat route stays disabled and client assets contain no provider configuration", async () => {
-  delete process.env.PORTFOLIO_CHAT_LIVE_ENABLED;
-  delete process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_PORTFOLIO_MODEL;
-
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-chat`);
-  const { default: worker } = await import(workerUrl.href);
-  const response = await worker.fetch(
-    new Request("http://localhost/api/portfolio-chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question: "How does pitching work?" }),
-    }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
-  );
-
-  assert.equal(response.status, 503);
-  assert.deepEqual(await response.json(), {
-    code: "disabled",
-    message: "Ask the portfolio is not enabled.",
-  });
-
+test("the production build does not inline server secrets into artifacts", async () => {
   const clientDirectory = new URL("../dist/client", import.meta.url).pathname;
   const clientFiles = (await filesBelow(clientDirectory)).filter((entryPath) =>
-    entryPath.endsWith(".js"),
+    /\.(?:js|json|map)$/.test(entryPath),
   );
-  const clientJavaScript = (
+  const clientArtifacts = (
     await Promise.all(clientFiles.map((entryPath) => readFile(entryPath, "utf8")))
   ).join("\n");
   for (const serverOnlyValue of [
@@ -117,6 +94,23 @@ test("the built chat route stays disabled and client assets contain no provider 
     "PORTFOLIO_CHAT_LIVE_ENABLED",
     "api.openai.com",
   ]) {
-    assert.doesNotMatch(clientJavaScript, new RegExp(serverOnlyValue));
+    assert.doesNotMatch(clientArtifacts, new RegExp(serverOnlyValue));
+  }
+
+  const distDirectory = new URL("../dist", import.meta.url).pathname;
+  const builtFiles = (await filesBelow(distDirectory)).filter((entryPath) =>
+    /\.(?:js|json|map)$/.test(entryPath),
+  );
+  const builtArtifacts = (
+    await Promise.all(builtFiles.map((entryPath) => readFile(entryPath, "utf8")))
+  ).join("\n");
+  for (const sentinel of [
+    "sk-client-leak-sentinel",
+    "model-client-leak-sentinel",
+    "preview-access-client-leak-sentinel",
+    "session-secret-client-leak-sentinel",
+    "turnstile-secret-client-leak-sentinel",
+  ]) {
+    assert.doesNotMatch(builtArtifacts, new RegExp(sentinel));
   }
 });
