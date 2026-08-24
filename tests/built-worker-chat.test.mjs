@@ -21,12 +21,15 @@ async function availablePort() {
 async function startBuiltWorker(port) {
   const wrangler = new URL("../node_modules/.bin/wrangler", import.meta.url)
     .pathname;
-  const childEnvironment = { ...process.env, WRANGLER_SEND_METRICS: "false" };
+  const childEnvironment = {
+    ...process.env,
+    PORTFOLIO_CHAT_LIVE_ENABLED: "false",
+    PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
+    WRANGLER_SEND_METRICS: "false",
+  };
   for (const name of [
     "OPENAI_API_KEY",
     "OPENAI_PORTFOLIO_MODEL",
-    "PORTFOLIO_CHAT_LIVE_ENABLED",
-    "PORTFOLIO_CHAT_PREVIEW_ENABLED",
     "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
     "PORTFOLIO_CHAT_SESSION_SECRET",
     "TURNSTILE_SECRET_KEY",
@@ -106,8 +109,9 @@ test("the built Worker keeps both portfolio chat routes disabled", async () => {
         signal: AbortSignal.timeout(5_000),
       });
 
-      assert.equal(response.status, 503);
-      assert.deepEqual(await response.json(), {
+      const body = await response.json();
+      assert.equal(response.status, 503, `${pathname}: ${JSON.stringify(body)}`);
+      assert.deepEqual(body, {
         code: "disabled",
         message: "Ask the portfolio is not enabled.",
       });
