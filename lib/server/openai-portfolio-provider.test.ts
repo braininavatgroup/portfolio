@@ -96,6 +96,10 @@ describe("OpenAI portfolio provider", () => {
     expect(JSON.stringify(body)).toContain(
       "editorial maturity metadata, not a restriction on using the published text",
     );
+    expect(JSON.stringify(body)).toContain(
+      "For supported questions, answer in two to five concise sentences and prioritize the requested detail within that limit",
+    );
+    expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
       inputTokens: 37,
       outputTokens: 11,
