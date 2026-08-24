@@ -163,14 +163,15 @@ Expected: build, contract assertions, and Wrangler dry-run all pass.
 
 **Files:**
 - Modify: `docs/activation/portfolio-chat-preview-activation-packet.md`
+- Modify: `README.md`
 
 **Interfaces:**
 - Consumes: BIV-317’s accepted target, model, budget, access boundary, and rollback conditions.
 - Produces: the current release record template for the dedicated Worker, including blank runtime-evidence fields that are filled only from actual deployment output.
 
-- [x] **Step 1: Replace the stale dormant-only contract**
+- [x] **Step 1: Replace the stale dormant-only contract and owning README guidance**
 
-Document the exact Worker name, immutable source commit, Workers.dev-only boundary, non-secret vars, OpenAI secret name, `v1` SQLite migration, verification matrix, expiry field, previous version field, and exact rollback/disable commands. Remove the obsolete requirement for access code, preview cookie, Turnstile, and route limiters from this solo activation packet while preserving their description as the unused older path.
+Document the exact Worker name, immutable source commit and build digest, Workers.dev-only boundary, non-secret vars, OpenAI secret name, `v1` SQLite migration, verification matrix, expiry field, disabled version field, and exact version rollback/delete commands. Correct the README's stale dormant-only description. Remove the obsolete requirement for access code, preview cookie, Turnstile, and route limiters from this solo activation packet while preserving their description as the unused older path.
 
 - [x] **Step 2: Check the packet and repository diff**
 
@@ -200,7 +201,7 @@ git diff --check
 
 Expected: zero failures and no secret sentinel in client or build artifacts.
 
-- [ ] **Step 2: Inspect and commit explicit paths**
+- [x] **Step 2: Inspect and commit explicit paths**
 
 Inspect `git status`, `git diff`, and the staged diff. Commit only the plan, direct launch change, config, config test, Worker export, package script, and activation packet using the repository’s bot identity and ticket convention.
 

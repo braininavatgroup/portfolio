@@ -36,11 +36,11 @@ Inputs still needed for a production version include the real 3D model, roster p
 
 ## Portfolio chat launch controls
 
-The model-backed chat is false by default. The canonical App Router endpoints read server-only Cloudflare bindings and refuse requests before provider construction unless every required preview control is present.
+The model-backed chat is false by default. The canonical App Router endpoints read server-only Cloudflare bindings and refuse requests before provider construction unless the live gate and the selected launch path are configured.
 
-The dormant runtime supports a signed HttpOnly preview session, a privacy-safe per-actor preview-attempt limiter, a per-session chat limiter, a global Durable Object request budget, bounded request bodies, a 15-second provider timeout, privacy-safe telemetry, and an OpenAI `safety_identifier` derived from the opaque preview session. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, cookies, access codes, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
+The signed-preview path supports an HttpOnly preview session, a privacy-safe per-actor preview-attempt limiter, a per-session chat limiter, Turnstile verification, and an OpenAI `safety_identifier` derived from the opaque preview session. The dedicated single-operator path omits that access stack and is reachable only at the generated `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname. Both paths retain the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, cookies, access codes, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
 
-This branch does not configure the Cloudflare rate-limit bindings, Durable Object binding or migration, secrets, models, or daily request limit. A later authorized activation change must supply them. It must also add and verify the browser Turnstile widget before setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true`; only the bounded request contract and server-side Siteverify validation exist here.
+`wrangler.preview.jsonc` owns the dedicated Worker's non-secret configuration: model `gpt-5.4-2026-03-05` with low reasoning effort, a 200-request UTC-day Durable Object budget, its SQLite migration, and no custom-domain route. `OPENAI_API_KEY` is supplied only as an encrypted Worker secret. The existing signed-preview path still requires its session, access-code, limiter, and Turnstile bindings before it can be enabled.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It reports reference-answer/refusal correctness, citation failures, required evidence, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
@@ -56,4 +56,4 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This prototype is local only. No deployment or public activation is configured or authorized.
+This repository does not configure or authorize a production/custom-domain release. The dedicated Workers.dev preview and its bounded activation record are tracked in BIV-317.
