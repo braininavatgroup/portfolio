@@ -109,6 +109,7 @@
 ### Task 5: Combined proof and delivery
 
 **Files:**
+- Modify: `.github/workflows/ci.yml`
 - Create: `tests/built-worker-chat.test.mjs`
 - Modify: `tests/rendered-html.test.mjs`
 - Modify: `README.md`
