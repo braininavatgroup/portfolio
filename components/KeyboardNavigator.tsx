@@ -1,40 +1,57 @@
 "use client";
 
-import { KeyboardEvent, RefObject, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
-import { portfolioNodes, type PortfolioNode } from "../lib/portfolio";
+import { nodeAction } from "../lib/node-interaction";
+import type { SpatialGraphNode } from "../lib/spatial-graph";
 
-const nodes = portfolioNodes.filter(
-  (node): node is PortfolioNode & { href: string } =>
-    node.kind !== "brain" && typeof node.href === "string",
-);
-
-const kindLabels: Record<Exclude<PortfolioNode["kind"], "brain">, string> = {
-  spec: "Model",
-  system: "System",
-  artifact: "Artifact",
+const roleLabels: Record<SpatialGraphNode["role"], string> = {
+  root: "Root",
+  instinct: "Instinct",
+  approach: "Approach",
+  output: "Output",
 };
 
 export function KeyboardNavigator({
+  nodes,
   onNodeFocus,
   onNodeSelect,
   selectedNodeId,
   controlRef,
 }: {
+  nodes: readonly SpatialGraphNode[];
   onNodeFocus: (nodeId: string | null) => void;
-  onNodeSelect: (node: PortfolioNode | null) => void;
+  onNodeSelect: (node: SpatialGraphNode | null) => void;
   selectedNodeId: string | null;
   controlRef?: RefObject<HTMLButtonElement | null>;
 }) {
+  const actionableNodes = nodes.filter((node) => nodeAction(node) === "inspect");
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
-  const selectedIndex = nodes.findIndex((node) => node.id === selectedNodeId);
+  const previousSelectedNodeId = useRef(selectedNodeId);
+  const selectedIndex = actionableNodes.findIndex(
+    (node) => node.id === selectedNodeId,
+  );
   const currentIndex = selectedIndex >= 0 ? selectedIndex : index;
-  const current = nodes[currentIndex];
+  const current = actionableNodes[currentIndex];
+
+  useEffect(() => {
+    if (previousSelectedNodeId.current !== null && selectedNodeId === null) {
+      setActive(false);
+      onNodeFocus(null);
+    }
+    previousSelectedNodeId.current = selectedNodeId;
+  }, [onNodeFocus, selectedNodeId]);
 
   function select(nextIndex: number) {
-    const node = nodes[nextIndex];
+    const node = actionableNodes[nextIndex];
     if (!node) return;
     setActive(true);
     setIndex(nextIndex);
@@ -43,10 +60,11 @@ export function KeyboardNavigator({
   }
 
   function move(direction: "next" | "previous") {
-    select(nextKeyboardIndex(currentIndex, direction, nodes.length));
+    select(nextKeyboardIndex(currentIndex, direction, actionableNodes.length));
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!active) return;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
       event.preventDefault();
       move("next");
@@ -57,7 +75,7 @@ export function KeyboardNavigator({
       move("previous");
       return;
     }
-    if (event.key === "Enter" && active && current) {
+    if (event.key === "Enter" && active && current?.href) {
       event.preventDefault();
       window.location.assign(current.href);
       return;
@@ -80,11 +98,8 @@ export function KeyboardNavigator({
     >
       <button
         aria-expanded={active}
+        disabled={actionableNodes.length === 0}
         onClick={() => {
-          setActive(true);
-          onNodeFocus(current?.id ?? null);
-        }}
-        onFocus={() => {
           setActive(true);
           onNodeFocus(current?.id ?? null);
         }}
@@ -96,15 +111,15 @@ export function KeyboardNavigator({
       >
         {active && current ? (
           <>
-            <span>{kindLabels[current.kind]}</span>
+            <span>{roleLabels[current.role]}</span>
             <strong>{current.label}</strong>
-            <small>{index + 1} of {nodes.length}</small>
+            <small>{currentIndex + 1} of {actionableNodes.length}</small>
           </>
         ) : (
           "Explore by keyboard"
         )}
       </button>
-      {active ? (
+      {active && current ? (
         <>
           <div className="keyboard-step-controls">
             <button aria-label="Previous node" onClick={() => move("previous")} type="button">

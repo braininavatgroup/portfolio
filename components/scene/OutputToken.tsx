@@ -130,7 +130,7 @@ function TokenGlyph({ kind }: { kind: ArtifactTokenKind }) {
   }
 }
 
-export function ArtifactToken({ kind }: { kind: ArtifactTokenKind }) {
+export function OutputToken({ kind }: { kind: ArtifactTokenKind }) {
   return (
     <group>
       <TokenBody />

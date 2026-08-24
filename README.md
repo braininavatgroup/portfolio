@@ -19,7 +19,13 @@ The development server prints its local URL, normally `http://localhost:3000`.
 - `/work` is the complete HTML project index and works without WebGL.
 - `/work/[slug]` contains a project's case study and evidence state.
 
-The current graph and case-study categories are prototype assumptions, not a permanent content schema. The next modeling pass will test whether a shared schema helps, what belongs in it, and how strict it should be.
+The HTML index and case studies keep their current presentation while the graph uses the new stage model.
+
+## Portfolio model
+
+`lib/portfolio-model.ts` defines projects, reusable entities, relations, projections, validation, and pure lookups. `lib/portfolio-adapter.ts` currently accepts the legacy `ArtifactRecord[]` collection and translates each record into that model. This adapter is a temporary input compatibility boundary, not the permanent content contract.
+
+`lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
 
 ## Evidence policy
 
@@ -32,6 +38,7 @@ Inputs still needed for a production version include the real 3D model, roster p
 ```bash
 npm test
 npm run lint
+npx tsc --noEmit
 npm run build
 npm run test:rendered
 ```

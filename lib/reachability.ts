@@ -1,15 +1,19 @@
-import type { PortfolioNode } from "./portfolio";
+import type { ProjectRecord } from "./portfolio-model";
+import type { SpatialGraphNode } from "./spatial-graph";
 
-const routesForNodes = (nodes: PortfolioNode[]) =>
+const routesForNodes = (nodes: readonly SpatialGraphNode[]) =>
   nodes
     .filter(
-      (node): node is PortfolioNode & { href: string } =>
-        node.kind !== "brain" && typeof node.href === "string",
+      (node): node is SpatialGraphNode & { href: string } =>
+        typeof node.href === "string",
     )
     .map((node) => node.href);
 
-export const graphNodeRoutes = (nodes: PortfolioNode[]) => routesForNodes(nodes);
+export const graphNodeRoutes = (nodes: readonly SpatialGraphNode[]) =>
+  routesForNodes(nodes);
 
-export const keyboardNodeRoutes = (nodes: PortfolioNode[]) => routesForNodes(nodes);
+export const keyboardNodeRoutes = (nodes: readonly SpatialGraphNode[]) =>
+  routesForNodes(nodes);
 
-export const flatIndexNodeRoutes = (nodes: PortfolioNode[]) => routesForNodes(nodes);
+export const projectRoutes = (projects: readonly ProjectRecord[]) =>
+  projects.map(({ slug }) => `/work/${slug}`);

@@ -1,25 +1,28 @@
 "use client";
 
 import { Html } from "@react-three/drei";
+import type { ThreeEvent } from "@react-three/fiber";
 import { useState } from "react";
 import { nodeAction } from "../../lib/node-interaction";
-import type { PortfolioNode } from "../../lib/portfolio";
-import { ArtifactToken } from "./ArtifactToken";
+import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import { BrainShape } from "./BrainShape";
+import { GraphNodeLabel } from "./GraphNodeLabel";
+import { OutputToken } from "./OutputToken";
+import { getOutputToken } from "./output-token-map";
 
-const colors = {
-  brain: "#d7ff6f",
-  spec: "#3f7569",
-  system: "#245f52",
-  artifact: "#1d2925",
-} as const;
+const colors: Record<SpatialGraphNode["role"], string> = {
+  root: "#d7ff6f",
+  instinct: "#3f7569",
+  approach: "#245f52",
+  output: "#1d2925",
+};
 
 type GraphNodeProps = {
-  node: PortfolioNode;
+  node: SpatialGraphNode;
   selected: boolean;
   focused: boolean;
   showLabel: boolean;
-  onSelect: (node: PortfolioNode) => void;
+  onSelect: (node: SpatialGraphNode) => void;
 };
 
 export function GraphNode({
@@ -30,15 +33,18 @@ export function GraphNode({
   onSelect,
 }: GraphNodeProps) {
   const [hovered, setHovered] = useState(false);
-  const action = nodeAction(node);
-  const prominent = node.kind === "artifact";
-  const labelVisible = showLabel;
+  const interactive = nodeAction(node) === "inspect";
+  const prominent = node.role === "output";
+  const outputToken =
+    prominent && node.projectSlug
+      ? getOutputToken(node.projectSlug)
+      : undefined;
 
-  if (node.kind === "brain") {
+  if (node.role === "root") {
     return (
       <group position={node.position}>
         <BrainShape scale={1.35} />
-        <pointLight color="#d7ff6f" intensity={2.6} distance={4.5} />
+        <pointLight color={colors.root} intensity={2.6} distance={4.5} />
       </group>
     );
   }
@@ -47,47 +53,49 @@ export function GraphNode({
     <group position={node.position}>
       <group
         scale={hovered || focused || selected ? 1.38 : 1}
-        onClick={(event) => {
-          event.stopPropagation();
-          if (action === "inspect") onSelect(node);
-        }}
-        onPointerEnter={() => {
-          setHovered(true);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerLeave={() => {
-          setHovered(false);
-          document.body.style.cursor = "";
-        }}
+        {...(interactive
+          ? {
+              onClick: (event: ThreeEvent<MouseEvent>) => {
+                event.stopPropagation();
+                onSelect(node);
+              },
+              onPointerEnter: () => {
+                setHovered(true);
+                document.body.style.cursor = "pointer";
+              },
+              onPointerLeave: () => {
+                setHovered(false);
+                document.body.style.cursor = "";
+              },
+            }
+          : {})}
       >
-        {node.kind === "artifact" && node.token ? (
-          <ArtifactToken kind={node.token} />
+        {outputToken ? (
+          <OutputToken kind={outputToken} />
         ) : (
           <mesh>
-            <sphereGeometry args={[0.095, 12, 12]} />
+            <sphereGeometry args={[prominent ? 0.24 : 0.095, 12, 12]} />
             <meshStandardMaterial
-              color={colors[node.kind]}
-              emissive={colors[node.kind]}
+              color={colors[node.role]}
+              emissive={colors[node.role]}
               emissiveIntensity={0.04}
               roughness={0.72}
             />
           </mesh>
         )}
       </group>
-      {labelVisible ? (
+      {showLabel ? (
         <Html
           center
-          distanceFactor={11}
           position={[0, prominent ? -0.48 : 0.2, 0]}
           zIndexRange={[10, 0]}
         >
-          <button
-            className={`graph-node-label graph-node-label-${node.kind} graph-node-button`}
-            type="button"
-            onClick={() => onSelect(node)}
-          >
-            {node.label}
-          </button>
+          <GraphNodeLabel
+            node={node}
+            interactive={interactive}
+            emphasized={hovered || focused || selected}
+            onSelect={onSelect}
+          />
         </Html>
       ) : null}
     </group>

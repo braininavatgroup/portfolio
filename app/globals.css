@@ -120,37 +120,90 @@ body {
   background: #0d1b18eb;
   border: 1px solid #3c5f56;
   bottom: 10rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 11rem);
   max-width: 24rem;
+  overflow: hidden;
   padding: 1.25rem;
   position: absolute;
   right: 2rem;
   z-index: 8;
 }
 
-.node-drawer-heading { align-items: flex-start; display: flex; justify-content: space-between; }
+.node-drawer-heading { align-items: flex-start; background: inherit; display: flex; flex: 0 0 auto; justify-content: space-between; position: sticky; top: 0; z-index: 1; }
 .node-drawer-heading p { margin: 0; }
+.node-drawer-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .node-drawer h2 { margin: 0.65rem 0 0.75rem; }
-.node-drawer > p { color: #b0bfba; line-height: 1.55; }
+.node-drawer-content > p { color: #b0bfba; line-height: 1.55; }
 .node-drawer button { background: transparent; border: 1px solid #6f8e85; color: inherit; cursor: pointer; padding: 0.5rem 0.8rem; }
-.node-drawer > a { display: inline-block; font-size: 0.75rem; margin-top: 0.8rem; }
+.node-drawer-content > a { display: inline-block; font-size: 0.75rem; margin-top: 0.8rem; }
 .node-position { color: #91a49d; font-size: 0.68rem; }
 
 .graph-node-label {
-  background: #07100fdd;
-  border: 1px solid #45685f;
-  border-radius: 999px;
-  color: #eef7f2;
-  display: block;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: #d5e0dc;
+  display: flex;
+  flex-direction: column;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.62rem;
-  max-width: 9rem;
-  padding: 0.35rem 0.55rem;
+  font-size: 0.68rem;
+  justify-content: center;
+  line-height: 1.25;
+  max-width: 8.5rem;
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+  opacity: 0.9;
+  padding: 0.16rem 0.3rem;
   text-align: center;
   text-decoration: none;
-  white-space: nowrap;
+  text-shadow: 0 1px 0.5rem #07100f;
+  text-wrap: balance;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease, color 120ms ease, opacity 120ms ease;
+  white-space: normal;
 }
 
 .graph-node-button { cursor: pointer; }
+
+.graph-node-label strong,
+.graph-node-label span {
+  display: block;
+}
+
+.graph-node-label strong {
+  font-weight: 450;
+}
+
+.graph-node-label-role {
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  opacity: 0.84;
+  text-transform: uppercase;
+}
+
+.graph-node-label[data-emphasized="true"],
+.graph-node-label:hover,
+.graph-node-label:focus-visible {
+  background: #07100fe8;
+  border-color: #45685f;
+  box-shadow: 0 0.25rem 1rem #07100f38;
+  color: #eef7f2;
+  opacity: 1;
+}
+
+.graph-node-label[data-emphasized="true"] strong,
+.graph-node-label:hover strong,
+.graph-node-label:focus-visible strong {
+  font-weight: 600;
+}
+
+.graph-node-label:focus-visible {
+  outline: 3px solid #76951a;
+  outline-offset: 3px;
+}
 
 .domain-space-label {
   color: #d7ff6f;
@@ -593,7 +646,7 @@ body {
 
 @media (max-width: 760px) {
   .keyboard-navigator { display: none; }
-  .node-drawer { background: var(--surface); bottom: 0; left: 0; max-width: none; right: 0; }
+  .node-drawer { background: var(--surface); bottom: 0; left: 0; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); max-width: none; right: 0; }
   .scene-shell-node-open .portfolio-chat { display: none; }
   .experience-header { align-items: flex-start; }
   .experience-header nav { flex-direction: column; gap: 0.6rem; }
@@ -1069,7 +1122,7 @@ input:focus-visible {
   box-shadow: 0 1rem 3rem #33483f14;
 }
 
-[data-theme="light"] .node-drawer > p,
+[data-theme="light"] .node-drawer-content > p,
 [data-theme="light"] .node-position,
 [data-theme="light"] .graph-toolbar > p:not(.eyebrow),
 [data-theme="light"] .scene-copy > p:not(.eyebrow),
@@ -1105,10 +1158,20 @@ input:focus-visible {
 }
 
 [data-theme="light"] .graph-node-label {
-  background: #fffdf8ed;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #263a33;
+  text-shadow: 0 1px 0.45rem #fffdf8;
+}
+
+[data-theme="light"] .graph-node-label[data-emphasized="true"],
+[data-theme="light"] .graph-node-label:hover,
+[data-theme="light"] .graph-node-label:focus-visible {
+  background: #fffdf8f5;
   border-color: #8da098;
-  color: #17211e;
   box-shadow: 0 0.25rem 1rem #33483f18;
+  color: #17211e;
 }
 
 [data-theme="light"] .domain-space-label {

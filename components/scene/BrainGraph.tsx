@@ -4,19 +4,20 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { domains, type PortfolioNode } from "../../lib/portfolio";
+import { domains } from "../../lib/portfolio";
 import type { SceneQuality } from "../../lib/scene-budget";
+import type { SpatialGraphNode } from "../../lib/spatial-graph";
 import type { TransitionPhase } from "../../lib/transition";
 import { CableNetwork } from "./Cable";
 import { GraphNode } from "./GraphNode";
 
 type BrainGraphProps = {
   phase: TransitionPhase;
-  nodes: PortfolioNode[];
+  nodes: readonly SpatialGraphNode[];
   focusedNodeId: string | null;
   selectedNodeId: string | null;
   quality: SceneQuality;
-  onSelect: (node: PortfolioNode) => void;
+  onSelect: (node: SpatialGraphNode) => void;
 };
 
 export function BrainGraph({
