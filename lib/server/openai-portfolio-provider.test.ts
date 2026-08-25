@@ -454,14 +454,16 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it.each([
-    ["malformed structured output", "not json"],
+    ["malformed structured output", "not json", "invalid_final_output"],
     [
       "an unknown evidence id",
       portfolioOutput([
         { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
       ]),
+      "invalid_evidence_output",
     ],
-  ])("rejects %s without exposing it", async (_label, output) => {
+  ])("rejects %s without exposing it", async (_label, output, failureKind) => {
+    const onFailure = vi.fn();
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
@@ -472,14 +474,17 @@ describe("OpenAI portfolio provider", () => {
       for await (const chunk of provider.streamAnswer({
         question: "How does pitching work?",
         evidence,
+        onFailure,
       })) {
         throw new Error(`Unexpected provider output: ${chunk}`);
       }
     }).rejects.toThrow("OpenAI agent run failed.");
+    expect(onFailure).toHaveBeenCalledWith(failureKind);
   });
 
   it("does not expose an upstream error body", async () => {
     const upstreamSecret = "upstream-secret-detail";
+    const onFailure = vi.fn();
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
@@ -492,6 +497,7 @@ describe("OpenAI portfolio provider", () => {
       for await (const chunk of provider.streamAnswer({
         question: "How does pitching work?",
         evidence,
+        onFailure,
       })) {
         throw new Error(`Unexpected provider output: ${chunk}`);
       }
@@ -501,6 +507,7 @@ describe("OpenAI portfolio provider", () => {
 
     expect(message).toBe("OpenAI agent run failed.");
     expect(message).not.toContain(upstreamSecret);
+    expect(onFailure).toHaveBeenCalledWith("provider_error");
   });
 
   it("passes the request abort signal to the OpenAI fetch", async () => {

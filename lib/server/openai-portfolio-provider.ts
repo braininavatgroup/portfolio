@@ -1,8 +1,19 @@
-import { Agent, assistant, OpenAIProvider, Runner, user } from "@openai/agents";
+import {
+  Agent,
+  assistant,
+  MaxTurnsExceededError,
+  ModelBehaviorError,
+  ModelRefusalError,
+  ModelTimeoutError,
+  OpenAIProvider,
+  Runner,
+  user,
+} from "@openai/agents";
 import OpenAI from "openai";
 import { z } from "zod";
 import type {
   PortfolioChatProvider,
+  PortfolioChatProviderFailureKind,
   PortfolioChatProviderInput,
 } from "./portfolio-chat-provider";
 import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
@@ -60,13 +71,32 @@ const portfolioAgentOutput = z.object({
   ),
 });
 
+class InvalidEvidenceOutputError extends Error {}
+
+function failureKind(
+  error: unknown,
+  signal: AbortSignal | undefined,
+): PortfolioChatProviderFailureKind {
+  if (signal?.aborted) return "aborted";
+  if (error instanceof InvalidEvidenceOutputError) {
+    return "invalid_evidence_output";
+  }
+  if (error instanceof ModelBehaviorError) return "invalid_final_output";
+  if (error instanceof MaxTurnsExceededError) return "max_turns";
+  if (error instanceof ModelRefusalError) return "model_refusal";
+  if (error instanceof ModelTimeoutError) return "provider_timeout";
+  return "provider_error";
+}
+
 function renderAgentOutput(
   output: z.infer<typeof portfolioAgentOutput>,
   evidence: PortfolioChatProviderInput["evidence"],
 ) {
   if (output.insufficientEvidence) {
     if (output.mode !== "portfolio" || output.sentences.length > 0) {
-      throw new Error("OpenAI agent returned an invalid evidence refusal.");
+      throw new InvalidEvidenceOutputError(
+        "OpenAI agent returned an invalid evidence refusal.",
+      );
     }
     return INSUFFICIENT_EVIDENCE_MESSAGE;
   }
@@ -76,16 +106,26 @@ function renderAgentOutput(
   );
   const sentences = output.sentences.map(({ text, evidenceIds }) => {
     const sentence = text.trim();
-    if (!sentence) throw new Error("OpenAI agent returned an empty sentence.");
+    if (!sentence) {
+      throw new InvalidEvidenceOutputError(
+        "OpenAI agent returned an empty sentence.",
+      );
+    }
     if (/\[E[1-9]\d*\]/.test(sentence)) {
-      throw new Error("OpenAI agent authored a citation label.");
+      throw new InvalidEvidenceOutputError(
+        "OpenAI agent authored a citation label.",
+      );
     }
     if (sentence === INSUFFICIENT_EVIDENCE_MESSAGE) {
-      throw new Error("OpenAI agent returned an inconsistent evidence refusal.");
+      throw new InvalidEvidenceOutputError(
+        "OpenAI agent returned an inconsistent evidence refusal.",
+      );
     }
     if (output.mode !== "portfolio") {
       if (evidenceIds.length > 0) {
-        throw new Error("OpenAI agent attached portfolio evidence off topic.");
+        throw new InvalidEvidenceOutputError(
+          "OpenAI agent attached portfolio evidence off topic.",
+        );
       }
       return sentence;
     }
@@ -95,14 +135,18 @@ function renderAgentOutput(
         evidenceIds.map((id) => {
           const number = evidenceNumbers.get(id);
           if (!number) {
-            throw new Error("OpenAI agent cited unknown evidence.");
+            throw new InvalidEvidenceOutputError(
+              "OpenAI agent cited unknown evidence.",
+            );
           }
           return number;
         }),
       ),
     ];
     if (citationNumbers.length === 0) {
-      throw new Error("OpenAI agent omitted portfolio evidence.");
+      throw new InvalidEvidenceOutputError(
+        "OpenAI agent omitted portfolio evidence.",
+      );
     }
     const citations = citationNumbers
       .map((number) => `[E${number}]`)
@@ -114,7 +158,7 @@ function renderAgentOutput(
     return `${citedSentences} ${citations}`;
   });
   if (sentences.length === 0) {
-    throw new Error("OpenAI agent returned no answer.");
+    throw new InvalidEvidenceOutputError("OpenAI agent returned no answer.");
   }
   return sentences.join("\n\n");
 }
@@ -174,7 +218,8 @@ export function createOpenAIPortfolioProvider({
           outputTokens: usage.outputTokens,
           totalTokens: usage.totalTokens,
         });
-      } catch {
+      } catch (error) {
+        input.onFailure?.(failureKind(error, input.signal));
         throw new Error("OpenAI agent run failed.");
       }
     },

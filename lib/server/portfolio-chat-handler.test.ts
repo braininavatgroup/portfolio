@@ -712,6 +712,43 @@ describe("portfolio chat route handler", () => {
     expect(serialized).not.toContain("pc_session-hash");
   });
 
+  it("records a bounded provider failure kind without exposing failure details", async () => {
+    const record = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onFailure }) {
+        onFailure?.("invalid_final_output");
+        yield await Promise.reject(
+          new Error("private malformed model output"),
+        );
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+      getRequestContext: () => ({
+        requestId: "request-provider-failure",
+        providerModel: "portfolio-model",
+      }),
+      record,
+    });
+
+    const response = await handler(questionRequest("How does pitching work?"));
+    const body = await response.text();
+
+    expect(body).toContain('"code":"provider_unavailable"');
+    expect(body).not.toContain("invalid_final_output");
+    expect(body).not.toContain("private malformed model output");
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "provider_unavailable",
+        providerFailureKind: "invalid_final_output",
+      }),
+    );
+    expect(JSON.stringify(record.mock.calls)).not.toContain(
+      "private malformed model output",
+    );
+  });
+
   it("delivers a validated cited segment before the provider finishes", async () => {
     let releaseProvider = () => {};
     let providerReleased = false;

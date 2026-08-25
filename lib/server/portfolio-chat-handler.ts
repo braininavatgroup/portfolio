@@ -11,6 +11,7 @@ import {
 import {
   INSUFFICIENT_EVIDENCE_MESSAGE,
   type PortfolioChatProvider,
+  type PortfolioChatProviderFailureKind,
   type PortfolioChatProviderUsage,
 } from "./portfolio-chat-provider";
 import {
@@ -39,6 +40,7 @@ export type PortfolioChatStreamEvent = {
   answerCharacters: number;
   providerModel: string;
   usage?: PortfolioChatProviderUsage;
+  providerFailureKind?: PortfolioChatProviderFailureKind;
 };
 
 type PortfolioChatHandlerDependencies = {
@@ -503,6 +505,7 @@ export function createPortfolioChatHandler({
       let outcome: PortfolioChatStreamEvent["outcome"] = "answered";
       let answerCharacters = 0;
       let usage: PortfolioChatProviderUsage | undefined;
+      let providerFailureKind: PortfolioChatProviderFailureKind | undefined;
       let finished = false;
       let preservePartialAnswer = true;
       const markProviderUnavailable = () => {
@@ -546,6 +549,7 @@ export function createPortfolioChatHandler({
           answerCharacters,
           providerModel: context.providerModel,
           ...(usage ? { usage } : {}),
+          ...(providerFailureKind ? { providerFailureKind } : {}),
         });
       };
       send({ type: "evidence", evidence: grounding.evidence });
@@ -580,6 +584,9 @@ export function createPortfolioChatHandler({
           },
           onUsage: (reportedUsage) => {
             usage = reportedUsage;
+          },
+          onFailure: (kind) => {
+            providerFailureKind = kind;
           },
         });
         const iterator = providerDeltas[Symbol.asyncIterator]();
