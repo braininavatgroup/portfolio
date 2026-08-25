@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
+import {
+  INSUFFICIENT_EVIDENCE_MESSAGE,
+  type PortfolioChatProviderInput,
+} from "./portfolio-chat-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
-import type { PortfolioChatProviderInput } from "./portfolio-chat-provider";
 
 const evidence: PortfolioGroundingEvidence[] = [
   {
@@ -15,98 +18,206 @@ const evidence: PortfolioGroundingEvidence[] = [
   },
 ];
 
-function sseResponse(events: object[]) {
-  const encoder = new TextEncoder();
-  return new Response(
-    new ReadableStream({
-      start(controller) {
-        for (const event of events) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        }
-        controller.close();
-      },
-    }),
-    { status: 200, headers: { "content-type": "text/event-stream" } },
-  );
-}
+const secondEvidence: PortfolioGroundingEvidence = {
+  id: "project:reporting",
+  title: "Campaign reporting",
+  excerpt: "Reporting turns campaign activity into a reviewable record.",
+  href: "/index/reporting",
+  evidenceStatus: "needed",
+  projectTitle: "Campaign reporting",
+};
 
-function completedEvent(
-  text: string,
+type StructuredOutput = {
+  mode: "portfolio" | "social" | "general";
+  insufficientEvidence: boolean;
+  sentences: Array<{ text: string; evidenceIds: string[] }>;
+};
+
+function completedResponse(
+  output: StructuredOutput | string,
   usage?: { input_tokens: number; output_tokens: number; total_tokens: number },
 ) {
-  return {
-    type: "response.completed",
-    response: {
-      id: "resp_portfolio_test",
-      output: [
-        {
-          id: "msg_portfolio_test",
-          type: "message",
-          role: "assistant",
-          status: "completed",
-          content: [{ type: "output_text", text, annotations: [] }],
-        },
-      ],
-      usage,
-    },
-  };
+  const text = typeof output === "string" ? output : JSON.stringify(output);
+  return Response.json({
+    id: "resp_portfolio_test",
+    output: [
+      {
+        id: "msg_portfolio_test",
+        type: "message",
+        role: "assistant",
+        status: "completed",
+        content: [{ type: "output_text", text, annotations: [] }],
+      },
+    ],
+    usage,
+  });
 }
 
-function incompleteEvent() {
-  return {
-    type: "response.incomplete",
-    response: {
-      id: "resp_portfolio_incomplete_test",
-      output: [],
-    },
-  };
+function portfolioOutput(
+  sentences: StructuredOutput["sentences"],
+): StructuredOutput {
+  return { mode: "portfolio", insufficientEvidence: false, sentences };
 }
 
 describe("OpenAI portfolio provider", () => {
-  it("classifies the turn in-band without exposing the mode marker", async () => {
+  it("renders portfolio citations from structured evidence ids instead of model-authored labels", async () => {
+    let requestBody = "";
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async (_input, init) => {
+        requestBody = String(init?.body);
+        return completedResponse(
+          portfolioOutput([
+            {
+              text: "Human approval stays explicit.",
+              evidenceIds: ["project:pitching"],
+            },
+            {
+              text: "The system arranges research and outreach around that approval.",
+              evidenceIds: ["project:pitching"],
+            },
+          ]),
+          { input_tokens: 37, output_tokens: 29, total_tokens: 66 },
+        );
+      },
+    });
+
+    const chunks: string[] = [];
+    const onMode = vi.fn();
+    const onUsage = vi.fn();
+    for await (const chunk of provider.streamAnswer({
+      question: "How does pitching preserve approval?",
+      evidence,
+      onMode,
+      onUsage,
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      "Human approval stays explicit. [E1]\n\nThe system arranges research and outreach around that approval. [E1]",
+    ]);
+    expect(onMode).toHaveBeenCalledWith("portfolio");
+    expect(onUsage).toHaveBeenCalledWith({
+      inputTokens: 37,
+      outputTokens: 29,
+      totalTokens: 66,
+    });
+
+    const body = JSON.parse(requestBody);
+    expect(body.stream).toBe(false);
+    expect(body.text?.format).toMatchObject({
+      type: "json_schema",
+      strict: true,
+    });
+    expect(body.instructions).not.toContain(
+      "Every factual sentence must end with one or more evidence labels",
+    );
+  });
+
+  it("cites every sentence when the model groups sentences into one structured item", async () => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse(
+          portfolioOutput([
+            {
+              text: "Human approval stays explicit. Research and outreach lead into it.",
+              evidenceIds: ["project:pitching"],
+            },
+          ]),
+        ),
+    });
+
+    const chunks: string[] = [];
+    for await (const chunk of provider.streamAnswer({
+      question: "How does pitching preserve approval?",
+      evidence,
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([
+      "Human approval stays explicit. [E1] Research and outreach lead into it. [E1]",
+    ]);
+  });
+
+  it.each(["portfolio", "general"] as const)(
+    "rejects model-authored citation labels in %s text",
+    async (mode) => {
+      const provider = createOpenAIPortfolioProvider({
+        apiKey: "sk-test-server-only",
+        model: "portfolio-model-test",
+        fetchImplementation: async () =>
+          completedResponse({
+            mode,
+            insufficientEvidence: false,
+            sentences: [
+              {
+                text: "The model tried to attach another source. [E2]",
+                evidenceIds:
+                  mode === "portfolio" ? ["project:pitching"] : [],
+              },
+            ],
+          }),
+      });
+
+      await expect(async () => {
+        for await (const chunk of provider.streamAnswer({
+          question: "How does pitching work?",
+          evidence: [...evidence, secondEvidence],
+        })) {
+          throw new Error(`Unexpected provider output: ${chunk}`);
+        }
+      }).rejects.toThrow("OpenAI agent run failed.");
+    },
+  );
+
+  it.each([
+    ["social", "Not much, what's up?"],
+    ["general", "Keep the blade at a steady angle."],
+  ] as const)("returns an uncited %s answer from the structured result", async (mode, answer) => {
     const onMode = vi.fn();
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
       fetchImplementation: async () =>
-        sseResponse([
-          { type: "response.output_text.delta", delta: "MODE: so" },
-          { type: "response.output_text.delta", delta: "cial\nNot much—what's up?" },
-          completedEvent("MODE: social\nNot much—what's up?"),
-        ]),
+        completedResponse({
+          mode,
+          insufficientEvidence: false,
+          sentences: [{ text: answer, evidenceIds: [] }],
+        }),
     });
-    const input = {
-      question: "what up doe",
-      evidence,
-      onMode,
-    } as unknown as PortfolioChatProviderInput;
 
     const chunks: string[] = [];
-    for await (const chunk of provider.streamAnswer(input)) chunks.push(chunk);
+    for await (const chunk of provider.streamAnswer({
+      question: mode === "social" ? "what up doe" : "How do I sharpen a knife?",
+      evidence,
+      onMode,
+    })) {
+      chunks.push(chunk);
+    }
 
-    expect(onMode).toHaveBeenCalledOnce();
-    expect(onMode).toHaveBeenCalledWith("social");
-    expect(chunks.join("")).toBe("Not much—what's up?");
+    expect(onMode).toHaveBeenCalledWith(mode);
+    expect(chunks).toEqual([answer]);
   });
 
-  it("streams only text deltas while keeping the key in the server request header", async () => {
+  it("keeps credentials server-side and sends the bounded model configuration", async () => {
     const apiKey = "sk-test-server-only";
     const requests: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
     const fetchImplementation: typeof fetch = async (input, init) => {
       requests.push([input, init]);
-      return sseResponse([
-        { type: "response.created" },
-        {
-          type: "response.output_text.delta",
-          delta: "MODE: portfolio\nHuman approval ",
-        },
-        { type: "response.output_text.delta", delta: "stays explicit. [E1]" },
-        completedEvent("MODE: portfolio\nHuman approval stays explicit. [E1]", {
-          input_tokens: 37,
-          output_tokens: 11,
-          total_tokens: 48,
-        }),
-      ]);
+      return completedResponse(
+        portfolioOutput([
+          {
+            text: "Human approval stays explicit.",
+            evidenceIds: ["project:pitching"],
+          },
+        ]),
+        { input_tokens: 37, output_tokens: 11, total_tokens: 48 },
+      );
     };
     const provider = createOpenAIPortfolioProvider({
       apiKey,
@@ -117,22 +228,17 @@ describe("OpenAI portfolio provider", () => {
 
     const chunks: string[] = [];
     const onUsage = vi.fn();
-    const onMode = vi.fn();
     for await (const chunk of provider.streamAnswer({
       question: "How does pitching preserve approval?",
       evidence,
       safetyIdentifier: "pc_anonymous-session-hash",
       visitState: { generalTurns: 2, portfolioNudgeShown: false },
-      onMode,
       onUsage,
     })) {
       chunks.push(chunk);
     }
 
-    expect(chunks).toEqual(["Human approval ", "stays explicit. [E1]"]);
-    expect(onMode).toHaveBeenCalledWith("portfolio");
     expect(chunks.join("")).not.toContain(apiKey);
-
     const [url, init] = requests[0] ?? [];
     expect(url).toBe("https://api.openai.com/v1/responses");
     expect(new Headers(init?.headers).get("authorization")).toBe(
@@ -141,35 +247,22 @@ describe("OpenAI portfolio provider", () => {
     const body = JSON.parse(String(init?.body));
     expect(body).toMatchObject({
       model: "portfolio-model-test",
-      stream: true,
+      stream: false,
       store: false,
       max_output_tokens: 3_000,
       reasoning: { effort: "medium" },
       safety_identifier: "pc_anonymous-session-hash",
+      text: { format: { type: "json_schema", strict: true } },
     });
     expect(JSON.stringify(body)).toContain("project:pitching");
     expect(JSON.stringify(body)).toContain(
       "Use only the supplied portfolio evidence",
     );
-    expect(JSON.stringify(body)).toContain(
-      "You are the conversational guide to Bradley Berkman's portfolio",
-    );
-    expect(JSON.stringify(body)).toContain(
-      "editorial maturity metadata, not a restriction on using the published text",
-    );
-    expect(JSON.stringify(body)).toContain(
-      "answer directly and use only as much detail as the visitor's question needs",
-    );
-    expect(JSON.stringify(body)).toContain("MODE: portfolio");
     expect(JSON.stringify(body)).toContain("Social chat is unlimited");
     expect(JSON.stringify(body)).toContain(
       "Never add a portfolio nudge; the application owns",
     );
-    expect(JSON.stringify(body)).toContain(
-      "stands on its own without knowing Bradley",
-    );
     expect(JSON.stringify(body)).not.toContain("Visit routing state");
-    expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
       inputTokens: 37,
       outputTokens: 11,
@@ -184,13 +277,11 @@ describe("OpenAI portfolio provider", () => {
       model: "portfolio-model-test",
       fetchImplementation: async (_input, init) => {
         requestBody = String(init?.body);
-        return sseResponse([
-          {
-            type: "response.output_text.delta",
-            delta: "MODE: portfolio\nGrounded. [E1]",
-          },
-          completedEvent("MODE: portfolio\nGrounded. [E1]"),
-        ]);
+        return completedResponse(
+          portfolioOutput([
+            { text: "Grounded.", evidenceIds: ["project:pitching"] },
+          ]),
+        );
       },
     });
 
@@ -202,8 +293,7 @@ describe("OpenAI portfolio provider", () => {
       ],
       evidence,
     })) {
-      expect(typeof chunk).toBe("string");
-      // Drain the stream.
+      expect(chunk).toBe("Grounded. [E1]");
     }
 
     expect(requestBody).toContain("Follow-up context only");
@@ -211,6 +301,116 @@ describe("OpenAI portfolio provider", () => {
     expect(requestBody).toContain("Assistant: It keeps approval human. [E1]");
     expect(requestBody).toContain("Current question: What changed?");
     expect(requestBody).toContain("project:pitching");
+  });
+
+  it("returns the exact evidence refusal from a structured portfolio result", async () => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse({
+          mode: "portfolio",
+          insufficientEvidence: true,
+          sentences: [],
+        }),
+    });
+
+    const chunks: string[] = [];
+    for await (const chunk of provider.streamAnswer({
+      question: "What is Bradley's favorite soup?",
+      evidence,
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual([INSUFFICIENT_EVIDENCE_MESSAGE]);
+  });
+
+  it("rejects an evidence refusal outside portfolio mode", async () => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse({
+          mode: "general",
+          insufficientEvidence: true,
+          sentences: [],
+        }),
+    });
+
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({
+        question: "How do I sharpen a knife?",
+        evidence,
+      })) {
+        throw new Error(`Unexpected provider output: ${chunk}`);
+      }
+    }).rejects.toThrow("OpenAI agent run failed.");
+  });
+
+  it.each([
+    [
+      "evidence ids outside portfolio mode",
+      {
+        mode: "general" as const,
+        insufficientEvidence: false,
+        sentences: [
+          {
+            text: "Keep the blade at a steady angle.",
+            evidenceIds: ["project:pitching"],
+          },
+        ],
+      },
+    ],
+    [
+      "the refusal text when insufficientEvidence is false",
+      portfolioOutput([
+        {
+          text: INSUFFICIENT_EVIDENCE_MESSAGE,
+          evidenceIds: ["project:pitching"],
+        },
+      ]),
+    ],
+  ])("rejects %s", async (_label, output) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () => completedResponse(output),
+    });
+
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({
+        question: "How does pitching work?",
+        evidence,
+      })) {
+        throw new Error(`Unexpected provider output: ${chunk}`);
+      }
+    }).rejects.toThrow("OpenAI agent run failed.");
+  });
+
+  it.each([
+    ["malformed structured output", "not json"],
+    [
+      "an unknown evidence id",
+      portfolioOutput([
+        { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
+      ]),
+    ],
+  ])("rejects %s without exposing it", async (_label, output) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () => completedResponse(output),
+    });
+
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({
+        question: "How does pitching work?",
+        evidence,
+      })) {
+        throw new Error(`Unexpected provider output: ${chunk}`);
+      }
+    }).rejects.toThrow("OpenAI agent run failed.");
   });
 
   it("does not expose an upstream error body", async () => {
@@ -238,88 +438,29 @@ describe("OpenAI portfolio provider", () => {
     expect(message).not.toContain(upstreamSecret);
   });
 
-  it("rejects a completed response without exposing a missing mode marker", async () => {
-    const provider = createOpenAIPortfolioProvider({
-      apiKey: "sk-test-server-only",
-      model: "portfolio-model-test",
-      fetchImplementation: async () =>
-        sseResponse([
-          { type: "response.output_text.delta", delta: "Unclassified answer" },
-          completedEvent("Unclassified answer"),
-        ]),
-    });
-    const chunks: string[] = [];
-
-    await expect(async () => {
-      for await (const chunk of provider.streamAnswer({
-        question: "what up doe",
-        evidence,
-      })) {
-        chunks.push(chunk);
-      }
-    }).rejects.toThrow("OpenAI agent run failed.");
-    expect(chunks).toEqual([]);
-  });
-
-  it("parses CRLF event boundaries split across transport chunks", async () => {
-    const encoder = new TextEncoder();
-    const chunks = [
-      'data: {"type":"response.output_text.delta","delta":"MODE: portfolio\\nGrounded. [E1]"}\r',
-      "\n\r",
-      `\ndata: ${JSON.stringify(completedEvent("MODE: portfolio\nGrounded. [E1]"))}\r\n\r\n`,
-    ];
+  it("passes the request abort signal to the OpenAI fetch", async () => {
+    const signal = new AbortController().signal;
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
       fetchImplementation: async (_input, init) => {
         expect(init?.signal).toBeInstanceOf(AbortSignal);
-        return new Response(
-          new ReadableStream({
-            start(controller) {
-              for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
-              controller.close();
-            },
-          }),
-          { status: 200 },
+        return completedResponse(
+          portfolioOutput([
+            { text: "Grounded.", evidenceIds: ["project:pitching"] },
+          ]),
         );
       },
     });
 
-    const output: string[] = [];
+    const chunks: string[] = [];
     for await (const chunk of provider.streamAnswer({
       question: "How does pitching work?",
       evidence,
-      signal: new AbortController().signal,
-    })) {
-      output.push(chunk);
+      signal,
+    } as PortfolioChatProviderInput)) {
+      chunks.push(chunk);
     }
-    expect(output).toEqual(["Grounded. [E1]"]);
-  });
-
-  it.each([
-    { events: [incompleteEvent()] },
-    {
-      events: [
-        {
-          type: "response.output_text.delta",
-          delta: "MODE: portfolio\nTruncated. [E1]",
-        },
-      ],
-    },
-  ])("rejects streams that do not complete successfully", async ({ events }) => {
-    const provider = createOpenAIPortfolioProvider({
-      apiKey: "sk-test-server-only",
-      model: "portfolio-model-test",
-      fetchImplementation: async () => sseResponse(events),
-    });
-
-    await expect(async () => {
-      for await (const chunk of provider.streamAnswer({
-        question: "How does pitching work?",
-        evidence,
-      })) {
-        expect(typeof chunk).toBe("string");
-      }
-    }).rejects.toThrow("OpenAI agent run failed.");
+    expect(chunks).toEqual(["Grounded. [E1]"]);
   });
 });
