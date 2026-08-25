@@ -33,7 +33,7 @@ function groundedInput({ question, evidence, conversation }: PortfolioChatProvid
 }
 
 const portfolioAgentInstructions =
-  `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. For supported questions, answer in two to five concise sentences and prioritize the requested detail within that limit. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`;
+  `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Answer directly and use only as much detail as the visitor's question needs. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`;
 
 export function createOpenAIPortfolioProvider({
   apiKey,
@@ -61,7 +61,7 @@ export function createOpenAIPortfolioProvider({
         instructions: portfolioAgentInstructions,
         model,
         modelSettings: {
-          maxTokens: 450,
+          maxTokens: 3_000,
           store: false,
           ...(reasoningEffort
             ? { reasoning: { effort: reasoningEffort } }

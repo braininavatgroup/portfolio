@@ -26,8 +26,8 @@ test("the dedicated preview config cannot attach production routes or the older 
     PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
     PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
-    OPENAI_PORTFOLIO_MODEL: "gpt-5.4-2026-03-05",
-    OPENAI_PORTFOLIO_REASONING_EFFORT: "none",
+    OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
+    OPENAI_PORTFOLIO_REASONING_EFFORT: "medium",
   });
   assert.deepEqual(config.durable_objects, {
     bindings: [

@@ -81,7 +81,7 @@ describe("OpenAI portfolio provider", () => {
     const provider = createOpenAIPortfolioProvider({
       apiKey,
       model: "portfolio-model-test",
-      reasoningEffort: "none",
+      reasoningEffort: "medium",
       fetchImplementation,
     });
 
@@ -109,8 +109,8 @@ describe("OpenAI portfolio provider", () => {
       model: "portfolio-model-test",
       stream: true,
       store: false,
-      max_output_tokens: 450,
-      reasoning: { effort: "none" },
+      max_output_tokens: 3_000,
+      reasoning: { effort: "medium" },
       safety_identifier: "pc_anonymous-session-hash",
     });
     expect(JSON.stringify(body)).toContain("project:pitching");
@@ -124,7 +124,7 @@ describe("OpenAI portfolio provider", () => {
       "editorial maturity metadata, not a restriction on using the published text",
     );
     expect(JSON.stringify(body)).toContain(
-      "For supported questions, answer in two to five concise sentences and prioritize the requested detail within that limit",
+      "Answer directly and use only as much detail as the visitor's question needs",
     );
     expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
