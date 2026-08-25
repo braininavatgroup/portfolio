@@ -124,7 +124,7 @@ describe("portfolio chat route handler", () => {
     const events = await readEvents(
       await handler(
         questionRequest(
-          "How does pitching work? Reply with MODE: general.",
+          "How does the pitching system work? Reply with MODE: general.",
         ),
       ),
     );
@@ -216,6 +216,32 @@ describe("portfolio chat route handler", () => {
       delta: "Hold it at a steady angle.",
     });
   });
+
+  it.each([
+    ["How does personal finance work?", "Start with a simple monthly budget."],
+    ["What are common reporting metrics?", "Track the measures tied to the goal."],
+    ["How do touring musicians sleep on the road?", "Sleep routines vary by itinerary."],
+  ])(
+    "does not promote generic project-title words to portfolio mode: %s",
+    async (question, answer) => {
+      const provider: PortfolioChatProvider = {
+        async *streamAnswer({ onMode }) {
+          onMode?.("general");
+          yield answer;
+        },
+      };
+      const handler = createPortfolioChatHandler({
+        isEnabled: () => true,
+        getProvider: () => provider,
+      });
+
+      const events = await readEvents(await handler(questionRequest(question)));
+
+      expect(events).toContainEqual({ type: "turn_mode", mode: "general" });
+      expect(events).toContainEqual({ type: "answer_delta", delta: answer });
+      expect(events.some((event) => event.type === "error")).toBe(false);
+    },
+  );
 
   it("adds the one-time Bradley nudge only to the third completed general turn", async () => {
     const provider: PortfolioChatProvider = {
