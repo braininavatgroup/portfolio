@@ -1,3 +1,5 @@
+import { Agent, OpenAIProvider, Runner } from "@openai/agents";
+import OpenAI from "openai";
 import type {
   PortfolioChatProvider,
   PortfolioChatProviderInput,
@@ -10,29 +12,6 @@ type OpenAIPortfolioProviderOptions = {
   reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
   fetchImplementation?: typeof fetch;
 };
-
-type OpenAIStreamEvent = {
-  type?: unknown;
-  delta?: unknown;
-  response?: unknown;
-};
-
-function usageFromEvent(event: OpenAIStreamEvent) {
-  if (!event.response || typeof event.response !== "object") return undefined;
-  const usage = Reflect.get(event.response, "usage");
-  if (!usage || typeof usage !== "object") return undefined;
-  const inputTokens = Reflect.get(usage, "input_tokens");
-  const outputTokens = Reflect.get(usage, "output_tokens");
-  const totalTokens = Reflect.get(usage, "total_tokens");
-  if (
-    typeof inputTokens !== "number" ||
-    typeof outputTokens !== "number" ||
-    typeof totalTokens !== "number"
-  ) {
-    return undefined;
-  }
-  return { inputTokens, outputTokens, totalTokens };
-}
 
 function conversationContext(conversation: PortfolioChatProviderInput["conversation"]) {
   if (!conversation?.length) return "";
@@ -53,45 +32,8 @@ function groundedInput({ question, evidence, conversation }: PortfolioChatProvid
   return `${conversationContext(conversation)}Current question: ${question}\n\nPortfolio evidence:\n${sources}`;
 }
 
-async function* parseServerSentEvents(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<OpenAIStreamEvent> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      buffer += decoder.decode(value, { stream: !done });
-      buffer = buffer.replaceAll("\r\n", "\n");
-      if (done && buffer.trim()) buffer += "\n\n";
-
-      let boundary = buffer.indexOf("\n\n");
-      while (boundary >= 0) {
-        const block = buffer.slice(0, boundary);
-        buffer = buffer.slice(boundary + 2);
-        const data = block
-          .split("\n")
-          .filter((line) => line.startsWith("data:"))
-          .map((line) => line.slice(5).trimStart())
-          .join("\n");
-
-        if (data && data !== "[DONE]") {
-          const parsed: unknown = JSON.parse(data);
-          if (parsed && typeof parsed === "object") {
-            yield parsed as OpenAIStreamEvent;
-          }
-        }
-        boundary = buffer.indexOf("\n\n");
-      }
-
-      if (done) break;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+const portfolioAgentInstructions =
+  `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Answer directly and use only as much detail as the visitor's question needs. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`;
 
 export function createOpenAIPortfolioProvider({
   apiKey,
@@ -99,60 +41,66 @@ export function createOpenAIPortfolioProvider({
   reasoningEffort,
   fetchImplementation = fetch,
 }: OpenAIPortfolioProviderOptions): PortfolioChatProvider {
+  const openAIClient = new OpenAI({
+    apiKey,
+    fetch: fetchImplementation,
+    maxRetries: 0,
+  });
+  const runner = new Runner({
+    modelProvider: new OpenAIProvider({
+      openAIClient,
+      useResponses: true,
+    }),
+    tracingDisabled: true,
+  });
+
   return {
     async *streamAnswer(input) {
-      const response = await fetchImplementation(
-        "https://api.openai.com/v1/responses",
-        {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${apiKey}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            stream: true,
-            store: false,
-            max_output_tokens: 450,
-            ...(reasoningEffort
-              ? { reasoning: { effort: reasoningEffort } }
-              : {}),
-            ...(input.safetyIdentifier
-              ? { safety_identifier: input.safetyIdentifier }
-              : {}),
-            instructions:
-              `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. For supported questions, answer in two to five concise sentences and prioritize the requested detail within that limit. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`,
-            input: groundedInput(input),
-          }),
-          signal: input.signal,
+      const agent = new Agent({
+        name: "Bradley portfolio guide",
+        instructions: portfolioAgentInstructions,
+        model,
+        modelSettings: {
+          maxTokens: 3_000,
+          store: false,
+          ...(reasoningEffort
+            ? { reasoning: { effort: reasoningEffort } }
+            : {}),
+          ...(input.safetyIdentifier
+            ? {
+                providerData: {
+                  safety_identifier: input.safetyIdentifier,
+                },
+              }
+            : {}),
         },
-      );
+      });
+      const result = await runner.run(agent, groundedInput(input), {
+        stream: true,
+        maxTurns: 1,
+        signal: input.signal,
+      });
+      let answerCharacters = 0;
 
-      if (!response.ok || !response.body) {
-        if (response.body) await response.body.cancel();
-        throw new Error("OpenAI response request failed.");
+      try {
+        for await (const delta of result.toTextStream()) {
+          answerCharacters += delta.length;
+          yield delta;
+        }
+        await result.completed;
+        if (result.error || answerCharacters === 0 || !result.finalOutput) {
+          throw result.error ?? new Error("OpenAI agent returned no answer.");
+        }
+        const usage = result.state.usage;
+        input.onUsage?.({
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          totalTokens: usage.totalTokens,
+        });
+      } catch {
+        await result.completed.catch(() => {});
+        throw new Error("OpenAI agent run failed.");
       }
-
-      let completed = false;
-      for await (const event of parseServerSentEvents(response.body)) {
-        if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
-          yield event.delta;
-        }
-        if (event.type === "response.completed") {
-          completed = true;
-          const usage = usageFromEvent(event);
-          if (usage) input.onUsage?.(usage);
-        }
-        if (
-          event.type === "response.failed" ||
-          event.type === "response.incomplete" ||
-          event.type === "error" ||
-          (typeof event.type === "string" && event.type.startsWith("response.refusal"))
-        ) {
-          throw new Error("OpenAI response stream failed.");
-        }
-      }
-      if (!completed) throw new Error("OpenAI response stream failed.");
     },
   };
 }

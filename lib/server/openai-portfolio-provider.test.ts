@@ -29,6 +29,38 @@ function sseResponse(events: object[]) {
   );
 }
 
+function completedEvent(
+  text: string,
+  usage?: { input_tokens: number; output_tokens: number; total_tokens: number },
+) {
+  return {
+    type: "response.completed",
+    response: {
+      id: "resp_portfolio_test",
+      output: [
+        {
+          id: "msg_portfolio_test",
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text, annotations: [] }],
+        },
+      ],
+      usage,
+    },
+  };
+}
+
+function incompleteEvent() {
+  return {
+    type: "response.incomplete",
+    response: {
+      id: "resp_portfolio_incomplete_test",
+      output: [],
+    },
+  };
+}
+
 describe("OpenAI portfolio provider", () => {
   it("streams only text deltas while keeping the key in the server request header", async () => {
     const apiKey = "sk-test-server-only";
@@ -39,23 +71,17 @@ describe("OpenAI portfolio provider", () => {
         { type: "response.created" },
         { type: "response.output_text.delta", delta: "Human approval " },
         { type: "response.output_text.delta", delta: "stays explicit. [E1]" },
-        {
-          type: "response.completed",
-          response: {
-            status: "completed",
-            usage: {
-              input_tokens: 37,
-              output_tokens: 11,
-              total_tokens: 48,
-            },
-          },
-        },
+        completedEvent("Human approval stays explicit. [E1]", {
+          input_tokens: 37,
+          output_tokens: 11,
+          total_tokens: 48,
+        }),
       ]);
     };
     const provider = createOpenAIPortfolioProvider({
       apiKey,
       model: "portfolio-model-test",
-      reasoningEffort: "low",
+      reasoningEffort: "medium",
       fetchImplementation,
     });
 
@@ -83,7 +109,8 @@ describe("OpenAI portfolio provider", () => {
       model: "portfolio-model-test",
       stream: true,
       store: false,
-      reasoning: { effort: "low" },
+      max_output_tokens: 3_000,
+      reasoning: { effort: "medium" },
       safety_identifier: "pc_anonymous-session-hash",
     });
     expect(JSON.stringify(body)).toContain("project:pitching");
@@ -97,7 +124,7 @@ describe("OpenAI portfolio provider", () => {
       "editorial maturity metadata, not a restriction on using the published text",
     );
     expect(JSON.stringify(body)).toContain(
-      "For supported questions, answer in two to five concise sentences and prioritize the requested detail within that limit",
+      "Answer directly and use only as much detail as the visitor's question needs",
     );
     expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
@@ -116,7 +143,7 @@ describe("OpenAI portfolio provider", () => {
         requestBody = String(init?.body);
         return sseResponse([
           { type: "response.output_text.delta", delta: "Grounded. [E1]" },
-          { type: "response.completed", response: { status: "completed" } },
+          completedEvent("Grounded. [E1]"),
         ]);
       },
     });
@@ -161,7 +188,7 @@ describe("OpenAI portfolio provider", () => {
       message = error instanceof Error ? error.message : String(error);
     }
 
-    expect(message).toBe("OpenAI response request failed.");
+    expect(message).toBe("OpenAI agent run failed.");
     expect(message).not.toContain(upstreamSecret);
   });
 
@@ -170,7 +197,7 @@ describe("OpenAI portfolio provider", () => {
     const chunks = [
       'data: {"type":"response.output_text.delta","delta":"Grounded. [E1]"}\r',
       "\n\r",
-      '\ndata: {"type":"response.completed","response":{"status":"completed"}}\r\n\r\n',
+      `\ndata: ${JSON.stringify(completedEvent("Grounded. [E1]"))}\r\n\r\n`,
     ];
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
@@ -201,7 +228,7 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it.each([
-    { events: [{ type: "response.incomplete" }] },
+    { events: [incompleteEvent()] },
     { events: [{ type: "response.output_text.delta", delta: "Truncated. [E1]" }] },
   ])("rejects streams that do not complete successfully", async ({ events }) => {
     const provider = createOpenAIPortfolioProvider({
@@ -217,6 +244,6 @@ describe("OpenAI portfolio provider", () => {
       })) {
         expect(typeof chunk).toBe("string");
       }
-    }).rejects.toThrow("OpenAI response stream failed.");
+    }).rejects.toThrow("OpenAI agent run failed.");
   });
 });

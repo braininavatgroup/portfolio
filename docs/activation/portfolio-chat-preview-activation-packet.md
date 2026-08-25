@@ -1,8 +1,9 @@
 # Portfolio chat preview activation packet
 
-Status: BIV-317 authorizes one single-operator preview deployment. No deployment
-has been recorded yet. Cloudflare reported that `bradley-portfolio-preview` did
-not exist on 2026-08-24 at 16:51 America/New_York.
+Status: BIV-317 authorizes and records the bounded single-operator preview. Its
+current live or contained state, immutable version IDs, artifact digest, smoke
+evidence, and exact expiry are maintained on the Linear issue. This packet owns
+the deployment and rollback procedure.
 
 ## Bound release
 
@@ -30,13 +31,16 @@ not exist on 2026-08-24 at 16:51 America/New_York.
 | `PORTFOLIO_CHAT_PREVIEW_ENABLED` | `false` |
 | `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `false` |
 | `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `200` |
-| `OPENAI_PORTFOLIO_MODEL` | `gpt-5.4-2026-03-05` |
-| `OPENAI_PORTFOLIO_REASONING_EFFORT` | `low` |
+| `OPENAI_PORTFOLIO_MODEL` | `gpt-5.6-terra` |
+| `OPENAI_PORTFOLIO_REASONING_EFFORT` | `medium` |
 
-The existing provider ceiling remains 450 output tokens. Store
+The provider ceiling is 3,000 output tokens, shared between model reasoning and
+the visible answer. Store
 `OPENAI_API_KEY` only as an encrypted Worker secret. Do not configure the older
 preview access code, session secret, Turnstile keys, chat route limiter, or
-preview-attempt route limiter for this Worker.
+preview-attempt route limiter for this Worker. The OpenAI Agents SDK runner has
+one text agent, one model turn, no tools or handoffs, no persistent session,
+response storage disabled, and tracing disabled.
 
 The config binds `PORTFOLIO_CHAT_BUDGET` to
 `PortfolioChatBudgetObject` and provisions it with the `v1`
