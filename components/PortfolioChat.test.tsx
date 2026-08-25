@@ -42,9 +42,13 @@ describe("portfolio chat", () => {
       onEvent({ type: "done" });
     };
     const avatarIntegration = {
-      onTurnStart: () => lifecycle.push("turn-start"),
+      onTurnStart: () => {
+        lifecycle.push("turn-start");
+      },
       onEvidence: () => {},
-      onFirstText: () => lifecycle.push("talking"),
+      onFirstText: () => {
+        lifecycle.push("talking");
+      },
       onEffects: () => {
         lifecycle.push(
           screen.queryByText("Text leads. [E1]")
@@ -54,7 +58,9 @@ describe("portfolio chat", () => {
       },
       onNotice: () => {},
       onError: () => {},
-      onComplete: () => lifecycle.push("done"),
+      onComplete: () => {
+        lifecycle.push("done");
+      },
     };
 
     render(
@@ -100,10 +106,14 @@ describe("portfolio chat", () => {
           onTurnStart: () => {},
           onEvidence: () => {},
           onFirstText: () => {},
-          onEffects: () => effects.push("effect"),
+          onEffects: () => {
+            effects.push("effect");
+          },
           onNotice: () => {},
           onError: () => {},
-          onComplete: () => effects.push("done"),
+          onComplete: () => {
+            effects.push("done");
+          },
         }}
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
@@ -171,13 +181,27 @@ describe("portfolio chat", () => {
       onEvent({ type: "done" });
     };
     const avatarIntegration = {
-      onTurnStart: () => lifecycle.push("submit"),
-      onEvidence: () => lifecycle.push("evidence"),
-      onFirstText: () => lifecycle.push("first-text"),
-      onEffects: () => lifecycle.push("effects"),
-      onNotice: () => lifecycle.push("notice"),
-      onError: () => lifecycle.push("error"),
-      onComplete: () => lifecycle.push("done"),
+      onTurnStart: () => {
+        lifecycle.push("submit");
+      },
+      onEvidence: () => {
+        lifecycle.push("evidence");
+      },
+      onFirstText: () => {
+        lifecycle.push("first-text");
+      },
+      onEffects: () => {
+        lifecycle.push("effects");
+      },
+      onNotice: () => {
+        lifecycle.push("notice");
+      },
+      onError: () => {
+        lifecycle.push("error");
+      },
+      onComplete: () => {
+        lifecycle.push("done");
+      },
     };
 
     render(
@@ -251,10 +275,14 @@ describe("portfolio chat", () => {
     const effects: string[] = [];
     const starts: string[] = [];
     const avatarIntegration = {
-      onTurnStart: () => starts.push("start"),
+      onTurnStart: () => {
+        starts.push("start");
+      },
       onEvidence: () => {},
       onFirstText: () => {},
-      onEffects: () => effects.push("effect"),
+      onEffects: () => {
+        effects.push("effect");
+      },
       onNotice: () => {},
       onError: () => {},
       onComplete: () => {},

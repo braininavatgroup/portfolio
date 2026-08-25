@@ -632,11 +632,10 @@ export function createPortfolioChatHandler({
             code: "insufficient_evidence",
             message: INSUFFICIENT_EVIDENCE_MESSAGE,
           });
-        } else if (
-          error instanceof MixedEvidenceResultError ||
-          error instanceof InvalidAttributionError
-        ) {
+        } else if (error instanceof MixedEvidenceResultError) {
           markInvalidProviderOutput();
+        } else if (error instanceof InvalidAttributionError) {
+          markProviderUnavailable();
         } else {
           markProviderUnavailable();
         }
