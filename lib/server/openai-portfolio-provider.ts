@@ -1,5 +1,6 @@
 import { Agent, OpenAIProvider, Runner } from "@openai/agents";
 import OpenAI from "openai";
+import { z } from "zod";
 import type {
   PortfolioChatProvider,
   PortfolioChatProviderInput,
@@ -38,19 +39,84 @@ function groundedInput({
 }
 
 const portfolioAgentInstructions =
-  `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode and put the classification on the first line as MODE: portfolio, MODE: social, or MODE: general. Never put anything else on that line.
+  `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode: portfolio, social, or general.
 
-Portfolio mode covers questions about Bradley, his work, projects, decisions, or a contextual follow-up to those topics. Answer from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}
+Portfolio mode covers questions about Bradley, his work, projects, decisions, or a contextual follow-up to those topics. Answer from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Put each supported sentence in its own sentences item and attach the exact supporting id values from the supplied evidence to that item's evidenceIds. Do not write citation labels in the text. If the evidence does not support the question, set insufficientEvidence to true and return no sentences.
 
-Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal small talk. Respond naturally. Social chat is unlimited: never redirect it toward Bradley and never count it as a general off-topic question. Never add a portfolio nudge; the application owns that behavior.
+Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal small talk. Respond naturally. Social chat is unlimited: never redirect it toward Bradley and never count it as a general off-topic question. Never add a portfolio nudge; the application owns that behavior. Use an empty evidenceIds array for every social sentence.
 
-General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in the portfolio evidence or project titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears.
+General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in the portfolio evidence or project titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears. Use an empty evidenceIds array for every general sentence.
 
-After the required MODE line, answer directly and use only as much detail as the visitor's question needs.`;
+Set insufficientEvidence to false for social and general turns. Answer directly and use only as much detail as the visitor's question needs.`;
 
-function parseModeMarker(line: string): PortfolioChatTurnMode | undefined {
-  const match = /^MODE: (portfolio|social|general)$/.exec(line.trim());
-  return match?.[1] as PortfolioChatTurnMode | undefined;
+const portfolioAgentOutput = z.object({
+  mode: z.enum(["portfolio", "social", "general"]),
+  insufficientEvidence: z.boolean(),
+  sentences: z.array(
+    z.object({
+      text: z.string(),
+      evidenceIds: z.array(z.string()),
+    }),
+  ),
+});
+
+function renderAgentOutput(
+  output: z.infer<typeof portfolioAgentOutput>,
+  evidence: PortfolioChatProviderInput["evidence"],
+) {
+  if (output.insufficientEvidence) {
+    if (output.mode !== "portfolio" || output.sentences.length > 0) {
+      throw new Error("OpenAI agent returned an invalid evidence refusal.");
+    }
+    return INSUFFICIENT_EVIDENCE_MESSAGE;
+  }
+
+  const evidenceNumbers = new Map(
+    evidence.map(({ id }, index) => [id, index + 1]),
+  );
+  const sentences = output.sentences.map(({ text, evidenceIds }) => {
+    const sentence = text.trim();
+    if (!sentence) throw new Error("OpenAI agent returned an empty sentence.");
+    if (/\[E[1-9]\d*\]/.test(sentence)) {
+      throw new Error("OpenAI agent authored a citation label.");
+    }
+    if (sentence === INSUFFICIENT_EVIDENCE_MESSAGE) {
+      throw new Error("OpenAI agent returned an inconsistent evidence refusal.");
+    }
+    if (output.mode !== "portfolio") {
+      if (evidenceIds.length > 0) {
+        throw new Error("OpenAI agent attached portfolio evidence off topic.");
+      }
+      return sentence;
+    }
+
+    const citationNumbers = [
+      ...new Set(
+        evidenceIds.map((id) => {
+          const number = evidenceNumbers.get(id);
+          if (!number) {
+            throw new Error("OpenAI agent cited unknown evidence.");
+          }
+          return number;
+        }),
+      ),
+    ];
+    if (citationNumbers.length === 0) {
+      throw new Error("OpenAI agent omitted portfolio evidence.");
+    }
+    const citations = citationNumbers
+      .map((number) => `[E${number}]`)
+      .join(" ");
+    const citedSentences = sentence.replace(
+      /([.!?]["')\]]?)(?=\s+\S)/g,
+      `$1 ${citations}`,
+    );
+    return `${citedSentences} ${citations}`;
+  });
+  if (sentences.length === 0) {
+    throw new Error("OpenAI agent returned no answer.");
+  }
+  return sentences.join("\n\n");
 }
 
 export function createOpenAIPortfolioProvider({
@@ -78,6 +144,7 @@ export function createOpenAIPortfolioProvider({
         name: "Bradley portfolio guide",
         instructions: portfolioAgentInstructions,
         model,
+        outputType: portfolioAgentOutput,
         modelSettings: {
           maxTokens: 3_000,
           store: false,
@@ -93,49 +160,14 @@ export function createOpenAIPortfolioProvider({
             : {}),
         },
       });
-      const result = await runner.run(agent, groundedInput(input), {
-        stream: true,
-        maxTurns: 1,
-        signal: input.signal,
-      });
-      let answerCharacters = 0;
-      let modeResolved = false;
-      let modeBuffer = "";
-
       try {
-        for await (const delta of result.toTextStream()) {
-          let answerDelta = delta;
-          if (!modeResolved) {
-            modeBuffer += answerDelta;
-            const markerEnd = modeBuffer.indexOf("\n");
-            if (markerEnd < 0) {
-              if (modeBuffer.length > 64) {
-                throw new Error("OpenAI agent returned an invalid mode marker.");
-              }
-              continue;
-            }
-            const mode = parseModeMarker(modeBuffer.slice(0, markerEnd));
-            if (!mode) {
-              throw new Error("OpenAI agent returned an invalid mode marker.");
-            }
-            input.onMode?.(mode);
-            modeResolved = true;
-            answerDelta = modeBuffer.slice(markerEnd + 1);
-            modeBuffer = "";
-          }
-          if (!answerDelta) continue;
-          answerCharacters += answerDelta.length;
-          yield answerDelta;
-        }
-        await result.completed;
-        if (
-          result.error ||
-          !modeResolved ||
-          answerCharacters === 0 ||
-          !result.finalOutput
-        ) {
-          throw result.error ?? new Error("OpenAI agent returned no answer.");
-        }
+        const result = await runner.run(agent, groundedInput(input), {
+          maxTurns: 1,
+          signal: input.signal,
+        });
+        if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");
+        input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
+        yield renderAgentOutput(result.finalOutput, input.evidence);
         const usage = result.state.usage;
         input.onUsage?.({
           inputTokens: usage.inputTokens,
@@ -143,7 +175,6 @@ export function createOpenAIPortfolioProvider({
           totalTokens: usage.totalTokens,
         });
       } catch {
-        await result.completed.catch(() => {});
         throw new Error("OpenAI agent run failed.");
       }
     },
