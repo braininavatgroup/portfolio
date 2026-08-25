@@ -153,7 +153,10 @@ describe("portfolio chat launch guard", () => {
   });
 
   it("uses one stable privacy-safe actor identity for limiting and provider safety", async () => {
-    const limit = vi.fn(async () => ({ success: true }));
+    const limit = vi.fn(async (input: { key: string }) => {
+      void input;
+      return { success: true };
+    });
     const guard = createPortfolioChatLaunchGuard({
       config: publicConfig,
       rateLimiter: { limit },
