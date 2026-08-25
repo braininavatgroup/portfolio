@@ -27,6 +27,7 @@ export type PortfolioChatStreamEvent = {
   requestId: string;
   outcome:
     | "answered"
+    | "partial_answer"
     | "insufficient_evidence"
     | "provider_unavailable"
     | "aborted";
@@ -60,20 +61,28 @@ export type ParsedPortfolioChatRequest = {
 };
 
 class InsufficientEvidenceError extends Error {}
+class MixedEvidenceResultError extends Error {}
+class InvalidAttributionError extends Error {}
 
 function validateCitedSegment(segment: string, evidenceCount: number) {
   const labels = [...segment.matchAll(/\[E([1-9]\d*)\]/g)];
-  if (labels.length === 0) throw new Error("Provider output is not attributed.");
+  if (labels.length === 0) {
+    throw new InvalidAttributionError("Provider output is not attributed.");
+  }
   for (const label of labels) {
     const evidenceNumber = Number(label[1]);
     if (evidenceNumber < 1 || evidenceNumber > evidenceCount) {
-      throw new Error("Provider output cites unknown evidence.");
+      throw new InvalidAttributionError(
+        "Provider output cites unknown evidence.",
+      );
     }
   }
 
   const claim = segment.replace(/(?:\s*\[E[1-9]\d*\])+\s*$/, "").trim();
   if (!claim || /[.!?]["')\]]?\s+\S/.test(claim)) {
-    throw new Error("Provider output contains an unattributed sentence.");
+    throw new InvalidAttributionError(
+      "Provider output contains an unattributed sentence.",
+    );
   }
 }
 
@@ -104,7 +113,9 @@ async function* validatedAnswerDeltas(
   if (!finalSegment) return;
   if (finalSegment === INSUFFICIENT_EVIDENCE_MESSAGE) {
     if (yieldedAnswer) {
-      throw new Error("Provider output mixed an answer with an evidence refusal.");
+      throw new MixedEvidenceResultError(
+        "Provider output mixed an answer with an evidence refusal.",
+      );
     }
     throw new InsufficientEvidenceError(finalSegment);
   }
@@ -326,9 +337,9 @@ export function createPortfolioChatHandler({
       let answerCharacters = 0;
       let usage: PortfolioChatProviderUsage | undefined;
       let finished = false;
-      const markCancelledOrTimedOut = () => {
-        if (request.signal.aborted || streamCancellation.signal.aborted) {
-          outcome = "aborted";
+      const markProviderUnavailable = () => {
+        if (answerCharacters > 0) {
+          outcome = "partial_answer";
           return;
         }
         outcome = "provider_unavailable";
@@ -337,6 +348,21 @@ export function createPortfolioChatHandler({
           code: "provider_unavailable",
           message: "The answer service is temporarily unavailable.",
         });
+      };
+      const markInvalidProviderOutput = () => {
+        outcome = "provider_unavailable";
+        send({
+          type: "error",
+          code: "provider_unavailable",
+          message: "The answer service is temporarily unavailable.",
+        });
+      };
+      const markCancelledOrTimedOut = () => {
+        if (request.signal.aborted || streamCancellation.signal.aborted) {
+          outcome = "aborted";
+          return;
+        }
+        markProviderUnavailable();
       };
       const finish = () => {
         if (finished) return;
@@ -389,8 +415,8 @@ export function createPortfolioChatHandler({
         }
         if (providerSignal.aborted) markCancelledOrTimedOut();
       } catch (error) {
-        if (providerSignal.aborted) {
-          markCancelledOrTimedOut();
+        if (request.signal.aborted || streamCancellation.signal.aborted) {
+          outcome = "aborted";
         } else if (error instanceof InsufficientEvidenceError) {
           outcome = "insufficient_evidence";
           send({
@@ -398,13 +424,13 @@ export function createPortfolioChatHandler({
             code: "insufficient_evidence",
             message: INSUFFICIENT_EVIDENCE_MESSAGE,
           });
+        } else if (
+          error instanceof MixedEvidenceResultError ||
+          error instanceof InvalidAttributionError
+        ) {
+          markInvalidProviderOutput();
         } else {
-          outcome = "provider_unavailable";
-          send({
-            type: "error",
-            code: "provider_unavailable",
-            message: "The answer service is temporarily unavailable.",
-          });
+          markProviderUnavailable();
         }
       }
       if (!request.signal.aborted && !streamCancellation.signal.aborted) {
