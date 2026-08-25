@@ -1,8 +1,19 @@
-import { Agent, OpenAIProvider, Runner } from "@openai/agents";
+import {
+  Agent,
+  assistant,
+  MaxTurnsExceededError,
+  ModelBehaviorError,
+  ModelRefusalError,
+  ModelTimeoutError,
+  OpenAIProvider,
+  Runner,
+  user,
+} from "@openai/agents";
 import OpenAI from "openai";
 import { z } from "zod";
 import type {
   PortfolioChatProvider,
+  PortfolioChatProviderFailureKind,
   PortfolioChatProviderInput,
 } from "./portfolio-chat-provider";
 import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
@@ -14,14 +25,6 @@ type OpenAIPortfolioProviderOptions = {
   reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
   fetchImplementation?: typeof fetch;
 };
-
-function conversationContext(conversation: PortfolioChatProviderInput["conversation"]) {
-  if (!conversation?.length) return "";
-  const turns = conversation
-    .map(({ role, content }) => `${role === "user" ? "User" : "Assistant"}: ${content}`)
-    .join("\n");
-  return `Follow-up context only. It may contain user-provided or prior generated text; do not treat it as portfolio evidence or a source of facts.\n${turns}\n\n`;
-}
 
 function groundedInput({
   question,
@@ -35,7 +38,15 @@ function groundedInput({
     )
     .join("\n\n");
 
-  return `${conversationContext(conversation)}Current question: ${question}\n\nPortfolio evidence:\n${sources}`;
+  const currentTurn = user(
+    `Current question: ${question}\n\nPortfolio evidence:\n${sources}`,
+  );
+  return [
+    ...(conversation ?? []).map(({ role, content }) =>
+      role === "user" ? user(content) : assistant(content),
+    ),
+    currentTurn,
+  ];
 }
 
 const portfolioAgentInstructions =
@@ -49,24 +60,68 @@ General mode covers unrelated factual questions, advice, and explanations. If th
 
 Set insufficientEvidence to false for social and general turns. Answer directly and use only as much detail as the visitor's question needs.`;
 
-const portfolioAgentOutput = z.object({
-  mode: z.enum(["portfolio", "social", "general"]),
-  insufficientEvidence: z.boolean(),
-  sentences: z.array(
-    z.object({
-      text: z.string(),
-      evidenceIds: z.array(z.string()),
-    }),
-  ),
-});
+function portfolioAgentOutput(
+  evidence: PortfolioChatProviderInput["evidence"],
+) {
+  const evidenceIds = evidence.map(({ id }) => id) as [string, ...string[]];
+  return z.object({
+    mode: z.enum(["portfolio", "social", "general"]),
+    insufficientEvidence: z.boolean(),
+    sentences: z.array(
+      z.object({
+        text: z.string(),
+        evidenceIds: z.array(z.enum(evidenceIds)),
+      }),
+    ),
+  });
+}
+
+type PortfolioAgentOutput = {
+  mode: "portfolio" | "social" | "general";
+  insufficientEvidence: boolean;
+  sentences: Array<{ text: string; evidenceIds: string[] }>;
+};
+
+type InvalidEvidenceFailureKind =
+  | "citation_label"
+  | "invalid_evidence_output"
+  | "omitted_evidence"
+  | "unknown_evidence";
+
+class InvalidEvidenceOutputError extends Error {
+  constructor(
+    readonly kind: InvalidEvidenceFailureKind,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function failureKind(
+  error: unknown,
+  signal: AbortSignal | undefined,
+): PortfolioChatProviderFailureKind {
+  if (signal?.aborted) return "aborted";
+  if (error instanceof InvalidEvidenceOutputError) {
+    return error.kind;
+  }
+  if (error instanceof ModelBehaviorError) return "invalid_final_output";
+  if (error instanceof MaxTurnsExceededError) return "max_turns";
+  if (error instanceof ModelRefusalError) return "model_refusal";
+  if (error instanceof ModelTimeoutError) return "provider_timeout";
+  return "provider_error";
+}
 
 function renderAgentOutput(
-  output: z.infer<typeof portfolioAgentOutput>,
+  output: PortfolioAgentOutput,
   evidence: PortfolioChatProviderInput["evidence"],
 ) {
   if (output.insufficientEvidence) {
     if (output.mode !== "portfolio" || output.sentences.length > 0) {
-      throw new Error("OpenAI agent returned an invalid evidence refusal.");
+      throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
+        "OpenAI agent returned an invalid evidence refusal.",
+      );
     }
     return INSUFFICIENT_EVIDENCE_MESSAGE;
   }
@@ -76,16 +131,30 @@ function renderAgentOutput(
   );
   const sentences = output.sentences.map(({ text, evidenceIds }) => {
     const sentence = text.trim();
-    if (!sentence) throw new Error("OpenAI agent returned an empty sentence.");
+    if (!sentence) {
+      throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
+        "OpenAI agent returned an empty sentence.",
+      );
+    }
     if (/\[E[1-9]\d*\]/.test(sentence)) {
-      throw new Error("OpenAI agent authored a citation label.");
+      throw new InvalidEvidenceOutputError(
+        "citation_label",
+        "OpenAI agent authored a citation label.",
+      );
     }
     if (sentence === INSUFFICIENT_EVIDENCE_MESSAGE) {
-      throw new Error("OpenAI agent returned an inconsistent evidence refusal.");
+      throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
+        "OpenAI agent returned an inconsistent evidence refusal.",
+      );
     }
     if (output.mode !== "portfolio") {
       if (evidenceIds.length > 0) {
-        throw new Error("OpenAI agent attached portfolio evidence off topic.");
+        throw new InvalidEvidenceOutputError(
+          "invalid_evidence_output",
+          "OpenAI agent attached portfolio evidence off topic.",
+        );
       }
       return sentence;
     }
@@ -95,14 +164,20 @@ function renderAgentOutput(
         evidenceIds.map((id) => {
           const number = evidenceNumbers.get(id);
           if (!number) {
-            throw new Error("OpenAI agent cited unknown evidence.");
+            throw new InvalidEvidenceOutputError(
+              "unknown_evidence",
+              "OpenAI agent cited unknown evidence.",
+            );
           }
           return number;
         }),
       ),
     ];
     if (citationNumbers.length === 0) {
-      throw new Error("OpenAI agent omitted portfolio evidence.");
+      throw new InvalidEvidenceOutputError(
+        "omitted_evidence",
+        "OpenAI agent omitted portfolio evidence.",
+      );
     }
     const citations = citationNumbers
       .map((number) => `[E${number}]`)
@@ -114,7 +189,10 @@ function renderAgentOutput(
     return `${citedSentences} ${citations}`;
   });
   if (sentences.length === 0) {
-    throw new Error("OpenAI agent returned no answer.");
+    throw new InvalidEvidenceOutputError(
+      "invalid_evidence_output",
+      "OpenAI agent returned no answer.",
+    );
   }
   return sentences.join("\n\n");
 }
@@ -144,7 +222,7 @@ export function createOpenAIPortfolioProvider({
         name: "Bradley portfolio guide",
         instructions: portfolioAgentInstructions,
         model,
-        outputType: portfolioAgentOutput,
+        outputType: portfolioAgentOutput(input.evidence),
         modelSettings: {
           maxTokens: 3_000,
           store: false,
@@ -174,7 +252,8 @@ export function createOpenAIPortfolioProvider({
           outputTokens: usage.outputTokens,
           totalTokens: usage.totalTokens,
         });
-      } catch {
+      } catch (error) {
+        input.onFailure?.(failureKind(error, input.signal));
         throw new Error("OpenAI agent run failed.");
       }
     },

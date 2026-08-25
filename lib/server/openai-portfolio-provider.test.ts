@@ -147,6 +147,7 @@ describe("OpenAI portfolio provider", () => {
   it.each(["portfolio", "general"] as const)(
     "rejects model-authored citation labels in %s text",
     async (mode) => {
+      const onFailure = vi.fn();
       const provider = createOpenAIPortfolioProvider({
         apiKey: "sk-test-server-only",
         model: "portfolio-model-test",
@@ -168,10 +169,12 @@ describe("OpenAI portfolio provider", () => {
         for await (const chunk of provider.streamAnswer({
           question: "How does pitching work?",
           evidence: [...evidence, secondEvidence],
+          onFailure,
         })) {
           throw new Error(`Unexpected provider output: ${chunk}`);
         }
       }).rejects.toThrow("OpenAI agent run failed.");
+      expect(onFailure).toHaveBeenCalledWith("citation_label");
     },
   );
 
@@ -270,7 +273,7 @@ describe("OpenAI portfolio provider", () => {
     });
   });
 
-  it("uses prior turns only as follow-up context alongside current evidence", async () => {
+  it("sends prior turns as role-aware context and grounds only the current user turn", async () => {
     let requestBody = "";
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
@@ -296,11 +299,36 @@ describe("OpenAI portfolio provider", () => {
       expect(chunk).toBe("Grounded. [E1]");
     }
 
-    expect(requestBody).toContain("Follow-up context only");
-    expect(requestBody).toContain("User: Tell me about pitching.");
-    expect(requestBody).toContain("Assistant: It keeps approval human. [E1]");
-    expect(requestBody).toContain("Current question: What changed?");
-    expect(requestBody).toContain("project:pitching");
+    const body = JSON.parse(requestBody);
+    expect(body.input).toEqual([
+      {
+        role: "user",
+        content: [{ type: "input_text", text: "Tell me about pitching." }],
+      },
+      {
+        type: "message",
+        role: "assistant",
+        status: "completed",
+        content: [
+          {
+            type: "output_text",
+            text: "It keeps approval human. [E1]",
+            annotations: [],
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: expect.stringContaining(
+              "Current question: What changed?\n\nPortfolio evidence:\n[E1] id=project:pitching",
+            ),
+          },
+        ],
+      },
+    ]);
   });
 
   it("returns the exact evidence refusal from a structured portfolio result", async () => {
@@ -389,14 +417,16 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it.each([
-    ["malformed structured output", "not json"],
+    ["malformed structured output", "not json", "invalid_final_output"],
     [
-      "an unknown evidence id",
+      "an evidence id outside the supplied structured-output enum",
       portfolioOutput([
         { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
       ]),
+      "invalid_final_output",
     ],
-  ])("rejects %s without exposing it", async (_label, output) => {
+  ])("rejects %s without exposing it", async (_label, output, failureKind) => {
+    const onFailure = vi.fn();
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
@@ -407,14 +437,17 @@ describe("OpenAI portfolio provider", () => {
       for await (const chunk of provider.streamAnswer({
         question: "How does pitching work?",
         evidence,
+        onFailure,
       })) {
         throw new Error(`Unexpected provider output: ${chunk}`);
       }
     }).rejects.toThrow("OpenAI agent run failed.");
+    expect(onFailure).toHaveBeenCalledWith(failureKind);
   });
 
   it("does not expose an upstream error body", async () => {
     const upstreamSecret = "upstream-secret-detail";
+    const onFailure = vi.fn();
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
@@ -427,6 +460,7 @@ describe("OpenAI portfolio provider", () => {
       for await (const chunk of provider.streamAnswer({
         question: "How does pitching work?",
         evidence,
+        onFailure,
       })) {
         throw new Error(`Unexpected provider output: ${chunk}`);
       }
@@ -436,6 +470,7 @@ describe("OpenAI portfolio provider", () => {
 
     expect(message).toBe("OpenAI agent run failed.");
     expect(message).not.toContain(upstreamSecret);
+    expect(onFailure).toHaveBeenCalledWith("provider_error");
   });
 
   it("passes the request abort signal to the OpenAI fetch", async () => {

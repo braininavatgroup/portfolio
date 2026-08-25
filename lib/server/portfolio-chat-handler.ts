@@ -11,6 +11,7 @@ import {
 import {
   INSUFFICIENT_EVIDENCE_MESSAGE,
   type PortfolioChatProvider,
+  type PortfolioChatProviderFailureKind,
   type PortfolioChatProviderUsage,
 } from "./portfolio-chat-provider";
 import {
@@ -39,6 +40,7 @@ export type PortfolioChatStreamEvent = {
   answerCharacters: number;
   providerModel: string;
   usage?: PortfolioChatProviderUsage;
+  providerFailureKind?: PortfolioChatProviderFailureKind;
 };
 
 type PortfolioChatHandlerDependencies = {
@@ -131,11 +133,11 @@ function requiresPortfolioMode(
   );
 }
 
-function validateUncitedAnswer(answer: string, grounding: PortfolioGrounding) {
+function validateUncitedAnswer(answer: string) {
   const normalized = answer.trim();
   if (
     !normalized ||
-    includesPortfolioEntity(normalized, grounding) ||
+    /\b(?:bradley|berkman|portfolio)\b/i.test(normalized) ||
     /(?:^|\n)\s*MODE:\s*/i.test(normalized)
   ) {
     throw new InvalidAttributionError(
@@ -160,7 +162,6 @@ async function* withoutModeMarkers(deltas: AsyncIterable<string>) {
 
 async function* validatedUncitedAnswerDeltas(
   deltas: AsyncIterable<string>,
-  grounding: PortfolioGrounding,
   appendNudge: boolean,
 ) {
   let buffer = "";
@@ -172,7 +173,7 @@ async function* validatedUncitedAnswerDeltas(
     while (boundary) {
       const end = boundary.index + boundary[0].length;
       const segment = buffer.slice(0, end);
-      validateUncitedAnswer(segment, grounding);
+      validateUncitedAnswer(segment);
       yield segment;
       buffer = buffer.slice(end);
       boundary = sentenceBoundary.exec(buffer);
@@ -180,7 +181,7 @@ async function* validatedUncitedAnswerDeltas(
   }
 
   const finalSegment = buffer.trim();
-  if (finalSegment) validateUncitedAnswer(finalSegment, grounding);
+  if (finalSegment) validateUncitedAnswer(finalSegment);
   if (finalSegment || appendNudge) {
     yield `${finalSegment}${finalSegment && appendNudge ? "\n\n" : ""}${appendNudge ? oneTimeGeneralNudge : ""}`;
   }
@@ -503,6 +504,7 @@ export function createPortfolioChatHandler({
       let outcome: PortfolioChatStreamEvent["outcome"] = "answered";
       let answerCharacters = 0;
       let usage: PortfolioChatProviderUsage | undefined;
+      let providerFailureKind: PortfolioChatProviderFailureKind | undefined;
       let finished = false;
       let preservePartialAnswer = true;
       const markProviderUnavailable = () => {
@@ -546,6 +548,7 @@ export function createPortfolioChatHandler({
           answerCharacters,
           providerModel: context.providerModel,
           ...(usage ? { usage } : {}),
+          ...(providerFailureKind ? { providerFailureKind } : {}),
         });
       };
       send({ type: "evidence", evidence: grounding.evidence });
@@ -581,6 +584,9 @@ export function createPortfolioChatHandler({
           onUsage: (reportedUsage) => {
             usage = reportedUsage;
           },
+          onFailure: (kind) => {
+            providerFailureKind = kind;
+          },
         });
         const iterator = providerDeltas[Symbol.asyncIterator]();
         const first = await iterator.next();
@@ -614,7 +620,6 @@ export function createPortfolioChatHandler({
             !visitState.portfolioNudgeShown;
           for await (const delta of validatedUncitedAnswerDeltas(
             answerDeltas,
-            grounding,
             appendNudge,
           )) {
             answerCharacters += delta.length;

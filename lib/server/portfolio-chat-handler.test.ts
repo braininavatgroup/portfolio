@@ -243,6 +243,34 @@ describe("portfolio chat route handler", () => {
     },
   );
 
+  it("allows ordinary general-language phrases that also appear in project titles", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What are common reporting metrics?")),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "general" });
+    expect(
+      events
+        .filter((event) => event.type === "answer_delta")
+        .map((event) => event.delta)
+        .join(""),
+    ).toBe(
+      "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.",
+    );
+    expect(events.some((event) => event.type === "error")).toBe(false);
+  });
+
   it("adds the one-time Bradley nudge only to the third completed general turn", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onMode }) {
@@ -710,6 +738,43 @@ describe("portfolio chat route handler", () => {
     expect(serialized).not.toContain("private question");
     expect(serialized).not.toContain("Human approval stays explicit");
     expect(serialized).not.toContain("pc_session-hash");
+  });
+
+  it("records a bounded provider failure kind without exposing failure details", async () => {
+    const record = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onFailure }) {
+        onFailure?.("invalid_final_output");
+        yield await Promise.reject(
+          new Error("private malformed model output"),
+        );
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+      getRequestContext: () => ({
+        requestId: "request-provider-failure",
+        providerModel: "portfolio-model",
+      }),
+      record,
+    });
+
+    const response = await handler(questionRequest("How does pitching work?"));
+    const body = await response.text();
+
+    expect(body).toContain('"code":"provider_unavailable"');
+    expect(body).not.toContain("invalid_final_output");
+    expect(body).not.toContain("private malformed model output");
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "provider_unavailable",
+        providerFailureKind: "invalid_final_output",
+      }),
+    );
+    expect(JSON.stringify(record.mock.calls)).not.toContain(
+      "private malformed model output",
+    );
   });
 
   it("delivers a validated cited segment before the provider finishes", async () => {

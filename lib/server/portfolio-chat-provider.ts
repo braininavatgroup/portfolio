@@ -14,6 +14,18 @@ export type PortfolioChatProviderUsage = {
   totalTokens: number;
 };
 
+export type PortfolioChatProviderFailureKind =
+  | "aborted"
+  | "citation_label"
+  | "invalid_evidence_output"
+  | "invalid_final_output"
+  | "max_turns"
+  | "model_refusal"
+  | "provider_error"
+  | "provider_timeout"
+  | "omitted_evidence"
+  | "unknown_evidence";
+
 export type PortfolioChatProviderInput = {
   question: string;
   evidence: PortfolioGroundingEvidence[];
@@ -23,6 +35,7 @@ export type PortfolioChatProviderInput = {
   safetyIdentifier?: string;
   onMode?: (mode: PortfolioChatTurnMode) => void;
   onUsage?: (usage: PortfolioChatProviderUsage) => void;
+  onFailure?: (kind: PortfolioChatProviderFailureKind) => void;
 };
 
 export type PortfolioChatProvider = {
