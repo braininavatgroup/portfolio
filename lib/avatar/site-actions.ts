@@ -24,15 +24,16 @@ export type SiteActionCallbacks = {
   clearSpotlight?: () => void | Promise<void>;
 };
 
-async function invoke(
-  callback: (() => void | Promise<void>) | undefined,
+async function invoke<Args extends unknown[]>(
+  callback: ((...args: Args) => void | Promise<void>) | undefined,
+  ...args: Args
 ): Promise<SiteActionResult> {
   if (!callback) {
     return { ok: false, reason: "unsupported" };
   }
 
   try {
-    await callback();
+    await callback(...args);
     return { ok: true };
   } catch {
     return { ok: false, reason: "unsupported" };
@@ -51,20 +52,20 @@ export class SiteActionExecutor {
   async execute(action: SiteAction): Promise<SiteActionResult> {
     switch (action.type) {
       case "openProject":
-        return invoke(() => this.#callbacks.openProject?.(action.target));
+        return invoke(this.#callbacks.openProject, action.target);
       case "closeProject":
         return invoke(this.#callbacks.closeProject);
       case "activateTab":
-        return invoke(() => this.#callbacks.activateTab?.(action.tab));
+        return invoke(this.#callbacks.activateTab, action.tab);
       case "scrollTo": {
         const bounds = this.#registry.resolve(action.target);
         if (!bounds) {
           return { ok: false, reason: "missing_target" };
         }
-        return invoke(() => this.#callbacks.scrollTo?.(action.target, bounds));
+        return invoke(this.#callbacks.scrollTo, action.target, bounds);
       }
       case "spotlight":
-        return invoke(() => this.#callbacks.spotlight?.(action.target));
+        return invoke(this.#callbacks.spotlight, action.target);
       case "clearSpotlight":
         return invoke(this.#callbacks.clearSpotlight);
     }
