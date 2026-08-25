@@ -77,6 +77,9 @@ async function startBuiltWorker(port) {
   await ready;
   return {
     child,
+    output() {
+      return output;
+    },
     async stop() {
       if (child.exitCode !== null) return;
       child.kill("SIGTERM");
@@ -114,7 +117,12 @@ test("the built Worker exposes one disabled portfolio chat route", async () => {
         signal: AbortSignal.timeout(5_000),
       },
     );
-    assert.equal(removedPreviewResponse.status, 404);
+    const removedPreviewBody = await removedPreviewResponse.text();
+    assert.equal(
+      removedPreviewResponse.status,
+      404,
+      `Removed route response:\n${removedPreviewBody}\n\nWorker output:\n${worker.output()}`,
+    );
   } finally {
     await worker.stop();
   }
