@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
-import {
-  INSUFFICIENT_EVIDENCE_MESSAGE,
-  type PortfolioChatProviderInput,
-} from "./portfolio-chat-provider";
+import type { PortfolioChatProviderInput } from "./portfolio-chat-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
 
 const evidence: PortfolioGroundingEvidence[] = [
@@ -29,7 +26,6 @@ const secondEvidence: PortfolioGroundingEvidence = {
 
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
-  insufficientEvidence: boolean;
   sentences: Array<{ text: string; evidenceIds: string[] }>;
 };
 
@@ -56,7 +52,7 @@ function completedResponse(
 function portfolioOutput(
   sentences: StructuredOutput["sentences"],
 ): StructuredOutput {
-  return { mode: "portfolio", insufficientEvidence: false, sentences };
+  return { mode: "portfolio", sentences };
 }
 
 describe("OpenAI portfolio provider", () => {
@@ -154,7 +150,6 @@ describe("OpenAI portfolio provider", () => {
         fetchImplementation: async () =>
           completedResponse({
             mode,
-            insufficientEvidence: false,
             sentences: [
               {
                 text: "The model tried to attach another source. [E2]",
@@ -189,7 +184,6 @@ describe("OpenAI portfolio provider", () => {
       fetchImplementation: async () =>
         completedResponse({
           mode,
-          insufficientEvidence: false,
           sentences: [{ text: answer, evidenceIds: [] }],
         }),
     });
@@ -331,16 +325,25 @@ describe("OpenAI portfolio provider", () => {
     ]);
   });
 
-  it("returns the exact evidence refusal from a structured portfolio result", async () => {
+  // Protects against restoring a model-selectable refusal branch.
+  // Owner: OpenAI provider output contract. Retire if this provider is replaced.
+  it("answers conversationally when an exact Bradley detail is not published", async () => {
+    let requestBody = "";
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
-      fetchImplementation: async () =>
-        completedResponse({
+      fetchImplementation: async (_input, init) => {
+        requestBody = String(init?.body);
+        return completedResponse({
           mode: "portfolio",
-          insufficientEvidence: true,
-          sentences: [],
-        }),
+          sentences: [
+            {
+              text: "I don't know Bradley's favorite soup. If he publishes it, this portfolio will gain one strangely important data point.",
+              evidenceIds: [],
+            },
+          ],
+        });
+      },
     });
 
     const chunks: string[] = [];
@@ -351,55 +354,28 @@ describe("OpenAI portfolio provider", () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toEqual([INSUFFICIENT_EVIDENCE_MESSAGE]);
+    expect(chunks).toEqual([
+      "I don't know Bradley's favorite soup. If he publishes it, this portfolio will gain one strangely important data point.",
+    ]);
+    const responseFormat = JSON.parse(requestBody).text.format;
+    expect(responseFormat.schema.properties).not.toHaveProperty(
+      "insufficientEvidence",
+    );
+    expect(responseFormat.schema.required).not.toContain(
+      "insufficientEvidence",
+    );
   });
 
-  it("rejects an evidence refusal outside portfolio mode", async () => {
-    const provider = createOpenAIPortfolioProvider({
-      apiKey: "sk-test-server-only",
-      model: "portfolio-model-test",
-      fetchImplementation: async () =>
-        completedResponse({
-          mode: "general",
-          insufficientEvidence: true,
-          sentences: [],
-        }),
-    });
-
-    await expect(async () => {
-      for await (const chunk of provider.streamAnswer({
-        question: "How do I sharpen a knife?",
-        evidence,
-      })) {
-        throw new Error(`Unexpected provider output: ${chunk}`);
-      }
-    }).rejects.toThrow("OpenAI agent run failed.");
-  });
-
-  it.each([
-    [
-      "evidence ids outside portfolio mode",
-      {
-        mode: "general" as const,
-        insufficientEvidence: false,
-        sentences: [
-          {
-            text: "Keep the blade at a steady angle.",
-            evidenceIds: ["project:pitching"],
-          },
-        ],
-      },
-    ],
-    [
-      "the refusal text when insufficientEvidence is false",
-      portfolioOutput([
+  it("rejects evidence ids outside portfolio mode", async () => {
+    const output: StructuredOutput = {
+      mode: "general",
+      sentences: [
         {
-          text: INSUFFICIENT_EVIDENCE_MESSAGE,
+          text: "Keep the blade at a steady angle.",
           evidenceIds: ["project:pitching"],
         },
-      ]),
-    ],
-  ])("rejects %s", async (_label, output) => {
+      ],
+    };
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",

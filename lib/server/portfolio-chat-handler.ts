@@ -67,8 +67,6 @@ export type ParsedPortfolioChatRequest = {
   grounding?: PortfolioGrounding;
 };
 
-class InsufficientEvidenceError extends Error {}
-class MixedEvidenceResultError extends Error {}
 class InvalidAttributionError extends Error {}
 
 function words(text: string) {
@@ -187,12 +185,15 @@ async function* validatedUncitedAnswerDeltas(
   }
 }
 
-function validateCitedSegment(segment: string, evidenceCount: number) {
-  const labels = [...segment.matchAll(/\[E([1-9]\d*)\]/g)];
-  if (labels.length === 0) {
-    throw new InvalidAttributionError("Provider output is not attributed.");
-  }
+function validatePortfolioSegment(segment: string, evidenceCount: number) {
+  const labels = [...segment.matchAll(/\[E(\d+)\]/g)];
+  if (labels.length === 0) return;
   for (const label of labels) {
+    if (label[1].startsWith("0")) {
+      throw new InvalidAttributionError(
+        "Provider output uses a noncanonical evidence label.",
+      );
+    }
     const evidenceNumber = Number(label[1]);
     if (evidenceNumber < 1 || evidenceNumber > evidenceCount) {
       throw new InvalidAttributionError(
@@ -214,7 +215,6 @@ async function* validatedAnswerDeltas(
   evidenceCount: number,
 ) {
   let buffer = "";
-  let yieldedAnswer = false;
   const followedCitation =
     /\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
 
@@ -224,8 +224,7 @@ async function* validatedAnswerDeltas(
     while (boundary) {
       const end = boundary.index + boundary[0].length;
       const segment = buffer.slice(0, end).trim();
-      validateCitedSegment(segment, evidenceCount);
-      yieldedAnswer = true;
+      validatePortfolioSegment(segment, evidenceCount);
       yield `${segment} `;
       buffer = buffer.slice(end).trimStart();
       boundary = followedCitation.exec(buffer);
@@ -234,15 +233,7 @@ async function* validatedAnswerDeltas(
 
   const finalSegment = buffer.trim();
   if (!finalSegment) return;
-  if (finalSegment === INSUFFICIENT_EVIDENCE_MESSAGE) {
-    if (yieldedAnswer) {
-      throw new MixedEvidenceResultError(
-        "Provider output mixed an answer with an evidence refusal.",
-      );
-    }
-    throw new InsufficientEvidenceError(finalSegment);
-  }
-  validateCitedSegment(finalSegment, evidenceCount);
+  validatePortfolioSegment(finalSegment, evidenceCount);
   yield finalSegment;
 }
 
@@ -519,14 +510,6 @@ export function createPortfolioChatHandler({
           message: "The answer service is temporarily unavailable.",
         });
       };
-      const markInvalidProviderOutput = () => {
-        outcome = "provider_unavailable";
-        send({
-          type: "error",
-          code: "provider_unavailable",
-          message: "The answer service is temporarily unavailable.",
-        });
-      };
       const markCancelledOrTimedOut = () => {
         if (request.signal.aborted || streamCancellation.signal.aborted) {
           outcome = "aborted";
@@ -630,15 +613,6 @@ export function createPortfolioChatHandler({
       } catch (error) {
         if (request.signal.aborted || streamCancellation.signal.aborted) {
           outcome = "aborted";
-        } else if (error instanceof InsufficientEvidenceError) {
-          outcome = "insufficient_evidence";
-          send({
-            type: "notice",
-            code: "insufficient_evidence",
-            message: INSUFFICIENT_EVIDENCE_MESSAGE,
-          });
-        } else if (error instanceof MixedEvidenceResultError) {
-          markInvalidProviderOutput();
         } else if (error instanceof InvalidAttributionError) {
           markProviderUnavailable();
         } else {

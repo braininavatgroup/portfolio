@@ -216,11 +216,11 @@ describe("portfolio chat runtime", () => {
 
   // Owner: portfolio chat runtime. Retire only if unsupported questions no
   // longer reach the full-context agent or provider budgeting is replaced.
-  it("budgets an unsupported question before the full-context agent refuses", async () => {
+  it("budgets an unsupported question before the full-context agent answers conversationally", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ evidence }) {
         expect(evidence).toHaveLength(10);
-        yield "The portfolio does not publish enough evidence to answer that question.";
+        yield "I don't see any quantum-computing patents in Bradley's portfolio.";
       },
     };
     const consume = vi.fn(async () => ({ success: true }));
@@ -245,7 +245,10 @@ describe("portfolio chat runtime", () => {
     );
     const body = await response.text();
 
-    expect(body).toContain("insufficient_evidence");
+    expect(body).toContain('"type":"answer_delta"');
+    expect(body).toContain(
+      "I don't see any quantum-computing patents in Bradley's portfolio.",
+    );
     expect(namespace.getByName).toHaveBeenCalledWith(
       "portfolio-chat-global-budget",
     );
