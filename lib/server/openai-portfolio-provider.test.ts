@@ -165,6 +165,9 @@ describe("OpenAI portfolio provider", () => {
     expect(JSON.stringify(body)).toContain(
       "Never add a portfolio nudge; the application owns",
     );
+    expect(JSON.stringify(body)).toContain(
+      "stands on its own without knowing Bradley",
+    );
     expect(JSON.stringify(body)).not.toContain("Visit routing state");
     expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
