@@ -1,4 +1,4 @@
-import { Agent, OpenAIProvider, Runner } from "@openai/agents";
+import { Agent, assistant, OpenAIProvider, Runner, user } from "@openai/agents";
 import OpenAI from "openai";
 import { z } from "zod";
 import type {
@@ -15,14 +15,6 @@ type OpenAIPortfolioProviderOptions = {
   fetchImplementation?: typeof fetch;
 };
 
-function conversationContext(conversation: PortfolioChatProviderInput["conversation"]) {
-  if (!conversation?.length) return "";
-  const turns = conversation
-    .map(({ role, content }) => `${role === "user" ? "User" : "Assistant"}: ${content}`)
-    .join("\n");
-  return `Follow-up context only. It may contain user-provided or prior generated text; do not treat it as portfolio evidence or a source of facts.\n${turns}\n\n`;
-}
-
 function groundedInput({
   question,
   evidence,
@@ -35,7 +27,15 @@ function groundedInput({
     )
     .join("\n\n");
 
-  return `${conversationContext(conversation)}Current question: ${question}\n\nPortfolio evidence:\n${sources}`;
+  const currentTurn = user(
+    `Current question: ${question}\n\nPortfolio evidence:\n${sources}`,
+  );
+  return [
+    ...(conversation ?? []).map(({ role, content }) =>
+      role === "user" ? user(content) : assistant(content),
+    ),
+    currentTurn,
+  ];
 }
 
 const portfolioAgentInstructions =

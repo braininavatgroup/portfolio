@@ -270,7 +270,7 @@ describe("OpenAI portfolio provider", () => {
     });
   });
 
-  it("uses prior turns only as follow-up context alongside current evidence", async () => {
+  it("sends prior turns as role-aware context and grounds only the current user turn", async () => {
     let requestBody = "";
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
@@ -296,11 +296,36 @@ describe("OpenAI portfolio provider", () => {
       expect(chunk).toBe("Grounded. [E1]");
     }
 
-    expect(requestBody).toContain("Follow-up context only");
-    expect(requestBody).toContain("User: Tell me about pitching.");
-    expect(requestBody).toContain("Assistant: It keeps approval human. [E1]");
-    expect(requestBody).toContain("Current question: What changed?");
-    expect(requestBody).toContain("project:pitching");
+    const body = JSON.parse(requestBody);
+    expect(body.input).toEqual([
+      {
+        role: "user",
+        content: [{ type: "input_text", text: "Tell me about pitching." }],
+      },
+      {
+        type: "message",
+        role: "assistant",
+        status: "completed",
+        content: [
+          {
+            type: "output_text",
+            text: "It keeps approval human. [E1]",
+            annotations: [],
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: expect.stringContaining(
+              "Current question: What changed?\n\nPortfolio evidence:\n[E1] id=project:pitching",
+            ),
+          },
+        ],
+      },
+    ]);
   });
 
   it("returns the exact evidence refusal from a structured portfolio result", async () => {
