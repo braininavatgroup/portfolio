@@ -21,6 +21,21 @@ describe("avatar controller", () => {
     vi.stubGlobal("innerWidth", 1_000);
   });
 
+  it("starts at the right-side safe anchor on a desktop viewport", () => {
+    // Catches a centered default that hides the separate assistant over the hero scene and chat.
+    const controller = new AvatarController(new AvatarTargetRegistry());
+
+    expect(controller.getSnapshot().anchorX).toBe(920);
+  });
+
+  it("starts at the midpoint when the viewport is narrower than both safe insets", () => {
+    // Catches the right-side default placing the assistant outside a sub-160 pixel viewport.
+    vi.stubGlobal("innerWidth", 120);
+    const controller = new AvatarController(new AvatarTargetRegistry());
+
+    expect(controller.getSnapshot().anchorX).toBe(60);
+  });
+
   it("notifies subscribers once with a fresh snapshot for a state change", () => {
     // Catches a mutable snapshot that can make useSyncExternalStore miss an update.
     const controller = new AvatarController(new AvatarTargetRegistry());
@@ -86,7 +101,7 @@ describe("avatar controller", () => {
     expect(controller.getSnapshot().facing).toBe("left");
 
     registry.register("portfolio:chat", {
-      getBoundingClientRect: () => rect(700, 0, 80, 40),
+      getBoundingClientRect: () => rect(940, 0, 40, 40),
     } as HTMLElement);
     controller.execute({ action: "pointAt", target: "portfolio:chat" });
 

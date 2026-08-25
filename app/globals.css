@@ -682,15 +682,17 @@ body {
 .avatar-dev-harness {
   background: var(--surface);
   border: 1px solid var(--line);
-  bottom: 1.9rem;
-  left: 50%;
+  bottom: 4rem;
+  left: auto;
   max-height: min(28rem, 70dvh);
   overflow: auto;
   padding: 0.7rem;
   pointer-events: auto;
-  position: absolute;
-  transform: translateX(-50%);
-  width: 19rem;
+  position: fixed;
+  right: 1rem;
+  transform: none;
+  width: min(19rem, calc(100vw - 1.5rem));
+  z-index: 10;
 }
 
 .avatar-dev-harness h2,
@@ -1084,7 +1086,7 @@ body {
     width: calc(100% - 1.5rem);
   }
   .avatar-overlay {
-    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    bottom: calc(7.5rem + env(safe-area-inset-bottom));
     height: 9rem;
     width: 6.5rem;
   }

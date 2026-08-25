@@ -3,7 +3,7 @@ import type { AllowedAnimation, AvatarState } from "./contracts";
 export type AvatarAssetConfig = {
   kind: "procedural" | "gltf";
   modelUrl: string | null;
-  skeletonProfile: "procedural" | "mixamo";
+  skeletonProfile: "procedural" | "humanoid" | "mixamo";
   scale: number;
   forwardAxis: "z" | "-z";
   groundOffset: number;
@@ -16,25 +16,25 @@ export type AvatarAssetConfig = {
 };
 
 export const avatarAsset: AvatarAssetConfig = {
-  kind: "procedural",
-  modelUrl: null,
-  skeletonProfile: "procedural",
+  kind: "gltf",
+  modelUrl: "/avatars/quaternius-casual-2.glb",
+  skeletonProfile: "humanoid",
   scale: 1,
   forwardAxis: "z",
-  groundOffset: 0,
+  groundOffset: -0.9,
   playbackRate: 1,
   targetFrameRate: null,
-  flatShading: true,
+  flatShading: false,
   nearestTexture: false,
   animations: {
-    idle: "idle",
-    walk: "walk",
-    think: "think",
-    talk: "talk",
-    point: "point",
-    present: "present",
-    celebrate: "celebrate",
-    confused: "confused",
+    idle: "Idle",
+    walk: "Walk",
+    think: "Idle_Neutral",
+    talk: "Interact",
+    point: "Idle_Gun_Pointing",
+    present: "Wave",
+    celebrate: "Wave",
+    confused: "HitRecieve_2",
   },
   stateFallbacks: {
     hidden: ["idle"],

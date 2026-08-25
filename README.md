@@ -28,11 +28,11 @@ The HTML index and case studies keep their current presentation while the graph 
 
 `lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
 
-`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, controller, sequence runner, and site-action boundary. `components/avatar` owns the lazy overlay plus the replaceable procedural/GLB renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for the architecture, development harness, troubleshooting, and model-swap workflow.
+`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, controller, sequence runner, and site-action boundary. `components/avatar` owns the lazy overlay plus the replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for the architecture, development harness, troubleshooting, and model-swap workflow.
 
 ## Evidence policy
 
-The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof. Missing inputs are labeled `Evidence needed` and occupy replaceable slots. The current procedural figure is a stand-in for Bradley's final 3D model.
+The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof. Missing inputs are labeled `Evidence needed` and occupy replaceable slots. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
 
 Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Rit builds, three-maturity interfaces, the personal-tooling map, and one complete spec-to-agent record.
 

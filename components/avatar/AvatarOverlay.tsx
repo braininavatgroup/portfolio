@@ -125,15 +125,6 @@ export function AvatarOverlay({
             </Canvas>
           </RendererBoundary>
         ) : null}
-        {AvatarDevHarness && development && debug ? (
-          <Suspense fallback={null}>
-            <AvatarDevHarness
-              controller={controller}
-              runner={runner}
-              siteActionExecutor={siteActionExecutor}
-            />
-          </Suspense>
-        ) : null}
       </div>
       <button
         aria-label={isEnabled ? "Hide assistant" : "Show assistant"}
@@ -144,6 +135,15 @@ export function AvatarOverlay({
       >
         {isEnabled ? "Hide assistant" : "Show assistant"}
       </button>
+      {AvatarDevHarness && development && debug ? (
+        <Suspense fallback={null}>
+          <AvatarDevHarness
+            controller={controller}
+            runner={runner}
+            siteActionExecutor={siteActionExecutor}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

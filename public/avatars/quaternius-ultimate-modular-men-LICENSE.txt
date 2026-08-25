@@ -1,0 +1,9 @@
+Ultimate Modular Males by Quaternius
+https://quaternius.com/packs/ultimatemodularcharacters.html
+
+License: CC0 1.0 Universal
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+
+This project uses the Casual_2 character and converts the original embedded
+glTF file to GLB without changing the model, rig, materials, or animations.

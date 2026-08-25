@@ -59,7 +59,7 @@ describe("AvatarOverlay", () => {
   it("loads developer controls only after both development guards pass", async () => {
     // Catches development controls leaking into production-like rendering or becoming impossible to reach when opted in.
     const controller = new AvatarController(new AvatarTargetRegistry());
-    const { rerender } = render(
+    const { container, rerender } = render(
       <AvatarOverlay
         controller={controller}
         enabled
@@ -81,9 +81,11 @@ describe("AvatarOverlay", () => {
       />,
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "Avatar developer controls" }),
-    ).toBeTruthy();
+    const heading = await screen.findByRole("heading", {
+      name: "Avatar developer controls",
+    });
+    expect(heading).toBeTruthy();
+    expect(container.querySelector(".avatar-overlay")?.contains(heading)).toBe(false);
     expect(avatarDevHarnessLoad).toHaveBeenCalledTimes(1);
   });
 

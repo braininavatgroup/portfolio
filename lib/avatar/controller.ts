@@ -43,7 +43,7 @@ function createInitialSnapshot(): AvatarSnapshot {
     animation: "idle",
     currentCommand: null,
     target: null,
-    anchorX: clampAnchor(viewportWidth() / 2),
+    anchorX: clampAnchor(viewportWidth() - horizontalInset),
     facing: "right",
     pointing: null,
     visible: true,

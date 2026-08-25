@@ -2,7 +2,7 @@
 
 The portfolio includes a small, optional assistant that mirrors chat activity and can direct attention to known portfolio content. It is deliberately separate from the main spatial scene: `PortfolioExperience` owns the behavior objects, while `AvatarOverlay` renders a lazy, transparent React Three Fiber canvas at a stable screen position.
 
-The current actor is a procedural low-poly placeholder. A GLB can replace it by changing one configuration object; chat, commands, target registration, and site actions do not depend on the asset format.
+The current actor is the rigged `Casual_2` character from Quaternius's CC0 Ultimate Modular Men pack. The 3.06 MB source glTF is preserved at `assets/avatar-source/quaternius-casual-2.gltf`; production loads the converted 1.52 MB GLB at `public/avatars/quaternius-casual-2.glb`. The procedural actor remains a no-network rollback. Chat, commands, target registration, and site actions do not depend on the asset format.
 
 ## Architecture and data flow
 
@@ -95,7 +95,7 @@ The panel shows the current state and animation. It can select every allowed sta
 
 - `kind`: `procedural` or `gltf`.
 - `modelUrl`: the public GLB URL; it must be non-null when `kind` is `gltf`.
-- `skeletonProfile`: documents the procedural or Mixamo rig profile.
+- `skeletonProfile`: documents the procedural, generic humanoid, or Mixamo rig profile.
 - `scale`: uniform GLB scale.
 - `forwardAxis`: `z` or `-z`; the adapter combines this correction with left/right facing.
 - `groundOffset`: vertical placement of the GLB root.
@@ -106,7 +106,15 @@ The panel shows the current state and animation. It can select every allowed sta
 - `animations`: safe aliases to exact GLB clip names.
 - `stateFallbacks`: ordered alias fallbacks for each controller state.
 
-The procedural actor uses authored joint poses for the same aliases and does not load a model or texture. The GLB path loads with `useGLTF`, applies scale/orientation/ground correction at its root, sets texture color space to sRGB, updates material and filtering flags, and crossfades available clips over 0.2 seconds.
+The production GLB has one humanoid skin and 24 embedded clips. The safe aliases currently map to `Idle`, `Walk`, `Idle_Neutral`, `Interact`, `Idle_Gun_Pointing`, `Wave`, and `HitRecieve_2`. A model smoke test parses the shipped GLB and fails if the rig, file format, configured clips, or overlay framing are lost. The procedural actor uses authored joint poses for the same aliases and does not load a model or texture. The GLB path loads with `useGLTF`, applies scale/orientation/ground correction at its root, updates material and filtering flags, and crossfades clips over 0.2 seconds.
+
+The model comes from [Quaternius's Ultimate Modular Men pack](https://quaternius.com/packs/ultimatemodularcharacters.html) under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The exact license text is stored beside the production model. Rebuild the derived GLB without changing the source file:
+
+```bash
+npx @gltf-transform/cli copy \
+  assets/avatar-source/quaternius-casual-2.gltf \
+  public/avatars/quaternius-casual-2.glb
+```
 
 Before adding an optimized asset, preserve the source scan outside the generated output path. A representative optimization pass is:
 
@@ -119,7 +127,7 @@ Do not optimize in place. Keep `avatar-source.glb` as the recoverable source and
 
 ## Troubleshooting
 
-**The model is missing.** Confirm `kind: "gltf"`, set a non-null `modelUrl`, and verify that the URL is served from `public`. A null GLB URL intentionally renders no actor. Keep `kind: "procedural"` as the immediate rollback.
+**The model is missing.** Confirm `kind: "gltf"`, verify that `modelUrl` is `/avatars/quaternius-casual-2.glb`, and confirm the file is served from `public`. A null GLB URL intentionally renders no actor. Set `kind: "procedural"`, `modelUrl: null`, and `skeletonProfile: "procedural"` for the immediate no-asset rollback.
 
 **A clip does not play.** Compare the names reported by the source GLB with `avatarAsset.animations`, including case. Ensure each state has a usable fallback and retain `idle` as its final entry. Missing direct-play clips are ignored; missing state clips continue down the fallback chain.
 
@@ -133,14 +141,14 @@ Do not optimize in place. Keep `avatar-source.glb` as the recoverable source and
 
 ## Current limitations and proof boundary
 
-- The procedural placeholder is not a model-load smoke test.
+- The current character is a neutral temporary game asset, not a Bradley likeness.
 - Pointing is an authored mirrored pose, not inverse kinematics.
 - Movement follows a clamped horizontal screen baseline rather than page physics.
 - The live provider does not yet select site actions or avatar sequences.
 - The development harness is deliberately smaller than a production authoring tool; structured protocol fixtures cover full sequences.
 - Software WebGL cannot establish physical GPU fidelity, motion quality, haptics, or final feel.
 
-The desktop smoke artifact for PER-1 is `.context/previews/per-1/landing.png`. The planned mobile/debug automated capture could not run on the original pass because installing the browser runner exceeded the machine's available disk. Do not treat the desktop artifact as mobile, debug-panel, or physical-device acceptance. The remaining acceptance step is a Bradley walk on an iPhone and a representative desktop GPU, including reduced motion, WebGL failure, and the persistent hide preference.
+Automated artifacts for the GLB pass live under `.context/verification/per-1-real-avatar-framed` and `.context/verification/per-1-real-avatar-interactions`. The bounded browser run covered desktop, a 390 by 844 mobile viewport, debug controls, hide/show, request and console failures, and SwiftShader WebGL 2 smoke. The remaining acceptance step is a Bradley walk on an iPhone and a representative desktop GPU, including reduced motion, WebGL failure, animation feel, and the persistent hide preference.
 
 ## Bradley model-swap checklist
 
@@ -154,5 +162,5 @@ The desktop smoke artifact for PER-1 is `.context/previews/per-1/landing.png`. T
 8. Add or attach the low-poly glasses to the head bone.
 9. Optimize the final GLB and its 256 or 512 pixel texture.
 10. Test desktop, iPhone, reduced motion, WebGL failure, and hide preference.
-11. Change the production asset configuration from procedural to GLB.
-12. Keep the procedural configuration as a one-line rollback.
+11. Change the production model URL from the Quaternius placeholder to the Bradley GLB.
+12. Keep both the Quaternius and procedural configurations as rollback options.

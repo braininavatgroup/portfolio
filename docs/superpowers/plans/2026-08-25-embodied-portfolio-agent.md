@@ -13,7 +13,7 @@
 ## Global constraints
 
 - Ticket identity is `PER-1`; use it in commit subjects.
-- Do not add runtime dependencies or download an external avatar.
+- Do not add runtime dependencies. Preserve the selected CC0 source model separately from its production GLB derivative and record its license.
 - Keep all model paths, axes, scale, ground offset, clip names, animation fallbacks, playback rate, frame stepping, shading, and texture settings in one asset configuration.
 - Model-facing input may contain only allowlisted states, animations, directions, semantic targets, tabs, wait durations, commands, and site actions.
 - Never accept JavaScript, selectors, URLs, CSS, bones, transforms, arbitrary numeric controls, or extra object keys.
@@ -92,7 +92,7 @@ Use readonly literal sets and exact-key checks. The configuration must have this
 export type AvatarAssetConfig = {
   kind: "procedural" | "gltf";
   modelUrl: string | null;
-  skeletonProfile: "procedural" | "mixamo";
+  skeletonProfile: "procedural" | "humanoid" | "mixamo";
   scale: number;
   forwardAxis: "z" | "-z";
   groundOffset: number;
@@ -105,7 +105,7 @@ export type AvatarAssetConfig = {
 };
 ```
 
-Set the placeholder to `kind: "procedural"`, `modelUrl: null`, scale 1, positive Z, zero ground offset, playback rate 1, continuous frame rate, flat shading, and nearest texture false. Map `idle`, `walk`, `think`, `talk`, `point`, `present`, `celebrate`, and `confused` once.
+Set the placeholder to `kind: "gltf"` with the Quaternius `Casual_2` production URL, a generic humanoid profile, scale 1, positive Z, centered ground offset, playback rate 1, continuous frame rate, smooth shading, and nearest texture false. Map `idle`, `walk`, `think`, `talk`, `point`, `present`, `celebrate`, and `confused` once. Keep the procedural configuration available as the no-asset fallback.
 
 - [ ] **Step 4: Run validation tests to green**
 

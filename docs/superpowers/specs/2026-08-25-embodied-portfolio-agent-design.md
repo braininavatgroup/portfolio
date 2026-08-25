@@ -14,7 +14,7 @@ The avatar will be a second, small transparent canvas rather than a child of the
 
 ## Product decisions
 
-- The first actor is a procedural low-poly humanoid. It is visibly temporary, requires no external asset or license, and reuses the grouped-mesh style of `BodyScene`.
+- The first production actor is Quaternius's CC0 `Casual_2` low-poly game character, converted from source glTF to a 1.52 MB GLB with one humanoid skin and 24 clips. The procedural actor remains the no-network rollback.
 - One asset configuration contains the renderer kind, model URL, scale, forward axis, ground offset, animation map, animation fallbacks, playback rate, flat-shading flag, texture filtering, and target frame rate. No component owns an animation name or orientation correction.
 - The adapter supports both the procedural placeholder and a future GLB. A GLB uses the same controller snapshot and animation vocabulary, so replacing the model does not change chat, target, or sequence code.
 - Text remains the primary response. Chat lifecycle events can drive safe default avatar states. An optional `effects` stream event carries validated site actions and avatar commands. Invalid effects collapse to an empty effect set and never invalidate an answer delta.
@@ -105,7 +105,7 @@ Rendered verification uses the existing Conductor workspace server and the bound
 
 - No new runtime dependency.
 - Avatar code remains behind a dynamic import.
-- The procedural placeholder adds no network asset.
+- The lazy avatar chunk requests a 1.52 MB GLB only when the overlay mounts; the procedural rollback adds no network asset.
 - The avatar canvas uses a capped DPR and stops on hidden documents.
 - The existing Three.js lazy chunk remains the primary bundle cost. Build verification records any material client-asset change.
 
@@ -117,7 +117,7 @@ The production GLB should contain a Mixamo-compatible humanoid rig when possible
 
 - Pointing is a mirrored authored pose, not inverse kinematics.
 - Movement follows a horizontal screen baseline rather than page physics.
-- The placeholder is procedural and has no model-load smoke test. The development harness reports all procedural clips instead.
+- The model smoke test parses the production GLB and verifies its header, skin, configured clip names, and vertical bounds. The development harness exercises the same aliases against the running mixer.
 - The current OpenAI provider emits grounded text only. Safe effect events can arrive through the protocol and fixtures, but model-selected effects need a later provider contract that preserves citation streaming.
 - SwiftShader verification does not prove physical GPU fidelity or motion feel.
 
@@ -133,8 +133,8 @@ The production GLB should contain a Mixamo-compatible humanoid rig when possible
 8. Add or attach the low-poly glasses to the head bone.
 9. Optimize the final GLB and its 256 or 512 pixel texture.
 10. Test desktop, iPhone, reduced motion, WebGL failure, and hide preference.
-11. Change the production asset configuration from procedural to GLB.
-12. Keep the procedural configuration as a one-line rollback.
+11. Change the production model URL from the Quaternius placeholder to the Bradley GLB.
+12. Keep the Quaternius and procedural configurations as rollback options.
 
 ## Recorded assumptions
 
