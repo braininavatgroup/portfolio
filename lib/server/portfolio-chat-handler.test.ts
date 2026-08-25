@@ -224,6 +224,84 @@ describe("portfolio chat route handler", () => {
     });
   });
 
+  // Owner: portfolio chat stream resilience. Retire if answers stop streaming
+  // before the provider run has completed and passed attribution validation.
+  it("keeps a complete cited answer when the provider fails afterward", async () => {
+    const record = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer() {
+        yield "A complete grounded answer. [E1] Next";
+        throw new Error("late provider failure");
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+      getRequestContext: () => ({
+        requestId: "request-partial",
+        providerModel: "portfolio-model",
+      }),
+      record,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What does Bradley do?")),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({ type: "evidence" }),
+      {
+        type: "answer_delta",
+        delta: "A complete grounded answer. [E1] ",
+      },
+      { type: "done" },
+    ]);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "partial_answer" }),
+    );
+  });
+
+  // Owner: portfolio chat attribution enforcement. Retire if the provider
+  // response is validated in full before any answer delta reaches the client.
+  it("rejects malformed attribution after a valid cited segment", async () => {
+    const record = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer() {
+        yield "A complete grounded answer. [E1] Uncited claim.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+      getRequestContext: () => ({
+        requestId: "request-invalid-attribution",
+        providerModel: "portfolio-model",
+      }),
+      record,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What does Bradley do?")),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({ type: "evidence" }),
+      {
+        type: "answer_delta",
+        delta: "A complete grounded answer. [E1] ",
+      },
+      {
+        type: "error",
+        code: "provider_unavailable",
+        message: "The answer service is temporarily unavailable.",
+      },
+      { type: "done" },
+    ]);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "provider_unavailable" }),
+    );
+  });
+
   it.each([
     ["This claim has no citation.", "missing citations"],
     ["This claim cites missing evidence. [E99]", "unknown citations"],
@@ -428,6 +506,50 @@ describe("portfolio chat route handler", () => {
         requestId: "request-timeout",
         outcome: "provider_unavailable",
       }),
+    );
+  });
+
+  it("does not let a timeout hide malformed attribution", async () => {
+    const record = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ signal }) {
+        yield "A complete grounded answer. [E1] Next";
+        await new Promise<void>((resolve) =>
+          signal?.addEventListener("abort", () => resolve(), { once: true }),
+        );
+        yield " uncited claim.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+      getRequestContext: () => ({
+        requestId: "request-timeout-invalid-attribution",
+        providerModel: "portfolio-model",
+      }),
+      providerTimeoutMs: 10,
+      record,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What does Bradley do?")),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({ type: "evidence" }),
+      {
+        type: "answer_delta",
+        delta: "A complete grounded answer. [E1] ",
+      },
+      {
+        type: "error",
+        code: "provider_unavailable",
+        message: "The answer service is temporarily unavailable.",
+      },
+      { type: "done" },
+    ]);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "provider_unavailable" }),
     );
   });
 });
