@@ -111,6 +111,7 @@ describe("portfolio chat client", () => {
     const fetchImplementation = vi.fn(async () =>
       chunkedResponse([
         '{"type":"effects","effects":{"avatarSequence":[{"action":"play","animation":"not-allowed"}]}}\n',
+        '{"type":"turn_mode","mode":"portfolio"}\n',
         '{"type":"answer_delta","delta":"Safe answer. [E1]"}\n',
         '{"type":"done"}\n',
       ]),
@@ -132,6 +133,7 @@ describe("portfolio chat client", () => {
           ],
         },
       },
+      { type: "turn_mode", mode: "portfolio" },
       { type: "answer_delta", delta: "Safe answer. [E1]" },
       { type: "done" },
     ]);

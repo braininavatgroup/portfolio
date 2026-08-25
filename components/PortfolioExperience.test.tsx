@@ -157,7 +157,7 @@ function effectsResponse(
       start(controller) {
         controller.enqueue(
           encoder.encode(
-            `${JSON.stringify({ type: "effects", effects })}\n${JSON.stringify({ type: "answer_delta", delta: "Effect ready." })}\n${JSON.stringify({ type: "done" })}\n`,
+            `${JSON.stringify({ type: "effects", effects })}\n${JSON.stringify({ type: "turn_mode", mode: "portfolio" })}\n${JSON.stringify({ type: "answer_delta", delta: "Effect ready." })}\n${JSON.stringify({ type: "done" })}\n`,
           ),
         );
         controller.close();

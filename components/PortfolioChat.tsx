@@ -252,9 +252,11 @@ export function PortfolioChat({
             setAnswer((current) => current + event.delta);
             if (!receivedText) {
               receivedText = true;
-              scheduleAvatarWorkAfterRender(() =>
-                avatarIntegration?.onFirstText(),
-              );
+              if (avatarIntegration) {
+                scheduleAvatarWorkAfterRender(() =>
+                  avatarIntegration.onFirstText(),
+                );
+              }
               for (const effects of pendingEffects.splice(0)) {
                 scheduleEffects(effects);
               }
