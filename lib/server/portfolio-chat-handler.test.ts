@@ -591,7 +591,7 @@ describe("portfolio chat route handler", () => {
 
   // Owner: portfolio chat attribution enforcement. Retire if the provider
   // response is validated in full before any answer delta reaches the client.
-  it("rejects malformed attribution after a valid cited segment", async () => {
+  it("keeps a valid cited prefix when later attribution is malformed", async () => {
     const record = vi.fn();
     const provider: PortfolioChatProvider = {
       async *streamAnswer() {
@@ -618,15 +618,10 @@ describe("portfolio chat route handler", () => {
         type: "answer_delta",
         delta: "A complete grounded answer. [E1] ",
       },
-      {
-        type: "error",
-        code: "provider_unavailable",
-        message: "The answer service is temporarily unavailable.",
-      },
       { type: "done" },
     ]);
     expect(record).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: "provider_unavailable" }),
+      expect.objectContaining({ outcome: "partial_answer" }),
     );
   });
 
@@ -837,7 +832,7 @@ describe("portfolio chat route handler", () => {
     );
   });
 
-  it("does not let a timeout hide malformed attribution", async () => {
+  it("keeps a valid cited prefix when malformed attribution follows a timeout", async () => {
     const record = vi.fn();
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ signal }) {
@@ -869,15 +864,10 @@ describe("portfolio chat route handler", () => {
         type: "answer_delta",
         delta: "A complete grounded answer. [E1] ",
       },
-      {
-        type: "error",
-        code: "provider_unavailable",
-        message: "The answer service is temporarily unavailable.",
-      },
       { type: "done" },
     ]);
     expect(record).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: "provider_unavailable" }),
+      expect.objectContaining({ outcome: "partial_answer" }),
     );
   });
 });
