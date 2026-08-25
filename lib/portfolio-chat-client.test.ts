@@ -5,6 +5,7 @@ import {
   streamPortfolioAnswer,
 } from "./portfolio-chat-client";
 import type { PortfolioChatEvent } from "./portfolio-chat-protocol";
+import type { AskPortfolioOptions } from "./portfolio-chat-client";
 
 function chunkedResponse(chunks: string[]) {
   const encoder = new TextEncoder();
@@ -23,11 +24,61 @@ function chunkedResponse(chunks: string[]) {
 }
 
 describe("portfolio chat client", () => {
+  it("sends per-visit routing state and accepts the hidden turn mode event", async () => {
+    const events: PortfolioChatEvent[] = [];
+    const fetchImplementation = vi.fn(async () =>
+      chunkedResponse([
+        '{"type":"turn_mode","mode":"general"}\n{"type":"done"}\n',
+      ]),
+    );
+    const options = {
+      visitState: { generalTurns: 2, portfolioNudgeShown: false },
+      fetchImplementation,
+      onEvent: (event: PortfolioChatEvent) => events.push(event),
+    } as AskPortfolioOptions & {
+      visitState: { generalTurns: number; portfolioNudgeShown: boolean };
+    };
+
+    await streamPortfolioAnswer("How do I sharpen a knife?", options);
+
+    expect(events).toEqual([
+      { type: "turn_mode", mode: "general" },
+      { type: "done" },
+    ]);
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      "/api/portfolio-chat",
+      expect.objectContaining({
+        body: JSON.stringify({
+          question: "How do I sharpen a knife?",
+          visitState: { generalTurns: 2, portfolioNudgeShown: false },
+        }),
+      }),
+    );
+  });
+
+  it("rejects a stream that ends before the terminal done event", async () => {
+    const fetchImplementation = async () =>
+      chunkedResponse([
+        '{"type":"turn_mode","mode":"general"}\n',
+        '{"type":"answer_delta","delta":"Incomplete answer"}\n',
+      ]);
+
+    await expect(
+      streamPortfolioAnswer("Question", {
+        fetchImplementation,
+        onEvent: () => {},
+      }),
+    ).rejects.toMatchObject({
+      code: "invalid_stream",
+      message: "The answer service returned an invalid stream.",
+    });
+  });
+
   it("delivers NDJSON events even when transport chunks split a JSON line", async () => {
     const events: PortfolioChatEvent[] = [];
     const fetchImplementation = vi.fn(async () =>
       chunkedResponse([
-        '{"type":"evidence","evidence":[]}\n{"type":"answer_',
+        '{"type":"evidence","evidence":[]}\n{"type":"turn_mode","mode":"portfolio"}\n{"type":"answer_',
         'delta","delta":"Grounded "}\n',
         '{"type":"answer_delta","delta":"answer."}\n{"type":"done"}\n',
       ]),
@@ -40,6 +91,7 @@ describe("portfolio chat client", () => {
 
     expect(events).toEqual([
       { type: "evidence", evidence: [] },
+      { type: "turn_mode", mode: "portfolio" },
       { type: "answer_delta", delta: "Grounded " },
       { type: "answer_delta", delta: "answer." },
       { type: "done" },

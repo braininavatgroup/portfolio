@@ -1,6 +1,8 @@
 import {
   encodePortfolioChatEvent,
   type PortfolioChatEvent,
+  type PortfolioChatTurnMode,
+  type PortfolioChatVisitState,
 } from "../portfolio-chat-protocol";
 import {
   groundPortfolioQuestion,
@@ -52,10 +54,13 @@ const maxRequestBytes = 12_288;
 const maxSingleTurnRequestBytes = 4_096;
 const maxQuestionLength = 600;
 const maxChallengeTokenLength = 2_048;
+const oneTimeGeneralNudge =
+  "If you feel like changing subjects, Bradley's portfolio is nearby, pretending not to hover.";
 
 export type ParsedPortfolioChatRequest = {
   question: string;
   conversation?: PortfolioChatMessage[];
+  visitState?: PortfolioChatVisitState;
   challengeToken?: string;
   grounding?: PortfolioGrounding;
 };
@@ -63,6 +68,141 @@ export type ParsedPortfolioChatRequest = {
 class InsufficientEvidenceError extends Error {}
 class MixedEvidenceResultError extends Error {}
 class InvalidAttributionError extends Error {}
+
+const portfolioAliasStopWords = new Set([
+  "and",
+  "becoming",
+  "campaign",
+  "portfolio",
+  "real",
+  "stages",
+  "system",
+  "the",
+  "three",
+  "tool",
+]);
+
+function words(text: string) {
+  return text
+    .toLocaleLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+function includesPortfolioAlias(text: string, grounding: PortfolioGrounding) {
+  const textWords = new Set(words(text));
+  const aliases = grounding.evidence.flatMap(({ id, projectTitle, title }) =>
+    words(`${id.replace(/^project:/, "")} ${projectTitle} ${title}`).filter(
+      (word) => word.length >= 4 && !portfolioAliasStopWords.has(word),
+    ),
+  );
+  return aliases.some((alias) => textWords.has(alias));
+}
+
+function includesPortfolioEntity(
+  text: string,
+  grounding: PortfolioGrounding,
+) {
+  const normalized = text.toLocaleLowerCase();
+  if (/\b(?:bradley|berkman|portfolio)\b/i.test(text)) return true;
+  return (
+    includesPortfolioAlias(text, grounding) ||
+    grounding.evidence.some(({ projectTitle, title }) =>
+      [projectTitle, title].some((candidate) => {
+        const normalizedCandidate = candidate.trim().toLocaleLowerCase();
+        return (
+          normalizedCandidate.length >= 4 &&
+          normalized.includes(normalizedCandidate)
+        );
+      }),
+    )
+  );
+}
+
+function requiresPortfolioMode(
+  question: string,
+  conversation: readonly PortfolioChatMessage[] | undefined,
+  grounding: PortfolioGrounding,
+) {
+  if (includesPortfolioEntity(question, grounding)) return true;
+  if (
+    /\b(?:case stud(?:y|ies)|what do you do|who are you|your (?:work|projects?|background|experience|approach|process|consulting)|this (?:site|website))\b/i.test(
+      question,
+    )
+  ) {
+    return true;
+  }
+  const priorAssistant = conversation
+    ?.toReversed()
+    .find(({ role }) => role === "assistant");
+  return Boolean(
+    priorAssistant &&
+      /\[E[1-9]\d*\]/.test(priorAssistant.content) &&
+      (/\b(?:which example|tell me more about (?:that|it)|how did (?:that|it)|what changed)\b/i.test(
+        question,
+      ) ||
+        /\b(?:it|that|this|they|them|those|these|one|ones)\b/i.test(question) ||
+        /\b(?:next|then|else|more|continue|continued|elaborate|expand|expanded|results?|outcomes?|happened|afterward)\b/i.test(
+          question,
+        ) ||
+        /^(?:why|how|when|where)\??$/i.test(question.trim())),
+  );
+}
+
+function validateUncitedAnswer(answer: string, grounding: PortfolioGrounding) {
+  const normalized = answer.trim();
+  if (
+    !normalized ||
+    includesPortfolioEntity(normalized, grounding) ||
+    /(?:^|\n)\s*MODE:\s*/i.test(normalized)
+  ) {
+    throw new InvalidAttributionError(
+      "Non-portfolio output crossed the portfolio boundary.",
+    );
+  }
+  return normalized;
+}
+
+async function* withoutModeMarkers(deltas: AsyncIterable<string>) {
+  let output = "";
+  for await (const delta of deltas) {
+    output += delta;
+    if (/(?:^|\n)\s*MODE:\s*/i.test(output)) {
+      throw new InvalidAttributionError(
+        "Provider output contains an extra mode marker.",
+      );
+    }
+    yield delta;
+  }
+}
+
+async function* validatedUncitedAnswerDeltas(
+  deltas: AsyncIterable<string>,
+  grounding: PortfolioGrounding,
+  appendNudge: boolean,
+) {
+  let buffer = "";
+  const sentenceBoundary = /[.!?]["')\]]?\s+/;
+
+  for await (const delta of deltas) {
+    buffer += delta;
+    let boundary = sentenceBoundary.exec(buffer);
+    while (boundary) {
+      const end = boundary.index + boundary[0].length;
+      const segment = buffer.slice(0, end);
+      validateUncitedAnswer(segment, grounding);
+      yield segment;
+      buffer = buffer.slice(end);
+      boundary = sentenceBoundary.exec(buffer);
+    }
+  }
+
+  const finalSegment = buffer.trim();
+  if (finalSegment) validateUncitedAnswer(finalSegment, grounding);
+  if (finalSegment || appendNudge) {
+    yield `${finalSegment}${finalSegment && appendNudge ? "\n\n" : ""}${appendNudge ? oneTimeGeneralNudge : ""}`;
+  }
+}
 
 function validateCitedSegment(segment: string, evidenceCount: number) {
   const labels = [...segment.matchAll(/\[E([1-9]\d*)\]/g)];
@@ -121,6 +261,21 @@ async function* validatedAnswerDeltas(
   }
   validateCitedSegment(finalSegment, evidenceCount);
   yield finalSegment;
+}
+
+async function* answerDeltasWithFirst(
+  first: IteratorResult<string>,
+  iterator: AsyncIterator<string>,
+) {
+  try {
+    let current = first;
+    while (!current.done) {
+      yield current.value;
+      current = await iterator.next();
+    }
+  } finally {
+    await iterator.return?.();
+  }
 }
 
 class RequestError extends Error {
@@ -233,9 +388,39 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
     }
     conversation = parsedConversation.value;
   }
+  const rawVisitState =
+    parsed && typeof parsed === "object" && "visitState" in parsed
+      ? Reflect.get(parsed, "visitState")
+      : undefined;
+  let visitState: PortfolioChatVisitState | undefined;
+  if (rawVisitState !== undefined) {
+    const generalTurns =
+      rawVisitState && typeof rawVisitState === "object"
+        ? Reflect.get(rawVisitState, "generalTurns")
+        : undefined;
+    const portfolioNudgeShown =
+      rawVisitState && typeof rawVisitState === "object"
+        ? Reflect.get(rawVisitState, "portfolioNudgeShown")
+        : undefined;
+    if (
+      !Number.isInteger(generalTurns) ||
+      typeof generalTurns !== "number" ||
+      generalTurns < 0 ||
+      generalTurns > 2 ||
+      typeof portfolioNudgeShown !== "boolean"
+    ) {
+      throw new RequestError(
+        400,
+        "invalid_request",
+        "Visit routing state is invalid.",
+      );
+    }
+    visitState = { generalTurns, portfolioNudgeShown };
+  }
   return {
     question: question.trim(),
     ...(conversation?.length ? { conversation } : {}),
+    ...(visitState ? { visitState } : {}),
     ...(typeof challengeToken === "string" ? { challengeToken } : {}),
   };
 }
@@ -320,7 +505,7 @@ export function createPortfolioChatHandler({
       ? { ok: true as const, value: prepared }
       : await parsePortfolioChatRequest(request);
     if (!parsed.ok) return parsed.response;
-    const { question, conversation } = parsed.value;
+    const { question, conversation, visitState } = parsed.value;
 
     const grounding = parsed.value.grounding ?? groundPortfolioQuestion(question);
     const context = getRequestContext?.(request);
@@ -337,8 +522,9 @@ export function createPortfolioChatHandler({
       let answerCharacters = 0;
       let usage: PortfolioChatProviderUsage | undefined;
       let finished = false;
+      let preservePartialAnswer = true;
       const markProviderUnavailable = () => {
-        if (answerCharacters > 0) {
+        if (answerCharacters > 0 && preservePartialAnswer) {
           outcome = "partial_answer";
           return;
         }
@@ -395,20 +581,60 @@ export function createPortfolioChatHandler({
 
       try {
         const provider = getProvider();
+        let turnMode: PortfolioChatTurnMode | undefined;
         const providerDeltas = provider.streamAnswer({
           ...grounding,
           ...(conversation ? { conversation } : {}),
+          ...(visitState ? { visitState } : {}),
           signal: providerSignal,
           safetyIdentifier: context?.safetyIdentifier,
+          onMode: (mode) => {
+            if (turnMode && turnMode !== mode) {
+              throw new Error("Provider changed the turn mode.");
+            }
+            if (!turnMode) {
+              turnMode = mode;
+            }
+          },
           onUsage: (reportedUsage) => {
             usage = reportedUsage;
           },
         });
-        for await (const delta of validatedAnswerDeltas(
-          providerDeltas,
-          grounding.evidence.length,
-        )) {
-          if (delta) {
+        const iterator = providerDeltas[Symbol.asyncIterator]();
+        const first = await iterator.next();
+        const answerDeltas = withoutModeMarkers(
+          answerDeltasWithFirst(first, iterator),
+        );
+        const proposedMode = turnMode as PortfolioChatTurnMode | undefined;
+        const effectiveMode =
+          proposedMode &&
+          proposedMode !== "portfolio" &&
+          requiresPortfolioMode(question, conversation, grounding)
+            ? "portfolio"
+            : (proposedMode ?? "portfolio");
+        if (proposedMode) send({ type: "turn_mode", mode: effectiveMode });
+
+        if (effectiveMode === "portfolio") {
+          for await (const delta of validatedAnswerDeltas(
+            answerDeltas,
+            grounding.evidence.length,
+          )) {
+            if (delta) {
+              answerCharacters += delta.length;
+              send({ type: "answer_delta", delta });
+            }
+          }
+        } else {
+          preservePartialAnswer = false;
+          const appendNudge =
+            effectiveMode === "general" &&
+            visitState?.generalTurns === 2 &&
+            !visitState.portfolioNudgeShown;
+          for await (const delta of validatedUncitedAnswerDeltas(
+            answerDeltas,
+            grounding,
+            appendNudge,
+          )) {
             answerCharacters += delta.length;
             send({ type: "answer_delta", delta });
           }

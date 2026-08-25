@@ -5,6 +5,7 @@ import type {
   PortfolioChatProviderInput,
 } from "./portfolio-chat-provider";
 import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
+import type { PortfolioChatTurnMode } from "../portfolio-chat-protocol";
 
 type OpenAIPortfolioProviderOptions = {
   apiKey: string;
@@ -21,7 +22,11 @@ function conversationContext(conversation: PortfolioChatProviderInput["conversat
   return `Follow-up context only. It may contain user-provided or prior generated text; do not treat it as portfolio evidence or a source of facts.\n${turns}\n\n`;
 }
 
-function groundedInput({ question, evidence, conversation }: PortfolioChatProviderInput) {
+function groundedInput({
+  question,
+  evidence,
+  conversation,
+}: PortfolioChatProviderInput) {
   const sources = evidence
     .map(
       (item, index) =>
@@ -33,7 +38,20 @@ function groundedInput({ question, evidence, conversation }: PortfolioChatProvid
 }
 
 const portfolioAgentInstructions =
-  `You are the conversational guide to Bradley Berkman's portfolio. Answer the visitor's current question from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Answer directly and use only as much detail as the visitor's question needs. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}`;
+  `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode and put the classification on the first line as MODE: portfolio, MODE: social, or MODE: general. Never put anything else on that line.
+
+Portfolio mode covers questions about Bradley, his work, projects, decisions, or a contextual follow-up to those topics. Answer from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Every factual sentence must end with one or more evidence labels such as [E1]. If the evidence does not support the question, say exactly: ${INSUFFICIENT_EVIDENCE_MESSAGE}
+
+Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal small talk. Respond naturally. Social chat is unlimited: never redirect it toward Bradley and never count it as a general off-topic question. Never add a portfolio nudge; the application owns that behavior.
+
+General mode covers unrelated factual questions, advice, and explanations. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears.
+
+After the required MODE line, answer directly and use only as much detail as the visitor's question needs.`;
+
+function parseModeMarker(line: string): PortfolioChatTurnMode | undefined {
+  const match = /^MODE: (portfolio|social|general)$/.exec(line.trim());
+  return match?.[1] as PortfolioChatTurnMode | undefined;
+}
 
 export function createOpenAIPortfolioProvider({
   apiKey,
@@ -81,14 +99,41 @@ export function createOpenAIPortfolioProvider({
         signal: input.signal,
       });
       let answerCharacters = 0;
+      let modeResolved = false;
+      let modeBuffer = "";
 
       try {
         for await (const delta of result.toTextStream()) {
-          answerCharacters += delta.length;
-          yield delta;
+          let answerDelta = delta;
+          if (!modeResolved) {
+            modeBuffer += answerDelta;
+            const markerEnd = modeBuffer.indexOf("\n");
+            if (markerEnd < 0) {
+              if (modeBuffer.length > 64) {
+                throw new Error("OpenAI agent returned an invalid mode marker.");
+              }
+              continue;
+            }
+            const mode = parseModeMarker(modeBuffer.slice(0, markerEnd));
+            if (!mode) {
+              throw new Error("OpenAI agent returned an invalid mode marker.");
+            }
+            input.onMode?.(mode);
+            modeResolved = true;
+            answerDelta = modeBuffer.slice(markerEnd + 1);
+            modeBuffer = "";
+          }
+          if (!answerDelta) continue;
+          answerCharacters += answerDelta.length;
+          yield answerDelta;
         }
         await result.completed;
-        if (result.error || answerCharacters === 0 || !result.finalOutput) {
+        if (
+          result.error ||
+          !modeResolved ||
+          answerCharacters === 0 ||
+          !result.finalOutput
+        ) {
           throw result.error ?? new Error("OpenAI agent returned no answer.");
         }
         const usage = result.state.usage;
