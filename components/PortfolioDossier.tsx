@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -14,12 +15,18 @@ import { domains, portfolioThroughline, type DomainId } from "../lib/portfolio";
 import { portfolioData } from "../lib/portfolio-data";
 import type { PortfolioDossierRecord } from "../lib/portfolio-dossier";
 import type { TripletRole } from "../lib/portfolio-model";
+import type { AvatarTargetId } from "../lib/avatar/contracts";
 
 type PortfolioDossierProps = {
   dossier: PortfolioDossierRecord | undefined;
   selectedDomain: DomainId | null;
   onDomainSelect: (domain: DomainId | null) => void;
   onShowIndex: () => void;
+  registerAvatarTarget?: (
+    target: AvatarTargetId,
+    element: HTMLElement | null,
+  ) => void;
+  spotlightTarget?: AvatarTargetId | null;
 };
 
 const projectGroups = groupProjectsByFacet(
@@ -36,20 +43,32 @@ const roleLabels: Record<TripletRole, string> = {
 
 export function PortfolioDossier({
   dossier,
-  selectedDomain,
   onDomainSelect,
   onShowIndex,
+  registerAvatarTarget,
+  selectedDomain,
+  spotlightTarget,
 }: PortfolioDossierProps) {
   const { onDragStart, panelRef, style } = useDossierDrag();
   const label = dossier
     ? `${dossier.project.title} project dossier`
     : "Portfolio index";
+  const avatarTarget: AvatarTargetId = dossier
+    ? `project:${dossier.project.slug}`
+    : "portfolio:index";
+  const setPanelRef = useCallback(
+    (element: HTMLElement | null) => {
+      panelRef.current = element;
+      registerAvatarTarget?.(avatarTarget, element);
+    },
+    [avatarTarget, panelRef, registerAvatarTarget],
+  );
 
   return (
     <aside
       aria-label={label}
-      className={`portfolio-dossier${dossier ? " portfolio-project-dossier" : ""}`}
-      ref={panelRef}
+      className={`portfolio-dossier${dossier ? " portfolio-project-dossier" : ""}${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
+      ref={setPanelRef}
       style={style}
     >
       {dossier ? (

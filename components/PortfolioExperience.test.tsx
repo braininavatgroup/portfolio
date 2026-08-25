@@ -2,8 +2,53 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AvatarController } from "../lib/avatar/controller";
+import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
+import type { SiteActionExecutor } from "../lib/avatar/site-actions";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
 import { PortfolioExperience } from "./PortfolioExperience";
+
+vi.mock("./avatar/AvatarOverlay", async () => {
+  const React = await import("react");
+  return {
+    AvatarOverlay: ({
+      controller,
+      enabled,
+      onEnabledChange,
+    }: {
+      controller: AvatarController;
+      enabled: boolean;
+      onEnabledChange: (enabled: boolean) => void;
+      runner?: AvatarSequenceRunner;
+      siteActionExecutor?: SiteActionExecutor;
+    }) => {
+      const snapshot = React.useSyncExternalStore(
+        controller.subscribe,
+        controller.getSnapshot,
+        controller.getSnapshot,
+      );
+      const commands = React.useRef<string[]>([]);
+      const command = snapshot.currentCommand?.action;
+      if (command && commands.current.at(-1) !== command) {
+        commands.current.push(command);
+      }
+      return (
+        <section aria-label="Test avatar overlay">
+          <output data-testid="avatar-target">{snapshot.target ?? "none"}</output>
+          <output data-testid="avatar-command-log">
+            {commands.current.join(",")}
+          </output>
+          <button
+            onClick={() => onEnabledChange(!enabled)}
+            type="button"
+          >
+            {enabled ? "Hide assistant" : "Show assistant"}
+          </button>
+        </section>
+      );
+    },
+  };
+});
 
 vi.mock("./scene/PortfolioCanvas", () => ({
   PortfolioCanvas: ({
@@ -76,8 +121,34 @@ async function renderExperience(initialPhase: "body" | "graph" = "graph") {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   window.history.replaceState({}, "", "/");
 });
+
+function effectsResponse(
+  effects: Record<string, unknown>,
+) {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            `${JSON.stringify({ type: "effects", effects })}\n${JSON.stringify({ type: "done" })}\n`,
+          ),
+        );
+        controller.close();
+      },
+    }),
+  );
+}
+
+async function askExperience(question: string) {
+  const input = screen.getByLabelText("Ask a question about the portfolio");
+  fireEvent.change(input, { target: { value: question } });
+  fireEvent.submit(document.getElementById("portfolio-question-form")!);
+  await act(async () => {});
+}
 
 describe("spatial self-portrait", () => {
   it("opens on Bradley and enters the map from the figure without exposing graph UI early", async () => {
@@ -250,5 +321,219 @@ describe("spatial self-portrait", () => {
     });
     expect(projectPanel.style.left).toBe("100px");
     expect(projectPanel.style.top).toBe("170px");
+  });
+
+  it("resolves hero, real chat, and current dossier semantic targets", async () => {
+    // Catches semantic IDs registering wrappers, missing DOM, or stale dossier elements.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const { question } = JSON.parse(String(init?.body)) as {
+          question: string;
+        };
+        const target = question.includes("hero")
+          ? "hero"
+          : question.includes("chat")
+            ? "portfolio:chat"
+            : "portfolio:index";
+        return effectsResponse({
+          avatarSequence: [{ action: "lookAt", target }],
+        });
+      }),
+    );
+    await renderExperience();
+
+    await askExperience("Look at hero");
+    await screen.findByText("hero", { selector: '[data-testid="avatar-target"]' });
+    await askExperience("Look at chat");
+    await screen.findByText("portfolio:chat", {
+      selector: '[data-testid="avatar-target"]',
+    });
+    await askExperience("Look at index");
+    await screen.findByText("portfolio:index", {
+      selector: '[data-testid="avatar-target"]',
+    });
+  });
+
+  it("runs project open, tab, and close actions through current spatial selection", async () => {
+    // Catches generated routes or dossier-local state bypassing the existing project selection helpers.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { question: string };
+        return body.question === "Close it"
+          ? effectsResponse({ siteActions: [{ type: "closeProject" }] })
+          : effectsResponse({
+              siteActions: [
+                { type: "openProject", target: "project:dubs" },
+                { type: "activateTab", tab: "output" },
+              ],
+            });
+      }),
+    );
+    await renderExperience();
+
+    await askExperience("Open Dubs output");
+    expect(
+      await screen.findByRole("complementary", {
+        name: "Dubs project dossier",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Output" }).getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    await askExperience("Close it");
+    expect(
+      await screen.findByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+  });
+
+  it("moves and clears the semantic dossier spotlight", async () => {
+    // Catches spotlight classes sticking to stale dossier content across selection changes.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const { question } = JSON.parse(String(init?.body)) as {
+          question: string;
+        };
+        if (question === "Spotlight index") {
+          return effectsResponse({
+            siteActions: [{ type: "spotlight", target: "portfolio:index" }],
+          });
+        }
+        if (question === "Spotlight Dubs") {
+          return effectsResponse({
+            siteActions: [
+              { type: "openProject", target: "project:dubs" },
+              { type: "spotlight", target: "project:dubs" },
+            ],
+          });
+        }
+        return effectsResponse({ siteActions: [{ type: "clearSpotlight" }] });
+      }),
+    );
+    await renderExperience();
+
+    await askExperience("Spotlight index");
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }).className,
+    ).toContain("avatar-spotlight");
+
+    await askExperience("Spotlight Dubs");
+    const project = await screen.findByRole("complementary", {
+      name: "Dubs project dossier",
+    });
+    expect(project.className).toContain("avatar-spotlight");
+
+    await askExperience("Clear spotlight");
+    expect(project.className).not.toContain("avatar-spotlight");
+  });
+
+  it("adapts avatar travel for reduced motion while preserving project actions", async () => {
+    // Catches reduced motion dropping essential site actions or retaining dramatic travel commands.
+    mockMatchMedia(true);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        effectsResponse({
+          siteActions: [{ type: "openProject", target: "project:dubs" }],
+          avatarSequence: [
+            { action: "enter", from: "left" },
+            { action: "wait", durationMs: 500 },
+            { action: "walkTo", target: "project:dubs" },
+          ],
+        }),
+      ),
+    );
+    render(<PortfolioExperience initialPhase="graph" />);
+    await act(async () => {});
+
+    await askExperience("Open Dubs gently");
+
+    expect(
+      await screen.findByRole("complementary", {
+        name: "Dubs project dossier",
+      }),
+    ).toBeTruthy();
+    await act(async () => {});
+    expect(screen.getByTestId("avatar-command-log").textContent).toContain(
+      "lookAt",
+    );
+    expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
+      "enter",
+    );
+    expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
+  });
+
+  it("does not resume an in-flight effect sequence after a new turn starts", async () => {
+    // Catches an older effect callback starting its sequence after the newer turn already canceled avatar work.
+    vi.useFakeTimers();
+    const fetchImplementation = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const { question } = JSON.parse(String(init?.body)) as {
+          question: string;
+        };
+        return question === "First question"
+          ? effectsResponse({
+              siteActions: [
+                { type: "spotlight", target: "portfolio:index" },
+              ],
+              avatarSequence: [{ action: "play", animation: "celebrate" }],
+            })
+          : effectsResponse({});
+      },
+    );
+    vi.stubGlobal("fetch", fetchImplementation);
+    mockMatchMedia();
+    render(<PortfolioExperience initialPhase="graph" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    const form = document.getElementById("portfolio-question-form")!;
+    fireEvent.change(input, { target: { value: "First question" } });
+    fireEvent.submit(form);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    fireEvent.change(input, { target: { value: "Second question" } });
+    fireEvent.submit(form);
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(fetchImplementation).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
+      "play",
+    );
+  });
+
+  it("persists hiding without removing chat or portfolio navigation", async () => {
+    // Catches the optional overlay becoming the only access path or forgetting the user's hide choice.
+    const stored = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => stored.set(key, value),
+    });
+    await renderExperience();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
+
+    expect(stored.get("portfolio-avatar-enabled:v1")).toBe("false");
+    expect(
+      screen.getByLabelText("Ask a question about the portfolio"),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Bradley Berkman" })).toBeTruthy();
+
+    cleanup();
+    await renderExperience();
+    expect(
+      await screen.findByRole("button", { name: "Show assistant" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText("Ask a question about the portfolio"),
+    ).toBeTruthy();
   });
 });

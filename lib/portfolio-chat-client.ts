@@ -3,6 +3,7 @@ import type {
   PortfolioChatVisitState,
 } from "./portfolio-chat-protocol";
 import type { PortfolioChatMessage } from "./portfolio-chat-conversation";
+import { parsePortfolioResponseEffects } from "./avatar/validation";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
@@ -46,6 +47,14 @@ function isPortfolioChatEvent(value: unknown): value is PortfolioChatEvent {
   }
   if (type === "answer_delta") {
     return typeof Reflect.get(value, "delta") === "string";
+  }
+  if (type === "effects") {
+    Reflect.set(
+      value,
+      "effects",
+      parsePortfolioResponseEffects(Reflect.get(value, "effects")),
+    );
+    return true;
   }
   if (type === "notice" || type === "error") {
     return (

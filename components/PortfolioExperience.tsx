@@ -3,10 +3,25 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
+  useMemo,
   useReducer,
   useState,
 } from "react";
+import { AvatarController } from "../lib/avatar/controller";
+import type {
+  AvatarTargetId,
+  PortfolioResponseEffects,
+} from "../lib/avatar/contracts";
+import {
+  readAvatarEnabled,
+  writeAvatarEnabled,
+} from "../lib/avatar/preference";
+import { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
+import { SiteActionExecutor } from "../lib/avatar/site-actions";
+import { adaptCommandsForReducedMotion } from "../lib/avatar/state";
+import { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
@@ -32,6 +47,46 @@ const PortfolioCanvas = lazy(() =>
     default: module.PortfolioCanvas,
   })),
 );
+
+const AvatarOverlay = lazy(() =>
+  import("./avatar/AvatarOverlay").then((module) => ({
+    default: module.AvatarOverlay,
+  })),
+);
+
+class PortfolioAvatarActionState {
+  #selectedNode: SpatialGraphNode | null = null;
+  #reducedMotion = false;
+  #turn = 0;
+
+  beginTurn() {
+    this.#turn += 1;
+  }
+
+  getTurn() {
+    return this.#turn;
+  }
+
+  clearSelection() {
+    this.#selectedNode = null;
+  }
+
+  selectNode(node: SpatialGraphNode) {
+    this.#selectedNode = node;
+  }
+
+  getSelectedNode() {
+    return this.#selectedNode;
+  }
+
+  setReducedMotion(reducedMotion: boolean) {
+    this.#reducedMotion = reducedMotion;
+  }
+
+  getReducedMotion() {
+    return this.#reducedMotion;
+  }
+}
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -61,6 +116,26 @@ export function PortfolioExperience({
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
+  const [spotlightTarget, setSpotlightTarget] =
+    useState<AvatarTargetId | null>(null);
+  const [avatarEnabled, setAvatarEnabled] = useState(true);
+  const [avatarMounted, setAvatarMounted] = useState(false);
+  const [avatarDebug, setAvatarDebug] = useState(false);
+  const [avatarRegistry] = useState(() => new AvatarTargetRegistry());
+  const [avatarController] = useState(
+    () => new AvatarController(avatarRegistry),
+  );
+  const [avatarRunner] = useState(
+    () =>
+      new AvatarSequenceRunner((command) => avatarController.execute(command)),
+  );
+  const [avatarActionState] = useState(
+    () => new PortfolioAvatarActionState(),
+  );
+  const [registeredAvatarTargets] = useState(
+    () => new Map<AvatarTargetId, HTMLElement>(),
+  );
+
   const dossier = selectedNode
     ? getPortfolioDossier(selectedNode)
     : undefined;
@@ -68,6 +143,138 @@ export function PortfolioExperience({
     selectedDomain,
     selectedProjectId: selectedNode?.projectId ?? null,
   });
+
+  const showIndex = useCallback(() => {
+    avatarActionState.clearSelection();
+    setSelectedDomain(null);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+  }, [avatarActionState]);
+
+  const selectDomain = useCallback((domain: DomainId | null) => {
+    avatarActionState.clearSelection();
+    setSelectedDomain(domain);
+    setSelectedNode(null);
+    setKeyboardNodeId(null);
+  }, [avatarActionState]);
+
+  const selectNode = useCallback(
+    (node: SpatialGraphNode | null) => {
+      if (!node || node.role === "root") {
+        showIndex();
+        return;
+      }
+
+      if (node.role === "domain") {
+        const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
+        selectDomain(domain);
+        return;
+      }
+
+      const nextDossier = getPortfolioDossier(node);
+      if (!nextDossier) {
+        showIndex();
+        return;
+      }
+
+      const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
+      avatarActionState.selectNode(node);
+      setSelectedDomain(domain);
+      setSelectedNode(node);
+    },
+    [avatarActionState, selectDomain, showIndex],
+  );
+
+  const registerAvatarTarget = useCallback(
+    (target: AvatarTargetId, element: HTMLElement | null) => {
+      const previous = registeredAvatarTargets.get(target);
+      if (previous && previous !== element) {
+        avatarRegistry.unregister(target, previous);
+        registeredAvatarTargets.delete(target);
+      }
+      if (element) {
+        avatarRegistry.register(target, element);
+        registeredAvatarTargets.set(target, element);
+      }
+    },
+    [avatarRegistry, registeredAvatarTargets],
+  );
+  const registerHero = useCallback(
+    (element: HTMLHeadingElement | null) =>
+      registerAvatarTarget("hero", element),
+    [registerAvatarTarget],
+  );
+
+  const [siteActionExecutor] = useState(
+    () =>
+      new SiteActionExecutor(avatarRegistry, {
+        openProject: (target) => {
+          const slug = target.slice("project:".length);
+          const node =
+            portfolioNodes.find(
+              ({ projectSlug, role }) =>
+                projectSlug === slug && role === "instinct",
+            ) ?? portfolioNodes.find(({ projectSlug }) => projectSlug === slug);
+          if (!node) throw new Error("Unknown project target");
+          selectNode(node);
+        },
+        closeProject: showIndex,
+        activateTab: (tab) => {
+          const projectSlug = avatarActionState.getSelectedNode()?.projectSlug;
+          const node = portfolioNodes.find(
+            ({ projectSlug: candidate, role }) =>
+              candidate === projectSlug && role === tab,
+          );
+          if (!node) throw new Error("No selected project tab");
+          selectNode(node);
+        },
+        scrollTo: (_target, bounds) => {
+          window.scrollTo({
+            behavior: avatarActionState.getReducedMotion() ? "auto" : "smooth",
+            top: window.scrollY + bounds.top,
+          });
+        },
+        spotlight: setSpotlightTarget,
+        clearSpotlight: () => setSpotlightTarget(null),
+      }),
+  );
+
+  const avatarIntegration = useMemo(
+    () => ({
+      onTurnStart: () => {
+        avatarActionState.beginTurn();
+        avatarRunner.cancel();
+        avatarController.execute({ action: "setState", state: "thinking" });
+      },
+      onEvidence: () =>
+        avatarController.execute({ action: "setState", state: "tool_use" }),
+      onFirstText: () =>
+        avatarController.execute({ action: "setState", state: "talking" }),
+      onEffects: async (effects: PortfolioResponseEffects) => {
+        const turn = avatarActionState.getTurn();
+        const isCurrentTurn = () => avatarActionState.getTurn() === turn;
+        for (const action of effects.siteActions) {
+          if (!isCurrentTurn()) return;
+          await siteActionExecutor.execute(action);
+        }
+        if (effects.siteActions.length > 0) {
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+        }
+        if (!isCurrentTurn()) return;
+        const commands = avatarActionState.getReducedMotion()
+          ? adaptCommandsForReducedMotion(effects.avatarSequence)
+          : effects.avatarSequence;
+        await avatarRunner.run(commands);
+      },
+      onNotice: () =>
+        avatarController.execute({ action: "setState", state: "confused" }),
+      onError: () =>
+        avatarController.execute({ action: "setState", state: "error" }),
+      onComplete: () =>
+        avatarController.execute({ action: "setState", state: "idle" }),
+    }),
+    [avatarActionState, avatarController, avatarRunner, siteActionExecutor],
+  );
 
   useEffect(() => {
     dispatch({ type: initialPhase === "graph" ? "SHOW_GRAPH" : "RESET" });
@@ -88,50 +295,72 @@ export function PortfolioExperience({
     const syncWithLocation = () => {
       const graphRequested =
         new URLSearchParams(window.location.search).get("view") === "graph";
-      setSelectedDomain(null);
-      setSelectedNode(null);
-      setKeyboardNodeId(null);
+      showIndex();
       setPose("idle");
       dispatch({ type: graphRequested ? "ENTER" : "EXIT" });
     };
     window.addEventListener("popstate", syncWithLocation);
     return () => window.removeEventListener("popstate", syncWithLocation);
+  }, [showIndex]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setAvatarEnabled(readAvatarEnabled());
+      setAvatarDebug(
+        process.env.NODE_ENV === "development" &&
+          new URLSearchParams(window.location.search).get("avatarDebug") === "1",
+      );
+      setAvatarMounted(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
-  function showIndex() {
-    setSelectedDomain(null);
-    setSelectedNode(null);
-    setKeyboardNodeId(null);
-  }
+  useEffect(() => {
+    avatarActionState.setReducedMotion(reducedMotion);
+  }, [avatarActionState, reducedMotion]);
 
-  function selectDomain(domain: DomainId | null) {
-    setSelectedDomain(domain);
-    setSelectedNode(null);
-    setKeyboardNodeId(null);
-  }
+  useEffect(() => {
+    const refreshTarget = () => {
+      const command = avatarController.getSnapshot().currentCommand;
+      if (
+        command?.action === "walkTo" ||
+        command?.action === "lookAt" ||
+        command?.action === "pointAt"
+      ) {
+        avatarController.execute(command);
+      }
+    };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        avatarRunner.cancel();
+      } else {
+        refreshTarget();
+      }
+    };
+    window.addEventListener("scroll", refreshTarget, { passive: true });
+    window.addEventListener("resize", refreshTarget);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("scroll", refreshTarget);
+      window.removeEventListener("resize", refreshTarget);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      avatarRunner.cancel();
+      for (const [target, element] of registeredAvatarTargets) {
+        avatarRegistry.unregister(target, element);
+      }
+      registeredAvatarTargets.clear();
+    };
+  }, [
+    avatarController,
+    avatarRegistry,
+    avatarRunner,
+    registeredAvatarTargets,
+  ]);
 
-  function selectNode(node: SpatialGraphNode | null) {
-    if (!node || node.role === "root") {
-      showIndex();
-      return;
-    }
-
-    if (node.role === "domain") {
-      const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
-      selectDomain(domain);
-      return;
-    }
-
-    const nextDossier = getPortfolioDossier(node);
-    if (!nextDossier) {
-      showIndex();
-      return;
-    }
-
-    const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
-    setSelectedDomain(domain);
-    setSelectedNode(node);
-  }
+  const setAvatarPreference = useCallback((enabled: boolean) => {
+    setAvatarEnabled(enabled);
+    writeAvatarEnabled(enabled);
+  }, []);
 
   function enterMap() {
     if (transition.phase !== "body") return;
@@ -144,9 +373,7 @@ export function PortfolioExperience({
       return;
     }
     window.history.pushState({}, "", "/");
-    setSelectedDomain(null);
-    setSelectedNode(null);
-    setKeyboardNodeId(null);
+    showIndex();
     dispatch({ type: "EXIT" });
   }
 
@@ -197,7 +424,14 @@ export function PortfolioExperience({
         </Suspense>
 
         <div className="scene-copy">
-          <h1>I find where judgment matters, then build the system around it.</h1>
+          <h1
+            className={
+              spotlightTarget === "hero" ? "avatar-spotlight" : undefined
+            }
+            ref={registerHero}
+          >
+            I find where judgment matters, then build the system around it.
+          </h1>
         </div>
 
         {transition.phase === "graph" ? (
@@ -206,7 +440,9 @@ export function PortfolioExperience({
               dossier={dossier}
               onDomainSelect={selectDomain}
               onShowIndex={showIndex}
+              registerAvatarTarget={registerAvatarTarget}
               selectedDomain={selectedDomain}
+              spotlightTarget={spotlightTarget}
             />
 
             <KeyboardNavigator
@@ -218,9 +454,25 @@ export function PortfolioExperience({
           </>
         ) : null}
         <PortfolioChat
+          avatarIntegration={avatarIntegration}
           onPoseChange={setPose}
+          registerAvatarTarget={registerAvatarTarget}
+          spotlightTarget={spotlightTarget}
           turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
         />
+        {avatarMounted ? (
+          <Suspense fallback={null}>
+            <AvatarOverlay
+              controller={avatarController}
+              debug={avatarDebug}
+              development={process.env.NODE_ENV === "development"}
+              enabled={avatarEnabled}
+              onEnabledChange={setAvatarPreference}
+              runner={avatarRunner}
+              siteActionExecutor={siteActionExecutor}
+            />
+          </Suspense>
+        ) : null}
       </section>
     </main>
   );
