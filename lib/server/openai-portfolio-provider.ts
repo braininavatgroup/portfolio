@@ -162,7 +162,7 @@ export function createOpenAIPortfolioProvider({
       });
       try {
         const result = await runner.run(agent, groundedInput(input), {
-          maxTurns: 1,
+          maxTurns: 2,
           signal: input.signal,
         });
         if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");

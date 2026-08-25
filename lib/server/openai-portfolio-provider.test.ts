@@ -53,6 +53,14 @@ function completedResponse(
   });
 }
 
+function responseWithoutFinalOutput() {
+  return Response.json({
+    id: "resp_portfolio_reasoning_only_test",
+    output: [],
+    usage: { input_tokens: 37, output_tokens: 9, total_tokens: 46 },
+  });
+}
+
 function portfolioOutput(
   sentences: StructuredOutput["sentences"],
 ): StructuredOutput {
@@ -326,6 +334,38 @@ describe("OpenAI portfolio provider", () => {
         ],
       },
     ]);
+  });
+
+  it("lets the SDK complete one recovery turn when the first structured response has no final output", async () => {
+    let attempt = 0;
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () => {
+        attempt += 1;
+        return attempt === 1
+          ? responseWithoutFinalOutput()
+          : completedResponse(
+              portfolioOutput([
+                { text: "Grounded after recovery.", evidenceIds: ["project:pitching"] },
+              ]),
+            );
+      },
+    });
+
+    const chunks: string[] = [];
+    for await (const chunk of provider.streamAnswer({
+      question: "Which example best proves that?",
+      conversation: [
+        { role: "user", content: "Tell me about pitching." },
+        { role: "assistant", content: "It keeps approval human. [E1]" },
+      ],
+      evidence,
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(["Grounded after recovery. [E1]"]);
   });
 
   it("returns the exact evidence refusal from a structured portfolio result", async () => {
