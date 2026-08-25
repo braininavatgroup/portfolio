@@ -69,19 +69,6 @@ class InsufficientEvidenceError extends Error {}
 class MixedEvidenceResultError extends Error {}
 class InvalidAttributionError extends Error {}
 
-const portfolioAliasStopWords = new Set([
-  "and",
-  "becoming",
-  "campaign",
-  "portfolio",
-  "real",
-  "stages",
-  "system",
-  "the",
-  "three",
-  "tool",
-]);
-
 function words(text: string) {
   return text
     .toLocaleLowerCase()
@@ -90,13 +77,19 @@ function words(text: string) {
 }
 
 function includesPortfolioAlias(text: string, grounding: PortfolioGrounding) {
-  const textWords = new Set(words(text));
-  const aliases = grounding.evidence.flatMap(({ id, projectTitle, title }) =>
-    words(`${id.replace(/^project:/, "")} ${projectTitle} ${title}`).filter(
-      (word) => word.length >= 4 && !portfolioAliasStopWords.has(word),
-    ),
-  );
-  return aliases.some((alias) => textWords.has(alias));
+  const normalizedText = ` ${words(text).join(" ")} `;
+  const aliases = grounding.evidence.flatMap(({ id, projectTitle, title }) => [
+    id.replace(/^(?:project|entity):/, "").replaceAll("-", " "),
+    projectTitle,
+    title,
+  ]);
+  return aliases.some((alias) => {
+    const aliasWords = words(alias);
+    return (
+      aliasWords.length >= 2 &&
+      normalizedText.includes(` ${aliasWords.join(" ")} `)
+    );
+  });
 }
 
 function includesPortfolioEntity(
@@ -105,18 +98,7 @@ function includesPortfolioEntity(
 ) {
   const normalized = text.toLocaleLowerCase();
   if (/\b(?:bradley|berkman|portfolio)\b/i.test(text)) return true;
-  return (
-    includesPortfolioAlias(text, grounding) ||
-    grounding.evidence.some(({ projectTitle, title }) =>
-      [projectTitle, title].some((candidate) => {
-        const normalizedCandidate = candidate.trim().toLocaleLowerCase();
-        return (
-          normalizedCandidate.length >= 4 &&
-          normalized.includes(normalizedCandidate)
-        );
-      }),
-    )
-  );
+  return includesPortfolioAlias(normalized, grounding);
 }
 
 function requiresPortfolioMode(
