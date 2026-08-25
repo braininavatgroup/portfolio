@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   PortfolioChatClientError,
   requestPortfolioChatPreviewAccess,
@@ -19,6 +19,10 @@ import {
 } from "../lib/portfolio-chat-conversation";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import type {
+  AvatarTargetId,
+  PortfolioResponseEffects,
+} from "../lib/avatar/contracts";
+import type {
   PortfolioChatTurnMode,
   PortfolioChatVisitState,
 } from "../lib/portfolio-chat-protocol";
@@ -31,17 +35,40 @@ const stageRoleLabels = {
   output: "Output",
 } as const;
 
+type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
+  ...arguments_: Arguments
+) => void | Promise<void>;
+
+export type PortfolioChatAvatarIntegration = {
+  onTurnStart: AvatarLifecycleCallback;
+  onEvidence: AvatarLifecycleCallback<[PortfolioGroundingEvidence[]]>;
+  onFirstText: AvatarLifecycleCallback;
+  onEffects: AvatarLifecycleCallback<[PortfolioResponseEffects]>;
+  onNotice: AvatarLifecycleCallback;
+  onError: AvatarLifecycleCallback;
+  onComplete: AvatarLifecycleCallback;
+};
+
 export function PortfolioChat({
+  avatarIntegration,
   onPoseChange,
+  registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
   requestPreviewAccess = requestPortfolioChatPreviewAccess,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
+  spotlightTarget,
   turnstileSiteKey,
 }: {
+  avatarIntegration?: PortfolioChatAvatarIntegration;
   onPoseChange: (pose: PoseState) => void;
+  registerAvatarTarget?: (
+    target: AvatarTargetId,
+    element: HTMLElement | null,
+  ) => void;
   askPortfolio?: AskPortfolio;
   requestPreviewAccess?: RequestPortfolioChatPreviewAccess;
   renderTurnstile?: TurnstileRenderer;
+  spotlightTarget?: AvatarTargetId | null;
   turnstileSiteKey?: string;
 }) {
   const [input, setInput] = useState("");
@@ -65,6 +92,13 @@ export function PortfolioChat({
   const chatRegion = useRef<HTMLElement | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
   const turnstileController = useRef<TurnstileController | null>(null);
+  const setChatRegion = useCallback(
+    (element: HTMLElement | null) => {
+      chatRegion.current = element;
+      registerAvatarTarget?.("portfolio:chat", element);
+    },
+    [registerAvatarTarget],
+  );
 
   useEffect(() => {
     if (!turnstileSiteKey || !turnstileContainer.current) return;
@@ -140,17 +174,61 @@ export function PortfolioChat({
     requestController.current?.abort();
     const controller = new AbortController();
     requestController.current = controller;
-    setAnswer("");
-    setEvidence([]);
-    setMessage("");
-    setPreviewRequired(false);
-    setPending(true);
     const conversationAtStart = conversation.current;
     const visitStateAtStart = { ...visitState.current };
     let streamedAnswer = "";
     let streamFailed = false;
     let streamCompleted = false;
     let turnMode: PortfolioChatTurnMode | undefined;
+    let receivedText = false;
+    let avatarWork = Promise.resolve();
+    const pendingEffects: PortfolioResponseEffects[] = [];
+    const isCurrentTurn = () =>
+      !controller.signal.aborted && requestController.current === controller;
+    const runAvatarWorkSafely = (work: () => void | Promise<void>) => {
+      try {
+        return Promise.resolve(work()).catch(() => {});
+      } catch {
+        return Promise.resolve();
+      }
+    };
+    const scheduleAvatarWork = (work: () => void | Promise<void>) => {
+      avatarWork = avatarWork.then(async () => {
+        if (!isCurrentTurn()) return;
+        await runAvatarWorkSafely(work);
+      });
+    };
+    const scheduleAvatarWorkAfterRender = (
+      work: () => void | Promise<void>,
+    ) => {
+      scheduleAvatarWork(
+        () =>
+          new Promise<void>((resolve) => {
+            window.setTimeout(async () => {
+              if (isCurrentTurn()) {
+                try {
+                  await work();
+                } catch {
+                  // Avatar work is optional and must never interrupt text.
+                }
+              }
+              resolve();
+            }, 0);
+          }),
+      );
+    };
+    const scheduleEffects = (effects: PortfolioResponseEffects) => {
+      scheduleAvatarWork(() => avatarIntegration?.onEffects(effects));
+    };
+
+    avatarWork = runAvatarWorkSafely(
+      () => avatarIntegration?.onTurnStart(),
+    );
+    setAnswer("");
+    setEvidence([]);
+    setMessage("");
+    setPreviewRequired(false);
+    setPending(true);
 
     try {
       await askPortfolio(question, {
@@ -163,16 +241,43 @@ export function PortfolioChat({
           ? { challengeToken: questionChallengeToken }
           : {}),
         onEvent: (event) => {
-          if (event.type === "evidence") setEvidence(event.evidence);
+          if (!isCurrentTurn()) return;
+          if (event.type === "evidence") {
+            setEvidence(event.evidence);
+            scheduleAvatarWork(() => avatarIntegration?.onEvidence(event.evidence));
+          }
           if (event.type === "turn_mode") turnMode = event.mode;
           if (event.type === "answer_delta") {
             streamedAnswer += event.delta;
             setAnswer((current) => current + event.delta);
+            if (!receivedText) {
+              receivedText = true;
+              if (avatarIntegration) {
+                scheduleAvatarWorkAfterRender(() =>
+                  avatarIntegration.onFirstText(),
+                );
+              }
+              for (const effects of pendingEffects.splice(0)) {
+                scheduleEffects(effects);
+              }
+            }
+          }
+          if (event.type === "effects") {
+            if (receivedText) {
+              scheduleEffects(event.effects);
+            } else {
+              pendingEffects.push(event.effects);
+            }
           }
           if (event.type === "notice" || event.type === "error") {
             if (event.type === "error") streamFailed = true;
             if (event.type === "error") setAnswer("");
             setMessage(event.message);
+            scheduleAvatarWork(() =>
+              event.type === "notice"
+                ? avatarIntegration?.onNotice()
+                : avatarIntegration?.onError(),
+            );
           }
           if (event.type === "done") streamCompleted = true;
         },
@@ -203,6 +308,7 @@ export function PortfolioChat({
     } catch (error) {
       if (controller.signal.aborted) return;
       setAnswer("");
+      scheduleAvatarWork(() => avatarIntegration?.onError());
       if (
         error instanceof PortfolioChatClientError &&
         error.code === "preview_required"
@@ -218,6 +324,14 @@ export function PortfolioChat({
       if (turnstileSiteKey) {
         setChallengeToken(null);
         turnstileController.current?.reset();
+      }
+      await avatarWork;
+      if (isCurrentTurn()) {
+        try {
+          await avatarIntegration?.onComplete();
+        } catch {
+          // Avatar work is optional and must never interrupt chat cleanup.
+        }
       }
       if (requestController.current === controller) {
         requestController.current = null;
@@ -271,8 +385,8 @@ export function PortfolioChat({
 
   return (
     <section
-      ref={chatRegion}
-      className="portfolio-chat"
+      ref={setChatRegion}
+      className={`portfolio-chat${spotlightTarget === "portfolio:chat" ? " avatar-spotlight" : ""}`}
       aria-labelledby="chat-heading"
     >
       <div className="chat-heading-row">

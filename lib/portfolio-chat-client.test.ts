@@ -105,6 +105,54 @@ describe("portfolio chat client", () => {
     );
   });
 
+  it("sanitizes malformed nested effects without aborting later answer events", async () => {
+    // Catches an invalid avatar command turning an otherwise valid text stream into invalid_stream.
+    const events: PortfolioChatEvent[] = [];
+    const fetchImplementation = vi.fn(async () =>
+      chunkedResponse([
+        '{"type":"effects","effects":{"avatarSequence":[{"action":"play","animation":"not-allowed"}]}}\n',
+        '{"type":"turn_mode","mode":"portfolio"}\n',
+        '{"type":"answer_delta","delta":"Safe answer. [E1]"}\n',
+        '{"type":"done"}\n',
+      ]),
+    );
+
+    await streamPortfolioAnswer("Show me Dubs", {
+      fetchImplementation,
+      onEvent: (event) => events.push(event),
+    });
+
+    expect(events).toEqual([
+      {
+        type: "effects",
+        effects: {
+          siteActions: [],
+          avatarSequence: [],
+          issues: [
+            "avatarSequence[0].animation must be an allowed animation",
+          ],
+        },
+      },
+      { type: "turn_mode", mode: "portfolio" },
+      { type: "answer_delta", delta: "Safe answer. [E1]" },
+      { type: "done" },
+    ]);
+  });
+
+  it("retains invalid_stream for malformed non-effect events", async () => {
+    // Catches effect isolation accidentally weakening the rest of the stream contract.
+    const fetchImplementation = vi.fn(async () =>
+      chunkedResponse(['{"type":"answer_delta","delta":42}\n']),
+    );
+
+    await expect(
+      streamPortfolioAnswer("Question", {
+        fetchImplementation,
+        onEvent: () => {},
+      }),
+    ).rejects.toMatchObject({ code: "invalid_stream" });
+  });
+
   it("preserves the disabled-gate error contract without exposing response internals", async () => {
     const fetchImplementation = async () =>
       Response.json(

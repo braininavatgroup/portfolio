@@ -650,6 +650,67 @@ body {
   width: calc(100% - 3rem);
 }
 
+.avatar-overlay {
+  bottom: 0.85rem;
+  height: 13rem;
+  position: fixed;
+  transform: translateX(-50%);
+  width: 9rem;
+  z-index: 6;
+}
+
+.avatar-overlay-canvas {
+  inset: 0;
+  position: absolute !important;
+}
+
+.avatar-overlay-toggle {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  bottom: 1rem;
+  color: var(--muted);
+  cursor: pointer;
+  font: 600 0.62rem/1 var(--font-geist-mono), monospace;
+  left: 1rem;
+  padding: 0.45rem 0.6rem;
+  position: fixed;
+  white-space: nowrap;
+  z-index: 9;
+}
+
+.avatar-dev-harness {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  bottom: 4rem;
+  left: auto;
+  max-height: min(28rem, 70dvh);
+  overflow: auto;
+  padding: 0.7rem;
+  pointer-events: auto;
+  position: fixed;
+  right: 1rem;
+  transform: none;
+  width: min(19rem, calc(100vw - 1.5rem));
+  z-index: 10;
+}
+
+.avatar-dev-harness h2,
+.avatar-dev-harness p {
+  font-size: 0.68rem;
+  margin: 0 0 0.45rem;
+}
+
+.avatar-dev-harness button {
+  font-size: 0.58rem;
+  margin: 0.12rem;
+}
+
+.avatar-spotlight {
+  outline: 2px solid #99bd4c;
+  outline-offset: 0.3rem;
+}
+
 .experience-graph .chat-starters {
   display: none;
 }
@@ -1023,6 +1084,17 @@ body {
     bottom: 0.65rem;
     padding: 0.6rem;
     width: calc(100% - 1.5rem);
+  }
+  .avatar-overlay {
+    bottom: calc(7.5rem + env(safe-area-inset-bottom));
+    height: 9rem;
+    width: 6.5rem;
+  }
+  .avatar-overlay-toggle {
+    bottom: auto;
+    left: auto;
+    right: 0.75rem;
+    top: calc(4rem + env(safe-area-inset-top));
   }
   .experience-graph .portfolio-chat {
     bottom: calc(48dvh + 1rem);

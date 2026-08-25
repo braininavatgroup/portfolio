@@ -67,6 +67,7 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   assert.doesNotMatch(html, /No external model is called/i);
   assert.doesNotMatch(html, /Local tool/i);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);
+  assert.doesNotMatch(html, /Avatar developer controls|avatarDebug/i);
 });
 
 test("the homepage opens directly on the map with its synchronized index", async () => {

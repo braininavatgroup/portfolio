@@ -1,4 +1,5 @@
 import type { PortfolioGroundingEvidence } from "./portfolio-grounding";
+import type { PortfolioResponseEffects } from "./avatar/contracts";
 
 export type PortfolioChatTurnMode = "portfolio" | "social" | "general";
 
@@ -11,6 +12,7 @@ export type PortfolioChatEvent =
   | { type: "evidence"; evidence: PortfolioGroundingEvidence[] }
   | { type: "turn_mode"; mode: PortfolioChatTurnMode }
   | { type: "answer_delta"; delta: string }
+  | { type: "effects"; effects: PortfolioResponseEffects }
   | {
       type: "notice";
       code: "insufficient_evidence";

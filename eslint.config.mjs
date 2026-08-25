@@ -38,7 +38,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["components/scene/**/*.tsx"],
+    files: ["components/scene/**/*.tsx", "components/avatar/**/*.tsx"],
     rules: {
       "react/no-unknown-property": "off",
     },

@@ -31,3 +31,22 @@ test("every client asset referenced by the built server exists", async () => {
     }
   }
 });
+
+test("the production build copies the avatar GLB and its license byte-for-byte", async () => {
+  const assetPaths = [
+    "avatars/quaternius-casual-2.glb",
+    "avatars/quaternius-ultimate-modular-men-LICENSE.txt",
+  ];
+
+  for (const assetPath of assetPaths) {
+    const source = await readFile(new URL(`public/${assetPath}`, repositoryRoot));
+    const built = await readFile(new URL(`dist/client/${assetPath}`, repositoryRoot));
+    assert.deepEqual(built, source, `${assetPath} differs from its public source`);
+  }
+
+  const glb = await readFile(
+    new URL("dist/client/avatars/quaternius-casual-2.glb", repositoryRoot),
+  );
+  assert.equal(glb.readUInt32LE(0), 0x46546c67, "built avatar is a GLB");
+  assert.equal(glb.readUInt32LE(4), 2, "built avatar uses glTF 2");
+});
