@@ -419,11 +419,11 @@ describe("OpenAI portfolio provider", () => {
   it.each([
     ["malformed structured output", "not json", "invalid_final_output"],
     [
-      "an unknown evidence id",
+      "an evidence id outside the supplied structured-output enum",
       portfolioOutput([
         { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
       ]),
-      "unknown_evidence",
+      "invalid_final_output",
     ],
   ])("rejects %s without exposing it", async (_label, output, failureKind) => {
     const onFailure = vi.fn();

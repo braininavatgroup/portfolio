@@ -60,16 +60,27 @@ General mode covers unrelated factual questions, advice, and explanations. If th
 
 Set insufficientEvidence to false for social and general turns. Answer directly and use only as much detail as the visitor's question needs.`;
 
-const portfolioAgentOutput = z.object({
-  mode: z.enum(["portfolio", "social", "general"]),
-  insufficientEvidence: z.boolean(),
-  sentences: z.array(
-    z.object({
-      text: z.string(),
-      evidenceIds: z.array(z.string()),
-    }),
-  ),
-});
+function portfolioAgentOutput(
+  evidence: PortfolioChatProviderInput["evidence"],
+) {
+  const evidenceIds = evidence.map(({ id }) => id) as [string, ...string[]];
+  return z.object({
+    mode: z.enum(["portfolio", "social", "general"]),
+    insufficientEvidence: z.boolean(),
+    sentences: z.array(
+      z.object({
+        text: z.string(),
+        evidenceIds: z.array(z.enum(evidenceIds)),
+      }),
+    ),
+  });
+}
+
+type PortfolioAgentOutput = {
+  mode: "portfolio" | "social" | "general";
+  insufficientEvidence: boolean;
+  sentences: Array<{ text: string; evidenceIds: string[] }>;
+};
 
 type InvalidEvidenceFailureKind =
   | "citation_label"
@@ -102,7 +113,7 @@ function failureKind(
 }
 
 function renderAgentOutput(
-  output: z.infer<typeof portfolioAgentOutput>,
+  output: PortfolioAgentOutput,
   evidence: PortfolioChatProviderInput["evidence"],
 ) {
   if (output.insufficientEvidence) {
@@ -211,7 +222,7 @@ export function createOpenAIPortfolioProvider({
         name: "Bradley portfolio guide",
         instructions: portfolioAgentInstructions,
         model,
-        outputType: portfolioAgentOutput,
+        outputType: portfolioAgentOutput(input.evidence),
         modelSettings: {
           maxTokens: 3_000,
           store: false,
