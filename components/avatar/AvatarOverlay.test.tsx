@@ -6,6 +6,15 @@ import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
 import { AvatarOverlay } from "./AvatarOverlay";
 
+const avatarDevHarnessLoad = vi.hoisted(() => vi.fn());
+
+vi.mock("./AvatarDevHarness", () => {
+  avatarDevHarnessLoad();
+  return {
+    AvatarDevHarness: () => <h2>Avatar developer controls</h2>,
+  };
+});
+
 vi.mock("@react-three/fiber", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@react-three/fiber")>();
   return {
@@ -37,6 +46,7 @@ describe("AvatarOverlay", () => {
     expect(overlay?.className).toContain("pointer-events-none");
     expect(overlay?.getAttribute("data-avatar-state")).toBe("thinking");
     expect(control.className).toContain("pointer-events-auto");
+    expect(overlay?.contains(control)).toBe(false);
     expect(screen.getByTestId("avatar-canvas")).toBeTruthy();
 
     fireEvent.click(control);
@@ -46,7 +56,7 @@ describe("AvatarOverlay", () => {
     expect(screen.queryByTestId("avatar-canvas")).toBeNull();
   });
 
-  it("keeps developer controls out of normal rendering and shows them only behind both guards", () => {
+  it("loads developer controls only after both development guards pass", async () => {
     // Catches development controls leaking into production-like rendering or becoming impossible to reach when opted in.
     const controller = new AvatarController(new AvatarTargetRegistry());
     const { rerender } = render(
@@ -59,6 +69,7 @@ describe("AvatarOverlay", () => {
     );
 
     expect(screen.queryByRole("heading", { name: "Avatar developer controls" })).toBeNull();
+    expect(avatarDevHarnessLoad).not.toHaveBeenCalled();
 
     rerender(
       <AvatarOverlay
@@ -70,7 +81,10 @@ describe("AvatarOverlay", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Avatar developer controls" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Avatar developer controls" }),
+    ).toBeTruthy();
+    expect(avatarDevHarnessLoad).toHaveBeenCalledTimes(1);
   });
 
   it("removes a failed renderer while retaining the visibility control", () => {

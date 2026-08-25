@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarController } from "../lib/avatar/controller";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
@@ -15,6 +22,7 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       controller,
       enabled,
       onEnabledChange,
+      runner,
     }: {
       controller: AvatarController;
       enabled: boolean;
@@ -28,6 +36,9 @@ vi.mock("./avatar/AvatarOverlay", async () => {
         controller.getSnapshot,
       );
       const commands = React.useRef<string[]>([]);
+      if (runner) {
+        Reflect.set(globalThis, "__portfolioTestAvatarRunner", runner);
+      }
       const command = snapshot.currentCommand?.action;
       if (command && commands.current.at(-1) !== command) {
         commands.current.push(command);
@@ -112,6 +123,17 @@ function mockMatchMedia(reducedMotion = false) {
   }));
 }
 
+let portfolioStorageValues: Map<string, string>;
+
+beforeEach(() => {
+  portfolioStorageValues = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => portfolioStorageValues.get(key) ?? null,
+    setItem: (key: string, value: string) =>
+      portfolioStorageValues.set(key, value),
+  });
+});
+
 async function renderExperience(initialPhase: "body" | "graph" = "graph") {
   mockMatchMedia();
   render(<PortfolioExperience initialPhase={initialPhase} />);
@@ -122,6 +144,7 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(globalThis, "__portfolioTestAvatarRunner");
   window.history.replaceState({}, "", "/");
 });
 
@@ -134,7 +157,7 @@ function effectsResponse(
       start(controller) {
         controller.enqueue(
           encoder.encode(
-            `${JSON.stringify({ type: "effects", effects })}\n${JSON.stringify({ type: "done" })}\n`,
+            `${JSON.stringify({ type: "effects", effects })}\n${JSON.stringify({ type: "answer_delta", delta: "Effect ready." })}\n${JSON.stringify({ type: "done" })}\n`,
           ),
         );
         controller.close();
@@ -427,7 +450,9 @@ describe("spatial self-portrait", () => {
     expect(project.className).toContain("avatar-spotlight");
 
     await askExperience("Clear spotlight");
-    expect(project.className).not.toContain("avatar-spotlight");
+    await waitFor(() =>
+      expect(project.className).not.toContain("avatar-spotlight"),
+    );
   });
 
   it("adapts avatar travel for reduced motion while preserving project actions", async () => {
@@ -456,9 +481,10 @@ describe("spatial self-portrait", () => {
         name: "Dubs project dossier",
       }),
     ).toBeTruthy();
-    await act(async () => {});
-    expect(screen.getByTestId("avatar-command-log").textContent).toContain(
-      "lookAt",
+    await waitFor(() =>
+      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
+        "lookAt",
+      ),
     );
     expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
       "enter",
@@ -510,18 +536,56 @@ describe("spatial self-portrait", () => {
     );
   });
 
+  it("invalidates delayed avatar effects when the experience unmounts", async () => {
+    // Catches cleanup canceling the current runner while allowing delayed effect work to start it again.
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        effectsResponse({
+          siteActions: [{ type: "spotlight", target: "portfolio:index" }],
+          avatarSequence: [{ action: "play", animation: "celebrate" }],
+        }),
+      ),
+    );
+    mockMatchMedia();
+    const rendered = render(<PortfolioExperience initialPhase="graph" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const runner = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarRunner",
+    ) as AvatarSequenceRunner;
+    const run = vi.spyOn(runner, "run");
+
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    fireEvent.change(input, { target: { value: "Question" } });
+    fireEvent.submit(document.getElementById("portfolio-question-form")!);
+    await act(async () => {
+      await vi.advanceTimersToNextTimerAsync();
+    });
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }).className,
+    ).toContain("avatar-spotlight");
+
+    rendered.unmount();
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("persists hiding without removing chat or portfolio navigation", async () => {
     // Catches the optional overlay becoming the only access path or forgetting the user's hide choice.
-    const stored = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => stored.get(key) ?? null,
-      setItem: (key: string, value: string) => stored.set(key, value),
-    });
     await renderExperience();
 
     fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
 
-    expect(stored.get("portfolio-avatar-enabled:v1")).toBe("false");
+    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe(
+      "false",
+    );
     expect(
       screen.getByLabelText("Ask a question about the portfolio"),
     ).toBeTruthy();

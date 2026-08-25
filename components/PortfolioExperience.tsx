@@ -258,7 +258,7 @@ export function PortfolioExperience({
           await siteActionExecutor.execute(action);
         }
         if (effects.siteActions.length > 0) {
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 16));
         }
         if (!isCurrentTurn()) return;
         const commands = avatarActionState.getReducedMotion()
@@ -344,6 +344,7 @@ export function PortfolioExperience({
       window.removeEventListener("scroll", refreshTarget);
       window.removeEventListener("resize", refreshTarget);
       document.removeEventListener("visibilitychange", handleVisibility);
+      avatarActionState.beginTurn();
       avatarRunner.cancel();
       for (const [target, element] of registeredAvatarTargets) {
         avatarRegistry.unregister(target, element);
@@ -352,6 +353,7 @@ export function PortfolioExperience({
     };
   }, [
     avatarController,
+    avatarActionState,
     avatarRegistry,
     avatarRunner,
     registeredAvatarTargets,

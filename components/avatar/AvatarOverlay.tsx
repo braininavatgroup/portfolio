@@ -3,6 +3,8 @@
 import { Canvas } from "@react-three/fiber";
 import {
   Component,
+  lazy,
+  Suspense,
   type ReactNode,
   useEffect,
   useState,
@@ -12,7 +14,14 @@ import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
 import { SiteActionExecutor } from "../../lib/avatar/site-actions";
 import { AvatarAssetAdapter } from "./AvatarAssetAdapter";
-import { AvatarDevHarness } from "./AvatarDevHarness";
+
+const AvatarDevHarness = import.meta.env.DEV
+  ? lazy(() =>
+      import("./AvatarDevHarness").then((module) => ({
+        default: module.AvatarDevHarness,
+      })),
+    )
+  : null;
 
 type AvatarOverlayProps = {
   controller: AvatarController;
@@ -89,32 +98,43 @@ export function AvatarOverlay({
   const renderAvatar = isEnabled && snapshot.visible && !snapshot.failed;
 
   return (
-    <div
-      className="avatar-overlay pointer-events-none"
-      data-avatar-state={snapshot.state}
-      style={{ left: `${snapshot.anchorX}px`, pointerEvents: "none" }}
-    >
-      {renderAvatar ? (
-        <RendererBoundary onFailure={() => controller.markFailed()}>
-          <Canvas
-            aria-hidden="true"
-            camera={{ position: [0, 1.1, 4.2], fov: 30 }}
-            className="avatar-overlay-canvas"
-            dpr={[1, 1.25]}
-            frameloop={documentVisible ? "always" : "never"}
-            gl={{ alpha: true, antialias: true }}
-            style={{ pointerEvents: "none" }}
-          >
-            <ambientLight intensity={1.6} />
-            <directionalLight intensity={1.7} position={[2, 4, 3]} />
-            <AvatarAssetAdapter
-              animation={snapshot.animation}
-              facing={snapshot.facing}
-              pointing={snapshot.pointing}
+    <>
+      <div
+        className="avatar-overlay pointer-events-none"
+        data-avatar-state={snapshot.state}
+        style={{ left: `${snapshot.anchorX}px`, pointerEvents: "none" }}
+      >
+        {renderAvatar ? (
+          <RendererBoundary onFailure={() => controller.markFailed()}>
+            <Canvas
+              aria-hidden="true"
+              camera={{ position: [0, 1.1, 4.2], fov: 30 }}
+              className="avatar-overlay-canvas"
+              dpr={[1, 1.25]}
+              frameloop={documentVisible ? "always" : "never"}
+              gl={{ alpha: true, antialias: true }}
+              style={{ pointerEvents: "none" }}
+            >
+              <ambientLight intensity={1.6} />
+              <directionalLight intensity={1.7} position={[2, 4, 3]} />
+              <AvatarAssetAdapter
+                animation={snapshot.animation}
+                facing={snapshot.facing}
+                pointing={snapshot.pointing}
+              />
+            </Canvas>
+          </RendererBoundary>
+        ) : null}
+        {AvatarDevHarness && development && debug ? (
+          <Suspense fallback={null}>
+            <AvatarDevHarness
+              controller={controller}
+              runner={runner}
+              siteActionExecutor={siteActionExecutor}
             />
-          </Canvas>
-        </RendererBoundary>
-      ) : null}
+          </Suspense>
+        ) : null}
+      </div>
       <button
         aria-label={isEnabled ? "Hide assistant" : "Show assistant"}
         className="avatar-overlay-toggle pointer-events-auto"
@@ -124,13 +144,6 @@ export function AvatarOverlay({
       >
         {isEnabled ? "Hide assistant" : "Show assistant"}
       </button>
-      {development && debug ? (
-        <AvatarDevHarness
-          controller={controller}
-          runner={runner}
-          siteActionExecutor={siteActionExecutor}
-        />
-      ) : null}
-    </div>
+    </>
   );
 }

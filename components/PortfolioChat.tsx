@@ -174,12 +174,6 @@ export function PortfolioChat({
     requestController.current?.abort();
     const controller = new AbortController();
     requestController.current = controller;
-    void avatarIntegration?.onTurnStart();
-    setAnswer("");
-    setEvidence([]);
-    setMessage("");
-    setPreviewRequired(false);
-    setPending(true);
     const conversationAtStart = conversation.current;
     const visitStateAtStart = { ...visitState.current };
     let streamedAnswer = "";
@@ -188,16 +182,20 @@ export function PortfolioChat({
     let turnMode: PortfolioChatTurnMode | undefined;
     let receivedText = false;
     let avatarWork = Promise.resolve();
+    const pendingEffects: PortfolioResponseEffects[] = [];
     const isCurrentTurn = () =>
       !controller.signal.aborted && requestController.current === controller;
+    const runAvatarWorkSafely = (work: () => void | Promise<void>) => {
+      try {
+        return Promise.resolve(work()).catch(() => {});
+      } catch {
+        return Promise.resolve();
+      }
+    };
     const scheduleAvatarWork = (work: () => void | Promise<void>) => {
       avatarWork = avatarWork.then(async () => {
         if (!isCurrentTurn()) return;
-        try {
-          await work();
-        } catch {
-          // Avatar work is optional and must never interrupt the text response.
-        }
+        await runAvatarWorkSafely(work);
       });
     };
     const scheduleAvatarWorkAfterRender = (
@@ -219,6 +217,18 @@ export function PortfolioChat({
           }),
       );
     };
+    const scheduleEffects = (effects: PortfolioResponseEffects) => {
+      scheduleAvatarWork(() => avatarIntegration?.onEffects(effects));
+    };
+
+    avatarWork = runAvatarWorkSafely(
+      () => avatarIntegration?.onTurnStart(),
+    );
+    setAnswer("");
+    setEvidence([]);
+    setMessage("");
+    setPreviewRequired(false);
+    setPending(true);
 
     try {
       await askPortfolio(question, {
@@ -245,10 +255,17 @@ export function PortfolioChat({
               scheduleAvatarWorkAfterRender(() =>
                 avatarIntegration?.onFirstText(),
               );
+              for (const effects of pendingEffects.splice(0)) {
+                scheduleEffects(effects);
+              }
             }
           }
           if (event.type === "effects") {
-            scheduleAvatarWork(() => avatarIntegration?.onEffects(event.effects));
+            if (receivedText) {
+              scheduleEffects(event.effects);
+            } else {
+              pendingEffects.push(event.effects);
+            }
           }
           if (event.type === "notice" || event.type === "error") {
             if (event.type === "error") streamFailed = true;

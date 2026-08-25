@@ -24,6 +24,134 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("holds effects behind the first rendered answer delta", async () => {
+    // Catches safe effects running site or avatar work before text becomes the primary response.
+    const lifecycle: string[] = [];
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({
+        type: "effects",
+        effects: {
+          siteActions: [{ type: "openProject", target: "project:dubs" }],
+          avatarSequence: [{ action: "play", animation: "present" }],
+          issues: [],
+        },
+      });
+      lifecycle.push("effects-received");
+      expect(lifecycle).toEqual(["turn-start", "effects-received"]);
+      onEvent({ type: "answer_delta", delta: "Text leads. [E1]" });
+      onEvent({ type: "done" });
+    };
+    const avatarIntegration = {
+      onTurnStart: () => lifecycle.push("turn-start"),
+      onEvidence: () => {},
+      onFirstText: () => lifecycle.push("talking"),
+      onEffects: () => {
+        lifecycle.push(
+          screen.queryByText("Text leads. [E1]")
+            ? "effects-after-text"
+            : "effects-before-text",
+        );
+      },
+      onNotice: () => {},
+      onError: () => {},
+      onComplete: () => lifecycle.push("done"),
+    };
+
+    render(
+      <PortfolioChat
+        avatarIntegration={avatarIntegration}
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
+      target: { value: "Open Dubs" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await waitFor(() => expect(lifecycle.at(-1)).toBe("done"));
+    expect(lifecycle).toEqual([
+      "turn-start",
+      "effects-received",
+      "talking",
+      "effects-after-text",
+      "done",
+    ]);
+  });
+
+  it("drops effects when a turn finishes without answer text", async () => {
+    // Catches a no-text response executing optional effects without a primary answer.
+    const effects: string[] = [];
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({
+        type: "effects",
+        effects: {
+          siteActions: [{ type: "openProject", target: "project:dubs" }],
+          avatarSequence: [],
+          issues: [],
+        },
+      });
+      onEvent({ type: "done" });
+    };
+
+    render(
+      <PortfolioChat
+        avatarIntegration={{
+          onTurnStart: () => {},
+          onEvidence: () => {},
+          onFirstText: () => {},
+          onEffects: () => effects.push("effect"),
+          onNotice: () => {},
+          onError: () => {},
+          onComplete: () => effects.push("done"),
+        }}
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await waitFor(() => expect(effects).toContain("done"));
+    expect(effects).toEqual(["done"]);
+  });
+
+  it.each([
+    ["synchronous throw", () => { throw new Error("avatar start failed"); }],
+    ["asynchronous rejection", () => Promise.reject(new Error("avatar start failed"))],
+  ])("isolates a %s from turn start", async (_label, onTurnStart) => {
+    // Catches optional turn-start work preventing transport, state reset, or answer rendering.
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "Chat survives." });
+      onEvent({ type: "done" });
+    });
+
+    render(
+      <PortfolioChat
+        avatarIntegration={{
+          onTurnStart,
+          onEvidence: () => {},
+          onFirstText: () => {},
+          onEffects: () => {},
+          onNotice: () => {},
+          onError: () => {},
+          onComplete: () => {},
+        }}
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("Chat survives.")).toBeTruthy();
+    expect(askPortfolio).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps text first while delivering the avatar lifecycle in event order", async () => {
     // Catches lifecycle work delaying text, replaying the first-delta callback, or reordering effects and failure recovery.
     const lifecycle: string[] = [];
