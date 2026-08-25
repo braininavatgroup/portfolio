@@ -58,6 +58,22 @@ describe("avatar controller", () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  it("re-resolves the current state when the loaded model omits its preferred clip", () => {
+    // Catches a replacement GLB leaving the previous action stopped when an optional alias is absent.
+    const controller = new AvatarController(new AvatarTargetRegistry());
+    const listener = vi.fn();
+    controller.execute({ action: "setState", state: "success" });
+    controller.subscribe(listener);
+
+    controller.setAvailableAnimations(new Set(["idle", "walk"]));
+
+    expect(controller.getSnapshot()).toMatchObject({
+      state: "success",
+      animation: "idle",
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
   it("clamps a target walk anchor inside the safe horizontal viewport bounds", () => {
     // Catches a target rectangle that can position the overlay outside the viewport.
     const registry = new AvatarTargetRegistry();

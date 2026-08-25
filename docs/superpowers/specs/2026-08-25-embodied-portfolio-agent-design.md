@@ -16,7 +16,7 @@ The avatar will be a second, small transparent canvas rather than a child of the
 
 - The first production actor is Quaternius's CC0 `Casual_2` low-poly game character, converted from source glTF to a 1.52 MB GLB with one humanoid skin and 24 clips. The procedural actor remains the no-network rollback.
 - One asset configuration contains the renderer kind, model URL, scale, forward axis, ground offset, animation map, animation fallbacks, playback rate, flat-shading flag, texture filtering, and target frame rate. No component owns an animation name or orientation correction.
-- The adapter supports both the procedural placeholder and a future GLB. A GLB uses the same controller snapshot and animation vocabulary, so replacing the model does not change chat, target, or sequence code.
+- The adapter supports the procedural rollback, the current temporary GLB, and a future Bradley GLB. Every asset uses the same controller snapshot and animation vocabulary, so replacing the model does not change chat, target, or sequence code.
 - Text remains the primary response. Chat lifecycle events can drive safe default avatar states. An optional `effects` stream event carries validated site actions and avatar commands. Invalid effects collapse to an empty effect set and never invalidate an answer delta.
 - The live provider will not be changed to emit free-form structured actions in this phase. The client and stream protocol accept the safe contract, tests and the development harness exercise it, and normal chat drives thinking, talking, error, and idle states now. This avoids mixing structured control data into the current sentence-level citation validator.
 - The development harness is available only in development and only when `avatarDebug=1` is present. Production retains only the small hide/show control.
@@ -87,13 +87,13 @@ With the development server running, `/?avatarDebug=1` opens a compact panel tha
 
 - set every state;
 - play every allowed animation;
-- enter or exit from all directions;
-- run walk, look, and point commands against each mounted target;
-- run representative answer, tool-use, success, cancellation, and failure fixtures;
-- show current state, command, available animations, and missing mappings;
+- enter from the left and exit to the right;
+- look at the mounted base targets;
+- clear the spotlight and simulate renderer failure;
+- show the current state and animation;
 - reset the controller.
 
-The panel is absent from production bundles through a development guard.
+Normal chat and structured protocol fixtures cover lifecycle, tool-use, success, cancellation, walk, look, point, and site-action sequences. The panel is absent from production bundles through a development guard.
 
 ## Tests and proof
 
@@ -129,7 +129,7 @@ The production GLB should contain a Mixamo-compatible humanoid rig when possible
 4. Confirm model orientation, scale, and ground height in the harness.
 5. Validate idle and walk deformation.
 6. Map available clip names and fallbacks in the asset configuration.
-7. Trigger every state and command in the development harness.
+7. Trigger every state and animation in the harness, then run command sequences through the protocol fixtures.
 8. Add or attach the low-poly glasses to the head bone.
 9. Optimize the final GLB and its 256 or 512 pixel texture.
 10. Test desktop, iPhone, reduced motion, WebGL failure, and hide preference.

@@ -5,10 +5,29 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { avatarAsset } from "../../lib/avatar/config";
+import type { AllowedAnimation } from "../../lib/avatar/contracts";
 import type { AvatarSnapshot } from "../../lib/avatar/controller";
 import { ProceduralAvatar } from "./ProceduralAvatar";
 
-type AvatarAssetAdapterProps = Pick<AvatarSnapshot, "animation" | "facing" | "pointing">;
+type AvatarPoseProps = Pick<AvatarSnapshot, "animation" | "facing" | "pointing">;
+
+type AvatarAssetAdapterProps = AvatarPoseProps & {
+  onAvailableAnimationsChange?: (
+    available: ReadonlySet<AllowedAnimation>,
+  ) => void;
+};
+
+export function getAvailableAnimationAliases(
+  animations: Record<AllowedAnimation, string>,
+  clipNames: Iterable<string>,
+) {
+  const availableClips = new Set(clipNames);
+  return new Set(
+    (Object.entries(animations) as Array<[AllowedAnimation, string]>)
+      .filter(([, clipName]) => availableClips.has(clipName))
+      .map(([animation]) => animation),
+  );
+}
 
 export function getGlbModelUrl(asset: Pick<typeof avatarAsset, "kind" | "modelUrl">) {
   return asset.kind === "gltf" ? asset.modelUrl : null;
@@ -36,10 +55,23 @@ function GlbAvatar({
   animation,
   facing,
   modelUrl,
-}: AvatarAssetAdapterProps & { modelUrl: string }) {
+  onAvailableAnimationsChange,
+}: AvatarPoseProps & {
+  modelUrl: string;
+  onAvailableAnimationsChange?: AvatarAssetAdapterProps["onAvailableAnimationsChange"];
+}) {
   const root = useRef<THREE.Group>(null);
   const model = useGLTF(modelUrl);
   const { actions, mixer } = useAnimations(model.animations, root);
+
+  useEffect(() => {
+    onAvailableAnimationsChange?.(
+      getAvailableAnimationAliases(
+        avatarAsset.animations,
+        model.animations.map((clip) => clip.name),
+      ),
+    );
+  }, [model.animations, onAvailableAnimationsChange]);
 
   useFrame(({ clock }) => {
     if (avatarAsset.targetFrameRate === null) return;
@@ -89,10 +121,17 @@ function GlbAvatar({
 }
 
 export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
+  const { onAvailableAnimationsChange, ...pose } = props;
   if (avatarAsset.kind === "procedural") {
-    return <ProceduralAvatar {...props} />;
+    return <ProceduralAvatar {...pose} />;
   }
 
   const modelUrl = getGlbModelUrl(avatarAsset);
-  return modelUrl ? <GlbAvatar {...props} modelUrl={modelUrl} /> : null;
+  return modelUrl ? (
+    <GlbAvatar
+      {...pose}
+      modelUrl={modelUrl}
+      onAvailableAnimationsChange={onAvailableAnimationsChange}
+    />
+  ) : null;
 }

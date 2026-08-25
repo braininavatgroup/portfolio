@@ -120,6 +120,7 @@ export function AvatarOverlay({
               <AvatarAssetAdapter
                 animation={snapshot.animation}
                 facing={snapshot.facing}
+                onAvailableAnimationsChange={controller.setAvailableAnimations}
                 pointing={snapshot.pointing}
               />
             </Canvas>

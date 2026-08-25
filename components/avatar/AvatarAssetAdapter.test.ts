@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
+  getAvailableAnimationAliases,
   getAnimationMixerTime,
   getGlbModelUrl,
   getGlbYaw,
 } from "./AvatarAssetAdapter";
 
 describe("GLB avatar configuration", () => {
+  it("derives safe aliases from the clips actually loaded by the model", () => {
+    // Catches an adapter that tells the controller a missing preferred clip is available.
+    expect(
+      getAvailableAnimationAliases(
+        {
+          idle: "Idle",
+          walk: "Walk",
+          think: "Think",
+          talk: "Talk",
+          point: "Point",
+          present: "Present",
+          celebrate: "Celebrate",
+          confused: "Confused",
+        },
+        ["Idle", "Walk", "Present"],
+      ),
+    ).toEqual(new Set(["idle", "walk", "present"]));
+  });
+
   it("does not invent a model path when the GLB configuration has no URL", () => {
     // Catches a renderer fallback that bypasses the single avatar asset configuration.
     expect(getGlbModelUrl({ kind: "gltf", modelUrl: null })).toBeNull();

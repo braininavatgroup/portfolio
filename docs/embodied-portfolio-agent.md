@@ -106,12 +106,12 @@ The panel shows the current state and animation. It can select every allowed sta
 - `animations`: safe aliases to exact GLB clip names.
 - `stateFallbacks`: ordered alias fallbacks for each controller state.
 
-The production GLB has one humanoid skin and 24 embedded clips. The safe aliases currently map to `Idle`, `Walk`, `Idle_Neutral`, `Interact`, `Idle_Gun_Pointing`, `Wave`, and `HitRecieve_2`. A model smoke test parses the shipped GLB and fails if the rig, file format, configured clips, or overlay framing are lost. The procedural actor uses authored joint poses for the same aliases and does not load a model or texture. The GLB path loads with `useGLTF`, applies scale/orientation/ground correction at its root, updates material and filtering flags, and crossfades clips over 0.2 seconds.
+The production GLB has one humanoid skin and 24 embedded clips. The safe aliases currently map to the non-combat `Idle`, `Walk`, `Idle_Neutral`, `Interact`, and `Wave` clips. A model smoke test parses the shipped GLB and fails if the rig, file format, configured clips, or overlay framing are lost. The procedural actor uses authored joint poses for the same aliases and does not load a model or texture. The GLB path loads with `useGLTF`, reports the aliases actually available in the loaded model to the controller, applies scale/orientation/ground correction at its root, updates material and filtering flags, and crossfades clips over 0.2 seconds.
 
-The model comes from [Quaternius's Ultimate Modular Men pack](https://quaternius.com/packs/ultimatemodularcharacters.html) under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The exact license text is stored beside the production model. Rebuild the derived GLB without changing the source file:
+The model comes from [Quaternius's Ultimate Modular Men pack](https://quaternius.com/packs/ultimatemodularcharacters.html) under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The exact upstream license notice is stored beside the production model, and `assets/avatar-source/PROVENANCE.md` records the acquisition date, public source identifiers, hashes, and conversion command. Rebuild the derived GLB without changing the source file:
 
 ```bash
-npx @gltf-transform/cli copy \
+npx @gltf-transform/cli@4.4.2 copy \
   assets/avatar-source/quaternius-casual-2.gltf \
   public/avatars/quaternius-casual-2.glb
 ```
@@ -158,7 +158,7 @@ Automated artifacts for the GLB pass live under `.context/verification/per-1-rea
 4. Confirm model orientation, scale, and ground height in the harness.
 5. Validate idle and walk deformation.
 6. Map available clip names and fallbacks in the asset configuration.
-7. Trigger every state and command in the development harness.
+7. Trigger every state and animation in the harness, then run command sequences through the protocol fixtures.
 8. Add or attach the low-poly glasses to the head bone.
 9. Optimize the final GLB and its 256 or 512 pixel texture.
 10. Test desktop, iPhone, reduced motion, WebGL failure, and hide preference.

@@ -21,6 +21,13 @@ describe("production avatar asset", () => {
     expect(avatarAsset.modelUrl).toBe("/avatars/quaternius-casual-2.glb");
   });
 
+  it("maps assistant behaviors only to non-combat source clips", () => {
+    // Catches a pointing, confused, or success state that reads as violence or weapon use.
+    for (const clipName of Object.values(avatarAsset.animations)) {
+      expect(clipName).not.toMatch(/death|gun|hit|kick|punch|shoot|sword/i);
+    }
+  });
+
   it("ships a skinned GLB containing every configured animation clip", () => {
     // Catches a missing, malformed, unrigged, or clip-incompatible replacement asset.
     const glb = readGlbJson(

@@ -71,9 +71,16 @@ export class AvatarController {
     return () => this.#listeners.delete(listener);
   };
 
-  setAvailableAnimations(available: ReadonlySet<AllowedAnimation>) {
+  setAvailableAnimations = (available: ReadonlySet<AllowedAnimation>) => {
     this.#availableAnimations = new Set(available);
-  }
+    const animation = resolveAvatarAnimation(
+      this.#snapshot.state,
+      this.#availableAnimations,
+    );
+    if (animation !== this.#snapshot.animation) {
+      this.#update({ animation });
+    }
+  };
 
   setVisible(visible: boolean) {
     this.#update({ visible });

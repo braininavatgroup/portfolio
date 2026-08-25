@@ -31,10 +31,10 @@ export const avatarAsset: AvatarAssetConfig = {
     walk: "Walk",
     think: "Idle_Neutral",
     talk: "Interact",
-    point: "Idle_Gun_Pointing",
+    point: "Interact",
     present: "Wave",
     celebrate: "Wave",
-    confused: "HitRecieve_2",
+    confused: "Idle_Neutral",
   },
   stateFallbacks: {
     hidden: ["idle"],
