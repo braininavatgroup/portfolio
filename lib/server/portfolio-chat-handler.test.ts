@@ -243,6 +243,34 @@ describe("portfolio chat route handler", () => {
     },
   );
 
+  it("allows ordinary general-language phrases that also appear in project titles", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What are common reporting metrics?")),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "general" });
+    expect(
+      events
+        .filter((event) => event.type === "answer_delta")
+        .map((event) => event.delta)
+        .join(""),
+    ).toBe(
+      "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.",
+    );
+    expect(events.some((event) => event.type === "error")).toBe(false);
+  });
+
   it("adds the one-time Bradley nudge only to the third completed general turn", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onMode }) {

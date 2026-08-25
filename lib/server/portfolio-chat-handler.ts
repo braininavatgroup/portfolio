@@ -133,11 +133,11 @@ function requiresPortfolioMode(
   );
 }
 
-function validateUncitedAnswer(answer: string, grounding: PortfolioGrounding) {
+function validateUncitedAnswer(answer: string) {
   const normalized = answer.trim();
   if (
     !normalized ||
-    includesPortfolioEntity(normalized, grounding) ||
+    /\b(?:bradley|berkman|portfolio)\b/i.test(normalized) ||
     /(?:^|\n)\s*MODE:\s*/i.test(normalized)
   ) {
     throw new InvalidAttributionError(
@@ -162,7 +162,6 @@ async function* withoutModeMarkers(deltas: AsyncIterable<string>) {
 
 async function* validatedUncitedAnswerDeltas(
   deltas: AsyncIterable<string>,
-  grounding: PortfolioGrounding,
   appendNudge: boolean,
 ) {
   let buffer = "";
@@ -174,7 +173,7 @@ async function* validatedUncitedAnswerDeltas(
     while (boundary) {
       const end = boundary.index + boundary[0].length;
       const segment = buffer.slice(0, end);
-      validateUncitedAnswer(segment, grounding);
+      validateUncitedAnswer(segment);
       yield segment;
       buffer = buffer.slice(end);
       boundary = sentenceBoundary.exec(buffer);
@@ -182,7 +181,7 @@ async function* validatedUncitedAnswerDeltas(
   }
 
   const finalSegment = buffer.trim();
-  if (finalSegment) validateUncitedAnswer(finalSegment, grounding);
+  if (finalSegment) validateUncitedAnswer(finalSegment);
   if (finalSegment || appendNudge) {
     yield `${finalSegment}${finalSegment && appendNudge ? "\n\n" : ""}${appendNudge ? oneTimeGeneralNudge : ""}`;
   }
@@ -621,7 +620,6 @@ export function createPortfolioChatHandler({
             !visitState.portfolioNudgeShown;
           for await (const delta of validatedUncitedAnswerDeltas(
             answerDeltas,
-            grounding,
             appendNudge,
           )) {
             answerCharacters += delta.length;
