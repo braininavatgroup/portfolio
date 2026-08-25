@@ -77,15 +77,31 @@ async function startBuiltWorker(port) {
   await ready;
   return {
     child,
-    output() {
-      return output;
-    },
     async stop() {
       if (child.exitCode !== null) return;
       child.kill("SIGTERM");
       await new Promise((resolve) => child.once("exit", resolve));
     },
   };
+}
+
+async function fetchBuiltWorker(request) {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+
+  return worker.fetch(
+    request,
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
 }
 
 test("the built Worker exposes one disabled portfolio chat route", async () => {
@@ -108,22 +124,21 @@ test("the built Worker exposes one disabled portfolio chat route", async () => {
       message: "Ask the portfolio is not enabled.",
     });
 
-    const removedPreviewResponse = await fetch(
-      `http://127.0.0.1:${port}/api/portfolio-chat/preview`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ accessCode: "must-not-matter" }),
-        signal: AbortSignal.timeout(5_000),
-      },
-    );
-    const removedPreviewBody = await removedPreviewResponse.text();
-    assert.equal(
-      removedPreviewResponse.status,
-      404,
-      `Removed route response:\n${removedPreviewBody}\n\nWorker output:\n${worker.output()}`,
-    );
   } finally {
     await worker.stop();
   }
+});
+
+test("the built Worker does not register the retired preview endpoint", async () => {
+  const response = await fetchBuiltWorker(
+    new Request("http://localhost/api/portfolio-chat/preview", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ accessCode: "must-not-matter" }),
+    }),
+  );
+
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  assert.match(await response.text(), />404<\/h1>/i);
 });

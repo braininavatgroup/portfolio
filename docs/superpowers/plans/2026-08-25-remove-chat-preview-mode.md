@@ -39,7 +39,7 @@
 - Delete: `app/api/portfolio-chat/preview/route.ts`
 - Modify: `tests/built-worker-chat.test.mjs`
 
-1. Write failing runtime and built-worker assertions for one handler, no preview runtime surface, dormant public controls, and a 404 from `/api/portfolio-chat/preview`.
+1. Write failing runtime and built-worker assertions for one handler, no preview runtime surface, dormant public controls, and no registered `/api/portfolio-chat/preview` route.
 2. Run the focused runtime test and record the expected failure.
 3. Remove preview environment fields and `handlePreview`; map `PORTFOLIO_CHAT_IDENTIFIER_SECRET` only to the dormant public guard.
 4. Delete the preview route and re-run runtime tests.

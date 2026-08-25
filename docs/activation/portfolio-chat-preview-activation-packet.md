@@ -79,7 +79,7 @@ seven-day expiry, and each result below:
 | --- | --- |
 | Page | Workers.dev root returns the portfolio without a custom-domain route |
 | Direct chat | A grounded question streams through `/api/portfolio-chat` without a second chat-specific unlock flow |
-| Removed route | `/api/portfolio-chat/preview` returns `404` |
+| Removed route | The built application route table does not register `/api/portfolio-chat/preview` |
 | Conversation | One follow-up uses at most six in-memory user and assistant messages; reload clears them |
 | Budget | The Durable Object receives a limit of 200 and rejects exhaustion before provider construction |
 | Provider failure | The route returns the redacted provider error contract without leaking upstream detail |
