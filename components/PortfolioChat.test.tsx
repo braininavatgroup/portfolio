@@ -165,6 +165,79 @@ describe("portfolio chat", () => {
     ]);
   });
 
+  it("counts only completed general turns and marks the third-turn nudge once", async () => {
+    const requests: Array<{
+      question: string;
+      visitState: { generalTurns: number; portfolioNudgeShown: boolean } | undefined;
+    }> = [];
+    const askPortfolio: AskPortfolio = async (question, options) => {
+      requests.push({ question, visitState: options.visitState });
+      const mode = question.startsWith("social") ? "social" : "general";
+      options.onEvent({ type: "turn_mode", mode });
+      options.onEvent({ type: "answer_delta", delta: `${mode} answer` });
+      options.onEvent({ type: "done" });
+    };
+
+    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+    const ask = async (question: string, expectedRequests: number) => {
+      fireEvent.change(input, { target: { value: question } });
+      fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+      await waitFor(() => expect(requests).toHaveLength(expectedRequests));
+    };
+
+    await ask("social one", 1);
+    await ask("general one", 2);
+    await ask("social two", 3);
+    await ask("social three", 4);
+    await ask("general two", 5);
+    await ask("general three", 6);
+    await ask("general four", 7);
+
+    expect(requests.map(({ visitState }) => visitState)).toEqual([
+      { generalTurns: 0, portfolioNudgeShown: false },
+      { generalTurns: 0, portfolioNudgeShown: false },
+      { generalTurns: 1, portfolioNudgeShown: false },
+      { generalTurns: 1, portfolioNudgeShown: false },
+      { generalTurns: 1, portfolioNudgeShown: false },
+      { generalTurns: 2, portfolioNudgeShown: false },
+      { generalTurns: 2, portfolioNudgeShown: true },
+    ]);
+  });
+
+  it("keeps the next request disabled until the completed turn is committed", async () => {
+    let releaseRequest: (() => void) | undefined;
+    const requestFinished = new Promise<void>((resolve) => {
+      releaseRequest = resolve;
+    });
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "turn_mode", mode: "general" });
+      onEvent({ type: "answer_delta", delta: "Complete answer" });
+      onEvent({ type: "done" });
+      await requestFinished;
+    };
+
+    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
+      target: { value: "A general question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: "Asking…" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true),
+    );
+    releaseRequest?.();
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false),
+    );
+  });
+
   it("reveals preview access after denial and preserves the question after unlock", async () => {
     const askPortfolio = vi.fn<AskPortfolio>(async () => {
       throw new PortfolioChatClientError(

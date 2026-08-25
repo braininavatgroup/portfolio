@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
+import type { PortfolioChatProviderInput } from "./portfolio-chat-provider";
 
 const evidence: PortfolioGroundingEvidence[] = [
   {
@@ -62,6 +63,32 @@ function incompleteEvent() {
 }
 
 describe("OpenAI portfolio provider", () => {
+  it("classifies the turn in-band without exposing the mode marker", async () => {
+    const onMode = vi.fn();
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        sseResponse([
+          { type: "response.output_text.delta", delta: "MODE: so" },
+          { type: "response.output_text.delta", delta: "cial\nNot much—what's up?" },
+          completedEvent("MODE: social\nNot much—what's up?"),
+        ]),
+    });
+    const input = {
+      question: "what up doe",
+      evidence,
+      onMode,
+    } as unknown as PortfolioChatProviderInput;
+
+    const chunks: string[] = [];
+    for await (const chunk of provider.streamAnswer(input)) chunks.push(chunk);
+
+    expect(onMode).toHaveBeenCalledOnce();
+    expect(onMode).toHaveBeenCalledWith("social");
+    expect(chunks.join("")).toBe("Not much—what's up?");
+  });
+
   it("streams only text deltas while keeping the key in the server request header", async () => {
     const apiKey = "sk-test-server-only";
     const requests: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
@@ -69,9 +96,12 @@ describe("OpenAI portfolio provider", () => {
       requests.push([input, init]);
       return sseResponse([
         { type: "response.created" },
-        { type: "response.output_text.delta", delta: "Human approval " },
+        {
+          type: "response.output_text.delta",
+          delta: "MODE: portfolio\nHuman approval ",
+        },
         { type: "response.output_text.delta", delta: "stays explicit. [E1]" },
-        completedEvent("Human approval stays explicit. [E1]", {
+        completedEvent("MODE: portfolio\nHuman approval stays explicit. [E1]", {
           input_tokens: 37,
           output_tokens: 11,
           total_tokens: 48,
@@ -87,16 +117,20 @@ describe("OpenAI portfolio provider", () => {
 
     const chunks: string[] = [];
     const onUsage = vi.fn();
+    const onMode = vi.fn();
     for await (const chunk of provider.streamAnswer({
       question: "How does pitching preserve approval?",
       evidence,
       safetyIdentifier: "pc_anonymous-session-hash",
+      visitState: { generalTurns: 2, portfolioNudgeShown: false },
+      onMode,
       onUsage,
     })) {
       chunks.push(chunk);
     }
 
     expect(chunks).toEqual(["Human approval ", "stays explicit. [E1]"]);
+    expect(onMode).toHaveBeenCalledWith("portfolio");
     expect(chunks.join("")).not.toContain(apiKey);
 
     const [url, init] = requests[0] ?? [];
@@ -124,8 +158,14 @@ describe("OpenAI portfolio provider", () => {
       "editorial maturity metadata, not a restriction on using the published text",
     );
     expect(JSON.stringify(body)).toContain(
-      "Answer directly and use only as much detail as the visitor's question needs",
+      "answer directly and use only as much detail as the visitor's question needs",
     );
+    expect(JSON.stringify(body)).toContain("MODE: portfolio");
+    expect(JSON.stringify(body)).toContain("Social chat is unlimited");
+    expect(JSON.stringify(body)).toContain(
+      "Never add a portfolio nudge; the application owns",
+    );
+    expect(JSON.stringify(body)).not.toContain("Visit routing state");
     expect(JSON.stringify(body)).not.toContain("unless the visitor");
     expect(onUsage).toHaveBeenCalledWith({
       inputTokens: 37,
@@ -142,8 +182,11 @@ describe("OpenAI portfolio provider", () => {
       fetchImplementation: async (_input, init) => {
         requestBody = String(init?.body);
         return sseResponse([
-          { type: "response.output_text.delta", delta: "Grounded. [E1]" },
-          completedEvent("Grounded. [E1]"),
+          {
+            type: "response.output_text.delta",
+            delta: "MODE: portfolio\nGrounded. [E1]",
+          },
+          completedEvent("MODE: portfolio\nGrounded. [E1]"),
         ]);
       },
     });
@@ -192,12 +235,35 @@ describe("OpenAI portfolio provider", () => {
     expect(message).not.toContain(upstreamSecret);
   });
 
+  it("rejects a completed response without exposing a missing mode marker", async () => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        sseResponse([
+          { type: "response.output_text.delta", delta: "Unclassified answer" },
+          completedEvent("Unclassified answer"),
+        ]),
+    });
+    const chunks: string[] = [];
+
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({
+        question: "what up doe",
+        evidence,
+      })) {
+        chunks.push(chunk);
+      }
+    }).rejects.toThrow("OpenAI agent run failed.");
+    expect(chunks).toEqual([]);
+  });
+
   it("parses CRLF event boundaries split across transport chunks", async () => {
     const encoder = new TextEncoder();
     const chunks = [
-      'data: {"type":"response.output_text.delta","delta":"Grounded. [E1]"}\r',
+      'data: {"type":"response.output_text.delta","delta":"MODE: portfolio\\nGrounded. [E1]"}\r',
       "\n\r",
-      `\ndata: ${JSON.stringify(completedEvent("Grounded. [E1]"))}\r\n\r\n`,
+      `\ndata: ${JSON.stringify(completedEvent("MODE: portfolio\nGrounded. [E1]"))}\r\n\r\n`,
     ];
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
@@ -229,7 +295,14 @@ describe("OpenAI portfolio provider", () => {
 
   it.each([
     { events: [incompleteEvent()] },
-    { events: [{ type: "response.output_text.delta", delta: "Truncated. [E1]" }] },
+    {
+      events: [
+        {
+          type: "response.output_text.delta",
+          delta: "MODE: portfolio\nTruncated. [E1]",
+        },
+      ],
+    },
   ])("rejects streams that do not complete successfully", async ({ events }) => {
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",

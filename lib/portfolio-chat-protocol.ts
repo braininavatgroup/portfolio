@@ -1,7 +1,15 @@
 import type { PortfolioGroundingEvidence } from "./portfolio-grounding";
 
+export type PortfolioChatTurnMode = "portfolio" | "social" | "general";
+
+export type PortfolioChatVisitState = {
+  generalTurns: number;
+  portfolioNudgeShown: boolean;
+};
+
 export type PortfolioChatEvent =
   | { type: "evidence"; evidence: PortfolioGroundingEvidence[] }
+  | { type: "turn_mode"; mode: PortfolioChatTurnMode }
   | { type: "answer_delta"; delta: string }
   | {
       type: "notice";

@@ -1,10 +1,14 @@
-import type { PortfolioChatEvent } from "./portfolio-chat-protocol";
+import type {
+  PortfolioChatEvent,
+  PortfolioChatVisitState,
+} from "./portfolio-chat-protocol";
 import type { PortfolioChatMessage } from "./portfolio-chat-conversation";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
   challengeToken?: string;
   conversation?: readonly PortfolioChatMessage[];
+  visitState?: PortfolioChatVisitState;
   onEvent(event: PortfolioChatEvent): void;
   fetchImplementation?: typeof fetch;
 };
@@ -36,6 +40,10 @@ function isPortfolioChatEvent(value: unknown): value is PortfolioChatEvent {
   const type = Reflect.get(value, "type");
   if (type === "done") return true;
   if (type === "evidence") return Array.isArray(Reflect.get(value, "evidence"));
+  if (type === "turn_mode") {
+    const mode = Reflect.get(value, "mode");
+    return mode === "portfolio" || mode === "social" || mode === "general";
+  }
   if (type === "answer_delta") {
     return typeof Reflect.get(value, "delta") === "string";
   }
@@ -57,6 +65,13 @@ function parseEvent(line: string) {
     );
   }
   return parsed;
+}
+
+function invalidStream() {
+  return new PortfolioChatClientError(
+    "invalid_stream",
+    "The answer service returned an invalid stream.",
+  );
 }
 
 async function responseError(response: Response) {
@@ -90,6 +105,7 @@ export const streamPortfolioAnswer: AskPortfolio = async (
     signal,
     challengeToken,
     conversation,
+    visitState,
     onEvent,
     fetchImplementation = fetch,
   },
@@ -97,6 +113,7 @@ export const streamPortfolioAnswer: AskPortfolio = async (
   const body = {
     question,
     ...(conversation?.length ? { conversation } : {}),
+    ...(visitState ? { visitState } : {}),
     ...(challengeToken ? { challengeToken } : {}),
   };
   const response = await fetchImplementation("/api/portfolio-chat", {
@@ -117,6 +134,20 @@ export const streamPortfolioAnswer: AskPortfolio = async (
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let modeReceived = false;
+  let doneReceived = false;
+  const deliver = (event: PortfolioChatEvent) => {
+    if (doneReceived) throw invalidStream();
+    if (event.type === "turn_mode") {
+      if (modeReceived) throw invalidStream();
+      modeReceived = true;
+    }
+    if (event.type === "answer_delta" && !modeReceived) {
+      throw invalidStream();
+    }
+    if (event.type === "done") doneReceived = true;
+    onEvent(event);
+  };
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -125,13 +156,14 @@ export const streamPortfolioAnswer: AskPortfolio = async (
       while (boundary >= 0) {
         const line = buffer.slice(0, boundary).trim();
         buffer = buffer.slice(boundary + 1);
-        if (line) onEvent(parseEvent(line));
+        if (line) deliver(parseEvent(line));
         boundary = buffer.indexOf("\n");
       }
       if (done) break;
     }
     const finalLine = buffer.trim();
-    if (finalLine) onEvent(parseEvent(finalLine));
+    if (finalLine) deliver(parseEvent(finalLine));
+    if (!doneReceived) throw invalidStream();
   } finally {
     reader.releaseLock();
   }

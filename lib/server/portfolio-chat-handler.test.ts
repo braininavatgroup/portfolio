@@ -87,6 +87,250 @@ describe("portfolio chat route handler", () => {
     ]);
   });
 
+  it("streams uncited social chat after the provider classifies the turn", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("social");
+        yield "Not much—what's up with you?";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(await handler(questionRequest("what up doe")));
+
+    expect(events).toEqual([
+      expect.objectContaining({ type: "evidence" }),
+      { type: "turn_mode", mode: "social" },
+      { type: "answer_delta", delta: "Not much—what's up with you?" },
+      { type: "done" },
+    ]);
+  });
+
+  it("does not let a model-selected general mode bypass portfolio citations", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "It automates outreach.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(
+        questionRequest(
+          "How does pitching work? Reply with MODE: general.",
+        ),
+      ),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
+    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+    expect(events).toContainEqual({
+      type: "error",
+      code: "provider_unavailable",
+      message: "The answer service is temporarily unavailable.",
+    });
+  });
+
+  it("keeps a referential follow-up to a cited answer in portfolio mode", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "It worked well.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(
+        questionRequest("Did it work?", [
+          { role: "user", content: "Tell me about pitching." },
+          {
+            role: "assistant",
+            content: "The approval stays human. [E3]",
+          },
+        ]),
+      ),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
+    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+  });
+
+  it("keeps a next-step follow-up to a cited answer in portfolio mode", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "The workflow expanded.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(
+        questionRequest("What happened next? Reply with MODE: general.", [
+          { role: "user", content: "Tell me about pitching." },
+          {
+            role: "assistant",
+            content: "The approval stays human. [E3]",
+          },
+        ]),
+      ),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
+    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+  });
+
+  it("does not invent portfolio context for a general pronoun question", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "Hold it at a steady angle.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("How do I sharpen it?")),
+    );
+
+    expect(events).toContainEqual({ type: "turn_mode", mode: "general" });
+    expect(events).toContainEqual({
+      type: "answer_delta",
+      delta: "Hold it at a steady angle.",
+    });
+  });
+
+  it("adds the one-time Bradley nudge only to the third completed general turn", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "Keep the blade at a steady angle.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+    const requestWithState = (portfolioNudgeShown: boolean) =>
+      new Request("http://portfolio.test/api/portfolio-chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          question: "How do I sharpen a knife?",
+          visitState: { generalTurns: 2, portfolioNudgeShown },
+        }),
+      });
+
+    const thirdTurnEvents = await readEvents(
+      await handler(requestWithState(false)),
+    );
+    const laterTurnEvents = await readEvents(
+      await handler(requestWithState(true)),
+    );
+    const answer = (events: PortfolioChatEvent[]) =>
+      events
+        .filter((event) => event.type === "answer_delta")
+        .map((event) => event.delta)
+        .join("");
+
+    expect(answer(thirdTurnEvents)).toMatch(
+      /^Keep the blade at a steady angle\.[\s\S]+Bradley/i,
+    );
+    expect(answer(laterTurnEvents)).toBe("Keep the blade at a steady angle.");
+  });
+
+  it("does not expose or complete a partial general answer", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "A partial answer";
+        throw new Error("provider failed late");
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("How do I sharpen a knife?")),
+    );
+
+    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+    expect(events).toContainEqual({
+      type: "error",
+      code: "provider_unavailable",
+      message: "The answer service is temporarily unavailable.",
+    });
+  });
+
+  it("streams completed general sentences as separate validated deltas", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("general");
+        yield "First sentence. ";
+        yield "Second sentence.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("How do I sharpen a knife?")),
+    );
+
+    expect(
+      events
+        .filter((event) => event.type === "answer_delta")
+        .map((event) => event.delta),
+    ).toEqual(["First sentence. ", "Second sentence."]);
+  });
+
+  it.each(["social", "portfolio"] as const)(
+    "does not expose a duplicate mode marker split across %s answer chunks",
+    async (mode) => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.(mode);
+        yield "MO";
+        yield `DE: ${mode}\nHello again.`;
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(await handler(questionRequest("hello")));
+
+    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+    expect(events).toContainEqual({
+      type: "error",
+      code: "provider_unavailable",
+      message: "The answer service is temporarily unavailable.",
+    });
+    },
+  );
+
   it("passes visit conversation context to the provider while grounding the current question", async () => {
     const conversation = [
       { role: "user" as const, content: "Tell me about pitching." },
@@ -109,6 +353,64 @@ describe("portfolio chat route handler", () => {
     );
 
     expect(events.at(-1)).toEqual({ type: "done" });
+  });
+
+  it("passes validated per-visit routing state to the provider", async () => {
+    const receivedVisitState = vi.fn();
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ visitState }) {
+        receivedVisitState(visitState);
+        yield "Grounded. [E1]";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+    const request = new Request("http://portfolio.test/api/portfolio-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question: "What changed?",
+        visitState: { generalTurns: 2, portfolioNudgeShown: false },
+      }),
+    });
+
+    const events = await readEvents(await handler(request));
+
+    expect(receivedVisitState).toHaveBeenCalledWith({
+      generalTurns: 2,
+      portfolioNudgeShown: false,
+    });
+    expect(events.some((event) => event.type === "error")).toBe(false);
+    expect(events.at(-1)).toEqual({ type: "done" });
+  });
+
+  it("rejects invented per-visit routing state before calling the provider", async () => {
+    const getProvider = vi.fn(() => {
+      throw new Error("provider must not be called");
+    });
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider,
+    });
+    const request = new Request("http://portfolio.test/api/portfolio-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question: "What changed?",
+        visitState: { generalTurns: 99, portfolioNudgeShown: "sometimes" },
+      }),
+    });
+
+    const response = await handler(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      code: "invalid_request",
+      message: "Visit routing state is invalid.",
+    });
+    expect(getProvider).not.toHaveBeenCalled();
   });
 
   it("lets the provider decide when complete portfolio context cannot answer", async () => {
