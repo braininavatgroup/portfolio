@@ -1,7 +1,6 @@
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import {
   createPortfolioChatLaunchGuard,
-  createPortfolioChatPreviewHandler,
   createTurnstileVerifier,
   type PortfolioChatLaunchEvent,
   type PortfolioChatRateLimiter,
@@ -25,9 +24,7 @@ export type PortfolioChatBudgetNamespace = {
 
 export type PortfolioChatRuntimeEnv = {
   PORTFOLIO_CHAT_LIVE_ENABLED?: string;
-  PORTFOLIO_CHAT_PREVIEW_ENABLED?: string;
-  PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE?: string;
-  PORTFOLIO_CHAT_SESSION_SECRET?: string;
+  PORTFOLIO_CHAT_IDENTIFIER_SECRET?: string;
   PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT?: string;
   PORTFOLIO_CHAT_TURNSTILE_REQUIRED?: string;
   TURNSTILE_SECRET_KEY?: string;
@@ -35,7 +32,6 @@ export type PortfolioChatRuntimeEnv = {
   OPENAI_PORTFOLIO_MODEL?: string;
   OPENAI_PORTFOLIO_REASONING_EFFORT?: string;
   PORTFOLIO_CHAT_RATE_LIMITER?: PortfolioChatRateLimiter;
-  PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER?: PortfolioChatRateLimiter;
   PORTFOLIO_CHAT_BUDGET?: PortfolioChatBudgetNamespace;
 };
 
@@ -76,9 +72,7 @@ function positiveInteger(value: string | undefined) {
 function runtimeConfig(env: PortfolioChatRuntimeEnv): PortfolioChatRuntimeConfig {
   return {
     liveEnabled: env.PORTFOLIO_CHAT_LIVE_ENABLED === "true",
-    previewEnabled: env.PORTFOLIO_CHAT_PREVIEW_ENABLED === "true",
-    previewAccessCode: env.PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE,
-    sessionSecret: env.PORTFOLIO_CHAT_SESSION_SECRET,
+    identifierSecret: env.PORTFOLIO_CHAT_IDENTIFIER_SECRET,
     dailyRequestLimit: positiveInteger(env.PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT),
     turnstileRequired: env.PORTFOLIO_CHAT_TURNSTILE_REQUIRED === "true",
     turnstileSecret: env.TURNSTILE_SECRET_KEY,
@@ -148,23 +142,15 @@ export function createPortfolioChatRuntime({
       // Operational logging must not change the request outcome.
     }
   };
-  const previewHandler = createPortfolioChatPreviewHandler({
-    config,
-    now,
-    randomId,
-    previewRateLimiter: env.PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER,
-  });
   const guard = createPortfolioChatLaunchGuard({
     config,
     rateLimiter: env.PORTFOLIO_CHAT_RATE_LIMITER,
     verifyTurnstile: createTurnstileVerifier(fetchImplementation),
-    now,
     randomId,
     record: safeRecord,
   });
 
   return {
-    handlePreview: previewHandler,
     async handleChat(request: Request) {
       if (!config.liveEnabled) {
         const result = await guard(request);

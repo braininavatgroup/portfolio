@@ -24,14 +24,12 @@ async function startBuiltWorker(port) {
   const childEnvironment = {
     ...process.env,
     PORTFOLIO_CHAT_LIVE_ENABLED: "false",
-    PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
     WRANGLER_SEND_METRICS: "false",
   };
   for (const name of [
     "OPENAI_API_KEY",
     "OPENAI_PORTFOLIO_MODEL",
-    "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
-    "PORTFOLIO_CHAT_SESSION_SECRET",
+    "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
     "TURNSTILE_SECRET_KEY",
   ]) {
     delete childEnvironment[name];
@@ -87,42 +85,37 @@ async function startBuiltWorker(port) {
   };
 }
 
-test("the built Worker keeps both portfolio chat routes disabled", async () => {
-  for (const pathname of [
-    "/api/portfolio-chat",
-    "/api/portfolio-chat/preview",
-  ]) {
-    const port = await availablePort();
-    const worker = await startBuiltWorker(port);
+test("the built Worker exposes one disabled portfolio chat route", async () => {
+  const port = await availablePort();
+  const worker = await startBuiltWorker(port);
 
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}${pathname}`, {
+  try {
+    const chatResponse = await fetch(
+      `http://127.0.0.1:${port}/api/portfolio-chat`,
+      {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          origin: `http://127.0.0.1:${port}`,
-        },
-        body: JSON.stringify({
-          accessCode: "must-not-matter",
-          question: "How does pitching work?",
-        }),
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: "How does pitching work?" }),
         signal: AbortSignal.timeout(5_000),
-      });
+      },
+    );
+    assert.equal(chatResponse.status, 503);
+    assert.deepEqual(await chatResponse.json(), {
+      code: "disabled",
+      message: "Ask the portfolio is not enabled.",
+    });
 
-      const responseText = await response.text();
-      let body;
-      try {
-        body = JSON.parse(responseText);
-      } catch {
-        body = responseText;
-      }
-      assert.equal(response.status, 503, `${pathname}: ${responseText}`);
-      assert.deepEqual(body, {
-        code: "disabled",
-        message: "Ask the portfolio is not enabled.",
-      });
-    } finally {
-      await worker.stop();
-    }
+    const removedPreviewResponse = await fetch(
+      `http://127.0.0.1:${port}/api/portfolio-chat/preview`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accessCode: "must-not-matter" }),
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    assert.equal(removedPreviewResponse.status, 404);
+  } finally {
+    await worker.stop();
   }
 });
