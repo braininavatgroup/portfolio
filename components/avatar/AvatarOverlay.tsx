@@ -89,8 +89,7 @@ export function AvatarOverlay({
   const renderAvatar = isEnabled && snapshot.visible && !snapshot.failed;
 
   return (
-    <aside
-      aria-label="Assistant display"
+    <div
       className="avatar-overlay pointer-events-none"
       data-avatar-state={snapshot.state}
       style={{ left: `${snapshot.anchorX}px`, pointerEvents: "none" }}
@@ -132,6 +131,6 @@ export function AvatarOverlay({
           siteActionExecutor={siteActionExecutor}
         />
       ) : null}
-    </aside>
+    </div>
   );
 }

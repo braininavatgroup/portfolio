@@ -32,6 +32,8 @@ describe("AvatarOverlay", () => {
 
     const overlay = container.querySelector(".avatar-overlay");
     const control = screen.getByRole("button", { name: "Hide assistant" });
+    expect(screen.queryByRole("complementary")).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(overlay?.className).toContain("pointer-events-none");
     expect(overlay?.getAttribute("data-avatar-state")).toBe("thinking");
     expect(control.className).toContain("pointer-events-auto");

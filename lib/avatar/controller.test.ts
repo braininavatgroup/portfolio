@@ -60,6 +60,20 @@ describe("avatar controller", () => {
     });
   });
 
+  it("uses the viewport midpoint when the normal 80 pixel bounds overlap", () => {
+    // Catches a narrow viewport whose invalid 80..width-80 interval would place the avatar off-screen.
+    vi.stubGlobal("innerWidth", 120);
+    const registry = new AvatarTargetRegistry();
+    registry.register("hero", {
+      getBoundingClientRect: () => rect(500, 0, 40, 40),
+    } as HTMLElement);
+    const controller = new AvatarController(registry);
+
+    controller.execute({ action: "walkTo", target: "hero" });
+
+    expect(controller.getSnapshot().anchorX).toBe(60);
+  });
+
   it("mirrors look and point poses from the target center", () => {
     // Catches look and point directions that ignore which side of the avatar owns the target.
     const registry = new AvatarTargetRegistry();
