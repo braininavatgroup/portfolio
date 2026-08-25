@@ -10,8 +10,8 @@ async function previewConfig() {
   return JSON.parse(await readFile(configUrl, "utf8"));
 }
 
-// Owner: BIV-317 release config. Retire with the dedicated preview Worker.
-test("the dedicated preview config cannot attach production routes or the older access stack", async () => {
+// Owner: BIV-317 release config. Retire with the dedicated site-preview Worker.
+test("the site-preview config cannot attach production routes or chat-specific preview state", async () => {
   const config = await previewConfig();
 
   assert.equal(config.name, "bradley-portfolio-preview");
@@ -23,7 +23,6 @@ test("the dedicated preview config cannot attach production routes or the older 
   assert.equal(config.domains, undefined);
   assert.deepEqual(config.vars, {
     PORTFOLIO_CHAT_LIVE_ENABLED: "true",
-    PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
     PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
     OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
@@ -48,11 +47,18 @@ test("the dedicated preview config cannot attach production routes or the older 
   const serialized = JSON.stringify(config);
   for (const secretName of [
     "OPENAI_API_KEY",
-    "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
-    "PORTFOLIO_CHAT_SESSION_SECRET",
+    "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
     "TURNSTILE_SECRET_KEY",
   ]) {
     assert.equal(serialized.includes(secretName), false, secretName);
+  }
+  for (const retiredName of [
+    "PORTFOLIO_CHAT_PREVIEW_ENABLED",
+    "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
+    "PORTFOLIO_CHAT_SESSION_SECRET",
+    "PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER",
+  ]) {
+    assert.equal(serialized.includes(retiredName), false, retiredName);
   }
 });
 

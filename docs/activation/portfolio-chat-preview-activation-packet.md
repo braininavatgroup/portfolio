@@ -1,4 +1,4 @@
-# Portfolio chat preview activation packet
+# Portfolio site-preview chat activation packet
 
 Status: BIV-317 authorizes and records the bounded single-operator preview. Its
 current live or contained state, immutable version IDs, artifact digest, smoke
@@ -13,7 +13,7 @@ the deployment and rollback procedure.
   by Wrangler. The URL is intentionally usable by anyone who obtains it.
 - Routes: Workers.dev only. Do not add a custom domain, zone route, or public
   portfolio hostname.
-- Operator: Bradley is the only intended visitor during this preview.
+- Operator: Bradley is the only intended visitor during this site preview.
 - Window: seven days from the successful deployment timestamp, unless Bradley
   ends or extends it first. Record the exact expiry with the deployment proof.
 - Artifact: check out the exact independently reviewed PR head after GitHub
@@ -28,19 +28,21 @@ the deployment and rollback procedure.
 | Setting | Value |
 | --- | --- |
 | `PORTFOLIO_CHAT_LIVE_ENABLED` | `true` |
-| `PORTFOLIO_CHAT_PREVIEW_ENABLED` | `false` |
 | `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `false` |
 | `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `200` |
 | `OPENAI_PORTFOLIO_MODEL` | `gpt-5.6-terra` |
 | `OPENAI_PORTFOLIO_REASONING_EFFORT` | `medium` |
 
 The provider ceiling is 3,000 output tokens, shared between model reasoning and
-the visible answer. Store
-`OPENAI_API_KEY` only as an encrypted Worker secret. Do not configure the older
-preview access code, session secret, Turnstile keys, chat route limiter, or
-preview-attempt route limiter for this Worker. The OpenAI Agents SDK runner has
-one text agent, one model turn, no tools or handoffs, no persistent session,
-response storage disabled, and tracing disabled.
+the visible answer. Store `OPENAI_API_KEY` only as an encrypted Worker secret.
+The site's Workers.dev boundary owns pre-launch access; chat has no access-code
+endpoint, session cookie, or preview-attempt limiter. Do not configure
+Turnstile, `PORTFOLIO_CHAT_IDENTIFIER_SECRET`, or a chat route limiter for this
+single-operator Worker. Those public controls are a separate dormant launch
+configuration and must be activated only through an independently reviewed
+change. The OpenAI Agents SDK runner has one text agent, one model turn, no
+tools or handoffs, no persistent session, response storage disabled, and tracing
+disabled.
 
 The config binds `PORTFOLIO_CHAT_BUDGET` to
 `PortfolioChatBudgetObject` and provisions it with the `v1`
@@ -55,7 +57,7 @@ Record all proof against one commit:
    `npm run test:rendered` pass.
 2. `tests/preview-worker-config.test.mjs` confirms Wrangler accepts the built
    Worker, the SQLite migration, the Workers.dev-only route, and the absence of
-   secret or access-stack configuration.
+   secret or chat-specific preview configuration.
 3. The deterministic offline evaluation passes.
 4. Client and build artifacts contain none of the planted secret sentinels.
 5. The exact-head pull request is approved, merged, and still matches the
@@ -76,7 +78,8 @@ seven-day expiry, and each result below:
 | Check | Expected result |
 | --- | --- |
 | Page | Workers.dev root returns the portfolio without a custom-domain route |
-| Direct chat | A grounded question streams an answer without access code, cookie, Turnstile, or route-limiter configuration |
+| Direct chat | A grounded question streams through `/api/portfolio-chat` without a second chat-specific unlock flow |
+| Removed route | The built application route table does not register `/api/portfolio-chat/preview` |
 | Conversation | One follow-up uses at most six in-memory user and assistant messages; reload clears them |
 | Budget | The Durable Object receives a limit of 200 and rejects exhaustion before provider construction |
 | Provider failure | The route returns the redacted provider error contract without leaking upstream detail |

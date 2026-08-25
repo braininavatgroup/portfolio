@@ -2,20 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import type { PortfolioChatProvider } from "./portfolio-chat-provider";
 import { createPortfolioChatRuntime } from "./portfolio-chat-runtime";
 
-function chatRequest(cookie?: string, body: object = {
-  question: "How does pitching preserve approval?",
-}) {
+function chatRequest(
+  body: object = { question: "How does pitching preserve approval?" },
+  ip?: string,
+) {
   return new Request("https://portfolio.test/api/portfolio-chat", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(cookie ? { cookie } : {}),
+      ...(ip ? { "cf-connecting-ip": ip } : {}),
     },
     body: JSON.stringify(body),
   });
 }
 
-function budgetNamespace(consume: (input: { limit: number }) => Promise<{ success: boolean }>) {
+function budgetNamespace(
+  consume: (input: { limit: number }) => Promise<{ success: boolean }>,
+) {
   const stub = {
     fetch: vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const result = await consume(JSON.parse(String(init?.body)));
@@ -31,7 +34,7 @@ function budgetNamespace(consume: (input: { limit: number }) => Promise<{ succes
 }
 
 describe("portfolio chat runtime", () => {
-  it("does not construct a provider or touch bindings while disabled", async () => {
+  it("exposes one handler and touches no protected dependency while disabled", async () => {
     const getProvider = vi.fn(() => {
       throw new Error("provider must stay dormant");
     });
@@ -46,26 +49,17 @@ describe("portfolio chat runtime", () => {
     });
 
     const response = await runtime.handleChat(chatRequest());
-    const previewResponse = await runtime.handlePreview(
-      new Request("https://portfolio.test/api/portfolio-chat/preview", {
-        method: "POST",
-      }),
-    );
 
+    expect(Object.keys(runtime)).toEqual(["handleChat"]);
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "disabled" });
-    expect(previewResponse.status).toBe(503);
-    expect(await previewResponse.json()).toMatchObject({ code: "disabled" });
     expect(getProvider).not.toHaveBeenCalled();
     expect(limit).not.toHaveBeenCalled();
     expect(namespace.getByName).not.toHaveBeenCalled();
     expect(stub.fetch).not.toHaveBeenCalled();
   });
 
-  // Catches the dedicated Worker accidentally depending on the older access-code stack.
-  // Owner: BIV-317 direct-live runtime; signed-preview tests own the access-gated branch.
-  // Retire after the solo preview Worker is decommissioned or adopts a different access contract.
-  it("serves the dedicated live Worker without the older preview access stack", async () => {
+  it("serves the enabled pre-launch site without chat-specific preview access", async () => {
     const seenSafetyIdentifiers: Array<string | undefined> = [];
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ safetyIdentifier }) {
@@ -78,7 +72,6 @@ describe("portfolio chat runtime", () => {
     const runtime = createPortfolioChatRuntime({
       env: {
         PORTFOLIO_CHAT_LIVE_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "gpt-5.4-2026-03-05",
@@ -98,7 +91,7 @@ describe("portfolio chat runtime", () => {
     expect(seenSafetyIdentifiers).toEqual([undefined]);
   });
 
-  it("uses the signed preview session for preflight and provider safety identity", async () => {
+  it("uses dormant public controls for preflight and provider safety identity", async () => {
     const seenSafetyIdentifiers: Array<string | undefined> = [];
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ safetyIdentifier }) {
@@ -107,59 +100,56 @@ describe("portfolio chat runtime", () => {
       },
     };
     const record = vi.fn();
-    const ids = ["preview-session", "chat-request"];
     const consume = vi
       .fn()
       .mockResolvedValueOnce({ success: true })
       .mockResolvedValueOnce({ success: false });
     const { namespace, stub } = budgetNamespace(consume);
+    const limit = vi.fn(async () => ({ success: true }));
     const getProvider = vi.fn(() => provider);
+    const verify = vi.fn(async () =>
+      Response.json({
+        success: true,
+        action: "portfolio_chat",
+        hostname: "portfolio.test",
+      }),
+    );
     const runtime = createPortfolioChatRuntime({
       env: {
         PORTFOLIO_CHAT_LIVE_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE:
-          "preview-access-code-with-32-chars",
-        PORTFOLIO_CHAT_SESSION_SECRET:
-          "session-signing-secret-with-32-chars",
+        PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "true",
+        PORTFOLIO_CHAT_IDENTIFIER_SECRET:
+          "privacy-safe-identifier-secret-32-chars",
+        TURNSTILE_SECRET_KEY: "turnstile-server-secret",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",
-        PORTFOLIO_CHAT_RATE_LIMITER: {
-          limit: vi.fn(async () => ({ success: true })),
-        },
-        PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER: {
-          limit: vi.fn(async () => ({ success: true })),
-        },
+        PORTFOLIO_CHAT_RATE_LIMITER: { limit },
         PORTFOLIO_CHAT_BUDGET: namespace,
       },
+      fetchImplementation: verify,
       getProvider,
-      now: () => Date.UTC(2026, 7, 24, 3, 0, 0),
-      randomId: () => ids.shift() ?? "extra-id",
+      randomId: () => "public-request",
       record,
     });
-    const previewResponse = await runtime.handlePreview(
-      new Request("https://portfolio.test/api/portfolio-chat/preview", {
-        method: "POST",
-        headers: {
-          "cf-connecting-ip": "203.0.113.10",
-          "content-type": "application/json",
-          origin: "https://portfolio.test",
-        },
-        body: JSON.stringify({
-          accessCode: "preview-access-code-with-32-chars",
-        }),
-      }),
-    );
-    const cookie = previewResponse.headers.get("set-cookie")?.split(";")[0];
+    const requestBody = {
+      question: "How does pitching preserve approval?",
+      challengeToken: "single-use-token",
+    };
 
-    const response = await runtime.handleChat(chatRequest(cookie));
+    const response = await runtime.handleChat(
+      chatRequest(requestBody, "203.0.113.10"),
+    );
     const body = await response.text();
 
     expect(response.status).toBe(200);
     expect(body).toContain('"type":"answer_delta"');
-    expect(seenSafetyIdentifiers).toHaveLength(1);
     expect(seenSafetyIdentifiers[0]).toMatch(/^pc_/);
+    expect(limit).toHaveBeenCalledWith({
+      key: expect.stringMatching(/^portfolio-chat:/),
+    });
+    expect(JSON.stringify({ limiter: limit.mock.calls, record: record.mock.calls }))
+      .not.toContain("203.0.113.10");
     expect(namespace.getByName).toHaveBeenCalledWith(
       "portfolio-chat-global-budget",
     );
@@ -169,16 +159,16 @@ describe("portfolio chat runtime", () => {
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "portfolio_chat_stream",
-        requestId: "chat-request",
+        requestId: "public-request",
         providerModel: "portfolio-model",
       }),
     );
-    expect(JSON.stringify(record.mock.calls)).not.toContain(
-      "preview-access-code",
-    );
+    expect(JSON.stringify(record.mock.calls)).not.toContain("single-use-token");
     expect(JSON.stringify(record.mock.calls)).not.toContain("sk-server-only");
 
-    const exhausted = await runtime.handleChat(chatRequest(cookie));
+    const exhausted = await runtime.handleChat(
+      chatRequest(requestBody, "203.0.113.10"),
+    );
     expect(exhausted.status).toBe(503);
     expect(await exhausted.json()).toMatchObject({ code: "budget_exhausted" });
     expect(namespace.getByName).toHaveBeenNthCalledWith(
@@ -188,7 +178,7 @@ describe("portfolio chat runtime", () => {
     expect(getProvider).toHaveBeenCalledTimes(1);
     expect(record).toHaveBeenCalledWith({
       event: "portfolio_chat_preflight",
-      requestId: "extra-id",
+      requestId: "public-request",
       outcome: "budget_exhausted",
     });
   });
@@ -201,16 +191,10 @@ describe("portfolio chat runtime", () => {
     const runtime = createPortfolioChatRuntime({
       env: {
         PORTFOLIO_CHAT_LIVE_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE:
-          "preview-access-code-with-32-chars",
-        PORTFOLIO_CHAT_SESSION_SECRET:
-          "session-signing-secret-with-32-chars",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",
         PORTFOLIO_CHAT_RATE_LIMITER: { limit },
-        PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER: { limit: vi.fn() },
         PORTFOLIO_CHAT_BUDGET: namespace,
       },
       getProvider,
@@ -241,48 +225,21 @@ describe("portfolio chat runtime", () => {
     };
     const consume = vi.fn(async () => ({ success: true }));
     const { namespace } = budgetNamespace(consume);
-    const ids = ["preview-session", "chat-request"];
     const runtime = createPortfolioChatRuntime({
       env: {
         PORTFOLIO_CHAT_LIVE_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ENABLED: "true",
-        PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE:
-          "preview-access-code-with-32-chars",
-        PORTFOLIO_CHAT_SESSION_SECRET:
-          "session-signing-secret-with-32-chars",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",
-        PORTFOLIO_CHAT_RATE_LIMITER: {
-          limit: vi.fn(async () => ({ success: true })),
-        },
-        PORTFOLIO_CHAT_PREVIEW_RATE_LIMITER: {
-          limit: vi.fn(async () => ({ success: true })),
-        },
         PORTFOLIO_CHAT_BUDGET: namespace,
       },
       getProvider: () => provider,
-      now: () => Date.UTC(2026, 7, 24, 3, 0, 0),
-      randomId: () => ids.shift() ?? "extra-id",
+      randomId: () => "unsupported-request",
       record: () => {},
     });
-    const preview = await runtime.handlePreview(
-      new Request("https://portfolio.test/api/portfolio-chat/preview", {
-        method: "POST",
-        headers: {
-          "cf-connecting-ip": "203.0.113.10",
-          "content-type": "application/json",
-          origin: "https://portfolio.test",
-        },
-        body: JSON.stringify({
-          accessCode: "preview-access-code-with-32-chars",
-        }),
-      }),
-    );
-    const cookie = preview.headers.get("set-cookie")?.split(";")[0];
 
     const response = await runtime.handleChat(
-      chatRequest(cookie, {
+      chatRequest({
         question: "What quantum-computing patents did Bradley file?",
       }),
     );

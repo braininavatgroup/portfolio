@@ -3,10 +3,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   PortfolioChatClientError,
-  requestPortfolioChatPreviewAccess,
   streamPortfolioAnswer,
   type AskPortfolio,
-  type RequestPortfolioChatPreviewAccess,
 } from "../lib/portfolio-chat-client";
 import {
   renderTurnstile,
@@ -54,7 +52,6 @@ export function PortfolioChat({
   onPoseChange,
   registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
-  requestPreviewAccess = requestPortfolioChatPreviewAccess,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
   spotlightTarget,
   turnstileSiteKey,
@@ -66,19 +63,15 @@ export function PortfolioChat({
     element: HTMLElement | null,
   ) => void;
   askPortfolio?: AskPortfolio;
-  requestPreviewAccess?: RequestPortfolioChatPreviewAccess;
   renderTurnstile?: TurnstileRenderer;
   spotlightTarget?: AvatarTargetId | null;
   turnstileSiteKey?: string;
 }) {
   const [input, setInput] = useState("");
-  const [accessCode, setAccessCode] = useState("");
   const [answer, setAnswer] = useState("");
   const [evidence, setEvidence] = useState<PortfolioGroundingEvidence[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [previewRequired, setPreviewRequired] = useState(false);
-  const [previewPending, setPreviewPending] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
   const conversation = useRef<PortfolioChatMessage[]>([]);
@@ -88,7 +81,6 @@ export function PortfolioChat({
   });
   const idleTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
-  const previewController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
   const turnstileController = useRef<TurnstileController | null>(null);
@@ -150,7 +142,6 @@ export function PortfolioChat({
     return () => {
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
       requestController.current?.abort();
-      previewController.current?.abort();
       region?.removeEventListener("click", containInteraction);
       region?.removeEventListener("pointerdown", containInteraction);
       region?.removeEventListener("pointerup", containInteraction);
@@ -227,7 +218,6 @@ export function PortfolioChat({
     setAnswer("");
     setEvidence([]);
     setMessage("");
-    setPreviewRequired(false);
     setPending(true);
 
     try {
@@ -309,12 +299,6 @@ export function PortfolioChat({
       if (controller.signal.aborted) return;
       setAnswer("");
       scheduleAvatarWork(() => avatarIntegration?.onError());
-      if (
-        error instanceof PortfolioChatClientError &&
-        error.code === "preview_required"
-      ) {
-        setPreviewRequired(true);
-      }
       setMessage(
         error instanceof PortfolioChatClientError
           ? error.message
@@ -346,36 +330,6 @@ export function PortfolioChat({
     if (!question) return;
     setPoseForQuestion(question);
     void runQuestion(question);
-  }
-
-  async function submitPreviewAccess(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const code = accessCode.trim();
-    if (!code) return;
-    previewController.current?.abort();
-    const controller = new AbortController();
-    previewController.current = controller;
-    setPreviewPending(true);
-    setMessage("");
-
-    try {
-      await requestPreviewAccess(code, { signal: controller.signal });
-      setAccessCode("");
-      setPreviewRequired(false);
-      setMessage("Preview access ready. Ask again when you're ready.");
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      setMessage(
-        error instanceof PortfolioChatClientError
-          ? error.message
-          : "The answer service is temporarily unavailable.",
-      );
-    } finally {
-      if (previewController.current === controller) {
-        previewController.current = null;
-        setPreviewPending(false);
-      }
-    }
   }
 
   const citedEvidence = evidence.flatMap((item, index) => {
@@ -422,24 +376,6 @@ export function PortfolioChat({
             <p className="chat-note">{challengeMessage}</p>
           ) : null}
         </div>
-      ) : null}
-      {previewRequired ? (
-        <form className="chat-preview-access" onSubmit={submitPreviewAccess}>
-          <label htmlFor="portfolio-preview-code">Preview access code</label>
-          <div>
-            <input
-              autoComplete="off"
-              id="portfolio-preview-code"
-              name="accessCode"
-              onChange={(event) => setAccessCode(event.target.value)}
-              type="password"
-              value={accessCode}
-            />
-            <button disabled={previewPending} type="submit">
-              {previewPending ? "Unlocking…" : "Unlock preview"}
-            </button>
-          </div>
-        </form>
       ) : null}
       {answer || message || citedEvidence.length > 0 || pending ? (
         <div className="chat-reply" aria-live="polite">

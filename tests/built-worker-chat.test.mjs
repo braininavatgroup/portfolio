@@ -24,14 +24,12 @@ async function startBuiltWorker(port) {
   const childEnvironment = {
     ...process.env,
     PORTFOLIO_CHAT_LIVE_ENABLED: "false",
-    PORTFOLIO_CHAT_PREVIEW_ENABLED: "false",
     WRANGLER_SEND_METRICS: "false",
   };
   for (const name of [
     "OPENAI_API_KEY",
     "OPENAI_PORTFOLIO_MODEL",
-    "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
-    "PORTFOLIO_CHAT_SESSION_SECRET",
+    "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
     "TURNSTILE_SECRET_KEY",
   ]) {
     delete childEnvironment[name];
@@ -87,42 +85,60 @@ async function startBuiltWorker(port) {
   };
 }
 
-test("the built Worker keeps both portfolio chat routes disabled", async () => {
-  for (const pathname of [
-    "/api/portfolio-chat",
-    "/api/portfolio-chat/preview",
-  ]) {
-    const port = await availablePort();
-    const worker = await startBuiltWorker(port);
+async function fetchBuiltWorker(request) {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
 
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}${pathname}`, {
+  return worker.fetch(
+    request,
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+}
+
+test("the built Worker exposes one disabled portfolio chat route", async () => {
+  const port = await availablePort();
+  const worker = await startBuiltWorker(port);
+
+  try {
+    const chatResponse = await fetch(
+      `http://127.0.0.1:${port}/api/portfolio-chat`,
+      {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          origin: `http://127.0.0.1:${port}`,
-        },
-        body: JSON.stringify({
-          accessCode: "must-not-matter",
-          question: "How does pitching work?",
-        }),
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: "How does pitching work?" }),
         signal: AbortSignal.timeout(5_000),
-      });
+      },
+    );
+    assert.equal(chatResponse.status, 503);
+    assert.deepEqual(await chatResponse.json(), {
+      code: "disabled",
+      message: "Ask the portfolio is not enabled.",
+    });
 
-      const responseText = await response.text();
-      let body;
-      try {
-        body = JSON.parse(responseText);
-      } catch {
-        body = responseText;
-      }
-      assert.equal(response.status, 503, `${pathname}: ${responseText}`);
-      assert.deepEqual(body, {
-        code: "disabled",
-        message: "Ask the portfolio is not enabled.",
-      });
-    } finally {
-      await worker.stop();
-    }
+  } finally {
+    await worker.stop();
   }
+});
+
+test("the built Worker does not register the retired preview endpoint", async () => {
+  const response = await fetchBuiltWorker(
+    new Request("http://localhost/api/portfolio-chat/preview", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ accessCode: "must-not-matter" }),
+    }),
+  );
+
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  assert.match(await response.text(), />404<\/h1>/i);
 });

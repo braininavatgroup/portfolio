@@ -38,13 +38,15 @@ Inputs still needed for a production version include the real 3D model, roster p
 
 ## Portfolio chat launch controls
 
-The model-backed chat is false by default. The canonical App Router endpoints read server-only Cloudflare bindings and refuse requests before provider construction unless the live gate and the selected launch path are configured.
+The model-backed chat is false by default. The single canonical App Router endpoint, `/api/portfolio-chat`, reads server-only Cloudflare bindings and refuses requests before provider construction unless the live gate and provider budget are configured.
 
-The signed-preview path supports an HttpOnly preview session, a privacy-safe per-actor preview-attempt limiter, a per-session chat limiter, Turnstile verification, and an OpenAI `safety_identifier` derived from the opaque preview session. The dedicated single-operator path omits that access stack and is reachable only at the generated `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname. Both paths retain the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, cookies, access codes, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
+During pre-launch, access to the portfolio is a deployment-boundary concern rather than a second authentication flow inside chat. The dedicated site-preview Worker is reachable only at the generated `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname. Chat still retains the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
+
+Future public launch controls remain dormant and independent: setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true` requires Turnstile, a Cloudflare route limiter, and a server-only `PORTFOLIO_CHAT_IDENTIFIER_SECRET`. The runtime HMAC-pseudonymizes the trusted Cloudflare connecting IP before using it as a limiter key or OpenAI `safety_identifier`; raw IPs are never forwarded or logged. Leaving the setting false touches none of those capabilities.
 
 The provider is one OpenAI Agents SDK text agent with one model turn and no tools, handoffs, or persistent session. Its instructions define the portfolio-guide task, and every run receives the complete published portfolio evidence plus the bounded transcript from the current browser visit. SDK tracing and OpenAI response storage are disabled so this adoption does not broaden the telemetry or retention contract.
 
-`wrangler.preview.jsonc` owns the dedicated Worker's non-secret configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request UTC-day Durable Object budget, its SQLite migration, and no custom-domain route. `OPENAI_API_KEY` is supplied only as an encrypted Worker secret. The existing signed-preview path still requires its session, access-code, limiter, and Turnstile bindings before it can be enabled.
+`wrangler.preview.jsonc` owns the site-preview Worker's non-secret configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request UTC-day Durable Object budget, its SQLite migration, disabled public controls, and no custom-domain route. `OPENAI_API_KEY` is supplied only as an encrypted Worker secret.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It reports reference-answer/refusal correctness, citation failures, required evidence, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
@@ -60,4 +62,4 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This repository does not configure or authorize a production/custom-domain release. The dedicated Workers.dev preview and its bounded activation record are tracked in BIV-317.
+This repository does not configure or authorize a production/custom-domain release. The dedicated Workers.dev site preview and its bounded activation record are tracked in BIV-317. Chat-specific preview access was retired by BIV-321.

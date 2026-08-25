@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   PortfolioChatClientError,
-  requestPortfolioChatPreviewAccess,
   streamPortfolioAnswer,
 } from "./portfolio-chat-client";
 import type { PortfolioChatEvent } from "./portfolio-chat-protocol";
@@ -174,53 +173,6 @@ describe("portfolio chat client", () => {
     expect(caught).toMatchObject({
       code: "disabled",
       message: "Ask the portfolio is not enabled.",
-    });
-  });
-
-  it("exchanges a preview access code through the cookie-enabled endpoint", async () => {
-    const fetchImplementation = vi.fn(async () =>
-      Response.json({ ok: true, message: "Preview access ready." }),
-    );
-
-    await requestPortfolioChatPreviewAccess("  invite-code  ", {
-      fetchImplementation,
-    });
-
-    expect(fetchImplementation).toHaveBeenCalledWith(
-      "/api/portfolio-chat/preview",
-      expect.objectContaining({
-        method: "POST",
-        credentials: "same-origin",
-        body: JSON.stringify({ accessCode: "invite-code" }),
-      }),
-    );
-  });
-
-  it("uses the redacted client error contract when preview access is denied", async () => {
-    const fetchImplementation = async () =>
-      Response.json(
-        { code: "preview_denied", message: "Preview access was not accepted." },
-        { status: 401 },
-      );
-
-    await expect(
-      requestPortfolioChatPreviewAccess("wrong-code", { fetchImplementation }),
-    ).rejects.toMatchObject({
-      name: "PortfolioChatClientError",
-      code: "preview_denied",
-      message: "Preview access was not accepted.",
-    });
-  });
-
-  it("keeps malformed preview failures redacted", async () => {
-    const fetchImplementation = async () =>
-      new Response("upstream details", { status: 502 });
-
-    await expect(
-      requestPortfolioChatPreviewAccess("invite-code", { fetchImplementation }),
-    ).rejects.toMatchObject({
-      code: "request_failed",
-      message: "The answer service is temporarily unavailable.",
     });
   });
 

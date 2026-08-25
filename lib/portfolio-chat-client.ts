@@ -19,16 +19,6 @@ export type AskPortfolio = (
   options: AskPortfolioOptions,
 ) => Promise<void>;
 
-export type PortfolioChatPreviewAccessOptions = {
-  signal?: AbortSignal;
-  fetchImplementation?: typeof fetch;
-};
-
-export type RequestPortfolioChatPreviewAccess = (
-  accessCode: string,
-  options?: PortfolioChatPreviewAccessOptions,
-) => Promise<void>;
-
 export class PortfolioChatClientError extends Error {
   constructor(readonly code: string, message: string) {
     super(message);
@@ -177,18 +167,3 @@ export const streamPortfolioAnswer: AskPortfolio = async (
     reader.releaseLock();
   }
 };
-
-export const requestPortfolioChatPreviewAccess: RequestPortfolioChatPreviewAccess =
-  async (
-    accessCode,
-    { signal, fetchImplementation = fetch } = {},
-  ) => {
-    const response = await fetchImplementation("/api/portfolio-chat/preview", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ accessCode: accessCode.trim() }),
-      credentials: "same-origin",
-      signal,
-    });
-    if (!response.ok) throw await responseError(response);
-  };

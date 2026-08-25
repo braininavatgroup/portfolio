@@ -775,26 +775,6 @@ body {
   padding-top: 0.65rem;
 }
 
-.portfolio-chat .chat-preview-access {
-  border-top: 1px solid #29443d;
-  display: block;
-  margin-top: 0.75rem;
-  padding-top: 0.7rem;
-}
-
-.chat-preview-access > label {
-  color: #b6c9c2;
-  display: block;
-  font-size: 0.68rem;
-  margin-bottom: 0.4rem;
-}
-
-.chat-preview-access > div {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: 1fr auto;
-}
-
 .chat-reply {
   max-height: min(34rem, 55vh);
   overflow-y: auto;
@@ -1626,7 +1606,6 @@ input:focus-visible {
   color: var(--muted);
 }
 
-[data-theme="light"] .chat-preview-access,
 [data-theme="light"] .chat-inspect,
 [data-theme="light"] .chat-evidence li {
   border-color: var(--line);
@@ -1650,10 +1629,6 @@ input:focus-visible {
 [data-theme="light"] .portfolio-chat input::placeholder {
   color: #65756f;
   opacity: 1;
-}
-
-[data-theme="light"] .chat-preview-access > label {
-  color: var(--muted);
 }
 
 [data-theme="light"] .skip-link {
