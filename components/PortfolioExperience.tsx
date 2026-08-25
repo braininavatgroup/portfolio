@@ -253,9 +253,23 @@ export function PortfolioExperience({
       onEffects: async (effects: PortfolioResponseEffects) => {
         const turn = avatarActionState.getTurn();
         const isCurrentTurn = () => avatarActionState.getTurn() === turn;
+        let dossierRenderPending = false;
         for (const action of effects.siteActions) {
           if (!isCurrentTurn()) return;
-          await siteActionExecutor.execute(action);
+          if (dossierRenderPending && action.type === "scrollTo") {
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+            if (!isCurrentTurn()) return;
+            dossierRenderPending = false;
+          }
+          const result = await siteActionExecutor.execute(action);
+          if (
+            result.ok &&
+            (action.type === "openProject" ||
+              action.type === "closeProject" ||
+              action.type === "activateTab")
+          ) {
+            dossierRenderPending = true;
+          }
         }
         if (effects.siteActions.length > 0) {
           await new Promise<void>((resolve) => window.setTimeout(resolve, 16));

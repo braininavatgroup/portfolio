@@ -378,18 +378,26 @@ describe("spatial self-portrait", () => {
     });
   });
 
-  it("runs project open, tab, and close actions through current spatial selection", async () => {
-    // Catches generated routes or dossier-local state bypassing the existing project selection helpers.
+  it("runs project open, tab, scroll, and close actions through current spatial selection", async () => {
+    // Catches layout-changing actions leaving later semantic actions on stale dossier targets.
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body)) as { question: string };
         return body.question === "Close it"
-          ? effectsResponse({ siteActions: [{ type: "closeProject" }] })
+          ? effectsResponse({
+              siteActions: [
+                { type: "closeProject" },
+                { type: "scrollTo", target: "portfolio:index" },
+              ],
+            })
           : effectsResponse({
               siteActions: [
                 { type: "openProject", target: "project:dubs" },
                 { type: "activateTab", tab: "output" },
+                { type: "scrollTo", target: "project:dubs" },
               ],
             });
       }),
@@ -405,11 +413,13 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByRole("button", { name: "Output" }).getAttribute("aria-expanded"),
     ).toBe("true");
+    expect(scrollTo).toHaveBeenCalledTimes(1);
 
     await askExperience("Close it");
     expect(
       await screen.findByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
+    expect(scrollTo).toHaveBeenCalledTimes(2);
   });
 
   it("moves and clears the semantic dossier spotlight", async () => {
