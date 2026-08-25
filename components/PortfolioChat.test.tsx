@@ -535,81 +535,32 @@ describe("portfolio chat", () => {
     );
   });
 
-  it("reveals preview access after denial and preserves the question after unlock", async () => {
+  it("renders a retired preview error without exposing an alternate access form", async () => {
     const askPortfolio = vi.fn<AskPortfolio>(async () => {
       throw new PortfolioChatClientError(
         "preview_required",
         "Preview access is required.",
       );
     });
-    const requestPreviewAccess = vi.fn(async () => {});
 
     render(
       <PortfolioChat
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
-        requestPreviewAccess={requestPreviewAccess}
       />,
     );
     const input = screen.getByLabelText("Ask a question about the portfolio");
     fireEvent.change(input, { target: { value: "How does reporting work?" } });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    const accessInput = await screen.findByLabelText("Preview access code");
-    fireEvent.change(accessInput, { target: { value: "invite-code" } });
-    fireEvent.click(screen.getByRole("button", { name: "Unlock preview" }));
-
-    await waitFor(() =>
-      expect(requestPreviewAccess).toHaveBeenCalledWith(
-        "invite-code",
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-      ),
-    );
-    expect(
-      await screen.findByText(
-        "Preview access ready. Ask again when you're ready.",
-      ),
-    ).toBeTruthy();
+    expect(await screen.findByText("Preview access is required.")).toBeTruthy();
+    expect(screen.queryByLabelText("Preview access code")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Unlock preview" })).toBeNull();
     expect(input).toHaveProperty("value", "How does reporting work?");
     expect(screen.getByRole("button", { name: "Ask" })).toHaveProperty(
       "disabled",
       false,
     );
-  });
-
-  it("shows a redacted preview denial and keeps the unlock form available", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async () => {
-      throw new PortfolioChatClientError(
-        "preview_required",
-        "Preview access is required.",
-      );
-    });
-    const requestPreviewAccess = vi.fn(async () => {
-      throw new PortfolioChatClientError(
-        "preview_denied",
-        "Preview access was not accepted.",
-      );
-    });
-
-    render(
-      <PortfolioChat
-        onPoseChange={() => {}}
-        askPortfolio={askPortfolio}
-        requestPreviewAccess={requestPreviewAccess}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "Question" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-    const accessInput = await screen.findByLabelText("Preview access code");
-    fireEvent.change(accessInput, { target: { value: "wrong" } });
-    fireEvent.click(screen.getByRole("button", { name: "Unlock preview" }));
-
-    expect(
-      await screen.findByText("Preview access was not accepted."),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Preview access code")).toBeTruthy();
   });
 
   it("does not expose uncited full context when the provider stream fails", async () => {
@@ -757,46 +708,4 @@ describe("portfolio chat", () => {
     expect(onLandingClick).not.toHaveBeenCalled();
   });
 
-  it("contains preview-control pointer interactions", async () => {
-    const onLandingClick = vi.fn();
-    const onLandingPointerDown = vi.fn();
-    const onLandingPointerUp = vi.fn();
-    const landingSurfaceRef = createRef<HTMLDivElement>();
-    const askPortfolio = vi.fn<AskPortfolio>(async () => {
-      throw new PortfolioChatClientError(
-        "preview_required",
-        "Preview access is required.",
-      );
-    });
-
-    render(
-      <div ref={landingSurfaceRef}>
-        <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />
-      </div>,
-    );
-    landingSurfaceRef.current?.addEventListener("click", onLandingClick);
-    landingSurfaceRef.current?.addEventListener(
-      "pointerdown",
-      onLandingPointerDown,
-    );
-    landingSurfaceRef.current?.addEventListener("pointerup", onLandingPointerUp);
-
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "How does pitching work?" } });
-    fireEvent.pointerDown(input);
-    fireEvent.pointerUp(input);
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-    const accessInput = await screen.findByLabelText("Preview access code");
-    fireEvent.pointerDown(accessInput);
-    fireEvent.pointerUp(accessInput);
-    fireEvent.click(accessInput);
-    const unlock = screen.getByRole("button", { name: "Unlock preview" });
-    fireEvent.pointerDown(unlock);
-    fireEvent.pointerUp(unlock);
-    fireEvent.click(unlock);
-
-    expect(onLandingPointerDown).not.toHaveBeenCalled();
-    expect(onLandingPointerUp).not.toHaveBeenCalled();
-    expect(onLandingClick).not.toHaveBeenCalled();
-  });
 });
