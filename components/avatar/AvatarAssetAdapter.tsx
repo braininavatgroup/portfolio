@@ -105,7 +105,9 @@ function GlbAvatar({
     const next = actions[clipName];
     if (!next) return;
     next.reset().setEffectiveTimeScale(avatarAsset.playbackRate).fadeIn(0.2).play();
-    return () => next.fadeOut(0.2);
+    return () => {
+      next.fadeOut(0.2);
+    };
   }, [actions, animation]);
 
   return (
