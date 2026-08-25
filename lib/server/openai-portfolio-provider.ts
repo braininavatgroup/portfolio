@@ -71,7 +71,20 @@ const portfolioAgentOutput = z.object({
   ),
 });
 
-class InvalidEvidenceOutputError extends Error {}
+type InvalidEvidenceFailureKind =
+  | "citation_label"
+  | "invalid_evidence_output"
+  | "omitted_evidence"
+  | "unknown_evidence";
+
+class InvalidEvidenceOutputError extends Error {
+  constructor(
+    readonly kind: InvalidEvidenceFailureKind,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 function failureKind(
   error: unknown,
@@ -79,7 +92,7 @@ function failureKind(
 ): PortfolioChatProviderFailureKind {
   if (signal?.aborted) return "aborted";
   if (error instanceof InvalidEvidenceOutputError) {
-    return "invalid_evidence_output";
+    return error.kind;
   }
   if (error instanceof ModelBehaviorError) return "invalid_final_output";
   if (error instanceof MaxTurnsExceededError) return "max_turns";
@@ -95,6 +108,7 @@ function renderAgentOutput(
   if (output.insufficientEvidence) {
     if (output.mode !== "portfolio" || output.sentences.length > 0) {
       throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
         "OpenAI agent returned an invalid evidence refusal.",
       );
     }
@@ -108,22 +122,26 @@ function renderAgentOutput(
     const sentence = text.trim();
     if (!sentence) {
       throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
         "OpenAI agent returned an empty sentence.",
       );
     }
     if (/\[E[1-9]\d*\]/.test(sentence)) {
       throw new InvalidEvidenceOutputError(
+        "citation_label",
         "OpenAI agent authored a citation label.",
       );
     }
     if (sentence === INSUFFICIENT_EVIDENCE_MESSAGE) {
       throw new InvalidEvidenceOutputError(
+        "invalid_evidence_output",
         "OpenAI agent returned an inconsistent evidence refusal.",
       );
     }
     if (output.mode !== "portfolio") {
       if (evidenceIds.length > 0) {
         throw new InvalidEvidenceOutputError(
+          "invalid_evidence_output",
           "OpenAI agent attached portfolio evidence off topic.",
         );
       }
@@ -136,6 +154,7 @@ function renderAgentOutput(
           const number = evidenceNumbers.get(id);
           if (!number) {
             throw new InvalidEvidenceOutputError(
+              "unknown_evidence",
               "OpenAI agent cited unknown evidence.",
             );
           }
@@ -145,6 +164,7 @@ function renderAgentOutput(
     ];
     if (citationNumbers.length === 0) {
       throw new InvalidEvidenceOutputError(
+        "omitted_evidence",
         "OpenAI agent omitted portfolio evidence.",
       );
     }
@@ -158,7 +178,10 @@ function renderAgentOutput(
     return `${citedSentences} ${citations}`;
   });
   if (sentences.length === 0) {
-    throw new InvalidEvidenceOutputError("OpenAI agent returned no answer.");
+    throw new InvalidEvidenceOutputError(
+      "invalid_evidence_output",
+      "OpenAI agent returned no answer.",
+    );
   }
   return sentences.join("\n\n");
 }
@@ -206,7 +229,7 @@ export function createOpenAIPortfolioProvider({
       });
       try {
         const result = await runner.run(agent, groundedInput(input), {
-          maxTurns: 2,
+          maxTurns: 1,
           signal: input.signal,
         });
         if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");

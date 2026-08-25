@@ -16,12 +16,15 @@ export type PortfolioChatProviderUsage = {
 
 export type PortfolioChatProviderFailureKind =
   | "aborted"
+  | "citation_label"
   | "invalid_evidence_output"
   | "invalid_final_output"
   | "max_turns"
   | "model_refusal"
   | "provider_error"
-  | "provider_timeout";
+  | "provider_timeout"
+  | "omitted_evidence"
+  | "unknown_evidence";
 
 export type PortfolioChatProviderInput = {
   question: string;

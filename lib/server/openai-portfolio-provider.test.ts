@@ -53,14 +53,6 @@ function completedResponse(
   });
 }
 
-function responseWithoutFinalOutput() {
-  return Response.json({
-    id: "resp_portfolio_reasoning_only_test",
-    output: [],
-    usage: { input_tokens: 37, output_tokens: 9, total_tokens: 46 },
-  });
-}
-
 function portfolioOutput(
   sentences: StructuredOutput["sentences"],
 ): StructuredOutput {
@@ -155,6 +147,7 @@ describe("OpenAI portfolio provider", () => {
   it.each(["portfolio", "general"] as const)(
     "rejects model-authored citation labels in %s text",
     async (mode) => {
+      const onFailure = vi.fn();
       const provider = createOpenAIPortfolioProvider({
         apiKey: "sk-test-server-only",
         model: "portfolio-model-test",
@@ -176,10 +169,12 @@ describe("OpenAI portfolio provider", () => {
         for await (const chunk of provider.streamAnswer({
           question: "How does pitching work?",
           evidence: [...evidence, secondEvidence],
+          onFailure,
         })) {
           throw new Error(`Unexpected provider output: ${chunk}`);
         }
       }).rejects.toThrow("OpenAI agent run failed.");
+      expect(onFailure).toHaveBeenCalledWith("citation_label");
     },
   );
 
@@ -336,38 +331,6 @@ describe("OpenAI portfolio provider", () => {
     ]);
   });
 
-  it("lets the SDK complete one recovery turn when the first structured response has no final output", async () => {
-    let attempt = 0;
-    const provider = createOpenAIPortfolioProvider({
-      apiKey: "sk-test-server-only",
-      model: "portfolio-model-test",
-      fetchImplementation: async () => {
-        attempt += 1;
-        return attempt === 1
-          ? responseWithoutFinalOutput()
-          : completedResponse(
-              portfolioOutput([
-                { text: "Grounded after recovery.", evidenceIds: ["project:pitching"] },
-              ]),
-            );
-      },
-    });
-
-    const chunks: string[] = [];
-    for await (const chunk of provider.streamAnswer({
-      question: "Which example best proves that?",
-      conversation: [
-        { role: "user", content: "Tell me about pitching." },
-        { role: "assistant", content: "It keeps approval human. [E1]" },
-      ],
-      evidence,
-    })) {
-      chunks.push(chunk);
-    }
-
-    expect(chunks).toEqual(["Grounded after recovery. [E1]"]);
-  });
-
   it("returns the exact evidence refusal from a structured portfolio result", async () => {
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
@@ -460,7 +423,7 @@ describe("OpenAI portfolio provider", () => {
       portfolioOutput([
         { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
       ]),
-      "invalid_evidence_output",
+      "unknown_evidence",
     ],
   ])("rejects %s without exposing it", async (_label, output, failureKind) => {
     const onFailure = vi.fn();
