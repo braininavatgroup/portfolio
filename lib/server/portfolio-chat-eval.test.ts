@@ -4,7 +4,6 @@ import type {
   PortfolioChatProviderInput,
   PortfolioChatProviderUsage,
 } from "./portfolio-chat-provider";
-import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
 import {
   comparePortfolioChatEvalRuns,
   runPortfolioChatEval,
@@ -42,24 +41,27 @@ const answerCase: PortfolioChatEvalCase = {
   requiredEvidenceIds: ["project:pitching"],
 };
 
-const refusalCase: PortfolioChatEvalCase = {
+const unknownDetailCase: PortfolioChatEvalCase = {
   id: "pitching-vendor",
   question: "Does the pitching system use a specific software vendor?",
-  expected: "refusal",
+  expected: "answer",
+  expectedAnswerIncludes: ["don't know"],
 };
 
 describe("portfolio chat offline evaluation", () => {
-  it("passes a grounded answer and a correct evidence refusal", async () => {
+  // Protects against scoring conversational uncertainty as a failed refusal.
+  // Owner: portfolio chat evaluator. Retire if evaluation moves out of process.
+  it("passes a grounded answer and a conversational unknown-detail answer", async () => {
     const provider = deterministicProvider((input) => ({
       chunks: input.question.includes("vendor")
-        ? [INSUFFICIENT_EVIDENCE_MESSAGE]
+        ? ["I don't know which software vendor it uses."]
         : ["Human approval remains explicit. ", citationFor(input, "project:pitching")],
     }));
     const clock = [0, 12, 20, 40];
 
     const run = await runPortfolioChatEval(
       { name: "balanced", provider, now: () => clock.shift() ?? 0 },
-      [answerCase, refusalCase],
+      [answerCase, unknownDetailCase],
     );
 
     expect(run.results).toEqual([
@@ -73,7 +75,7 @@ describe("portfolio chat offline evaluation", () => {
       expect.objectContaining({
         caseId: "pitching-vendor",
         passed: true,
-        outcome: "refusal",
+        outcome: "answer",
         citedEvidenceIds: [],
         latencyMs: 20,
       }),
@@ -82,15 +84,16 @@ describe("portfolio chat offline evaluation", () => {
       totalCases: 2,
       passCount: 2,
       failureCount: 0,
-      expectedRefusalCount: 1,
-      correctRefusalCount: 1,
       averageLatencyMs: 16,
       p95LatencyMs: 20,
     });
+    expect(run.summary).not.toHaveProperty("expectedRefusalCount");
+    expect(run.summary).not.toHaveProperty("correctRefusalCount");
+    expect(run.summary).not.toHaveProperty("refusalAccuracy");
   });
 
   it.each([
-    ["An unsupported answer.", "missing_citation"],
+    ["An unsupported answer.", "missing_required_evidence"],
     ["An answer with the wrong source. [E99]", "unknown_citation"],
     ["First claim. Second claim. [E1]", "unattributed_claim"],
   ])("rejects citation failure for %s", async (output, failureCode) => {

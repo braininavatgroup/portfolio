@@ -51,7 +51,7 @@ One structured event records each rejected preflight or completed stream. Allowe
 
 ## Offline evaluation
 
-The evaluator accepts named provider configurations through the existing provider interface and runs a fixed set of questions with explicit expected-answer anchors. It validates reference-answer or refusal behavior, citations, required evidence, provider completion, latency, and reported usage. A report compares pass count, refusal correctness, average and p95 latency, token totals, and optional cost estimates supplied from an explicit pricing snapshot.
+The evaluator accepts named provider configurations through the existing provider interface and runs a fixed set of questions with explicit expected-answer anchors. It accepts conversational uncertainty, validates any citations that are present, enforces evidence required by individual cases, and records provider completion, latency, and usage. A report compares pass count, average and p95 latency, token totals, and optional cost estimates supplied from an explicit pricing snapshot.
 
 Tests use deterministic providers. Production code contains no fake or fallback answer provider. The evaluator never discovers or calls a live provider by itself.
 

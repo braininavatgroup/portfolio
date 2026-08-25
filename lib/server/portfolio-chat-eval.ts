@@ -1,6 +1,5 @@
 import { groundPortfolioQuestion } from "../portfolio-grounding";
 import {
-  INSUFFICIENT_EVIDENCE_MESSAGE,
   type PortfolioChatProvider,
   type PortfolioChatProviderInput,
   type PortfolioChatProviderUsage,
@@ -12,32 +11,25 @@ type PortfolioChatEvalCaseBase = {
   requiredEvidenceIds?: string[];
 };
 
-export type PortfolioChatEvalCase =
-  | (PortfolioChatEvalCaseBase & {
-      expected: "answer";
-      expectedAnswerIncludes: [string, ...string[]];
-    })
-  | (PortfolioChatEvalCaseBase & {
-      expected: "refusal";
-    });
+export type PortfolioChatEvalCase = PortfolioChatEvalCaseBase & {
+  expected: "answer";
+  expectedAnswerIncludes: [string, ...string[]];
+};
 
 export type PortfolioChatEvalUsage = PortfolioChatProviderUsage;
 
 export type PortfolioChatEvalFailureCode =
-  | "missing_citation"
   | "unknown_citation"
   | "unattributed_claim"
   | "missing_required_evidence"
   | "incorrect_answer"
-  | "unexpected_answer"
-  | "unexpected_refusal"
   | "provider_failure";
 
 export type PortfolioChatEvalResult = {
   caseId: string;
   passed: boolean;
   expected: PortfolioChatEvalCase["expected"];
-  outcome: "answer" | "refusal" | "citation_failure" | "provider_failure";
+  outcome: "answer" | "citation_failure" | "provider_failure";
   evidenceIds: string[];
   citedEvidenceIds: string[];
   latencyMs: number;
@@ -49,9 +41,6 @@ export type PortfolioChatEvalSummary = {
   totalCases: number;
   passCount: number;
   failureCount: number;
-  expectedRefusalCount: number;
-  correctRefusalCount: number;
-  refusalAccuracy: number | null;
   averageLatencyMs: number;
   p95LatencyMs: number;
   inputTokens: number;
@@ -92,13 +81,13 @@ type CitationCheck =
   | { ok: true; citedEvidenceIds: string[] }
   | { ok: false; failureCode: PortfolioChatEvalFailureCode };
 
-function validateCitedSegment(
+function validatePortfolioSegment(
   segment: string,
   evidenceIds: string[],
 ): CitationCheck {
   const labels = [...segment.matchAll(/\[E(\d+)\]/g)];
   if (labels.length === 0) {
-    return { ok: false, failureCode: "missing_citation" };
+    return { ok: true, citedEvidenceIds: [] };
   }
 
   const citedEvidenceIds: string[] = [];
@@ -127,14 +116,14 @@ function validateCitations(answer: string, evidenceIds: string[]): CitationCheck
   while (boundary) {
     const end = boundary.index + boundary[0].length;
     const segment = buffer.slice(0, end).trim();
-    const check = validateCitedSegment(segment, evidenceIds);
+    const check = validatePortfolioSegment(segment, evidenceIds);
     if (!check.ok) return check;
     citedEvidenceIds.push(...check.citedEvidenceIds);
     buffer = buffer.slice(end).trimStart();
     boundary = followedCitation.exec(buffer);
   }
 
-  const finalCheck = validateCitedSegment(buffer, evidenceIds);
+  const finalCheck = validatePortfolioSegment(buffer, evidenceIds);
   if (!finalCheck.ok) return finalCheck;
   citedEvidenceIds.push(...finalCheck.citedEvidenceIds);
 
@@ -163,10 +152,6 @@ function percentile95(values: number[]) {
 
 function summarize(results: PortfolioChatEvalResult[]): PortfolioChatEvalSummary {
   const passCount = results.filter(({ passed }) => passed).length;
-  const refusalResults = results.filter(({ expected }) => expected === "refusal");
-  const correctRefusalCount = refusalResults.filter(
-    ({ passed, outcome }) => passed && outcome === "refusal",
-  ).length;
   const latencies = results.map(({ latencyMs }) => latencyMs);
   const usage = results.flatMap((result) => (result.usage ? [result.usage] : []));
 
@@ -174,12 +159,6 @@ function summarize(results: PortfolioChatEvalResult[]): PortfolioChatEvalSummary
     totalCases: results.length,
     passCount,
     failureCount: results.length - passCount,
-    expectedRefusalCount: refusalResults.length,
-    correctRefusalCount,
-    refusalAccuracy:
-      refusalResults.length === 0
-        ? null
-        : correctRefusalCount / refusalResults.length,
     averageLatencyMs:
       latencies.length === 0
         ? 0
@@ -208,18 +187,14 @@ export async function runPortfolioChatEval(
     let output = "";
 
     try {
-      if (grounding.evidence.length === 0) {
-        output = INSUFFICIENT_EVIDENCE_MESSAGE;
-      } else {
-        const providerInput: PortfolioChatProviderInput = {
-          ...grounding,
-          onUsage(reportedUsage) {
-            if (validUsage(reportedUsage)) usage = { ...reportedUsage };
-          },
-        };
-        for await (const delta of configuration.provider.streamAnswer(providerInput)) {
-          output += delta;
-        }
+      const providerInput: PortfolioChatProviderInput = {
+        ...grounding,
+        onUsage(reportedUsage) {
+          if (validUsage(reportedUsage)) usage = { ...reportedUsage };
+        },
+      };
+      for await (const delta of configuration.provider.streamAnswer(providerInput)) {
+        output += delta;
       }
     } catch {
       results.push({
@@ -237,22 +212,6 @@ export async function runPortfolioChatEval(
     }
 
     const latencyMs = Math.max(0, now() - startedAt);
-    if (output.trim() === INSUFFICIENT_EVIDENCE_MESSAGE) {
-      const passed = evalCase.expected === "refusal";
-      results.push({
-        caseId: evalCase.id,
-        passed,
-        expected: evalCase.expected,
-        outcome: "refusal",
-        evidenceIds,
-        citedEvidenceIds: [],
-        latencyMs,
-        ...(!passed ? { failureCode: "unexpected_refusal" as const } : {}),
-        ...(usage ? { usage } : {}),
-      });
-      continue;
-    }
-
     const citationCheck = validateCitations(output, evidenceIds);
     if (!citationCheck.ok) {
       results.push({
@@ -273,17 +232,12 @@ export async function runPortfolioChatEval(
       (id) => !citationCheck.citedEvidenceIds.includes(id),
     );
     const normalizedOutput = output.toLocaleLowerCase();
-    const incorrectAnswer =
-      evalCase.expected === "answer" &&
-      evalCase.expectedAnswerIncludes.some(
-        (expectedText) =>
-          !expectedText.trim() ||
-          !normalizedOutput.includes(expectedText.trim().toLocaleLowerCase()),
-      );
-    const passed =
-      evalCase.expected === "answer" &&
-      !missingRequiredEvidence &&
-      !incorrectAnswer;
+    const incorrectAnswer = evalCase.expectedAnswerIncludes.some(
+      (expectedText) =>
+        !expectedText.trim() ||
+        !normalizedOutput.includes(expectedText.trim().toLocaleLowerCase()),
+    );
+    const passed = !missingRequiredEvidence && !incorrectAnswer;
     results.push({
       caseId: evalCase.id,
       passed,
@@ -299,9 +253,7 @@ export async function runPortfolioChatEval(
         ? {
             failureCode: missingRequiredEvidence
               ? ("missing_required_evidence" as const)
-              : incorrectAnswer
-                ? ("incorrect_answer" as const)
-              : ("unexpected_answer" as const),
+              : ("incorrect_answer" as const),
           }
         : {}),
       ...(usage ? { usage } : {}),

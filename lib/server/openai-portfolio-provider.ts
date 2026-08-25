@@ -16,7 +16,6 @@ import type {
   PortfolioChatProviderFailureKind,
   PortfolioChatProviderInput,
 } from "./portfolio-chat-provider";
-import { INSUFFICIENT_EVIDENCE_MESSAGE } from "./portfolio-chat-provider";
 import type { PortfolioChatTurnMode } from "../portfolio-chat-protocol";
 
 type OpenAIPortfolioProviderOptions = {
@@ -52,13 +51,13 @@ function groundedInput({
 const portfolioAgentInstructions =
   `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode: portfolio, social, or general.
 
-Portfolio mode covers questions about Bradley, his work, projects, decisions, or a contextual follow-up to those topics. Answer from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence; do not add portfolio facts from memory or inference. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources. Put each supported sentence in its own sentences item and attach the exact supporting id values from the supplied evidence to that item's evidenceIds. Do not write citation labels in the text. If the evidence does not support the question, set insufficientEvidence to true and return no sentences.
+Portfolio mode covers questions about Bradley, his work, projects, decisions, or a contextual follow-up to those topics. Answer conversationally from the complete published portfolio context supplied with every request. Use only the supplied portfolio evidence for factual claims about Bradley; do not add portfolio facts from memory. Supporting-material status is editorial maturity metadata, not a restriction on using the published text. You may synthesize across sources and make ordinary conversational inferences. If a requested detail is not in the portfolio, say that naturally and keep answering as helpfully as you can. Never replace the answer with a stock evidence refusal. Put each sentence in its own sentences item. Attach the exact supporting id values to factual portfolio claims; use an empty evidenceIds array for conversational language, clearly labeled uncertainty, or an honest statement that you do not know. Do not write citation labels in the text.
 
 Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal small talk. Respond naturally. Social chat is unlimited: never redirect it toward Bradley and never count it as a general off-topic question. Never add a portfolio nudge; the application owns that behavior. Use an empty evidenceIds array for every social sentence.
 
 General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in the portfolio evidence or project titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears. Use an empty evidenceIds array for every general sentence.
 
-Set insufficientEvidence to false for social and general turns. Answer directly and use only as much detail as the visitor's question needs.`;
+Always answer directly and use only as much detail as the visitor's question needs.`;
 
 function portfolioAgentOutput(
   evidence: PortfolioChatProviderInput["evidence"],
@@ -66,7 +65,6 @@ function portfolioAgentOutput(
   const evidenceIds = evidence.map(({ id }) => id) as [string, ...string[]];
   return z.object({
     mode: z.enum(["portfolio", "social", "general"]),
-    insufficientEvidence: z.boolean(),
     sentences: z.array(
       z.object({
         text: z.string(),
@@ -78,14 +76,12 @@ function portfolioAgentOutput(
 
 type PortfolioAgentOutput = {
   mode: "portfolio" | "social" | "general";
-  insufficientEvidence: boolean;
   sentences: Array<{ text: string; evidenceIds: string[] }>;
 };
 
 type InvalidEvidenceFailureKind =
   | "citation_label"
   | "invalid_evidence_output"
-  | "omitted_evidence"
   | "unknown_evidence";
 
 class InvalidEvidenceOutputError extends Error {
@@ -116,16 +112,6 @@ function renderAgentOutput(
   output: PortfolioAgentOutput,
   evidence: PortfolioChatProviderInput["evidence"],
 ) {
-  if (output.insufficientEvidence) {
-    if (output.mode !== "portfolio" || output.sentences.length > 0) {
-      throw new InvalidEvidenceOutputError(
-        "invalid_evidence_output",
-        "OpenAI agent returned an invalid evidence refusal.",
-      );
-    }
-    return INSUFFICIENT_EVIDENCE_MESSAGE;
-  }
-
   const evidenceNumbers = new Map(
     evidence.map(({ id }, index) => [id, index + 1]),
   );
@@ -141,12 +127,6 @@ function renderAgentOutput(
       throw new InvalidEvidenceOutputError(
         "citation_label",
         "OpenAI agent authored a citation label.",
-      );
-    }
-    if (sentence === INSUFFICIENT_EVIDENCE_MESSAGE) {
-      throw new InvalidEvidenceOutputError(
-        "invalid_evidence_output",
-        "OpenAI agent returned an inconsistent evidence refusal.",
       );
     }
     if (output.mode !== "portfolio") {
@@ -174,10 +154,7 @@ function renderAgentOutput(
       ),
     ];
     if (citationNumbers.length === 0) {
-      throw new InvalidEvidenceOutputError(
-        "omitted_evidence",
-        "OpenAI agent omitted portfolio evidence.",
-      );
+      return sentence;
     }
     const citations = citationNumbers
       .map((number) => `[E${number}]`)

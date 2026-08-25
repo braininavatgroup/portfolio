@@ -18,7 +18,7 @@ The avatar will be a second, small transparent canvas rather than a child of the
 - One asset configuration contains the renderer kind, model URL, scale, forward axis, ground offset, animation map, animation fallbacks, playback rate, flat-shading flag, texture filtering, and target frame rate. No component owns an animation name or orientation correction.
 - The adapter supports the procedural rollback, the current temporary GLB, and a future Bradley GLB. Every asset uses the same controller snapshot and animation vocabulary, so replacing the model does not change chat, target, or sequence code.
 - Text remains the primary response. Chat lifecycle events can drive safe default avatar states. An optional `effects` stream event carries validated site actions and avatar commands. Invalid effects collapse to an empty effect set and never invalidate an answer delta.
-- The live provider will not be changed to emit free-form structured actions in this phase. The client and stream protocol accept the safe contract, tests and the development harness exercise it, and normal chat drives thinking, talking, error, and idle states now. This avoids mixing structured control data into the current sentence-level citation validator.
+- The live provider will not be changed to emit free-form structured actions in this phase. The client and stream protocol accept the safe contract, tests and the development harness exercise it, and normal chat drives thinking, talking, error, and idle states now. This keeps structured control data separate from conversational answer output.
 - The development harness is available only in development and only when `avatarDebug=1` is present. Production retains only the small hide/show control.
 
 ## Architecture
@@ -118,7 +118,7 @@ The production GLB should contain a Mixamo-compatible humanoid rig when possible
 - Pointing is a mirrored authored pose, not inverse kinematics.
 - Movement follows a horizontal screen baseline rather than page physics.
 - The model smoke test parses the production GLB and verifies its header, skin, configured clip names, and vertical bounds. The development harness exercises the same aliases against the running mixer.
-- The current OpenAI provider emits grounded text only. Safe effect events can arrive through the protocol and fixtures, but model-selected effects need a later provider contract that preserves citation streaming.
+- The current OpenAI provider emits conversational text with optional portfolio citations. Safe effect events can arrive through the protocol and fixtures, but model-selected effects need a later provider contract that preserves answer streaming.
 - SwiftShader verification does not prove physical GPU fidelity or motion feel.
 
 ## Bradley swap checklist

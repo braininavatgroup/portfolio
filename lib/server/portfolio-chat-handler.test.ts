@@ -109,7 +109,36 @@ describe("portfolio chat route handler", () => {
     ]);
   });
 
-  it("does not let a model-selected general mode bypass portfolio citations", async () => {
+  // Protects against turning an uncited conversational answer into an error.
+  // Owner: portfolio chat stream handler. Retire if portfolio output bypasses it.
+  it("streams an uncited conversational answer for an unknown Bradley detail", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onMode }) {
+        onMode?.("portfolio");
+        yield "I don't know Bradley's favorite soup, but now I want to ask him.";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What is Bradley's favorite soup?")),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({ type: "evidence" }),
+      { type: "turn_mode", mode: "portfolio" },
+      {
+        type: "answer_delta",
+        delta: "I don't know Bradley's favorite soup, but now I want to ask him.",
+      },
+      { type: "done" },
+    ]);
+  });
+
+  it("keeps a Bradley question in portfolio mode without suppressing its answer", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onMode }) {
         onMode?.("general");
@@ -130,11 +159,9 @@ describe("portfolio chat route handler", () => {
     );
 
     expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
-    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
     expect(events).toContainEqual({
-      type: "error",
-      code: "provider_unavailable",
-      message: "The answer service is temporarily unavailable.",
+      type: "answer_delta",
+      delta: "It automates outreach.",
     });
   });
 
@@ -163,7 +190,10 @@ describe("portfolio chat route handler", () => {
     );
 
     expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
-    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+    expect(events).toContainEqual({
+      type: "answer_delta",
+      delta: "It worked well.",
+    });
   });
 
   it("keeps a next-step follow-up to a cited answer in portfolio mode", async () => {
@@ -191,7 +221,10 @@ describe("portfolio chat route handler", () => {
     );
 
     expect(events).toContainEqual({ type: "turn_mode", mode: "portfolio" });
-    expect(events.some((event) => event.type === "answer_delta")).toBe(false);
+    expect(events).toContainEqual({
+      type: "answer_delta",
+      delta: "The workflow expanded.",
+    });
   });
 
   it("does not invent portfolio context for a general pronoun question", async () => {
@@ -467,11 +500,12 @@ describe("portfolio chat route handler", () => {
     expect(getProvider).not.toHaveBeenCalled();
   });
 
-  it("lets the provider decide when complete portfolio context cannot answer", async () => {
+  it("streams the provider's conversational uncertainty as an answer", async () => {
     const provider: PortfolioChatProvider = {
-      async *streamAnswer({ evidence }) {
+      async *streamAnswer({ evidence, onMode }) {
         expect(evidence).toHaveLength(10);
-        yield "The portfolio does not publish enough evidence to answer that question.";
+        onMode?.("portfolio");
+        yield "I don't see any quantum-computing patents in Bradley's portfolio.";
       },
     };
     const getProvider = vi.fn(() => provider);
@@ -488,67 +522,14 @@ describe("portfolio chat route handler", () => {
 
     expect(events).toEqual([
       expect.objectContaining({ type: "evidence" }),
+      { type: "turn_mode", mode: "portfolio" },
       {
-        type: "notice",
-        code: "insufficient_evidence",
-        message:
-          "The portfolio does not publish enough evidence to answer that question.",
+        type: "answer_delta",
+        delta: "I don't see any quantum-computing patents in Bradley's portfolio.",
       },
       { type: "done" },
     ]);
     expect(getProvider).toHaveBeenCalledOnce();
-  });
-
-  it("maps a provider evidence-gap result to the evidence-gap notice", async () => {
-    const provider: PortfolioChatProvider = {
-      async *streamAnswer() {
-        yield "The portfolio does not publish enough evidence to answer that question.";
-      },
-    };
-    const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
-      getProvider: () => provider,
-    });
-
-    const events = await readEvents(
-      await handler(questionRequest("How does pitching work?")),
-    );
-
-    expect(events).toEqual([
-      expect.objectContaining({ type: "evidence" }),
-      {
-        type: "notice",
-        code: "insufficient_evidence",
-        message:
-          "The portfolio does not publish enough evidence to answer that question.",
-      },
-      { type: "done" },
-    ]);
-  });
-
-  it("maps an answer followed by an evidence-gap result to a clearing error", async () => {
-    const provider: PortfolioChatProvider = {
-      async *streamAnswer() {
-        yield "Published answer. [E1] ";
-        yield "The portfolio does not publish enough evidence to answer that question.";
-      },
-    };
-    const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
-      getProvider: () => provider,
-    });
-
-    const events = await readEvents(
-      await handler(questionRequest("Tell me about Bradley.")),
-    );
-
-    expect(events.some((event) => event.type === "answer_delta")).toBe(true);
-    expect(events.some((event) => event.type === "notice")).toBe(false);
-    expect(events).toContainEqual({
-      type: "error",
-      code: "provider_unavailable",
-      message: "The answer service is temporarily unavailable.",
-    });
   });
 
   it("redacts provider failures from an in-progress stream", async () => {
@@ -617,9 +598,9 @@ describe("portfolio chat route handler", () => {
     );
   });
 
-  // Owner: portfolio chat attribution enforcement. Retire if the provider
-  // response is validated in full before any answer delta reaches the client.
-  it("keeps a valid cited prefix when later attribution is malformed", async () => {
+  // Owner: conversational portfolio output. Retire if the provider stops
+  // combining cited portfolio facts with uncited conversational language.
+  it("streams cited facts and uncited conversational language together", async () => {
     const record = vi.fn();
     const provider: PortfolioChatProvider = {
       async *streamAnswer() {
@@ -646,15 +627,15 @@ describe("portfolio chat route handler", () => {
         type: "answer_delta",
         delta: "A complete grounded answer. [E1] ",
       },
+      { type: "answer_delta", delta: "Uncited claim." },
       { type: "done" },
     ]);
     expect(record).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: "partial_answer" }),
+      expect.objectContaining({ outcome: "answered" }),
     );
   });
 
   it.each([
-    ["This claim has no citation.", "missing citations"],
     ["This claim cites missing evidence. [E99]", "unknown citations"],
     ["This claim uses a noncanonical citation. [E01]", "zero-padded citations"],
     ["First claim. Second claim. [E1]", "uncited sentences"],
@@ -897,7 +878,7 @@ describe("portfolio chat route handler", () => {
     );
   });
 
-  it("keeps a valid cited prefix when malformed attribution follows a timeout", async () => {
+  it("keeps a conversational continuation produced after a timeout signal", async () => {
     const record = vi.fn();
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ signal }) {
@@ -929,6 +910,7 @@ describe("portfolio chat route handler", () => {
         type: "answer_delta",
         delta: "A complete grounded answer. [E1] ",
       },
+      { type: "answer_delta", delta: "Next uncited claim." },
       { type: "done" },
     ]);
     expect(record).toHaveBeenCalledWith(

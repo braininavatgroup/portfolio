@@ -23,7 +23,6 @@ export type PortfolioChatProviderFailureKind =
   | "model_refusal"
   | "provider_error"
   | "provider_timeout"
-  | "omitted_evidence"
   | "unknown_evidence";
 
 export type PortfolioChatProviderInput = {

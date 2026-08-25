@@ -17,7 +17,7 @@ The behavior path is:
 
 Unknown keys and values are removed by `lib/avatar/validation.ts`. Model output never supplies JavaScript, selectors, URLs, CSS, bones, transforms, or arbitrary animation names. Invalid effects do not interrupt answer text.
 
-The chat lifecycle uses `thinking` when a turn starts, `tool_use` when evidence arrives, `talking` after the first text delta, `confused` for a notice, `error` for an error, and `idle` on completion. The live OpenAI provider currently emits grounded text, evidence, notices, and errors only. The protocol and client support safe `effects`, but model-selected effects require a later provider contract that preserves the citation stream.
+The chat lifecycle uses `thinking` when a turn starts, `tool_use` when evidence arrives, `talking` after the first text delta, `confused` for a notice, `error` for an error, and `idle` on completion. The live OpenAI provider currently emits conversational text with optional portfolio citations, evidence, notices, and errors only. The protocol and client support safe `effects`, but model-selected effects require a later provider contract that preserves answer streaming.
 
 ## Allowed behavior vocabulary
 
