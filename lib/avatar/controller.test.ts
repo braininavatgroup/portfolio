@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AvatarController } from "./controller";
+import type { AvatarStagePoint } from "./stage";
 import { AvatarTargetRegistry } from "./target-registry";
 
 function rect(left: number, top: number, width: number, height: number): DOMRect {
@@ -94,12 +95,13 @@ describe("avatar controller", () => {
     const controller = new AvatarController(registry);
 
     expect(controller.getSnapshot().position).toSatisfy(
-      ({ x, y }) => Number.isFinite(x) && Number.isFinite(y),
+      ({ x, y }: AvatarStagePoint) => Number.isFinite(x) && Number.isFinite(y),
     );
 
     void controller.execute({ action: "walkTo", target: "hero" });
     expect(controller.getSnapshot().motion?.points).toSatisfy(
-      (points) => points.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y)),
+      (points: readonly AvatarStagePoint[]) =>
+        points.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y)),
     );
     controller.stopMotion();
   });

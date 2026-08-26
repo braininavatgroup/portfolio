@@ -129,13 +129,13 @@ export class AvatarDirector {
   perform(effects: PortfolioResponseEffects) {
     this.stopAmbient();
     const sequence = this.#pairSwimmingClipWithLap(effects.avatarSequence);
-    const commands: AvatarCommand[] = effects.avatarTone
-      ? sequence.flatMap((command) =>
-          command.action === "play"
-            ? [command, { action: "setTone" as const, tone: effects.avatarTone! }]
-            : [command],
-        )
-      : sequence;
+    const commands: AvatarCommand[] = [];
+    for (const command of sequence) {
+      commands.push(command);
+      if (command.action === "play" && effects.avatarTone) {
+        commands.push({ action: "setTone", tone: effects.avatarTone });
+      }
+    }
     return this.#run(commands);
   }
 

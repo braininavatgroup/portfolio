@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, type DefaultGLProps } from "@react-three/fiber";
+import { Canvas, type CanvasProps } from "@react-three/fiber";
 import {
   Component,
   lazy,
@@ -42,13 +42,18 @@ type AvatarOverlayProps = {
   createRenderer?: AvatarRendererFactory;
 };
 
-type AvatarRendererFactory = (props: DefaultGLProps) => THREE.WebGLRenderer;
+type CanvasRendererFactory = Extract<
+  NonNullable<CanvasProps["gl"]>,
+  (...args: never[]) => unknown
+>;
+type AvatarRendererProps = Parameters<CanvasRendererFactory>[0];
+type AvatarRendererFactory = (props: AvatarRendererProps) => THREE.WebGLRenderer;
 
 const createDefaultRenderer: AvatarRendererFactory = (props) =>
   new THREE.WebGLRenderer({ ...props, alpha: true, antialias: true });
 
 async function initializeRenderer(
-  props: DefaultGLProps,
+  props: AvatarRendererProps,
   createRenderer: AvatarRendererFactory,
   onFailure: () => void,
 ) {
@@ -120,7 +125,7 @@ export function AvatarOverlay({
   );
   const documentVisible = useDocumentVisible();
   const createManagedRenderer = useCallback(
-    (props: DefaultGLProps) =>
+    (props: AvatarRendererProps) =>
       initializeRenderer(props, createRenderer, () => controller.markFailed()),
     [controller, createRenderer],
   );

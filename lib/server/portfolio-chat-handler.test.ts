@@ -84,7 +84,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -130,7 +129,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -679,7 +677,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 

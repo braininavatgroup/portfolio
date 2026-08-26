@@ -317,7 +317,6 @@ describe("AvatarDirector", () => {
       siteActions: [],
       avatarSequence: [{ action: "play", animation: "swim_forward" }],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
 
@@ -339,7 +338,6 @@ describe("AvatarDirector", () => {
       siteActions: [],
       avatarSequence: [{ action: "play", animation: "shrug" }],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
     await vi.runAllTimersAsync();
@@ -360,7 +358,6 @@ describe("AvatarDirector", () => {
       siteActions: [],
       avatarSequence: [{ action: "play" as const, animation: "shrug" as const }],
       avatarIntent: "ordinary" as const,
-      avatarTone: null,
       issues: [],
     };
 
@@ -452,7 +449,6 @@ describe("AvatarDirector", () => {
       siteActions: [],
       avatarSequence: [{ action: "play", animation: "swimming_to_edge" }],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
 
@@ -473,7 +469,6 @@ describe("AvatarDirector", () => {
         { action: "swimTo", target: "portfolio:chat" },
       ],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
     await director.perform({
@@ -483,7 +478,6 @@ describe("AvatarDirector", () => {
         { action: "swimRoute", route: "lap" },
       ],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
     await director.perform({
@@ -493,7 +487,6 @@ describe("AvatarDirector", () => {
         { action: "wait", durationMs: 100 },
       ],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
 
@@ -521,7 +514,6 @@ describe("AvatarDirector", () => {
       siteActions: [],
       avatarSequence: [{ action: "play", animation: "swim_forward" }],
       avatarIntent: "ordinary",
-      avatarTone: null,
       issues: [],
     });
 

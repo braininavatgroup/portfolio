@@ -33,9 +33,9 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         avatarIntegration={{
-          onInputFocus: () => attention.push("focus"),
-          onInputActivity: () => attention.push("activity"),
-          onInputBlur: () => attention.push("blur"),
+          onInputFocus: () => { attention.push("focus"); },
+          onInputActivity: () => { attention.push("activity"); },
+          onInputBlur: () => { attention.push("blur"); },
           onTurnStart: () => {},
           onEvidence: () => {},
           onFirstText: () => {},
