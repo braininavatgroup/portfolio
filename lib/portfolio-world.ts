@@ -359,7 +359,6 @@ const storyMembershipLinks: readonly PortfolioWorldLink[] = portfolioStories.fla
 );
 
 export function getVisibleWorldLinks({
-  activeStoryId,
   selectedId,
 }: {
   activeStoryId: string | null;
@@ -374,17 +373,16 @@ export function getVisibleWorldLinks({
     links.push(...storyRootLinks.filter(({ storyId }) => storyId === selected.storyId));
   }
 
-  if (activeStoryId) {
-    links.push(...storyMembershipLinks.filter(({ storyId }) => storyId === activeStoryId));
-    return links;
-  }
-
+  // The two concise editorial constellations remain part of the authored
+  // field. Focus changes their emphasis, not their existence. Finding is
+  // intentionally read through the factual field rather than thirteen
+  // redundant spokes.
   links.push(
     ...storyMembershipLinks.filter(
       ({ storyId }) => storyId !== "finding-myself-in-software",
     ),
   );
-  if (selectedId) {
+  if (selectedId && selected?.family !== "story") {
     const finding = storyMembershipLinks.find(
       ({ from, to, storyId }) =>
         storyId === "finding-myself-in-software" &&

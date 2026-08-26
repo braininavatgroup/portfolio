@@ -157,7 +157,7 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
           <p>Press 1 or 2 · Esc exits</p>
         )}
         <button className="avatar-toybox-exit" onClick={() => session.close()} type="button">
-          Return to portfolio
+          Close game
         </button>
       </header>
 
@@ -187,7 +187,7 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
         <div className="avatar-toybox-field">
           {session.status === "result" ? (
             <button
-              aria-label="Return to portfolio from playfield"
+              aria-label="Close game from playfield"
               className="avatar-toybox-result-dismiss"
               onClick={() => session.close()}
               type="button"
@@ -219,7 +219,7 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
           {session.status === "result" ? (
             <div className="avatar-toybox-result">
               <button
-                aria-label="Close completion and return to portfolio"
+                aria-label="Close completed game"
                 className="avatar-toybox-result-close"
                 data-avatar-toybox-initial-focus
                 onClick={() => session.close()}

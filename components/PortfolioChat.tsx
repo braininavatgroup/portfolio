@@ -89,6 +89,7 @@ export function PortfolioChat({
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
   const [open, setOpen] = useState(initiallyOpen);
+  const [transcript, setTranscript] = useState<PortfolioChatMessage[]>([]);
   const [panelPosition, setPanelPosition] = useState<{
     x: number;
     y: number;
@@ -105,6 +106,7 @@ export function PortfolioChat({
   const requestController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const threadRef = useRef<HTMLDivElement | null>(null);
   const panelDrag = useRef<{
     pointerId: number;
     offsetX: number;
@@ -169,6 +171,11 @@ export function PortfolioChat({
       requestController.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, [answer, lastQuestion, message, pending, transcript]);
 
   useEffect(() => {
     const clampPanel = (x: number, y: number, width: number, height: number) => {
@@ -331,7 +338,10 @@ export function PortfolioChat({
           }
           if (event.type === "notice" || event.type === "error") {
             if (event.type === "error") streamFailed = true;
-            if (event.type === "error") setAnswer("");
+            if (event.type === "error") {
+              setAnswer("");
+              setInput((current) => current || question);
+            }
             setMessage(event.message);
             scheduleAvatarWork(() =>
               event.type === "notice"
@@ -349,11 +359,13 @@ export function PortfolioChat({
         streamedAnswer.trim() &&
         requestController.current === controller
       ) {
-        conversation.current = appendPortfolioChatTurn(
+        const nextConversation = appendPortfolioChatTurn(
           conversation.current,
           question,
           streamedAnswer,
         );
+        conversation.current = nextConversation;
+        setTranscript(nextConversation);
         if (turnMode === "general") {
           const isThirdGeneralTurn =
             visitStateAtStart.generalTurns >= 2 &&
@@ -368,6 +380,7 @@ export function PortfolioChat({
     } catch (error) {
       if (controller.signal.aborted) return;
       setAnswer("");
+      setInput((current) => current || question);
       scheduleAvatarWork(() => avatarIntegration?.onError());
       setMessage(
         error instanceof PortfolioChatClientError
@@ -399,6 +412,7 @@ export function PortfolioChat({
     const question = input.trim();
     if (!question) return;
     setLastQuestion(question);
+    setInput("");
     setPoseForQuestion(question);
     void runQuestion(question);
   }
@@ -407,6 +421,15 @@ export function PortfolioChat({
     const label = index + 1;
     return answer.includes(`[E${label}]`) ? [{ item, label }] : [];
   });
+  const history =
+    lastQuestion &&
+    answer &&
+    transcript.at(-2)?.role === "user" &&
+    transcript.at(-2)?.content === lastQuestion &&
+    transcript.at(-1)?.role === "assistant" &&
+    transcript.at(-1)?.content === answer
+      ? transcript.slice(0, -2)
+      : transcript;
 
   function beginPanelDrag(event: ReactPointerEvent<HTMLElement>) {
     if (
@@ -471,12 +494,6 @@ export function PortfolioChat({
       data-open={open ? "true" : "false"}
       style={dockStyle}
     >
-      <div aria-hidden="true" className="portfolio-chat-avatar">
-        <span className="portfolio-chat-avatar-body" />
-        <span className="portfolio-chat-avatar-head">
-          <i />
-        </span>
-      </div>
       <div className="portfolio-chat-anchor">
         <section
           aria-label="Portfolio assistant"
@@ -488,7 +505,14 @@ export function PortfolioChat({
             <b>Ask the portfolio</b>
             <button aria-label="Minimize portfolio assistant" onClick={minimize} type="button">×</button>
           </header>
-          <div aria-live="polite" className="portfolio-chat-thread">
+          <div aria-live="polite" className="portfolio-chat-thread" ref={threadRef}>
+            {history.map((item, index) =>
+              item.role === "user" ? (
+                <div className="chat-question" key={`history-${index}`}><p>{item.content}</p></div>
+              ) : (
+                <p className="chat-answer" key={`history-${index}`}>{item.content}</p>
+              ),
+            )}
             {lastQuestion ? <div className="chat-question"><p>{lastQuestion}</p></div> : null}
             {answer ? (
               <section aria-labelledby="chat-answer-heading">

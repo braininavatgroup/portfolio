@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
@@ -97,15 +97,13 @@ describe("AvatarOverlay", () => {
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
   });
 
-  it("keeps the public recovery toggle outside normal debug ownership", () => {
+  it("renders no public avatar visibility or recovery control", () => {
     const controller = new AvatarController(new AvatarTargetRegistry());
-    const onEnabledChange = vi.fn();
-    render(<AvatarOverlay controller={controller} enabled onEnabledChange={onEnabledChange} />);
+    render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide assistant" }));
-
-    expect(onEnabledChange).toHaveBeenCalledWith(false);
-    expect(screen.getByRole("button", { name: "Show assistant" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
   });
 
   it("leaves toggle visibility to the Director console in development debug mode", async () => {
@@ -125,18 +123,16 @@ describe("AvatarOverlay", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Director console" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    expect(document.querySelector(".avatar-overlay-toggle")).toBeNull();
   });
 
-  it("removes only a failed renderer while retaining public recovery", () => {
+  it("removes a failed renderer without adding a public recovery pill", () => {
     const controller = new AvatarController(new AvatarTargetRegistry());
     controller.markFailed();
     render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
 
     expect(screen.queryByTestId("avatar-canvas")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Reset assistant" }));
-    expect(controller.getSnapshot().failed).toBe(false);
-    expect(screen.getByTestId("avatar-canvas")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
   });
 
   it("turns renderer construction failure into recoverable failed state", async () => {
@@ -161,7 +157,7 @@ describe("AvatarOverlay", () => {
 
     await waitFor(() => expect(screen.queryByTestId("avatar-canvas")).toBeNull());
     expect(controller.getSnapshot().failed).toBe(true);
-    expect(screen.getByRole("button", { name: "Reset assistant" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
   });
 
   it("stops directed travel and pauses the renderer when the document is hidden", () => {

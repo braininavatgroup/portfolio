@@ -49,6 +49,25 @@ describe("avatar controller", () => {
     expect(controller.getSnapshot()).not.toHaveProperty("anchorX");
   });
 
+  it("homes inside the portfolio world instead of entering the reader", () => {
+    const registry = new AvatarTargetRegistry();
+    registry.registerStage(elementAt(0, 0, 620, 800));
+
+    const controller = new AvatarController(registry);
+
+    expect(controller.getSnapshot().position).toEqual({ x: 540, y: 776 });
+  });
+
+  it("re-homes when the live portfolio world mounts after the controller", () => {
+    const registry = new AvatarTargetRegistry();
+    const controller = new AvatarController(registry);
+    registry.registerStage(elementAt(0, 0, 620, 800));
+
+    controller.refreshStage(true);
+
+    expect(controller.getSnapshot().position).toEqual({ x: 540, y: 776 });
+  });
+
   it("uses an expanded Director console as the grounded floor obstacle", () => {
     // Catches walking behind the live console instead of standing just above it.
     const registry = new AvatarTargetRegistry();

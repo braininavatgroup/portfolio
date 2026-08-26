@@ -35,13 +35,10 @@ No key is copied into a workspace, `.env` file, generated BStack release, or
 command argument. An explicit `OPENAI_API_KEY` process variable still overrides
 Keychain for CI and non-macOS environments.
 
-Open `/?avatarLab=1` for the isolated avatar programming lab. Its Director
-console provides scene recipes; a live target map with walk, swim, look, point,
-present, and spotlight actions; movement controls; advanced diagnostics; and
-renderer-failure recovery. The stage uses a CSS-pixel foot/path model, keeps
-grounded travel above the floor, and routes swim paths around registered targets,
-the header, and the expanded console. Reduced motion settles travel immediately
-while preserving target, gaze, pointing, and page actions.
+In development, press `Shift+A` to toggle the Avatar Director over the live
+portfolio canvas. Press `Shift+G` to open game mode over that same canvas.
+Neither mode adds a resting UI control or navigates to an isolated page, and
+both preserve the current map, reader, chat, and history state.
 
 ## Routes
 

@@ -1,4 +1,4 @@
-export const TOYBOX_MIN_WIDTH = 900;
+export const TOYBOX_MIN_WIDTH = 720;
 export const TOYBOX_MIN_HEIGHT = 600;
 export const BRAIN_FOOD_DURATION_SECONDS = 20;
 export const TOYBOX_RESULT_DURATION_MS = 5_000;

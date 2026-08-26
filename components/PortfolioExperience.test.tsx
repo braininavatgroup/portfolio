@@ -25,8 +25,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       debug,
       development,
       director,
-      enabled,
-      onEnabledChange,
       onExpandedPanelChange,
       registry,
       runner,
@@ -74,12 +72,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
           <output data-testid="avatar-command-log">
             {commands.current.join(",")}
           </output>
-          <button
-            onClick={() => onEnabledChange(!enabled)}
-            type="button"
-          >
-            {enabled ? "Hide assistant" : "Show assistant"}
-          </button>
         </section>
       );
     },
@@ -272,11 +264,36 @@ describe("spatial self-portrait", () => {
       screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: "Product Dubs" }));
+    expect(window.location.hash).toBe("#story/making-work-playable");
+    expect(
+      screen.getByRole("complementary", { name: "Making work playable story" }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Story Making work playable" }),
+    );
+    expect(window.location.hash).toBe("");
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+
     fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
     expect(window.location.hash).toBe("");
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
+  });
+
+  it("does not add duplicate history when reset is already at overview", async () => {
+    await renderExperience("graph");
+    const push = vi.spyOn(window.history, "pushState");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("restores a direct story and node state from browser history", async () => {
@@ -300,14 +317,21 @@ describe("spatial self-portrait", () => {
     );
   });
 
-  it("offers the Avatar Director from the normal development portfolio", async () => {
-    await renderExperience("body");
+  it("opens the Avatar Director over the canvas with Shift+A and exposes no mode buttons", async () => {
+    await renderExperience("graph");
+    const before = window.location.href;
 
-    const directorLink = screen.getByRole("link", { name: "Avatar Director" });
-    expect(directorLink.getAttribute("href")).toBe("/?avatarLab=1");
+    expect(screen.queryByRole("button", { name: "Avatar Director" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Game mode" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
+
+    expect(window.location.href).toBe(before);
+    expect(document.querySelector(".portfolio-world")).toBeTruthy();
+    expect(await screen.findByLabelText("Avatar Director console")).toBeTruthy();
   });
 
-  it("keeps agent chat in the isolated development avatar lab", async () => {
+  it("keeps agent chat and the live canvas mounted while Director is open", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -320,35 +344,18 @@ describe("spatial self-portrait", () => {
       ),
     );
     mockMatchMedia();
-    const { container } = render(
-      <PortfolioExperience avatarLab initialPhase="graph" />,
-    );
+    const { container } = render(<PortfolioExperience initialPhase="graph" />);
     await act(async () => {});
 
-    expect(
-      screen.getByRole("main", { name: "Avatar lab" }).className,
-    ).toContain("avatar-lab");
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
     expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
     expect(await screen.findByLabelText("Avatar Director console")).toBeTruthy();
-    expect(screen.queryByText("Avatar developer controls")).toBeNull();
-    expect(container.querySelector(".portfolio-header")).toBeNull();
-    expect(container.querySelector(".scene-shell")).toBeNull();
+    expect(container.querySelector(".portfolio-world")).toBeTruthy();
+    expect(container.querySelector(".portfolio-reader")).toBeTruthy();
     expect(container.querySelector(".portfolio-chat")).toBeTruthy();
-    expect(
-      screen.getByRole("region", { name: "Avatar stage targets" }),
-    ).toBeTruthy();
     expect(
       screen.getByLabelText("Ask a question about the portfolio"),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Back to portfolio" }).getAttribute("href"),
-    ).toBe("/");
-    expect(screen.queryByTestId("scene-canvas")).toBeNull();
-    expect(
-      screen.queryByText(
-        "I find where judgment matters, then build the system around it.",
-      ),
-    ).toBeNull();
 
     await askExperience("Show me a wave");
     await waitFor(() =>
@@ -436,13 +443,14 @@ describe("spatial self-portrait", () => {
   it("renders the locked mark grammar at one optical scale", async () => {
     await renderExperience();
 
-    expect(document.querySelectorAll(".world-glyph-brain")).toHaveLength(1);
-    expect(document.querySelectorAll(".world-glyph-story")).toHaveLength(3);
-    expect(document.querySelectorAll(".world-glyph-operation")).toHaveLength(3);
-    expect(document.querySelectorAll(".world-glyph-component")).toHaveLength(3);
-    expect(document.querySelectorAll(".world-glyph-personal")).toHaveLength(1);
-    expect(document.querySelectorAll(".world-glyph-engagement")).toHaveLength(2);
-    expect(document.querySelectorAll(".world-glyph-product")).toHaveLength(4);
+    expect(document.querySelector(".portfolio-world canvas")).toBeTruthy();
+    expect(document.querySelectorAll('[data-family="identity"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-family="story"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="operation"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="component"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="personal"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-family="engagement"]')).toHaveLength(2);
+    expect(document.querySelectorAll('[data-family="product"]')).toHaveLength(4);
   });
 
   it("opens a project record in the reader and restores the index", async () => {
@@ -752,28 +760,14 @@ describe("spatial self-portrait", () => {
     ).toBe(false);
   });
 
-  it("persists hiding without removing chat or portfolio navigation", async () => {
-    // Catches the optional overlay becoming the only access path or forgetting the user's hide choice.
-    await renderExperience();
+  it("keeps the resting composition free of avatar and mode control pills", async () => {
+    await renderExperience("graph");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
-
-    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe(
-      "false",
-    );
-    expect(
-      screen.getByLabelText("Ask a question about the portfolio"),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Bradley Berkman" })).toBeTruthy();
-
-    cleanup();
-    await renderExperience();
-    expect(
-      await screen.findByRole("button", { name: "Show assistant" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByLabelText("Ask a question about the portfolio"),
-    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Avatar Director" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Game mode" })).toBeNull();
+    expect(screen.getByLabelText("Ask a question about the portfolio")).toBeTruthy();
   });
 
   it("registers the visible header as a stage obstacle without exposing it as a target", async () => {
@@ -814,26 +808,12 @@ describe("spatial self-portrait", () => {
     );
   });
 
-  it("stops ownership before persisting a hidden avatar preference", async () => {
-    await renderExperience();
-    await screen.findByLabelText("Test avatar overlay");
-    const director = Reflect.get(
-      globalThis,
-      "__portfolioTestAvatarDirector",
-    ) as { stop: () => void };
-    const stop = vi.spyOn(director, "stop");
-
-    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
-
-    expect(stop).toHaveBeenCalled();
-    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe("false");
-  });
-
   it("unregisters stage elements and disposes the director exactly once on unmount", async () => {
     mockMatchMedia();
-    const rendered = render(<PortfolioExperience avatarLab initialPhase="graph" />);
+    const rendered = render(<PortfolioExperience initialPhase="graph" />);
     await act(async () => {});
     await screen.findByLabelText("Test avatar overlay");
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
     const registry = Reflect.get(
       globalThis,
       "__portfolioTestAvatarRegistry",

@@ -20,12 +20,12 @@ export function isInteractiveKeyboardTarget(target: EventTarget | null) {
   );
 }
 
-export function isExactToyboxShortcut(event: KeyboardEvent) {
+export function isExactShiftShortcut(event: KeyboardEvent, key: string) {
   return (
     !event.defaultPrevented &&
     !event.repeat &&
     !event.isComposing &&
-    event.key.toLowerCase() === "g" &&
+    event.key.toLowerCase() === key.toLowerCase() &&
     event.shiftKey &&
     !event.ctrlKey &&
     !event.altKey &&

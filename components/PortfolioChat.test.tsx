@@ -38,6 +38,7 @@ describe("portfolio chat", () => {
     expect(
       screen.getByRole("button", { name: "Open portfolio assistant" }),
     ).toBeTruthy();
+    expect(document.querySelector(".portfolio-chat-avatar")).toBeNull();
     expect(
       (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
     ).toBe(true);
@@ -605,6 +606,10 @@ describe("portfolio chat", () => {
       { role: "user", content: "Tell me about pitching." },
       { role: "assistant", content: "Tell me about pitching. answer. [E1]" },
     ]);
+    expect(screen.getByText("Tell me about pitching.")).toBeTruthy();
+    expect(screen.getByText("Tell me about pitching. answer. [E1]")).toBeTruthy();
+    expect(screen.getByText("What changed?")).toBeTruthy();
+    expect(screen.getByText("What changed? answer. [E1]")).toBeTruthy();
   });
 
   it("counts only completed general turns and marks the third-turn nudge once", async () => {

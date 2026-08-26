@@ -144,19 +144,7 @@ export function AvatarOverlay({
   }, [controller, director, documentVisible]);
 
   const isEnabled = enabled && snapshot.visible;
-  const toggle = () => {
-    if (snapshot.failed) {
-      controller.reset();
-      controller.setVisible(true);
-      onEnabledChange(true);
-      return;
-    }
-    const nextEnabled = !isEnabled;
-    controller.setVisible(nextEnabled);
-    onEnabledChange(nextEnabled);
-  };
   const renderAvatar = isEnabled && snapshot.visible && !snapshot.failed;
-  const directorOwnsVisibility = development && debug;
 
   return (
     <>
@@ -188,15 +176,6 @@ export function AvatarOverlay({
           </RendererBoundary>
         ) : null}
       </div>
-      {!directorOwnsVisibility ? <button
-        aria-label={snapshot.failed ? "Reset assistant" : isEnabled ? "Hide assistant" : "Show assistant"}
-        className="avatar-overlay-toggle pointer-events-auto"
-        onClick={toggle}
-        style={{ pointerEvents: "auto" }}
-        type="button"
-      >
-        {snapshot.failed ? "Reset assistant" : isEnabled ? "Hide assistant" : "Show assistant"}
-      </button> : null}
       {AvatarDirectorConsole && development && debug && director && runner && registry && siteActionExecutor ? (
         <Suspense fallback={null}>
           <AvatarDirectorConsole

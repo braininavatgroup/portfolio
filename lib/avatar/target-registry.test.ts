@@ -148,6 +148,18 @@ describe("avatar target registry", () => {
     });
   });
 
+  it("uses the live portfolio world edge as the avatar stage boundary", () => {
+    Object.assign(globalThis, { innerWidth: 1_200, innerHeight: 800 });
+    const registry = new AvatarTargetRegistry();
+    const world = elementAt(0, 0, 720, 800);
+
+    registry.registerStage(world);
+    expect(registry.resolveStageMap().viewport).toEqual({ width: 720, height: 800 });
+
+    registry.unregisterStage(world);
+    expect(registry.resolveStageMap().viewport).toEqual({ width: 1_200, height: 800 });
+  });
+
   it("only exposes the expanded Director console as an active floor obstacle", () => {
     const registry = new AvatarTargetRegistry();
     const consoleElement = elementAt(400, 420, 400, 180);

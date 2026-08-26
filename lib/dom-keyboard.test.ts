@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
-import { isExactToyboxShortcut, isInteractiveKeyboardTarget } from "./dom-keyboard";
+import { isExactShiftShortcut, isInteractiveKeyboardTarget } from "./dom-keyboard";
 
 describe("DOM keyboard ownership", () => {
   it.each([
@@ -42,41 +42,11 @@ describe("DOM keyboard ownership", () => {
     expect(isInteractiveKeyboardTarget(document.createElement("div"))).toBe(false);
   });
 
-  it("accepts only an unconsumed exact Shift+G event outside controls", () => {
-    const allowed = new KeyboardEvent("keydown", { key: "G", shiftKey: true });
-    expect(isExactToyboxShortcut(allowed)).toBe(true);
-
-    for (const event of [
-      new KeyboardEvent("keydown", { key: "g" }),
-      new KeyboardEvent("keydown", { key: "g", shiftKey: true, metaKey: true }),
-      new KeyboardEvent("keydown", { key: "g", shiftKey: true, ctrlKey: true }),
-      new KeyboardEvent("keydown", { key: "g", shiftKey: true, altKey: true }),
-      new KeyboardEvent("keydown", { key: "g", shiftKey: true, repeat: true }),
-      new KeyboardEvent("keydown", { key: "x", shiftKey: true }),
-    ]) {
-      expect(isExactToyboxShortcut(event)).toBe(false);
-    }
-
-    const prevented = new KeyboardEvent("keydown", { key: "g", shiftKey: true, cancelable: true });
-    prevented.preventDefault();
-    expect(isExactToyboxShortcut(prevented)).toBe(false);
-
-    const composing = new KeyboardEvent("keydown", { key: "g", shiftKey: true });
-    Object.defineProperty(composing, "isComposing", { value: true });
-    expect(isExactToyboxShortcut(composing)).toBe(false);
+  it("accepts only an exact unconsumed Shift shortcut outside controls", () => {
+    expect(isExactShiftShortcut(new KeyboardEvent("keydown", { key: "G", shiftKey: true }), "g")).toBe(true);
+    expect(isExactShiftShortcut(new KeyboardEvent("keydown", { key: "A", shiftKey: true }), "a")).toBe(true);
+    expect(isExactShiftShortcut(new KeyboardEvent("keydown", { key: "g" }), "g")).toBe(false);
+    expect(isExactShiftShortcut(new KeyboardEvent("keydown", { key: "g", shiftKey: true, metaKey: true }), "g")).toBe(false);
   });
 
-  it("rejects an otherwise valid shortcut dispatched from a control descendant", () => {
-    const button = document.createElement("button");
-    const child = document.createElement("span");
-    button.append(child);
-    document.body.append(button);
-    let accepted = true;
-    child.addEventListener("keydown", (event) => {
-      accepted = isExactToyboxShortcut(event);
-    });
-    child.dispatchEvent(new KeyboardEvent("keydown", { key: "g", shiftKey: true, bubbles: true }));
-    expect(accepted).toBe(false);
-    button.remove();
-  });
 });

@@ -91,9 +91,9 @@ The target vocabulary is derived from portfolio data:
 
 React owners register the element they render and unregister it by passing `null`. Bounds are read at command time and refreshed after scroll, resize, and visibility changes. A valid target that is not mounted is skipped without DOM queries or answer failure.
 
-## Development lab
+## Development Director
 
-Run the development server and open `/?avatarLab=1`. The isolated lab includes chat, the real WebGL avatar, mounted target blocks, and the full Director console.
+Run the development server, enter the map, and press `Shift+A`. The full console opens as a reversible overlay on the live portfolio canvas; there is no visible resting control, separate lab route, or set of mock targets. Press `Shift+G` for game mode over that same canvas.
 
 The Director console has four tabs:
 
@@ -104,7 +104,7 @@ The Director console has four tabs:
 
 The status controls are Stop, Reset avatar, Hide/Show assistant, and Collapse/Expand console. The expanded console is itself registered as an obstacle, so its bottom-sheet layout remains clear of travel routes.
 
-`/?avatarDebug=1` exposes the same panel over the normal portfolio in development. The persistent Hide assistant / Show assistant control remains outside the harness.
+`/?avatarDebug=1` may still pre-open the same in-place panel in development. The public Hide assistant / Show assistant pill has been removed; visibility controls remain inside the development-only Director.
 
 ## Asset adapter
 

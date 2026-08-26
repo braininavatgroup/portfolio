@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import {
   portfolioStories,
@@ -54,14 +54,14 @@ function ReaderIndex({
         {portfolioStories.map((story) => (
           <button
             aria-label={story.title}
-            className="reader-story-row"
-            data-story={story.id}
+            className="reader-index-row"
             key={story.id}
             onClick={() => onSelectStory(story.id)}
             type="button"
           >
-            <strong>{story.title}</strong>
-            <span>{story.lede}</span>
+            <span>{story.title}</span>
+            <span aria-hidden="true">↗</span>
+            <small>Story</small>
           </button>
         ))}
       </section>
@@ -193,13 +193,19 @@ export function PortfolioReader({
   selectedId,
   spotlightTarget,
 }: PortfolioReaderProps) {
+  const readerRef = useRef<HTMLElement | null>(null);
+  const indexScrollTop = useRef(0);
   const node = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   const story = activeStoryId ? portfolioStoryById.get(activeStoryId) : undefined;
+  const mode = node && node.family !== "story" ? "record" : story ? "story" : "index";
   const avatarTarget: AvatarTargetId = node?.projectSlug
     ? `project:${node.projectSlug}`
     : "portfolio:index";
   const setReaderRef = useCallback(
-    (element: HTMLElement | null) => registerAvatarTarget?.(avatarTarget, element),
+    (element: HTMLElement | null) => {
+      readerRef.current = element;
+      registerAvatarTarget?.(avatarTarget, element);
+    },
     [avatarTarget, registerAvatarTarget],
   );
   const label = node && node.family !== "story"
@@ -208,11 +214,20 @@ export function PortfolioReader({
       ? `${story.title} story`
       : "Portfolio index";
 
+  useLayoutEffect(() => {
+    if (mode === "index" && readerRef.current) {
+      readerRef.current.scrollTop = indexScrollTop.current;
+    }
+  }, [mode]);
+
   return (
     <aside
       aria-label={label}
       className={`portfolio-reader${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
-      data-reader-mode={node && node.family !== "story" ? "record" : story ? "story" : "index"}
+      data-reader-mode={mode}
+      onScroll={(event) => {
+        if (mode === "index") indexScrollTop.current = event.currentTarget.scrollTop;
+      }}
       ref={setReaderRef}
     >
       {node || story ? (

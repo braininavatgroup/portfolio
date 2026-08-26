@@ -66,7 +66,7 @@ describe("AvatarToyboxOverlay", () => {
     expect(screen.getByTestId("toybox-avatar-canvas")).toBeTruthy();
     expect(screen.getByLabelText("Collect One")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Return to portfolio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close game" }));
     expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
   });
 
@@ -102,12 +102,12 @@ describe("AvatarToyboxOverlay", () => {
 
     expect(screen.getByText("Round complete")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Play again" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Close completion and return to portfolio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close completed game" }));
     expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
 
     fireEvent.keyDown(document, { key: "g", shiftKey: true });
     fireEvent.click(screen.getByRole("button", { name: /Brain Food/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Return to portfolio from playfield" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close game from playfield" }));
     expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
   });
 });

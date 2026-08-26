@@ -39,8 +39,9 @@ export function CursorInstrument() {
       const node = target?.closest<HTMLElement>("[data-world-node]");
       const composition = target?.closest<HTMLElement>(".portfolio-composition") ??
         document.querySelector<HTMLElement>(".portfolio-composition");
-      const color = node
-        ? getComputedStyle(node).getPropertyValue("--node-color").trim()
+      const nodeColorVariable = node?.dataset.cursorColor;
+      const color = node && nodeColorVariable && composition
+        ? getComputedStyle(composition).getPropertyValue(nodeColorVariable).trim()
         : composition
           ? getComputedStyle(composition).getPropertyValue("--ink").trim()
           : getComputedStyle(document.documentElement)

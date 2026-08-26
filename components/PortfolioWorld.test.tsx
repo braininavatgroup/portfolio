@@ -1,53 +1,76 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { PortfolioWorld } from "./PortfolioWorld";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  PortfolioWorld,
+  projectWorldPoint,
+  translateWorldPointByScreenDelta,
+} from "./PortfolioWorld";
 
 afterEach(cleanup);
 
 describe("PortfolioWorld", () => {
-  it("keeps a focused node where the visitor drags it", () => {
+  it("keeps the world surface free of a background grid", () => {
     render(
       <PortfolioWorld
         activeStoryId={null}
         onReset={() => {}}
         onSelect={() => {}}
-        selectedId="dubs"
+        selectedId={null}
       />,
     );
-    const world = screen.getByRole("region", { name: "Spatial portfolio world" });
-    vi.spyOn(world, "getBoundingClientRect").mockReturnValue({
-      bottom: 1000,
-      height: 1000,
-      left: 0,
-      right: 1000,
-      top: 0,
-      width: 1000,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    });
-    const dubs = screen.getByRole("button", { name: "Product Dubs" });
 
-    fireEvent.pointerDown(dubs, {
-      button: 0,
-      clientX: 500,
-      clientY: 430,
-      pointerId: 7,
-    });
-    fireEvent.pointerMove(world, {
-      clientX: 600,
-      clientY: 530,
-      pointerId: 7,
-    });
-    fireEvent.pointerUp(world, {
-      clientX: 600,
-      clientY: 530,
-      pointerId: 7,
-    });
+    expect(document.querySelector(".portfolio-world-grid")).toBeNull();
+  });
 
-    expect(dubs.style.left).toBe("60%");
-    expect(dubs.style.top).toBe("53%");
+  it("renders the accepted composed world on one shallow-3D canvas", () => {
+    render(
+      <PortfolioWorld
+        activeStoryId={null}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId={null}
+      />,
+    );
+
+    const world = screen.getByRole("region", {
+      name: "Spatial portfolio world",
+    });
+    expect(world.querySelector("canvas")).toBeTruthy();
+    expect(world.querySelector(".world-glyph")).toBeNull();
+  });
+
+  it("maps a rightward drag to rightward screen movement", () => {
+    const cameraPosition = { x: 0, y: 35, z: -760 };
+    const cameraTarget = { x: 0, y: 0, z: 760 };
+    const start = { x: 0, y: 0, z: 800 };
+    const projectedStart = projectWorldPoint(
+      start,
+      cameraPosition,
+      cameraTarget,
+      720,
+      1000,
+      1000,
+    );
+    const moved = translateWorldPointByScreenDelta(
+      start,
+      projectedStart!.scale,
+      100,
+      0,
+      cameraPosition,
+      cameraTarget,
+    );
+    const projectedMoved = projectWorldPoint(
+      moved,
+      cameraPosition,
+      cameraTarget,
+      720,
+      1000,
+      1000,
+    );
+
+    expect(projectedMoved!.x).toBeCloseTo(projectedStart!.x + 100, 5);
+    expect(projectedMoved!.y).toBeCloseTo(projectedStart!.y, 5);
   });
 });

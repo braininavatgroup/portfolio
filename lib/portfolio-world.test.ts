@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getVisibleWorldLinks,
   portfolioStories,
+  portfolioWorldLinks,
   portfolioWorldNodes,
 } from "./portfolio-world";
 
@@ -74,5 +75,23 @@ describe("accepted portfolio world", () => {
       "story-choosing-what-not-to-automate",
       "story-finding-myself-in-software",
     ]);
+  });
+
+  it("uses the factual field instead of redundant membership spokes for Finding", () => {
+    const links = getVisibleWorldLinks({
+      activeStoryId: "finding-myself-in-software",
+      selectedId: "story-finding-myself-in-software",
+    });
+
+    expect(
+      links.filter(
+        ({ layer, storyId }) =>
+          layer === "story-membership" &&
+          storyId === "finding-myself-in-software",
+      ),
+    ).toHaveLength(0);
+    expect(
+      links.filter(({ layer }) => layer === "factual"),
+    ).toHaveLength(portfolioWorldLinks.length);
   });
 });

@@ -119,8 +119,8 @@ export class AvatarDirector {
       case "project_close":
         this.stopAmbient();
         return this.#run([
-          { action: "walkTo", target: "portfolio:index" },
-          { action: "lookAt", target: "portfolio:index" },
+          { action: "walkTo", target: "portfolio:chat" },
+          { action: "lookAt", target: "portfolio:chat" },
           { action: "setState", state: "idle" },
         ]);
     }
