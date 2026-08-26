@@ -14,7 +14,7 @@
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "postbuild": "node --test tests/built-client-assets.test.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "setup:chat": "node scripts/setup-portfolio-chat.mjs",
+    "setup:chat": "bash scripts/setup-portfolio-chat.sh",
     "test": "vitest run",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",
     "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel TURNSTILE_SECRET_KEY=turnstile-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/preview-worker-config.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
