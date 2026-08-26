@@ -17,7 +17,7 @@ const keywordGroups: Array<{ pose: PoseState; words: string[] }> = [
   },
   {
     pose: "building",
-    words: ["build", "built", "app", "code", "development", "ship", "rit", "dubs"],
+    words: ["build", "built", "app", "code", "development", "ship", "writ", "dubs"],
   },
   {
     pose: "thinking",

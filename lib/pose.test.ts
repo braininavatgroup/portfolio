@@ -14,6 +14,11 @@ describe("deterministic portfolio pose events", () => {
     expect(classifyPose(input)).toBe(expected);
   });
 
+  it("recognizes Writ without preserving the superseded Rit name", () => {
+    expect(classifyPose("What is Writ?")).toBe("building");
+    expect(classifyPose("What is Rit?")).toBe("listening");
+  });
+
   it("returns a local navigation suggestion without impersonating Bradley", () => {
     const reply = poseReply("How does pitching work?", "music");
     expect(reply.text).toMatch(/pitching/i);
