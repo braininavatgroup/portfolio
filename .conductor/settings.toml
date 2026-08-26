@@ -4,8 +4,12 @@
 setup = "npm ci"
 run_mode = "concurrent"
 
-[scripts.run.portfolio]
+[scripts.run.dev]
 available_in = [ "local" ]
-command = "npm run dev -- --port $CONDUCTOR_PORT"
+command = "npm run dev -- --host 127.0.0.1 --port $CONDUCTOR_PORT --strictPort"
 default = true
 icon = "play"
+
+[scripts.run.test]
+command = "npm test"
+icon = "test-tube"

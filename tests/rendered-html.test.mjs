@@ -100,7 +100,6 @@ test("the production build does not inline server secrets into artifacts", async
   for (const serverOnlyValue of [
     "OPENAI_API_KEY",
     "OPENAI_PORTFOLIO_MODEL",
-    "PORTFOLIO_CHAT_LIVE_ENABLED",
     "api.openai.com",
   ]) {
     assert.doesNotMatch(clientArtifacts, new RegExp(serverOnlyValue));

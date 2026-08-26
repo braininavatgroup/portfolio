@@ -1,5 +1,4 @@
 export type PortfolioChatRuntimeConfig = {
-  liveEnabled: boolean;
   turnstileRequired: boolean;
   identifierSecret?: string;
   turnstileSecret?: string;
@@ -152,16 +151,6 @@ export function createPortfolioChatLaunchGuard({
     request: Request,
     input: { challengeToken?: string } = {},
   ): Promise<PortfolioChatLaunchResult> {
-    if (!config.liveEnabled) {
-      return {
-        ok: false,
-        response: jsonResponse(503, {
-          code: "disabled",
-          message: "Ask the portfolio is not enabled.",
-        }),
-      };
-    }
-
     const requestId = randomId();
     const reject = (
       status: number,

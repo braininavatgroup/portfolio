@@ -23,7 +23,6 @@ export type PortfolioChatBudgetNamespace = {
 };
 
 export type PortfolioChatRuntimeEnv = {
-  PORTFOLIO_CHAT_LIVE_ENABLED?: string;
   PORTFOLIO_CHAT_IDENTIFIER_SECRET?: string;
   PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT?: string;
   PORTFOLIO_CHAT_TURNSTILE_REQUIRED?: string;
@@ -71,7 +70,6 @@ function positiveInteger(value: string | undefined) {
 
 function runtimeConfig(env: PortfolioChatRuntimeEnv): PortfolioChatRuntimeConfig {
   return {
-    liveEnabled: env.PORTFOLIO_CHAT_LIVE_ENABLED === "true",
     identifierSecret: env.PORTFOLIO_CHAT_IDENTIFIER_SECRET,
     dailyRequestLimit: positiveInteger(env.PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT),
     turnstileRequired: env.PORTFOLIO_CHAT_TURNSTILE_REQUIRED === "true",
@@ -152,10 +150,6 @@ export function createPortfolioChatRuntime({
 
   return {
     async handleChat(request: Request) {
-      if (!config.liveEnabled) {
-        const result = await guard(request);
-        if (!result.ok) return result.response;
-      }
       if (!configuredProvider(env)) {
         safeRecord({
           event: "portfolio_chat_preflight",
@@ -211,7 +205,6 @@ export function createPortfolioChatRuntime({
             fetchImplementation,
           }));
       const handler = createPortfolioChatHandler({
-        isEnabled: () => true,
         getProvider: providerFactory,
         getRequestContext: () => ({
           requestId: launch.requestId,

@@ -23,7 +23,6 @@ async function startBuiltWorker(port) {
     .pathname;
   const childEnvironment = {
     ...process.env,
-    PORTFOLIO_CHAT_LIVE_ENABLED: "false",
     WRANGLER_SEND_METRICS: "false",
   };
   for (const name of [
@@ -104,7 +103,7 @@ async function fetchBuiltWorker(request) {
   );
 }
 
-test("the built Worker exposes one disabled portfolio chat route", async () => {
+test("the built Worker exposes one always-registered portfolio chat route", async () => {
   const port = await availablePort();
   const worker = await startBuiltWorker(port);
 
@@ -120,10 +119,9 @@ test("the built Worker exposes one disabled portfolio chat route", async () => {
     );
     assert.equal(chatResponse.status, 503);
     assert.deepEqual(await chatResponse.json(), {
-      code: "disabled",
-      message: "Ask the portfolio is not enabled.",
+      code: "misconfigured",
+      message: "Ask the portfolio is not configured.",
     });
-
   } finally {
     await worker.stop();
   }
