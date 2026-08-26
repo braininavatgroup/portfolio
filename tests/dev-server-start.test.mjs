@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import test from "node:test";
+import { stripVTControlCharacters } from "node:util";
 
 const projectRoot = new URL("..", import.meta.url);
 
@@ -77,7 +78,11 @@ test("the Conductor development command starts without a Workerd dependency fail
         reject(new Error(`Development server did not become ready.\n${output}`));
       }, 60_000);
       const poll = setInterval(() => {
-        if (output.includes(`http://localhost:${port}/`)) {
+        if (
+          stripVTControlCharacters(output).includes(
+            `http://localhost:${port}/`,
+          )
+        ) {
           clearInterval(poll);
           clearTimeout(timeout);
           resolve();
@@ -98,7 +103,10 @@ test("the Conductor development command starts without a Workerd dependency fail
     });
 
     assert.equal(child.exitCode, null, output);
-    assert.match(output, new RegExp(`http://localhost:${port}/`));
+    assert.match(
+      stripVTControlCharacters(output),
+      new RegExp(`http://localhost:${port}/`),
+    );
     assert.doesNotMatch(output, /Error during dependency optimization/);
   } finally {
     await stopProcessGroup(child);
