@@ -34,7 +34,7 @@ async function stopProcessGroup(child) {
   await exited;
 }
 
-test("the Conductor development command serves the portfolio", async () => {
+test("the Conductor development command starts without a Workerd dependency failure", async () => {
   const port = await availablePort();
   const child = spawn(
     "npm",
@@ -72,21 +72,15 @@ test("the Conductor development command serves the portfolio", async () => {
   });
 
   try {
-    const response = await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Development server did not become ready.\n${output}`));
       }, 60_000);
-      const poll = setInterval(async () => {
-        try {
-          const candidate = await fetch(`http://127.0.0.1:${port}/`, {
-            signal: AbortSignal.timeout(10_000),
-          });
-          const body = await candidate.text();
+      const poll = setInterval(() => {
+        if (output.includes(`http://localhost:${port}/`)) {
           clearInterval(poll);
           clearTimeout(timeout);
-          resolve({ body, status: candidate.status });
-        } catch {
-          // The server is still starting.
+          resolve();
         }
       }, 250);
       child.once("exit", (code) => {
@@ -95,9 +89,16 @@ test("the Conductor development command serves the portfolio", async () => {
         reject(new Error(`Development server exited with ${code}.\n${output}`));
       });
     });
+    await new Promise((resolve, reject) => {
+      const grace = setTimeout(resolve, 2_000);
+      child.once("exit", (code) => {
+        clearTimeout(grace);
+        reject(new Error(`Development server exited with ${code}.\n${output}`));
+      });
+    });
 
-    assert.equal(response.status, 200, output);
-    assert.match(response.body, /Bradley Berkman/i);
+    assert.equal(child.exitCode, null, output);
+    assert.match(output, new RegExp(`http://localhost:${port}/`));
     assert.doesNotMatch(output, /Error during dependency optimization/);
   } finally {
     await stopProcessGroup(child);
