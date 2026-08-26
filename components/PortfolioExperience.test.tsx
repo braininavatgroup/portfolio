@@ -12,7 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarController } from "../lib/avatar/controller";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
+import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
+import type { AvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
 import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./avatar/AvatarOverlay", async () => {
@@ -20,13 +22,23 @@ vi.mock("./avatar/AvatarOverlay", async () => {
   return {
     AvatarOverlay: ({
       controller,
+      debug,
+      development,
+      director,
       enabled,
       onEnabledChange,
+      onExpandedPanelChange,
+      registry,
       runner,
     }: {
       controller: AvatarController;
+      debug?: boolean;
+      development?: boolean;
+      director?: { stop: () => void; dispose: () => void; setReducedMotion: (value: boolean) => void };
       enabled: boolean;
       onEnabledChange: (enabled: boolean) => void;
+      onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
+      registry?: AvatarTargetRegistry;
       runner?: AvatarSequenceRunner;
       siteActionExecutor?: SiteActionExecutor;
     }) => {
@@ -39,13 +51,26 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       if (runner) {
         Reflect.set(globalThis, "__portfolioTestAvatarRunner", runner);
       }
+      if (registry) {
+        Reflect.set(globalThis, "__portfolioTestAvatarRegistry", registry);
+      }
+      if (director) {
+        Reflect.set(globalThis, "__portfolioTestAvatarDirector", director);
+      }
       const command = snapshot.currentCommand?.action;
       if (command && commands.current.at(-1) !== command) {
         commands.current.push(command);
       }
       return (
         <section aria-label="Test avatar overlay">
+          {debug && development ? (
+            <div
+              aria-label="Avatar Director console"
+              ref={onExpandedPanelChange}
+            />
+          ) : null}
           <output data-testid="avatar-target">{snapshot.target ?? "none"}</output>
+          <output data-testid="avatar-state">{snapshot.state}</output>
           <output data-testid="avatar-command-log">
             {commands.current.join(",")}
           </output>
@@ -112,12 +137,30 @@ vi.mock("./scene/PortfolioCanvas", () => ({
   ),
 }));
 
+let reducedMotionPreference = false;
+let reducedMotionChange: (() => void) | undefined;
+
+vi.mock("./avatar-toybox/AvatarToyboxOverlay", () => ({
+  AvatarToyboxOverlay: ({ session }: { session: AvatarToyboxSession }) => (
+    <aside aria-label="Test avatar toybox">
+      <output data-testid="toybox-status">{session.status}</output>
+      <output data-testid="toybox-roster">{session.roster.map(({ id }) => id).join(",")}</output>
+      <button onClick={session.startCollecting} type="button">Start Brain Food</button>
+    </aside>
+  ),
+}));
+
 function mockMatchMedia(reducedMotion = false) {
+  reducedMotionPreference = reducedMotion;
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: reducedMotion && query.includes("prefers-reduced-motion"),
+    get matches() {
+      return reducedMotionPreference && query.includes("prefers-reduced-motion");
+    },
     media: query,
     onchange: null,
-    addEventListener: vi.fn(),
+    addEventListener: vi.fn((event: string, callback: () => void) => {
+      if (event === "change") reducedMotionChange = callback;
+    }),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }));
@@ -145,6 +188,9 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   Reflect.deleteProperty(globalThis, "__portfolioTestAvatarRunner");
+  Reflect.deleteProperty(globalThis, "__portfolioTestAvatarRegistry");
+  Reflect.deleteProperty(globalThis, "__portfolioTestAvatarDirector");
+  reducedMotionChange = undefined;
   window.history.replaceState({}, "", "/");
 });
 
@@ -174,6 +220,64 @@ async function askExperience(question: string) {
 }
 
 describe("spatial self-portrait", () => {
+  it("offers the Avatar Director from the normal development portfolio", async () => {
+    await renderExperience("body");
+
+    const directorLink = screen.getByRole("link", { name: "Avatar Director" });
+    expect(directorLink.getAttribute("href")).toBe("/?avatarLab=1");
+  });
+
+  it("keeps agent chat in the isolated development avatar lab", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        effectsResponse({
+          avatarSequence: [
+            { action: "play", animation: "wave_one_hand" },
+          ],
+          siteActions: [],
+        }),
+      ),
+    );
+    mockMatchMedia();
+    const { container } = render(
+      <PortfolioExperience avatarLab initialPhase="graph" />,
+    );
+    await act(async () => {});
+
+    expect(
+      screen.getByRole("main", { name: "Avatar lab" }).className,
+    ).toContain("avatar-lab");
+    expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
+    expect(await screen.findByLabelText("Avatar Director console")).toBeTruthy();
+    expect(screen.queryByText("Avatar developer controls")).toBeNull();
+    expect(container.querySelector(".portfolio-header")).toBeNull();
+    expect(container.querySelector(".scene-shell")).toBeNull();
+    expect(container.querySelector(".portfolio-chat")).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: "Avatar stage targets" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText("Ask a question about the portfolio"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Back to portfolio" }).getAttribute("href"),
+    ).toBe("/");
+    expect(screen.queryByTestId("scene-canvas")).toBeNull();
+    expect(
+      screen.queryByText(
+        "I find where judgment matters, then build the system around it.",
+      ),
+    ).toBeNull();
+
+    await askExperience("Show me a wave");
+    await waitFor(() =>
+      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
+        "play",
+      ),
+    );
+  });
+
   it("opens on Bradley and enters the map from the figure without exposing graph UI early", async () => {
     vi.useFakeTimers();
     await renderExperience("body");
@@ -303,6 +407,35 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
+  });
+
+  it("connects chat attention and direct project navigation to the avatar director", async () => {
+    // Catches the contextual director existing in isolation without owning real interface events.
+    await renderExperience();
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.focus(input);
+    await waitFor(() =>
+      expect(screen.getByTestId("avatar-state").textContent).toBe("listening"),
+    );
+    expect(screen.getByTestId("avatar-target").textContent).toBe(
+      "portfolio:chat",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
+        "walkTo",
+      ),
+    );
+    expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
+
+    fireEvent.click(screen.getByRole("button", { name: "Output" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
+        "lookAt",
+      ),
+    );
   });
 
   it("keeps the dossier position when graph selection changes its contents", async () => {
@@ -515,7 +648,7 @@ describe("spatial self-portrait", () => {
               siteActions: [
                 { type: "spotlight", target: "portfolio:index" },
               ],
-              avatarSequence: [{ action: "play", animation: "celebrate" }],
+              avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
             })
           : effectsResponse({});
       },
@@ -537,7 +670,7 @@ describe("spatial self-portrait", () => {
     fireEvent.change(input, { target: { value: "Second question" } });
     fireEvent.submit(form);
     await act(async () => {
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
     });
 
     expect(fetchImplementation).toHaveBeenCalledTimes(2);
@@ -554,7 +687,7 @@ describe("spatial self-portrait", () => {
       vi.fn(async () =>
         effectsResponse({
           siteActions: [{ type: "spotlight", target: "portfolio:index" }],
-          avatarSequence: [{ action: "play", animation: "celebrate" }],
+          avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
         }),
       ),
     );
@@ -584,7 +717,11 @@ describe("spatial self-portrait", () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(run).not.toHaveBeenCalled();
+    expect(
+      run.mock.calls.some(([commands]) =>
+        commands.some((command) => command.action === "play"),
+      ),
+    ).toBe(false);
   });
 
   it("persists hiding without removing chat or portfolio navigation", async () => {
@@ -609,5 +746,107 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByLabelText("Ask a question about the portfolio"),
     ).toBeTruthy();
+  });
+
+  it("registers the visible header as a stage obstacle without exposing it as a target", async () => {
+    await renderExperience();
+    await screen.findByLabelText("Test avatar overlay");
+    const registry = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarRegistry",
+    ) as AvatarTargetRegistry;
+
+    expect(registry.resolveStageMap().obstacles.map(({ obstacle }) => obstacle)).toContain(
+      "portfolio:header",
+    );
+    expect(registry.resolveAll().map(({ target }) => target)).not.toContain(
+      "portfolio:header",
+    );
+  });
+
+  it("cancels active travel before applying a reduced-motion policy", async () => {
+    mockMatchMedia(false);
+    render(<PortfolioExperience initialPhase="graph" />);
+    await act(async () => {});
+    await screen.findByLabelText("Test avatar overlay");
+    const director = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarDirector",
+    ) as { stop: () => void; setReducedMotion: (value: boolean) => void };
+    const stop = vi.spyOn(director, "stop");
+    const setReducedMotion = vi.spyOn(director, "setReducedMotion");
+
+    reducedMotionPreference = true;
+    act(() => reducedMotionChange?.());
+
+    await waitFor(() => expect(stop).toHaveBeenCalled());
+    expect(setReducedMotion).toHaveBeenCalledWith(true);
+    expect(stop.mock.invocationCallOrder[0]).toBeLessThan(
+      setReducedMotion.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("stops ownership before persisting a hidden avatar preference", async () => {
+    await renderExperience();
+    await screen.findByLabelText("Test avatar overlay");
+    const director = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarDirector",
+    ) as { stop: () => void };
+    const stop = vi.spyOn(director, "stop");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
+
+    expect(stop).toHaveBeenCalled();
+    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe("false");
+  });
+
+  it("unregisters stage elements and disposes the director exactly once on unmount", async () => {
+    mockMatchMedia();
+    const rendered = render(<PortfolioExperience avatarLab initialPhase="graph" />);
+    await act(async () => {});
+    await screen.findByLabelText("Test avatar overlay");
+    const registry = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarRegistry",
+    ) as AvatarTargetRegistry;
+    const director = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarDirector",
+    ) as { dispose: () => void };
+    const dispose = vi.spyOn(director, "dispose");
+
+    expect(registry.resolveStageMap().obstacles.map(({ obstacle }) => obstacle)).toContain(
+      "avatar:director-console",
+    );
+    rendered.unmount();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(registry.resolveStageMap().targets).toEqual([]);
+    expect(registry.resolveStageMap().obstacles).toEqual([]);
+  });
+
+  it("hands keyboard and avatar rendering to a canonical toybox session, then restores them", async () => {
+    mockMatchMedia();
+    const shell = document.body.appendChild(document.createElement("div"));
+    shell.id = "app-shell";
+    const portal = document.body.appendChild(document.createElement("div"));
+    portal.id = "avatar-toybox-root";
+    render(<PortfolioExperience initialPhase="graph" />, { container: shell });
+    await act(async () => {});
+
+    expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "g", shiftKey: true });
+    expect((await screen.findByTestId("toybox-status")).textContent).toBe("choosing");
+    expect(screen.getByLabelText("Test avatar overlay")).toBeTruthy();
+    expect(screen.getByTestId("toybox-roster").textContent?.split(",").every((id) => id.endsWith(":output"))).toBe(true);
+
+    fireEvent.click(screen.getByText("Start Brain Food"));
+    expect(screen.getByTestId("toybox-status").textContent).toBe("collecting");
+    expect(document.querySelector('[aria-label="Test avatar overlay"]')).toBeNull();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByLabelText("Test avatar toybox")).toBeNull();
+    expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
   });
 });

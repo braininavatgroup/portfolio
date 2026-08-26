@@ -29,6 +29,14 @@ No key is copied into a workspace, `.env` file, generated BStack release, or
 command argument. An explicit `OPENAI_API_KEY` process variable still overrides
 Keychain for CI and non-macOS environments.
 
+Open `/?avatarLab=1` for the isolated avatar programming lab. Its Director
+console provides scene recipes; a live target map with walk, swim, look, point,
+present, and spotlight actions; movement controls; advanced diagnostics; and
+renderer-failure recovery. The stage uses a CSS-pixel foot/path model, keeps
+grounded travel above the floor, and routes swim paths around registered targets,
+the header, and the expanded console. Reduced motion settles travel immediately
+while preserving target, gaze, pointing, and page actions.
+
 ## Routes
 
 - `/` contains the pointer-responsive figure, transition into the graph, graph controls, node details, and portfolio chat.
@@ -44,7 +52,7 @@ The HTML index and case studies keep their current presentation while the graph 
 
 `lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
 
-`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, controller, sequence runner, and site-action boundary. `components/avatar` owns the lazy overlay plus the replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for the architecture, development harness, troubleshooting, and model-swap workflow.
+`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, obstacle-aware CSS-pixel stage layout, controller, behavior director, sequence runner, bounded tone mappings, and site-action boundary. Safe movement commands include `swimTo` for a semantic target and `swimRoute` with the repository-owned `lap` route. `components/avatar` owns the lazy overlay, Director console, and replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for architecture, controls, troubleshooting, and the proof boundary.
 
 ## Evidence policy
 
@@ -71,11 +79,13 @@ evidence plus the bounded transcript from the current browser visit. The agent
 always answers conversationally: published Bradley facts can carry citations,
 unknown Bradley details get a natural statement of uncertainty, social chat
 stays open-ended, and the application owns the one-time third-general-turn
-nudge. SDK tracing and OpenAI response storage are disabled so this adoption
-does not broaden the telemetry or retention contract. The SDK's optional MCP
-packages remain installed for future agent tools; local Vite development only
-excludes their browser-only PKCE helper from Workerd's eager dependency
-optimizer.
+nudge. Its structured result also selects one to three known avatar behaviors,
+a bounded performance intent, and enum-valued tone. The client holds that
+direction until the first answer text commits. SDK tracing and OpenAI response
+storage are disabled so this adoption does not broaden the telemetry or
+retention contract. The SDK's optional MCP packages remain installed for future
+agent tools; local Vite development only excludes their browser-only PKCE helper
+from Workerd's eager dependency optimizer.
 
 `wrangler.preview.jsonc` owns the site-preview Worker's non-secret
 configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request

@@ -18,6 +18,7 @@ import {
   parsePortfolioChatConversation,
   type PortfolioChatMessage,
 } from "../portfolio-chat-conversation";
+import type { PortfolioResponseEffects } from "../avatar/contracts";
 
 export type PortfolioChatRequestContext = {
   requestId: string;
@@ -214,11 +215,22 @@ async function* validatedAnswerDeltas(
   evidenceCount: number,
 ) {
   let buffer = "";
+  const paragraphBeforeCitation =
+    /\n\n(?=[\s\S]*\[E[1-9]\d*\])/;
   const followedCitation =
     /\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
 
   for await (const delta of deltas) {
     buffer += delta;
+    let paragraphBoundary = paragraphBeforeCitation.exec(buffer);
+    while (paragraphBoundary) {
+      const end = paragraphBoundary.index + paragraphBoundary[0].length;
+      const segment = buffer.slice(0, end);
+      validatePortfolioSegment(segment, evidenceCount);
+      yield segment;
+      buffer = buffer.slice(end);
+      paragraphBoundary = paragraphBeforeCitation.exec(buffer);
+    }
     let boundary = followedCitation.exec(buffer);
     while (boundary) {
       const end = boundary.index + boundary[0].length;
@@ -487,6 +499,7 @@ export function createPortfolioChatHandler({
       let answerCharacters = 0;
       let usage: PortfolioChatProviderUsage | undefined;
       let providerFailureKind: PortfolioChatProviderFailureKind | undefined;
+      let pendingEffects: PortfolioResponseEffects | undefined;
       let finished = false;
       let preservePartialAnswer = true;
       const markProviderUnavailable = () => {
@@ -507,6 +520,11 @@ export function createPortfolioChatHandler({
           return;
         }
         markProviderUnavailable();
+      };
+      const sendPendingEffects = () => {
+        if (!pendingEffects) return;
+        send({ type: "effects", effects: pendingEffects });
+        pendingEffects = undefined;
       };
       const finish = () => {
         if (finished) return;
@@ -555,6 +573,9 @@ export function createPortfolioChatHandler({
               turnMode = mode;
             }
           },
+          onEffects: (effects) => {
+            pendingEffects = effects;
+          },
           onUsage: (reportedUsage) => {
             usage = reportedUsage;
           },
@@ -583,6 +604,7 @@ export function createPortfolioChatHandler({
           )) {
             if (delta) {
               answerCharacters += delta.length;
+              sendPendingEffects();
               send({ type: "answer_delta", delta });
             }
           }
@@ -597,10 +619,15 @@ export function createPortfolioChatHandler({
             appendNudge,
           )) {
             answerCharacters += delta.length;
+            sendPendingEffects();
             send({ type: "answer_delta", delta });
           }
         }
-        if (providerSignal.aborted) markCancelledOrTimedOut();
+        if (providerSignal.aborted) {
+          markCancelledOrTimedOut();
+        } else if (answerCharacters > 0) {
+          sendPendingEffects();
+        }
       } catch (error) {
         if (request.signal.aborted || streamCancellation.signal.aborted) {
           outcome = "aborted";

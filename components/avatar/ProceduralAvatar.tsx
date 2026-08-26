@@ -3,12 +3,19 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import type { AllowedAnimation } from "../../lib/avatar/contracts";
+import type { AllowedAnimation, AvatarTone } from "../../lib/avatar/contracts";
+import { getAvatarYaw, type AvatarFacing } from "../../lib/avatar/orientation";
+import {
+  avatarAmbientAmplitude,
+  avatarPlaybackRate,
+} from "../../lib/avatar/render-motion";
 
 type ProceduralAvatarProps = {
   animation: AllowedAnimation;
-  facing: "left" | "right";
+  facing: AvatarFacing;
   pointing: "left" | "right" | null;
+  reducedMotion: boolean;
+  tone: AvatarTone;
 };
 
 type JointPose = {
@@ -20,7 +27,7 @@ type JointPose = {
   rightLeg: [number, number, number];
 };
 
-const authoredPoses: Record<AllowedAnimation, JointPose> = {
+const basePoses = {
   idle: {
     torso: [0, 0, 0], head: [0, 0, 0], leftArm: [0, 0, 0.12], rightArm: [0, 0, -0.12], leftLeg: [0, 0, 0], rightLeg: [0, 0, 0],
   },
@@ -42,9 +49,36 @@ const authoredPoses: Record<AllowedAnimation, JointPose> = {
   celebrate: {
     torso: [-0.08, 0, 0], head: [-0.12, 0, 0], leftArm: [-2.1, 0, 0.25], rightArm: [-2.1, 0, -0.25], leftLeg: [0, 0, 0], rightLeg: [0, 0, 0],
   },
+  dance: {
+    torso: [0.1, 0, 0.18], head: [-0.08, 0.16, 0], leftArm: [-1.1, 0.2, 0.85], rightArm: [0.75, -0.2, -0.85], leftLeg: [-0.24, 0, 0.12], rightLeg: [0.24, 0, -0.12],
+  },
   confused: {
     torso: [0, 0, 0], head: [0.1, 0.42, 0], leftArm: [-0.46, 0, 0.46], rightArm: [-0.18, 0, -0.42], leftLeg: [0, 0, 0], rightLeg: [0, 0, 0],
   },
+} satisfies Record<string, JointPose>;
+
+const authoredPoses: Record<AllowedAnimation, JointPose> = {
+  agree_gesture: basePoses.talk,
+  alert: basePoses.think,
+  angry_to_tantrum_sit: basePoses.confused,
+  big_wave_hello: basePoses.present,
+  cheer_with_both_hands_1: basePoses.celebrate,
+  cheer_with_both_hands: basePoses.celebrate,
+  formal_bow: basePoses.think,
+  groan_holding_stomach_in_sleep: basePoses.confused,
+  idle_3: basePoses.idle,
+  indoor_play: basePoses.talk,
+  joyful_dance_with_hand_sway: basePoses.dance,
+  prone_reach_help: basePoses.present,
+  running: basePoses.walk,
+  shrug: basePoses.confused,
+  sneaky_walk: basePoses.walk,
+  swim_forward: basePoses.present,
+  wake_up_and_look_up: basePoses.think,
+  walking: basePoses.walk,
+  wave_one_hand: basePoses.point,
+  swimming_to_edge: basePoses.present,
+  orange_justice_cc0: basePoses.dance,
 };
 
 function applyPose(joint: THREE.Group | null, pose: [number, number, number]) {
@@ -58,6 +92,8 @@ export function ProceduralAvatar({
   animation,
   facing,
   pointing,
+  reducedMotion,
+  tone,
 }: ProceduralAvatarProps) {
   const rig = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
@@ -69,22 +105,27 @@ export function ProceduralAvatar({
 
   useFrame(({ clock }) => {
     const pose = authoredPoses[animation];
-    const stride = animation === "walk" ? Math.sin(clock.elapsedTime * 8) * 0.18 : 0;
-    const talk = animation === "talk" ? Math.sin(clock.elapsedTime * 6) * 0.1 : 0;
+    const motionRate = avatarPlaybackRate(tone, 1);
+    const ambientAmplitude = avatarAmbientAmplitude(tone, reducedMotion);
+    const stride = animation === "walking" || animation === "running" ? Math.sin(clock.elapsedTime * 8 * motionRate) * 0.18 : 0;
+    const talk = animation === "agree_gesture" ? Math.sin(clock.elapsedTime * 6 * motionRate) * 0.1 : 0;
     const pointDirection = pointing ?? facing;
 
     if (rig.current) {
       rig.current.rotation.y = THREE.MathUtils.lerp(
         rig.current.rotation.y,
-        facing === "left" ? Math.PI : 0,
+        getAvatarYaw("z", facing),
         0.15,
       );
-      rig.current.position.y = animation === "walk" ? Math.abs(stride) * 0.12 : 0;
+      rig.current.rotation.z = Math.sin(clock.elapsedTime * 1.35) * ambientAmplitude;
+      rig.current.position.y = animation === "walking" || animation === "running"
+        ? Math.abs(stride) * 0.12
+        : Math.sin(clock.elapsedTime * 1.7) * ambientAmplitude * 0.45;
     }
     applyPose(torso.current, pose.torso);
     applyPose(head.current, [pose.head[0] + talk, pose.head[1], pose.head[2]]);
     applyPose(leftArm.current, [pose.leftArm[0] - stride, pose.leftArm[1], pose.leftArm[2]]);
-    applyPose(rightArm.current, [pose.rightArm[0] + stride, pose.rightArm[1], pose.rightArm[2] + (animation === "point" && pointDirection === "left" ? 0.4 : 0)]);
+    applyPose(rightArm.current, [pose.rightArm[0] + stride, pose.rightArm[1], pose.rightArm[2] + (animation === "wave_one_hand" && pointDirection === "left" ? 0.4 : 0)]);
     applyPose(leftLeg.current, [pose.leftLeg[0] + stride, pose.leftLeg[1], pose.leftLeg[2]]);
     applyPose(rightLeg.current, [pose.rightLeg[0] - stride, pose.rightLeg[1], pose.rightLeg[2]]);
   });

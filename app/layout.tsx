@@ -27,10 +27,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <a className="skip-link" href="#main-content">
-          Skip to portfolio content
-        </a>
-        {children}
+        <div id="app-shell">
+          <a className="skip-link" href="#main-content">
+            Skip to portfolio content
+          </a>
+          {children}
+        </div>
+        <div id="avatar-toybox-root" />
       </body>
     </html>
   );

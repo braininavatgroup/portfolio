@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import type { PortfolioChatProviderInput } from "./portfolio-chat-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
+import { allowedAvatarAnimations, avatarBehaviors } from "../avatar/behaviors";
 
 const evidence: PortfolioGroundingEvidence[] = [
   {
@@ -27,13 +28,40 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
+  avatarSequence: string[];
+  avatarIntent: "ordinary" | "expressive" | "requested";
+  avatarTone: {
+    energy: "low" | "medium" | "high";
+    warmth: "reserved" | "warm";
+    confidence: "uncertain" | "neutral" | "assured";
+    mischief: "none" | "playful";
+  };
+};
+
+type StructuredOutputInput = Omit<
+  StructuredOutput,
+  "avatarIntent" | "avatarTone"
+> &
+  Partial<Pick<StructuredOutput, "avatarIntent" | "avatarTone">>;
+
+const defaultAvatarOutput = {
+  avatarIntent: "ordinary" as const,
+  avatarTone: {
+    energy: "medium" as const,
+    warmth: "warm" as const,
+    confidence: "neutral" as const,
+    mischief: "none" as const,
+  },
 };
 
 function completedResponse(
-  output: StructuredOutput | string,
+  output: StructuredOutputInput | string,
   usage?: { input_tokens: number; output_tokens: number; total_tokens: number },
 ) {
-  const text = typeof output === "string" ? output : JSON.stringify(output);
+  const text =
+    typeof output === "string"
+      ? output
+      : JSON.stringify({ ...defaultAvatarOutput, ...output });
   return Response.json({
     id: "resp_portfolio_test",
     output: [
@@ -52,7 +80,12 @@ function completedResponse(
 function portfolioOutput(
   sentences: StructuredOutput["sentences"],
 ): StructuredOutput {
-  return { mode: "portfolio", sentences };
+  return {
+    ...defaultAvatarOutput,
+    mode: "portfolio",
+    sentences,
+    avatarSequence: ["agree_gesture"],
+  };
 }
 
 describe("OpenAI portfolio provider", () => {
@@ -107,6 +140,22 @@ describe("OpenAI portfolio provider", () => {
       type: "json_schema",
       strict: true,
     });
+    expect(body.text.format.schema.properties.avatarSequence).toMatchObject({
+      type: "array",
+      minItems: 1,
+      maxItems: 3,
+      items: { enum: allowedAvatarAnimations },
+    });
+    expect(body.text.format.schema.properties.avatarIntent).toMatchObject({
+      enum: ["ordinary", "expressive", "requested"],
+    });
+    expect(body.text.format.schema.properties.avatarTone).toMatchObject({
+      type: "object",
+      required: ["energy", "warmth", "confidence", "mischief"],
+    });
+    for (const behavior of avatarBehaviors) {
+      expect(body.instructions).toContain(`${behavior.id}: ${behavior.guidance}`);
+    }
     expect(body.instructions).not.toContain(
       "Every factual sentence must end with one or more evidence labels",
     );
@@ -150,6 +199,7 @@ describe("OpenAI portfolio provider", () => {
         fetchImplementation: async () =>
           completedResponse({
             mode,
+            avatarSequence: ["agree_gesture"],
             sentences: [
               {
                 text: "The model tried to attach another source. [E2]",
@@ -184,6 +234,7 @@ describe("OpenAI portfolio provider", () => {
       fetchImplementation: async () =>
         completedResponse({
           mode,
+          avatarSequence: ["agree_gesture"],
           sentences: [{ text: answer, evidenceIds: [] }],
         }),
     });
@@ -336,6 +387,7 @@ describe("OpenAI portfolio provider", () => {
         requestBody = String(init?.body);
         return completedResponse({
           mode: "portfolio",
+          avatarSequence: ["shrug"],
           sentences: [
             {
               text: "I don't know Bradley's favorite soup. If he publishes it, this portfolio will gain one strangely important data point.",
@@ -367,8 +419,9 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it("rejects evidence ids outside portfolio mode", async () => {
-    const output: StructuredOutput = {
+    const output: StructuredOutputInput = {
       mode: "general",
+      avatarSequence: ["agree_gesture"],
       sentences: [
         {
           text: "Keep the blade at a steady angle.",
@@ -473,5 +526,89 @@ describe("OpenAI portfolio provider", () => {
       chunks.push(chunk);
     }
     expect(chunks).toEqual(["Grounded. [E1]"]);
+  });
+
+  it("reports tone and a validated performance in time for first-text scheduling", async () => {
+    // Catches structured direction arriving too late for the client to coordinate it with the answer.
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse({
+          mode: "social",
+          sentences: [{ text: "Here we go.", evidenceIds: [] }],
+          avatarSequence: ["wave_one_hand", "orange_justice_cc0"],
+          avatarIntent: "requested",
+          avatarTone: {
+            energy: "high",
+            warmth: "warm",
+            confidence: "assured",
+            mischief: "playful",
+          },
+        }),
+    });
+    const lifecycle: string[] = [];
+    const onEffects = vi.fn(() => lifecycle.push("effects"));
+
+    for await (const chunk of provider.streamAnswer({
+      question: "Do the dance",
+      evidence,
+      onEffects,
+    })) {
+      lifecycle.push(`answer:${chunk}`);
+    }
+
+    expect(lifecycle).toEqual(["effects", "answer:Here we go."]);
+    expect(onEffects).toHaveBeenCalledWith({
+      siteActions: [],
+      avatarSequence: [
+        { action: "play", animation: "wave_one_hand" },
+        { action: "wait", durationMs: 1_600 },
+        { action: "play", animation: "orange_justice_cc0" },
+        { action: "wait", durationMs: 2_800 },
+      ],
+      avatarIntent: "requested",
+      avatarTone: {
+        energy: "high",
+        warmth: "warm",
+        confidence: "assured",
+        mischief: "playful",
+      },
+      issues: [],
+    });
+  });
+
+  it.each([
+    ["zero", []],
+    ["more than three", ["idle_3", "shrug", "alert", "walking"]],
+    ["unknown", ["dance"]],
+  ])("rejects a %s-behavior structured performance", async (_label, avatarSequence) => {
+    // Catches invalid control data reaching the effect callback.
+    const onEffects = vi.fn();
+    const onFailure = vi.fn();
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse({
+          mode: "social",
+          sentences: [{ text: "Nope.", evidenceIds: [] }],
+          avatarSequence,
+        }),
+    });
+
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({
+        question: "Perform",
+        evidence,
+        onEffects,
+        onFailure,
+      })) {
+        throw new Error(`Unexpected provider output: ${chunk}`);
+      }
+    }).rejects.toThrow("OpenAI agent run failed.");
+
+    expect(onEffects).not.toHaveBeenCalled();
+    expect(onFailure).toHaveBeenCalledWith("invalid_final_output");
   });
 });

@@ -5,17 +5,12 @@ import {
 } from "./state";
 
 describe("avatar animation state", () => {
-  it("falls back from a missing tool-use clip to the configured thinking animation", () => {
-    // Catches a missing clip that could flash or stop instead of falling back.
-    expect(resolveAvatarAnimation("tool_use", new Set(["think", "idle"]))).toBe(
-      "think",
-    );
-  });
-
-  it("falls back from success to the configured presentation clip before idle", () => {
-    // Catches a missing clip that could flash or stop instead of falling back.
-    expect(resolveAvatarAnimation("success", new Set(["present", "idle"]))).toBe(
-      "present",
+  it("maps lifecycle states directly without availability-based substitution", () => {
+    // Catches fallback logic returning a different animation when a clip is absent.
+    expect(resolveAvatarAnimation("tool_use")).toBe("indoor_play");
+    expect(resolveAvatarAnimation("success")).toBe("cheer_with_both_hands");
+    expect(resolveAvatarAnimation("error")).toBe(
+      "groan_holding_stomach_in_sleep",
     );
   });
 
@@ -25,11 +20,20 @@ describe("avatar animation state", () => {
       adaptCommandsForReducedMotion([
         { action: "enter", from: "left" },
         { action: "walkTo", target: "hero" },
+        { action: "swimTo", target: "portfolio:chat" },
+        { action: "swimRoute", route: "lap" },
+        { action: "play", animation: "orange_justice_cc0" },
+        { action: "wait", durationMs: 1_600 },
         { action: "setState", state: "talking" },
+        { action: "lookAt", target: "portfolio:index" },
+        { action: "pointAt", target: "portfolio:chat" },
       ]),
     ).toEqual([
       { action: "lookAt", target: "hero" },
+      { action: "lookAt", target: "portfolio:chat" },
       { action: "setState", state: "talking" },
+      { action: "lookAt", target: "portfolio:index" },
+      { action: "pointAt", target: "portfolio:chat" },
     ]);
   });
 });

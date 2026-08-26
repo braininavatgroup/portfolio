@@ -43,7 +43,10 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   const html = await response.text();
   assert.match(html, /<title>Bradley Berkman \| Judgment at the center<\/title>/i);
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
+  assert.match(html, /<div[^>]*id=["']app-shell["']/i);
+  assert.match(html, /<div[^>]*id=["']avatar-toybox-root["']/i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
+  assert.match(html, /<main[^>]*tabindex=["']-1["']/i);
   assert.match(html, /<main[^>]*data-theme=["']light["']/i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Bradley Berkman</i);

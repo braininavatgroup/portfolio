@@ -10,7 +10,10 @@ import {
 import type { TurnstileRenderer } from "../lib/portfolio-chat-turnstile";
 import { PortfolioChat } from "./PortfolioChat";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const evidence = {
   id: "project:pitching",
@@ -24,6 +27,68 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("reports focus, typing activity, and blur to the avatar director", () => {
+    // Catches a chat input that the actor cannot notice until after submission.
+    const attention: string[] = [];
+    render(
+      <PortfolioChat
+        avatarIntegration={{
+          onInputFocus: () => { attention.push("focus"); },
+          onInputActivity: () => { attention.push("activity"); },
+          onInputBlur: () => { attention.push("blur"); },
+          onTurnStart: () => {},
+          onEvidence: () => {},
+          onFirstText: () => {},
+          onEffects: () => {},
+          onNotice: () => {},
+          onError: () => {},
+          onComplete: () => {},
+        }}
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Tell me about Dubs" } });
+    fireEvent.blur(input);
+
+    expect(attention).toEqual(["focus", "activity", "blur"]);
+  });
+
+  it("throttles typing direction without delaying the first activity", async () => {
+    // Catches every keystroke restarting the same listening sequence.
+    vi.useFakeTimers();
+    const onInputActivity = vi.fn();
+    render(
+      <PortfolioChat
+        avatarIntegration={{
+          onInputActivity,
+          onTurnStart: () => {},
+          onEvidence: () => {},
+          onFirstText: () => {},
+          onEffects: () => {},
+          onNotice: () => {},
+          onError: () => {},
+          onComplete: () => {},
+        }}
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.change(input, { target: { value: "T" } });
+    fireEvent.change(input, { target: { value: "Te" } });
+    fireEvent.change(input, { target: { value: "Tell" } });
+    expect(onInputActivity).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(250);
+    fireEvent.change(input, { target: { value: "Tell me" } });
+    expect(onInputActivity).toHaveBeenCalledTimes(2);
+  });
+
   it("holds effects behind the first rendered answer delta", async () => {
     // Catches safe effects running site or avatar work before text becomes the primary response.
     const lifecycle: string[] = [];
@@ -32,7 +97,7 @@ describe("portfolio chat", () => {
         type: "effects",
         effects: {
           siteActions: [{ type: "openProject", target: "project:dubs" }],
-          avatarSequence: [{ action: "play", animation: "present" }],
+          avatarSequence: [{ action: "play", animation: "big_wave_hello" }],
           issues: [],
         },
       });
@@ -310,7 +375,7 @@ describe("portfolio chat", () => {
       type: "effects",
       effects: {
         siteActions: [{ type: "openProject", target: "project:dubs" }],
-        avatarSequence: [{ action: "play", animation: "celebrate" }],
+        avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
         issues: [],
       },
     });

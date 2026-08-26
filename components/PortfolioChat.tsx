@@ -38,6 +38,9 @@ type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
 ) => void | Promise<void>;
 
 export type PortfolioChatAvatarIntegration = {
+  onInputFocus?: AvatarLifecycleCallback;
+  onInputActivity?: AvatarLifecycleCallback;
+  onInputBlur?: AvatarLifecycleCallback;
   onTurnStart: AvatarLifecycleCallback;
   onEvidence: AvatarLifecycleCallback<[PortfolioGroundingEvidence[]]>;
   onFirstText: AvatarLifecycleCallback;
@@ -80,6 +83,7 @@ export function PortfolioChat({
     portfolioNudgeShown: false,
   });
   const idleTimer = useRef<number | null>(null);
+  const inputActivityTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
@@ -141,6 +145,9 @@ export function PortfolioChat({
 
     return () => {
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
+      if (inputActivityTimer.current !== null) {
+        window.clearTimeout(inputActivityTimer.current);
+      }
       requestController.current?.abort();
       region?.removeEventListener("click", containInteraction);
       region?.removeEventListener("pointerdown", containInteraction);
@@ -356,7 +363,24 @@ export function PortfolioChat({
         <input
           id="portfolio-question"
           name="question"
-          onChange={(event) => setInput(event.target.value)}
+          onBlur={() => {
+            if (inputActivityTimer.current !== null) {
+              window.clearTimeout(inputActivityTimer.current);
+              inputActivityTimer.current = null;
+            }
+            void avatarIntegration?.onInputBlur?.();
+          }}
+          onChange={(event) => {
+            setInput(event.target.value);
+            if (inputActivityTimer.current !== null) return;
+            void avatarIntegration?.onInputActivity?.();
+            inputActivityTimer.current = window.setTimeout(() => {
+              inputActivityTimer.current = null;
+            }, 250);
+          }}
+          onFocus={() => {
+            void avatarIntegration?.onInputFocus?.();
+          }}
           placeholder="Ask about the work, decisions, or outcomes."
           type="text"
           value={input}

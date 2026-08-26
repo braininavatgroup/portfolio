@@ -1,17 +1,10 @@
-import { avatarAsset } from "./config";
+import { avatarStateBehaviors } from "./config";
 import type { AllowedAnimation, AvatarCommand, AvatarState } from "./contracts";
 
 export function resolveAvatarAnimation(
   state: AvatarState,
-  available: ReadonlySet<AllowedAnimation>,
 ): AllowedAnimation {
-  for (const animation of avatarAsset.stateFallbacks[state]) {
-    if (available.has(animation)) {
-      return animation;
-    }
-  }
-
-  return "idle";
+  return avatarStateBehaviors[state];
 }
 
 export function adaptCommandsForReducedMotion(
@@ -24,9 +17,13 @@ export function adaptCommandsForReducedMotion(
       case "enter":
       case "exit":
       case "wait":
+      case "play":
         break;
       case "walkTo":
+      case "swimTo":
         adapted.push({ action: "lookAt", target: command.target });
+        break;
+      case "swimRoute":
         break;
       default:
         adapted.push(command);

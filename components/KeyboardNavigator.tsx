@@ -1,20 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isInteractiveKeyboardTarget } from "../lib/dom-keyboard";
 import { nextKeyboardIndex } from "../lib/keyboard-navigation";
 import { nodeAction } from "../lib/node-interaction";
 import type { SpatialGraphNode } from "../lib/spatial-graph";
-
-function isIgnoredTarget(target: EventTarget | null) {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    target instanceof HTMLButtonElement ||
-    target instanceof HTMLAnchorElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  );
-}
 
 export function KeyboardNavigator({
   nodes,
@@ -55,7 +45,7 @@ export function KeyboardNavigator({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || isIgnoredTarget(event.target)) return;
+      if (event.defaultPrevented || isInteractiveKeyboardTarget(event.target)) return;
 
       const direction =
         event.key === "ArrowRight" || event.key === "ArrowDown"

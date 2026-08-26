@@ -5,6 +5,7 @@ import type { MouseEvent } from "react";
 
 type PortfolioHeaderProps = {
   activeView?: "bradley" | "map" | "index";
+  obstacleRef?: (element: HTMLElement | null) => void;
   overlay?: boolean;
   onBradleySelect?: () => void;
   onMapSelect?: () => void;
@@ -31,6 +32,7 @@ function handleLocalNavigation(
 
 export function PortfolioHeader({
   activeView,
+  obstacleRef,
   overlay = false,
   onBradleySelect,
   onMapSelect,
@@ -38,6 +40,7 @@ export function PortfolioHeader({
   return (
     <header
       className={`portfolio-header${overlay ? " portfolio-header-overlay" : ""}`}
+      ref={obstacleRef}
     >
       {activeView === "bradley" ? (
         <span aria-current="page" className="wordmark">

@@ -1,4 +1,5 @@
 import { sites } from "@openai/sites-vite-plugin";
+import { fileURLToPath } from "node:url";
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json" with { type: "json" };
@@ -80,6 +81,19 @@ export default defineConfig(async () => {
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
+    resolve: {
+      alias: {
+        // The Agents SDK's unused MCP OAuth client imports this package at its
+        // top level. Its browser build uses Web Crypto and is Worker-compatible,
+        // but the package does not declare a `workerd` export condition.
+        "pkce-challenge": fileURLToPath(
+          new URL(
+            "./node_modules/pkce-challenge/dist/index.browser.js",
+            import.meta.url,
+          ),
+        ),
+      },
+    },
     plugins: [
       vinext(),
       sites(),
