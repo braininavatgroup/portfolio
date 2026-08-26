@@ -42,4 +42,17 @@ describe("portfolio content contract", () => {
     ]);
     expect(careerTimeline.at(-1)?.evidenceStatus).toBe("needed");
   });
+
+  it("uses the approved product names in the development bundle", () => {
+    const bundle = getArtifact("three-maturity-bundle");
+
+    expect(bundle?.summary).toBe(
+      "Writ shipped, Yoohoo was specified, and Good Morning was sketched as one comparison across maturity.",
+    );
+    expect(bundle?.evidence.map((item) => item.label)).toEqual([
+      "Writ release or build",
+      "Yoohoo spec",
+      "Good Morning sketch",
+    ]);
+  });
 });

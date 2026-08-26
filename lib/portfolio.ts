@@ -238,7 +238,7 @@ export const artifacts: ArtifactRecord[] = [
     domain: "development",
     token: "maturity",
     summary:
-      "Rit shipped, a notifications app specified, and a conditional alarm clock sketched as one comparison across maturity.",
+      "Writ shipped, Yoohoo was specified, and Good Morning was sketched as one comparison across maturity.",
     principle: "A good idea becomes legible before it becomes complete.",
     decision:
       "Show three honest maturity states together instead of presenting every concept as equally finished.",
@@ -246,16 +246,16 @@ export const artifacts: ArtifactRecord[] = [
       "The contrast exposes what specification, implementation, and release each add to an idea.",
     chain: chain(
       ["Name the maturity honestly", "Separate what shipped from what is specified and what remains exploratory."],
-      ["Notification and alarm concepts", "Specify a notifications app and sketch permissioned, parameterized alarm automation."],
-      ["Rit build and app concepts", "Connect each idea to the system appropriate for its current stage."],
-      ["Rit, notifications, conditional alarm", "One shipped menu-bar audio manager, one specified app, and one sketch."],
-      ["Evidence by maturity", "The Rit build and materials for all three stages are not yet published."],
+      ["Yoohoo and Good Morning concepts", "Specify Yoohoo and sketch permissioned, parameterized alarm automation."],
+      ["Writ build and app concepts", "Connect each idea to the system appropriate for its current stage."],
+      ["Writ, Yoohoo, Good Morning", "One shipped menu-bar audio manager, one specified app, and one sketch."],
+      ["Evidence by maturity", "The Writ build and materials for all three stages are not yet published."],
     ),
     evidenceStatus: "needed",
     evidence: [
-      { label: "Rit release or build", status: "needed", note: "Runnable or release evidence is not yet published." },
-      { label: "Notifications spec", status: "needed", note: "The specification and interface work are not yet published." },
-      { label: "Alarm sketch", status: "needed", note: "The sketch is not yet published. This project has not shipped." },
+      { label: "Writ release or build", status: "needed", note: "Runnable or release evidence is not yet published." },
+      { label: "Yoohoo spec", status: "needed", note: "The specification and interface work are not yet published." },
+      { label: "Good Morning sketch", status: "needed", note: "The sketch is not yet published. This project has not shipped." },
     ],
   },
   {
