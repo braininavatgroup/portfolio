@@ -34,7 +34,7 @@ function budgetNamespace(
 }
 
 describe("portfolio chat runtime", () => {
-  it("exposes one handler and touches no protected dependency while disabled", async () => {
+  it("fails closed without provider configuration", async () => {
     const getProvider = vi.fn(() => {
       throw new Error("provider must stay dormant");
     });
@@ -46,20 +46,21 @@ describe("portfolio chat runtime", () => {
         PORTFOLIO_CHAT_BUDGET: namespace,
       },
       getProvider,
+      record: () => {},
     });
 
     const response = await runtime.handleChat(chatRequest());
 
     expect(Object.keys(runtime)).toEqual(["handleChat"]);
     expect(response.status).toBe(503);
-    expect(await response.json()).toMatchObject({ code: "disabled" });
+    expect(await response.json()).toMatchObject({ code: "misconfigured" });
     expect(getProvider).not.toHaveBeenCalled();
     expect(limit).not.toHaveBeenCalled();
     expect(namespace.getByName).not.toHaveBeenCalled();
     expect(stub.fetch).not.toHaveBeenCalled();
   });
 
-  it("serves the enabled pre-launch site without chat-specific preview access", async () => {
+  it("serves chat whenever its provider configuration is present", async () => {
     const seenSafetyIdentifiers: Array<string | undefined> = [];
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ safetyIdentifier }) {
@@ -71,7 +72,6 @@ describe("portfolio chat runtime", () => {
     const { namespace } = budgetNamespace(consume);
     const runtime = createPortfolioChatRuntime({
       env: {
-        PORTFOLIO_CHAT_LIVE_ENABLED: "true",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "gpt-5.4-2026-03-05",
@@ -116,7 +116,6 @@ describe("portfolio chat runtime", () => {
     );
     const runtime = createPortfolioChatRuntime({
       env: {
-        PORTFOLIO_CHAT_LIVE_ENABLED: "true",
         PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "true",
         PORTFOLIO_CHAT_IDENTIFIER_SECRET:
           "privacy-safe-identifier-secret-32-chars",
@@ -190,7 +189,6 @@ describe("portfolio chat runtime", () => {
     const { namespace } = budgetNamespace(consume);
     const runtime = createPortfolioChatRuntime({
       env: {
-        PORTFOLIO_CHAT_LIVE_ENABLED: "true",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",
@@ -227,7 +225,6 @@ describe("portfolio chat runtime", () => {
     const { namespace } = budgetNamespace(consume);
     const runtime = createPortfolioChatRuntime({
       env: {
-        PORTFOLIO_CHAT_LIVE_ENABLED: "true",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",

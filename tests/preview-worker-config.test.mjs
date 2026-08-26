@@ -22,7 +22,6 @@ test("the site-preview config cannot attach production routes or chat-specific p
   assert.equal(config.routes, undefined);
   assert.equal(config.domains, undefined);
   assert.deepEqual(config.vars, {
-    PORTFOLIO_CHAT_LIVE_ENABLED: "true",
     PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
     OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
@@ -42,17 +41,20 @@ test("the site-preview config cannot attach production routes or chat-specific p
       new_sqlite_classes: ["PortfolioChatBudgetObject"],
     },
   ]);
+  assert.deepEqual(config.secrets, { required: ["OPENAI_API_KEY"] });
   assert.equal(config.exports, undefined);
 
-  const serialized = JSON.stringify(config);
+  const serializedVars = JSON.stringify(config.vars);
   for (const secretName of [
     "OPENAI_API_KEY",
     "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
     "TURNSTILE_SECRET_KEY",
   ]) {
-    assert.equal(serialized.includes(secretName), false, secretName);
+    assert.equal(serializedVars.includes(secretName), false, secretName);
   }
+  const serialized = JSON.stringify(config);
   for (const retiredName of [
+    "PORTFOLIO_CHAT_LIVE_ENABLED",
     "PORTFOLIO_CHAT_PREVIEW_ENABLED",
     "PORTFOLIO_CHAT_PREVIEW_ACCESS_CODE",
     "PORTFOLIO_CHAT_SESSION_SECRET",

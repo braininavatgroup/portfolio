@@ -5,7 +5,6 @@ import {
 } from "./portfolio-chat-launch";
 
 const publicConfig = {
-  liveEnabled: true,
   turnstileRequired: true,
   identifierSecret: "privacy-safe-identifier-secret-32-chars",
   turnstileSecret: "turnstile-test-secret",
@@ -21,38 +20,11 @@ function chatRequest(ip = "203.0.113.10") {
 }
 
 describe("portfolio chat launch guard", () => {
-  it("leaves every protected dependency untouched while the live gate is false", async () => {
-    const rateLimit = vi.fn();
-    const verifyTurnstile = vi.fn();
-    const record = vi.fn();
-    const guard = createPortfolioChatLaunchGuard({
-      config: { liveEnabled: false, turnstileRequired: true },
-      rateLimiter: { limit: rateLimit },
-      verifyTurnstile,
-      record,
-    });
-
-    const result = await guard(chatRequest(), {
-      challengeToken: "unused-token",
-    });
-
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("Disabled launch guard must reject the request.");
-    expect(result.response.status).toBe(503);
-    expect(await result.response.json()).toEqual({
-      code: "disabled",
-      message: "Ask the portfolio is not enabled.",
-    });
-    expect(rateLimit).not.toHaveBeenCalled();
-    expect(verifyTurnstile).not.toHaveBeenCalled();
-    expect(record).not.toHaveBeenCalled();
-  });
-
-  it("serves an enabled pre-launch site without public abuse controls", async () => {
+  it("serves a direct site without public abuse controls", async () => {
     const rateLimit = vi.fn();
     const verifyTurnstile = vi.fn();
     const guard = createPortfolioChatLaunchGuard({
-      config: { liveEnabled: true, turnstileRequired: false },
+      config: { turnstileRequired: false },
       rateLimiter: { limit: rateLimit },
       verifyTurnstile,
       randomId: () => "direct-request",

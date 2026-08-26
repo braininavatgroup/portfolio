@@ -24,25 +24,6 @@ async function readEvents(response: Response) {
 }
 
 describe("portfolio chat route handler", () => {
-  it("keeps the provider unreachable while the deployment gate is disabled", async () => {
-    const getProvider = vi.fn(() => {
-      throw new Error("provider must remain dormant");
-    });
-    const handler = createPortfolioChatHandler({
-      isEnabled: () => false,
-      getProvider,
-    });
-
-    const response = await handler(questionRequest("How does pitching work?"));
-
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
-      code: "disabled",
-      message: "Ask the portfolio is not enabled.",
-    });
-    expect(getProvider).not.toHaveBeenCalled();
-  });
-
   it("streams deterministic attribution before grounded answer deltas", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ question, evidence }) {
@@ -55,7 +36,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -171,7 +151,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -195,7 +174,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -222,7 +200,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -249,7 +226,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -280,7 +256,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -311,7 +286,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -340,7 +314,6 @@ describe("portfolio chat route handler", () => {
         },
       };
       const handler = createPortfolioChatHandler({
-        isEnabled: () => true,
         getProvider: () => provider,
       });
 
@@ -360,7 +333,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -388,7 +360,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
     const requestWithState = (portfolioNudgeShown: boolean) =>
@@ -428,7 +399,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -453,7 +423,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -479,7 +448,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -507,7 +475,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -527,7 +494,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
     const request = new Request("http://portfolio.test/api/portfolio-chat", {
@@ -554,7 +520,6 @@ describe("portfolio chat route handler", () => {
       throw new Error("provider must not be called");
     });
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider,
     });
     const request = new Request("http://portfolio.test/api/portfolio-chat", {
@@ -586,7 +551,6 @@ describe("portfolio chat route handler", () => {
     };
     const getProvider = vi.fn(() => provider);
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider,
     });
 
@@ -617,7 +581,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -648,7 +611,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-partial",
@@ -684,7 +646,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-invalid-attribution",
@@ -748,7 +709,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -772,7 +732,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
 
@@ -790,7 +749,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-safe",
@@ -834,7 +792,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-provider-failure",
@@ -877,7 +834,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
     });
     const response = await handler(questionRequest("How does pitching work?"));
@@ -919,7 +875,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-cancelled",
@@ -956,7 +911,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-timeout",
@@ -992,7 +946,6 @@ describe("portfolio chat route handler", () => {
       },
     };
     const handler = createPortfolioChatHandler({
-      isEnabled: () => true,
       getProvider: () => provider,
       getRequestContext: () => ({
         requestId: "request-timeout-invalid-attribution",

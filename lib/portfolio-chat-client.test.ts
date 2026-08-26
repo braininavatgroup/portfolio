@@ -152,10 +152,10 @@ describe("portfolio chat client", () => {
     ).rejects.toMatchObject({ code: "invalid_stream" });
   });
 
-  it("preserves the disabled-gate error contract without exposing response internals", async () => {
+  it("preserves the server configuration error without exposing response internals", async () => {
     const fetchImplementation = async () =>
       Response.json(
-        { code: "disabled", message: "Ask the portfolio is not enabled." },
+        { code: "misconfigured", message: "Ask the portfolio is not configured." },
         { status: 503 },
       );
 
@@ -171,8 +171,8 @@ describe("portfolio chat client", () => {
 
     expect(caught).toBeInstanceOf(PortfolioChatClientError);
     expect(caught).toMatchObject({
-      code: "disabled",
-      message: "Ask the portfolio is not enabled.",
+      code: "misconfigured",
+      message: "Ask the portfolio is not configured.",
     });
   });
 

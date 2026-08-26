@@ -8,10 +8,26 @@ Requires Node.js 22.13 or newer.
 
 ```bash
 npm ci
+npm run setup:chat # once per Mac
 npm run dev
 ```
 
 The development server prints its local URL, normally `http://localhost:3000`.
+After this configuration reaches the default branch, Conductor's shared repo
+settings run `npm ci` for each new workspace and expose the default development
+action on that workspace's allocated port. Workspaces can run concurrently
+because Wrangler and Miniflare keep their state inside each worktree.
+The setup wizard opens the OpenAI project page and separates the credentials:
+
+- The `portfolio-dev` key lives in macOS Keychain under service
+  `biv-openai-portfolio-dev`; every Conductor workspace reads it automatically.
+- The `portfolio-production` service-account key is uploaded only after an
+  explicit confirmation and lives as Cloudflare's encrypted
+  `OPENAI_API_KEY` Worker secret.
+
+No key is copied into a workspace, `.env` file, generated BStack release, or
+command argument. An explicit `OPENAI_API_KEY` process variable still overrides
+Keychain for CI and non-macOS environments.
 
 Open `/?avatarLab=1` for the isolated avatar programming lab. Its Director
 console provides scene recipes; a live target map with walk, swim, look, point,
@@ -46,21 +62,38 @@ Inputs still needed for a production version include the real 3D model, roster p
 
 ## Portfolio chat launch controls
 
-The model-backed chat is false by default. The single canonical App Router endpoint, `/api/portfolio-chat`, reads server-only Cloudflare bindings and refuses requests before provider construction unless the live gate and provider budget are configured.
+The model-backed chat has one canonical App Router endpoint,
+`/api/portfolio-chat`, and no enable/disable gate. In every configured local or
+deployed environment, submitting a message reaches the provider. A missing key,
+model, request budget, or Durable Object binding is reported as a configuration
+error before provider construction rather than silently disabling chat.
 
 During pre-launch, access to the portfolio is a deployment-boundary concern rather than a second authentication flow inside chat. The dedicated site-preview Worker is reachable only at the generated `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname. Chat still retains the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, Turnstile tokens, IP addresses, provider keys, upstream bodies, and exception messages.
 
 Future public launch controls remain dormant and independent: setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true` requires Turnstile, a Cloudflare route limiter, and a server-only `PORTFOLIO_CHAT_IDENTIFIER_SECRET`. The runtime HMAC-pseudonymizes the trusted Cloudflare connecting IP before using it as a limiter key or OpenAI `safety_identifier`; raw IPs are never forwarded or logged. Leaving the setting false touches none of those capabilities.
 
-The provider is one OpenAI Agents SDK text agent with one model turn and no tools, handoffs, or persistent session. Its instructions define the portfolio-guide task, and every run receives the complete published portfolio evidence plus the bounded transcript from the current browser visit. The agent always answers conversationally: published Bradley facts can carry citations, unknown Bradley details get a natural statement of uncertainty, social chat stays open-ended, and the application owns the one-time third-general-turn nudge. Its structured result also selects one to three known avatar behaviors, a bounded performance intent, and enum-valued tone. The client holds that direction until the first answer text commits. SDK tracing and OpenAI response storage are disabled so this adoption does not broaden the telemetry or retention contract.
+The provider is one OpenAI Agents SDK text agent with one model turn and no
+tools, handoffs, or persistent session. Its instructions define the
+portfolio-guide task, and every run receives the complete published portfolio
+evidence plus the bounded transcript from the current browser visit. The agent
+always answers conversationally: published Bradley facts can carry citations,
+unknown Bradley details get a natural statement of uncertainty, social chat
+stays open-ended, and the application owns the one-time third-general-turn
+nudge. Its structured result also selects one to three known avatar behaviors,
+a bounded performance intent, and enum-valued tone. The client holds that
+direction until the first answer text commits. SDK tracing and OpenAI response
+storage are disabled so this adoption does not broaden the telemetry or
+retention contract. The SDK's optional MCP packages remain installed for future
+agent tools; local Vite development only excludes their browser-only PKCE helper
+from Workerd's eager dependency optimizer.
 
-`wrangler.preview.jsonc` owns the site-preview Worker's non-secret configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request UTC-day Durable Object budget, its SQLite migration, disabled public controls, and no custom-domain route. `OPENAI_API_KEY` is supplied only as an encrypted Worker secret.
-
-For local model-backed chat on macOS, store the API key in Keychain under the
-service name `openai-api-key`, then run `npm run dev:chat`. The command passes
-that one secret to the local Worker process without creating a credential file.
-The ordinary `npm run dev` remains credential-free, and production builds do not
-inherit the development chat gate or its local Durable Object binding.
+`wrangler.preview.jsonc` owns the site-preview Worker's non-secret
+configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request
+UTC-day Durable Object budget, its SQLite migration, dormant public controls,
+and no custom-domain route. It declares `OPENAI_API_KEY` as a required encrypted
+Worker secret. The local Vite Worker supplies the same model, budget, and
+Durable Object bindings while `npm run dev` injects the separate Keychain-backed
+development key.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
