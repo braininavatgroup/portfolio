@@ -25,6 +25,12 @@ The setup wizard opens the OpenAI project page and separates the credentials:
   explicit confirmation and lives as Cloudflare's encrypted
   `OPENAI_API_KEY` Worker secret.
 
+The repeatable two-stage wizard captures both keys with hidden terminal input.
+It authenticates the development key before replacing the existing Keychain
+item, reads it back to verify that the complete value was preserved, and rolls
+the prior value back if storage verification fails. The production key remains
+in memory only long enough to validate it and stream it directly to Wrangler.
+
 No key is copied into a workspace, `.env` file, generated BStack release, or
 command argument. An explicit `OPENAI_API_KEY` process variable still overrides
 Keychain for CI and non-macOS environments.
