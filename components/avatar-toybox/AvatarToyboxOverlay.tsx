@@ -145,17 +145,19 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
           <p className="eyebrow">Secret avatar toybox</p>
           <h2 id="avatar-toybox-title">Avatar toybox</h2>
         </div>
-        {session.status === "collecting" || session.status === "result" ? (
+        {session.status === "collecting" ? (
           <p aria-label="Brain Food score and time">
             Score {session.score} of {session.collectibles.length} · {session.remainingSeconds}s
           </p>
+        ) : session.status === "result" ? (
+          <p>Returning to portfolio...</p>
         ) : session.status === "tossing" ? (
-          <p>Drag + release · R reset · 1 Brain Food · Esc exit</p>
+          <p>Drag + release · R reset · Esc exits</p>
         ) : (
           <p>Press 1 or 2 · Esc exits</p>
         )}
         <button className="avatar-toybox-exit" onClick={() => session.close()} type="button">
-          Exit toybox
+          Return to portfolio
         </button>
       </header>
 
@@ -183,6 +185,14 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
 
       {showField ? (
         <div className="avatar-toybox-field">
+          {session.status === "result" ? (
+            <button
+              aria-label="Return to portfolio from playfield"
+              className="avatar-toybox-result-dismiss"
+              onClick={() => session.close()}
+              type="button"
+            />
+          ) : null}
           {session.status !== "tossing"
             ? session.collectibles.map((collectible) => {
                 if (collectible.eaten) return null;
@@ -208,12 +218,24 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
           <ToyboxAvatar session={session} />
           {session.status === "result" ? (
             <div className="avatar-toybox-result">
-              <p className="eyebrow">Round complete</p>
-              <strong>{session.score} of {session.collectibles.length} collected</strong>
-              <p>Enter or 1 replay · 2 Toss Bradley · Esc exit</p>
-              <button data-avatar-toybox-initial-focus onClick={session.startCollecting} type="button">
-                Play again
+              <button
+                aria-label="Close completion and return to portfolio"
+                className="avatar-toybox-result-close"
+                data-avatar-toybox-initial-focus
+                onClick={() => session.close()}
+                type="button"
+              >
+                ×
               </button>
+              <p className="eyebrow">
+                {session.resultKind === "toss" ? "Toss complete" : "Round complete"}
+              </p>
+              <strong>
+                {session.resultKind === "toss"
+                  ? "Bradley stuck the landing"
+                  : `${session.score} of ${session.collectibles.length} collected`}
+              </strong>
+              <p>Returning to the portfolio in five seconds.</p>
             </div>
           ) : null}
         </div>

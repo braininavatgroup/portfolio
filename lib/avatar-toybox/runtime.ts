@@ -1,6 +1,7 @@
 export const TOYBOX_MIN_WIDTH = 900;
 export const TOYBOX_MIN_HEIGHT = 600;
-export const BRAIN_FOOD_DURATION_SECONDS = 30;
+export const BRAIN_FOOD_DURATION_SECONDS = 20;
+export const TOYBOX_RESULT_DURATION_MS = 5_000;
 export const MAX_FRAME_DELTA_SECONDS = 0.05;
 
 export type Vec2 = { x: number; y: number };
@@ -53,6 +54,7 @@ const MAX_THROW_SPEED = 1800;
 const SLEEP_HORIZONTAL_SPEED = 30;
 const SLEEP_VERTICAL_SPEED = 85;
 const UPRIGHT_DAMPING_PER_SECOND = 7;
+const MINIMUM_THROW_DISTANCE = 32;
 
 export function isToyboxViewportEligible({
   width,
@@ -244,8 +246,9 @@ export function advanceActiveTime(
   deltaSeconds: number,
   activity: { focused: boolean; visible: boolean },
 ) {
+  const activeDelta = Number.isFinite(deltaSeconds) && deltaSeconds > 0 ? deltaSeconds : 0;
   const next = activity.focused && activity.visible
-    ? Math.min(BRAIN_FOOD_DURATION_SECONDS, elapsed + clampFrameDelta(deltaSeconds))
+    ? Math.min(BRAIN_FOOD_DURATION_SECONDS, elapsed + activeDelta)
     : elapsed;
   return { elapsed: next, complete: next >= BRAIN_FOOD_DURATION_SECONDS };
 }
@@ -265,6 +268,25 @@ export function estimatePointerVelocity(samples: readonly PointerSample[]): Vec2
   return speed > MAX_THROW_SPEED
     ? { x: velocity.x / speed * MAX_THROW_SPEED, y: velocity.y / speed * MAX_THROW_SPEED }
     : velocity;
+}
+
+export function isMeaningfulThrow(samples: readonly PointerSample[]) {
+  const first = samples[0];
+  const last = samples.at(-1);
+  if (!first || !last || last.at <= first.at) return false;
+  return Math.hypot(
+    last.position.x - first.position.x,
+    last.position.y - first.position.y,
+  ) >= MINIMUM_THROW_DISTANCE;
+}
+
+export function isTossSettled(body: TossBody) {
+  return !body.dragging
+    && Math.abs(body.velocity.x) < 0.01
+    && Math.abs(body.velocity.y) < 0.01
+    && Math.abs(body.rotation) < 0.01
+    && Math.abs(body.angularVelocity) < 0.01
+    && body.impact < 0.01;
 }
 
 export function resetTossBody(bounds: ViewportBounds): TossBody {

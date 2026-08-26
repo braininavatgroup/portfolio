@@ -4,15 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isExactToyboxShortcut } from "../../lib/dom-keyboard";
 import {
   advanceActiveTime,
+  BRAIN_FOOD_DURATION_SECONDS,
   clampAvatarPosition,
   collectOverlaps,
   createCollectibleLayout,
   estimatePointerVelocity,
   integrateBrainFood,
   integrateToss,
+  isMeaningfulThrow,
+  isTossSettled,
   isToyboxViewportEligible,
   rebuildUneatenCollectibles,
   resetTossBody,
+  TOYBOX_RESULT_DURATION_MS,
   type BrainFoodBody,
   type Collectible,
   type HitboxSize,
@@ -23,6 +27,7 @@ import {
 } from "../../lib/avatar-toybox/runtime";
 
 export type ToyboxStatus = "closed" | "choosing" | "collecting" | "result" | "tossing";
+export type ToyboxResultKind = "brain-food" | "toss";
 
 export type ToyboxCollectible = {
   id: string;
@@ -34,6 +39,7 @@ export type AvatarToyboxSession = {
   status: ToyboxStatus;
   isOpen: boolean;
   isPlaying: boolean;
+  resultKind: ToyboxResultKind | null;
   reducedMotion: boolean;
   collectibles: Collectible[];
   roster: readonly ToyboxCollectible[];
@@ -105,6 +111,7 @@ export function useAvatarToyboxSession({
   reducedMotion: boolean;
 }): AvatarToyboxSession {
   const [status, setStatus] = useState<ToyboxStatus>("closed");
+  const [resultKind, setResultKind] = useState<ToyboxResultKind | null>(null);
   const [collectibles, setCollectibles] = useState<Collectible[]>([]);
   const [brainBody, setBrainBody] = useState<BrainFoodBody>(() =>
     typeof window === "undefined"
@@ -139,6 +146,7 @@ export function useAvatarToyboxSession({
     samples: PointerSample[];
     offset: Vec2;
   } | null>(null);
+  const hasMeaningfulThrowRef = useRef(false);
 
   const commitStatus = useCallback((next: ToyboxStatus) => {
     statusRef.current = next;
@@ -240,12 +248,15 @@ export function useAvatarToyboxSession({
     const bounds = currentViewport();
     if (!isToyboxViewportEligible(bounds) || !acquireShell()) return;
     closingRef.current = false;
+    setResultKind(null);
     setAnnouncement("Avatar toybox opened. Choose Brain Food or Toss Bradley.");
     commitStatus("choosing");
   }, [acquireShell, canOpen, commitStatus]);
 
   const startCollecting = useCallback(() => {
     cancelInput();
+    hasMeaningfulThrowRef.current = false;
+    setResultKind(null);
     const bounds = currentViewport();
     const nextCollectibles = createCollectibleLayout(roster.map(({ id }) => id), bounds);
     const nextBody = initialBrainBody(bounds);
@@ -258,6 +269,7 @@ export function useAvatarToyboxSession({
     setElapsed(0);
     if (nextCollectibles.length === 0) {
       setAnnouncement("Brain Food has no collectibles available.");
+      setResultKind("brain-food");
       commitStatus("result");
     } else {
       setAnnouncement("Brain Food started.");
@@ -267,6 +279,8 @@ export function useAvatarToyboxSession({
 
   const startTossing = useCallback(() => {
     cancelInput();
+    hasMeaningfulThrowRef.current = false;
+    setResultKind(null);
     const next = resetTossBody(currentViewport());
     tossBodyRef.current = next;
     setTossBody(next);
@@ -276,6 +290,7 @@ export function useAvatarToyboxSession({
 
   const resetToss = useCallback(() => {
     cancelInput();
+    hasMeaningfulThrowRef.current = false;
     const next = resetTossBody(currentViewport());
     tossBodyRef.current = next;
     setTossBody(next);
@@ -357,29 +372,16 @@ export function useAvatarToyboxSession({
             heldRef.current.add(key);
             setHeldDirection(directionFromHeld(heldRef.current));
           }
-        } else if (key === "2") {
-          event.preventDefault();
-          startTossing();
         }
         return;
       }
       if (current === "result") {
-        if (key === "enter" || key === "1") {
-          event.preventDefault();
-          startCollecting();
-        } else if (key === "2") {
-          event.preventDefault();
-          startTossing();
-        }
         return;
       }
       if (current === "tossing") {
         if (key === "r") {
           event.preventDefault();
           resetToss();
-        } else if (key === "1") {
-          event.preventDefault();
-          startCollecting();
         }
       }
     };
@@ -394,6 +396,12 @@ export function useAvatarToyboxSession({
       document.removeEventListener("keyup", handleKeyUp);
     };
   }, [close, reducedMotion, resetToss, startCollecting, startTossing, status]);
+
+  useEffect(() => {
+    if (status !== "result") return;
+    const timeout = window.setTimeout(() => close(), TOYBOX_RESULT_DURATION_MS);
+    return () => window.clearTimeout(timeout);
+  }, [close, status]);
 
   useEffect(() => {
     if (status === "closed") return;
@@ -471,6 +479,7 @@ export function useAvatarToyboxSession({
         }
         if (time.complete || allCollected) {
           setAnnouncement(`Brain Food complete. ${score} collected.`);
+          setResultKind("brain-food");
           commitStatus("result");
           return;
         }
@@ -478,6 +487,12 @@ export function useAvatarToyboxSession({
         const next = integrateToss(tossBodyRef.current, delta, bounds, hitboxRef.current, reducedMotion);
         tossBodyRef.current = next;
         setTossBody(next);
+        if (hasMeaningfulThrowRef.current && isTossSettled(next)) {
+          setAnnouncement("Toss Bradley complete.");
+          setResultKind("toss");
+          commitStatus("result");
+          return;
+        }
       }
       frameRef.current = requestAnimationFrame(tick);
     };
@@ -549,9 +564,11 @@ export function useAvatarToyboxSession({
       currentViewport(),
       hitboxRef.current,
     );
+    const samples = [...pointer.samples, { position: bounded, at }];
     const velocity = reducedMotion
       ? { x: 0, y: 0 }
-      : estimatePointerVelocity([...pointer.samples, { position: bounded, at }]);
+      : estimatePointerVelocity(samples);
+    hasMeaningfulThrowRef.current ||= isMeaningfulThrow(samples);
     releasePointer();
     const next = {
       ...tossBodyRef.current,
@@ -573,6 +590,7 @@ export function useAvatarToyboxSession({
     status,
     isOpen: status !== "closed",
     isPlaying: status === "collecting" || status === "result" || status === "tossing",
+    resultKind,
     reducedMotion,
     collectibles,
     roster,
@@ -580,7 +598,7 @@ export function useAvatarToyboxSession({
     tossBody,
     elapsed,
     score: collectibles.filter(({ eaten }) => eaten).length,
-    remainingSeconds: Math.max(0, Math.ceil(30 - elapsed)),
+    remainingSeconds: Math.max(0, Math.ceil(BRAIN_FOOD_DURATION_SECONDS - elapsed)),
     announcement,
     modalRef,
     close,

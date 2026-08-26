@@ -109,13 +109,17 @@ describe("avatar toybox runtime", () => {
     expect(second.collectedIds).toEqual([]);
   });
 
-  it("counts only focused visible active time and expires at thirty seconds", () => {
+  it("counts only focused visible active time and expires at twenty seconds", () => {
+    expect(advanceActiveTime(5, 1, { focused: true, visible: true })).toEqual({
+      elapsed: 6,
+      complete: false,
+    });
     expect(advanceActiveTime(10, 1, { focused: false, visible: true })).toEqual({
       elapsed: 10,
       complete: false,
     });
-    expect(advanceActiveTime(29.98, 5, { focused: true, visible: true })).toEqual({
-      elapsed: 30,
+    expect(advanceActiveTime(19.98, 5, { focused: true, visible: true })).toEqual({
+      elapsed: 20,
       complete: true,
     });
   });

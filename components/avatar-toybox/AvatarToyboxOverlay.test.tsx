@@ -19,10 +19,16 @@ vi.mock("../avatar/AvatarAssetAdapter", () => ({
 
 const roster = [{ id: "one", label: "One", tokenKind: "document" }];
 
-function Harness({ reducedMotion = false }: { reducedMotion?: boolean }) {
+function Harness({
+  collectibles = roster,
+  reducedMotion = false,
+}: {
+  collectibles?: typeof roster;
+  reducedMotion?: boolean;
+}) {
   const session = useAvatarToyboxSession({
     canOpen: () => true,
-    collectibles: roster,
+    collectibles,
     reducedMotion,
   });
   return <AvatarToyboxOverlay session={session} />;
@@ -56,11 +62,11 @@ describe("AvatarToyboxOverlay", () => {
     expect(screen.getByRole("dialog", { name: "Avatar toybox" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Brain Food/ }));
 
-    expect(screen.getByText(/Score 0 of 1/)).toBeTruthy();
+    expect(screen.getByText(/Score 0 of 1 · 20s/)).toBeTruthy();
     expect(screen.getByTestId("toybox-avatar-canvas")).toBeTruthy();
     expect(screen.getByLabelText("Collect One")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Exit toybox" }));
+    fireEvent.click(screen.getByRole("button", { name: "Return to portfolio" }));
     expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
   });
 
@@ -87,5 +93,21 @@ describe("AvatarToyboxOverlay", () => {
 
     expect(screen.getByTestId("toybox-avatar-model").dataset.facing).toBe("front");
     expect(screen.getByTestId("toybox-avatar-model").dataset.anchor).toBe("center");
+  });
+
+  it("dismisses the completion screen from its close control or playfield", () => {
+    render(<Harness collectibles={[]} />, { container: document.getElementById("app-shell")! });
+    fireEvent.keyDown(document, { key: "g", shiftKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /Brain Food/ }));
+
+    expect(screen.getByText("Round complete")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Play again" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Close completion and return to portfolio" }));
+    expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
+
+    fireEvent.keyDown(document, { key: "g", shiftKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /Brain Food/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Return to portfolio from playfield" }));
+    expect(screen.queryByRole("dialog", { name: "Avatar toybox" })).toBeNull();
   });
 });

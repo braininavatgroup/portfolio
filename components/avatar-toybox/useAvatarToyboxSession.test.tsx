@@ -51,6 +51,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   document.body.replaceChildren();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -247,5 +248,46 @@ describe("avatar toybox session lease", () => {
     expect(result.current.brainBody.moving).toBe(false);
     act(() => frames.shift()?.(32));
     expect(result.current.brainBody.position.x).toBe(settledX);
+  });
+
+  it("returns to the portfolio five seconds after showing a result", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() =>
+      useAvatarToyboxSession({ canOpen: () => true, collectibles: [], reducedMotion: false }),
+    );
+    act(() => dispatchShortcut());
+    act(() => result.current.startCollecting());
+    expect(result.current.status).toBe("result");
+
+    act(() => vi.advanceTimersByTime(4_999));
+    expect(result.current.status).toBe("result");
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.status).toBe("closed");
+  });
+
+  it("completes Toss Bradley after the first real throw settles", () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    }));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const { result } = renderHook(() =>
+      useAvatarToyboxSession({ canOpen: () => true, collectibles: roster, reducedMotion: true }),
+    );
+    const hitbox = document.createElement("div");
+    hitbox.setPointerCapture = vi.fn();
+    hitbox.hasPointerCapture = vi.fn(() => true);
+    hitbox.releasePointerCapture = vi.fn();
+    act(() => dispatchShortcut());
+    act(() => result.current.startTossing());
+    const initial = result.current.tossBody.position;
+    act(() => result.current.beginDrag(7, initial, hitbox, 0));
+    act(() => result.current.moveDrag(7, { x: initial.x + 120, y: initial.y + 40 }, 100));
+    act(() => result.current.endDrag(7, { x: initial.x + 160, y: initial.y + 80 }, 180));
+    expect(result.current.status).toBe("tossing");
+
+    act(() => frames.shift()?.(0));
+    expect(result.current.status).toBe("result");
   });
 });

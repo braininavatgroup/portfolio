@@ -2,11 +2,11 @@
 
 **Status:** Approved and adversarially hardened
 
-**Ticket:** ClickUp `86bbmpmmf`
+**Ticket:** Linear `PER-15`
 
 ## Intent
 
-Add a hidden, desktop-only play layer for the portfolio avatar. `Shift+G` opens a modal chooser for two short interactions: Brain Food, a 30-second node-collection game, and Toss Bradley, a whole-body drag-and-throw toy. The feature is a disposable client-side session: it must leave graph selection, routes, chat, avatar preferences, and controller state exactly as it found them.
+Add a hidden, desktop-only play layer for the portfolio avatar. `Shift+G` opens a modal chooser for two short interactions: Brain Food, a 20-second node-collection game, and Toss Bradley, a whole-body drag-and-throw toy. The feature is a disposable client-side session: it must leave graph selection, routes, chat, avatar preferences, and controller state exactly as it found them.
 
 ## Entry contract
 
@@ -20,14 +20,15 @@ Add a hidden, desktop-only play layer for the portfolio avatar. `Shift+G` opens 
 
 - Arrow keys and WASD move the avatar through a DOM field in CSS-pixel coordinates.
 - Collectibles are stable projected copies of the canonical ordered `portfolioNodes.filter(node => node.role === "output")` roster. They never mutate the real graph.
-- Normal motion uses acceleration, damping, capped speed, horizontal facing, edge wrapping, and `walk`/`idle` poses. Reduced motion uses direct bounded steps.
-- Circle collisions score each collectible once. The round ends when all are collected or after 30 seconds of focused, visible active time.
-- Results support replay with `Enter`/`1`, switching to Toss Bradley with `2`, or leaving with `Escape`.
+- Normal motion uses acceleration, damping, capped speed, horizontal facing, bounded edges, and `walk`/`idle` poses. Reduced motion uses direct bounded steps.
+- Circle collisions score each collectible once. A visible clock counts down 20 seconds of focused, visible active time, and the round ends when all are collected or time expires.
+- The result remains visible for five seconds and then returns to the portfolio. Its close control or a click on the playfield returns immediately. There is no replay loop or mode switch after play begins.
 
 ## Toss Bradley
 
 - A DOM hitbox owns pointer capture while dragging. Recent pointer samples determine release velocity.
-- A small deterministic simulation applies gravity, damping, angular velocity, and bounded bounces to the whole avatar object. `R` resets and `1` switches modes.
+- A small deterministic simulation applies gravity, damping, angular velocity, and bounded bounces to the whole avatar object. `R` resets while the mode is active.
+- The first meaningful drag and release completes when the avatar settles upright, then uses the same five-second result and immediate-dismiss behavior as Brain Food.
 - Reduced motion still permits dragging but settles immediately on release.
 
 ## Architecture
@@ -44,11 +45,11 @@ Every mode change, blur, hidden visibility, lost pointer capture, pointer cancel
 
 ## Accessibility and performance
 
-- The modal has a real heading, concise instructions, a persistent Exit button, trapped keyboard focus, and a restrained live region. The canvas is decorative.
+- The modal has a real heading, concise instructions, a persistent Return to portfolio button, trapped keyboard focus, and a restrained live region. The canvas is decorative.
 - The HUD always names active controls. Color is never the only result cue.
 - The toybox adds no runtime dependency, physics engine, persistence, analytics, sound, full-screen WebGL root, or model-controlled behavior.
 - At play time the page retains the main portfolio canvas plus one avatar-sized canvas, matching the normal renderer count and size class. Animation stops while hidden.
 
 ## Proof contract
 
-Pure tests cover eligibility, deterministic placement, motion, wrapping, collision, timing, velocity estimation, toss physics, reduced motion, and resize. Component tests cover keyboard arbitration, focus/inert restoration, cleanup, pointer capture, roster stability, controller continuity, and distinct scene instances. A production-build headless browser run verifies the real portal, keyboard ownership before/during/after, both modes, error and resize cleanup, reduced motion, WebGL topology, resource reuse, and live-region cadence. Toss weight, bounce feel, collision generosity, and keyboard comfort remain a physical-device walk.
+Pure tests cover eligibility, deterministic placement, bounded motion, collision, timing, velocity estimation, toss physics, reduced motion, and resize. Component tests cover keyboard arbitration, completion timing, focus/inert restoration, cleanup, pointer capture, roster stability, controller continuity, and distinct scene instances. A production-build headless browser run verifies the real portal, keyboard ownership before/during/after, both modes, error and resize cleanup, reduced motion, WebGL topology, resource reuse, and live-region cadence. Toss weight, bounce feel, collision generosity, and keyboard comfort remain a physical-device walk.
