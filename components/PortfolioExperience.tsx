@@ -30,6 +30,11 @@ import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
 import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
+  portfolioStoryById,
+  portfolioWorldNodes,
+  type PortfolioWorldNode,
+} from "../lib/portfolio-world";
+import {
   portfolioNodes,
   type SpatialGraphNode,
 } from "../lib/spatial-graph";
@@ -38,10 +43,10 @@ import {
   transitionReducer,
   type TransitionPhase,
 } from "../lib/transition";
-import { KeyboardNavigator } from "./KeyboardNavigator";
 import { PortfolioChat } from "./PortfolioChat";
-import { PortfolioDossier } from "./PortfolioDossier";
 import { PortfolioHeader } from "./PortfolioHeader";
+import { PortfolioReader } from "./PortfolioReader";
+import { PortfolioWorld } from "./PortfolioWorld";
 import { TransitionStatus } from "./TransitionStatus";
 import { AvatarToyboxBoundary } from "./avatar-toybox/AvatarToyboxBoundary";
 import { useAvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
@@ -114,6 +119,23 @@ function useReducedMotion() {
   return reduced;
 }
 
+function readWorldLocation() {
+  const parts = window.location.hash.slice(1).split("/").filter(Boolean);
+  if (parts[0] === "story") {
+    return { storyId: parts[1] ?? null, nodeId: parts[2] ?? null };
+  }
+  return { storyId: null, nodeId: parts[0] ?? null };
+}
+
+function pushWorldLocation(nodeId: string | null, storyId: string | null) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "graph");
+  url.hash = storyId
+    ? `story/${storyId}${nodeId ? `/${nodeId}` : ""}`
+    : nodeId ?? "";
+  window.history.pushState({ nodeId, storyId }, "", url);
+}
+
 export function PortfolioExperience({
   avatarLab = false,
   initialPhase = "body",
@@ -130,6 +152,8 @@ export function PortfolioExperience({
   const [pose, setPose] = useState<PoseState>("idle");
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
+  const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [spotlightTarget, setSpotlightTarget] =
     useState<AvatarTargetId | null>(null);
   const [avatarEnabled, setAvatarEnabled] = useState(true);
@@ -158,9 +182,6 @@ export function PortfolioExperience({
     () => new Map<AvatarObstacleId, HTMLElement>(),
   );
 
-  const dossier = selectedNode
-    ? getPortfolioDossier(selectedNode)
-    : undefined;
   const visibleNodes = visibleGraphNodes(portfolioNodes, {
     selectedDomain,
     selectedProjectId: selectedNode?.projectId ?? null,
@@ -196,6 +217,8 @@ export function PortfolioExperience({
     avatarActionState.clearSelection();
     setSelectedDomain(null);
     setSelectedNode(null);
+    setSelectedWorldId(null);
+    setActiveStoryId(null);
     setKeyboardNodeId(null);
   }, [avatarActionState]);
 
@@ -229,6 +252,11 @@ export function PortfolioExperience({
       avatarActionState.selectNode(node);
       setSelectedDomain(domain);
       setSelectedNode(node);
+      const worldNode = portfolioWorldNodes.find(
+        ({ projectSlug }) => projectSlug === node.projectSlug,
+      );
+      setSelectedWorldId(worldNode?.id ?? null);
+      setActiveStoryId(null);
     },
     [avatarActionState, selectDomain, showIndex],
   );
@@ -263,9 +291,77 @@ export function PortfolioExperience({
     [avatarActionState, avatarDirector, selectNode],
   );
 
+  const selectWorldNode = useCallback(
+    (node: PortfolioWorldNode) => {
+      setSelectedWorldId(node.id);
+      setKeyboardNodeId(null);
+
+      if (node.family === "story") {
+        setActiveStoryId(node.storyId ?? null);
+        const previous = avatarActionState.getSelectedNode();
+        avatarActionState.clearSelection();
+        setSelectedNode(null);
+        setSelectedDomain(null);
+        pushWorldLocation(null, node.storyId ?? null);
+        if (previous) {
+          window.setTimeout(
+            () => void avatarDirector.handle({ type: "project_close" }),
+            0,
+          );
+        }
+        return;
+      }
+
+      const retainedStoryId = activeStoryId &&
+        portfolioStoryById.get(activeStoryId)?.members.includes(node.id)
+        ? activeStoryId
+        : null;
+
+      if (!node.projectSlug) {
+        setActiveStoryId(retainedStoryId);
+        const previous = avatarActionState.getSelectedNode();
+        avatarActionState.clearSelection();
+        setSelectedNode(null);
+        setSelectedDomain(null);
+        pushWorldLocation(node.id, retainedStoryId);
+        if (previous) {
+          window.setTimeout(
+            () => void avatarDirector.handle({ type: "project_close" }),
+            0,
+          );
+        }
+        return;
+      }
+
+      const spatialNode =
+        portfolioNodes.find(
+          ({ projectSlug, role }) =>
+            projectSlug === node.projectSlug && role === "output",
+        ) ?? portfolioNodes.find(({ projectSlug }) => projectSlug === node.projectSlug);
+      if (spatialNode) selectNodeWithAvatar(spatialNode);
+      setSelectedWorldId(node.id);
+      setActiveStoryId(retainedStoryId);
+      pushWorldLocation(node.id, retainedStoryId);
+    },
+    [
+      activeStoryId,
+      avatarActionState,
+      avatarDirector,
+      selectNodeWithAvatar,
+    ],
+  );
+
+  const selectStory = useCallback((storyId: string) => {
+    const storyNode = portfolioWorldNodes.find(
+      (node) => node.storyId === storyId,
+    );
+    if (storyNode) selectWorldNode(storyNode);
+  }, [selectWorldNode]);
+
   const showIndexWithAvatar = useCallback(() => {
     const hadProject = Boolean(avatarActionState.getSelectedNode());
     showIndex();
+    pushWorldLocation(null, null);
     if (hadProject) {
       window.setTimeout(
         () => void avatarDirector.handle({ type: "project_close" }),
@@ -274,12 +370,15 @@ export function PortfolioExperience({
     }
   }, [avatarActionState, avatarDirector, showIndex]);
 
-  const handleDossierTabChange = useCallback(() => {
-    const projectSlug = avatarActionState.getSelectedNode()?.projectSlug;
-    if (!projectSlug) return;
-    const target: ProjectAvatarTargetId = `project:${projectSlug}`;
-    void avatarDirector.handle({ type: "tab_change", target });
-  }, [avatarActionState, avatarDirector]);
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && transition.phase === "graph") {
+        showIndexWithAvatar();
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showIndexWithAvatar, transition.phase]);
 
   const registerAvatarTarget = useCallback(
     (target: AvatarTargetId, element: HTMLElement | null) => {
@@ -436,16 +535,31 @@ export function PortfolioExperience({
   }, [reducedMotion, transition.phase, transition.run]);
 
   useEffect(() => {
+    let initialSync = true;
     const syncWithLocation = () => {
       const graphRequested =
-        new URLSearchParams(window.location.search).get("view") === "graph";
+        new URLSearchParams(window.location.search).get("view") === "graph" ||
+        (initialSync && initialPhase === "graph");
+      initialSync = false;
       showIndex();
       setPose("idle");
       dispatch({ type: graphRequested ? "ENTER" : "EXIT" });
+      if (!graphRequested) return;
+
+      const { nodeId, storyId } = readWorldLocation();
+      const story = storyId ? portfolioStoryById.get(storyId) : undefined;
+      const node = nodeId ? portfolioWorldNodes.find(({ id }) => id === nodeId) : undefined;
+      if (story) {
+        setActiveStoryId(story.id);
+        setSelectedWorldId(node?.id ?? story.nodeId);
+      } else if (node) {
+        setSelectedWorldId(node.id);
+      }
     };
     window.addEventListener("popstate", syncWithLocation);
+    syncWithLocation();
     return () => window.removeEventListener("popstate", syncWithLocation);
-  }, [showIndex]);
+  }, [initialPhase, showIndex]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -619,8 +733,7 @@ export function PortfolioExperience({
 
   return (
     <main
-      className={`experience experience-${transition.phase}`}
-      data-theme="light"
+      className={`experience experience-${transition.phase}${transition.phase === "graph" ? " portfolio-composition" : ""}`}
       id="main-content"
       tabIndex={-1}
     >
@@ -660,25 +773,34 @@ export function PortfolioExperience({
         className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
         id="brain"
       >
-        <Suspense
-          fallback={
-            <div className="scene-loading" role="status">
-              Preparing the spatial view. All project pages are available now.
-            </div>
-          }
-        >
-          <PortfolioCanvas
-            nodes={visibleNodes}
-            phase={transition.phase}
-            pose={pose}
-            selectedDomain={selectedDomain}
-            reducedMotion={reducedMotion}
-            focusedNodeId={keyboardNodeId}
-            selectedNodeId={selectedNode?.id ?? null}
-            onEnter={enterMap}
-            onNodeSelect={selectNodeWithAvatar}
+        {transition.phase === "graph" ? (
+          <PortfolioWorld
+            activeStoryId={activeStoryId}
+            onReset={showIndexWithAvatar}
+            onSelect={selectWorldNode}
+            selectedId={selectedWorldId}
           />
-        </Suspense>
+        ) : (
+          <Suspense
+            fallback={
+              <div className="scene-loading" role="status">
+                Preparing the spatial view. All project pages are available now.
+              </div>
+            }
+          >
+            <PortfolioCanvas
+              nodes={visibleNodes}
+              phase={transition.phase}
+              pose={pose}
+              selectedDomain={selectedDomain}
+              reducedMotion={reducedMotion}
+              focusedNodeId={keyboardNodeId}
+              selectedNodeId={selectedNode?.id ?? null}
+              onEnter={enterMap}
+              onNodeSelect={selectNodeWithAvatar}
+            />
+          </Suspense>
+        )}
 
         <div className="scene-copy">
           <h1
@@ -693,24 +815,15 @@ export function PortfolioExperience({
 
         {transition.phase === "graph" ? (
           <>
-            <PortfolioDossier
-              dossier={dossier}
-              onDomainSelect={selectDomain}
-              onShowIndex={showIndexWithAvatar}
-              onTabChange={handleDossierTabChange}
+            <PortfolioReader
+              activeStoryId={activeStoryId}
+              onReset={showIndexWithAvatar}
+              onSelect={selectWorldNode}
+              onSelectStory={selectStory}
               registerAvatarTarget={registerAvatarTarget}
-              selectedDomain={selectedDomain}
+              selectedId={selectedWorldId}
               spotlightTarget={spotlightTarget}
             />
-
-            {!toyboxSession.isOpen ? (
-              <KeyboardNavigator
-                nodes={visibleNodes}
-                onNodeFocus={setKeyboardNodeId}
-                onNodeSelect={selectNodeWithAvatar}
-                selectedNodeId={selectedNode?.id ?? null}
-              />
-            ) : null}
           </>
         ) : null}
         {portfolioChat}

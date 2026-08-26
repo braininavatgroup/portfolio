@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PortfolioChatClientError,
@@ -13,6 +12,7 @@ import { PortfolioChat } from "./PortfolioChat";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 const evidence = {
@@ -27,11 +27,82 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("starts as the compact conversation control and restores the full assistant", async () => {
+    render(
+      <PortfolioChat
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    ).toBeTruthy();
+    expect(
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Ask a question about the portfolio"),
+      ).toBeTruthy();
+      expect(
+        (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+      ).toBe(false);
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    ).toBeTruthy();
+  });
+
+  it("does not turn a mobile dock position into the next desktop position", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    render(
+      <PortfolioChat
+        initiallyOpen
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+    const panel = document.querySelector(".portfolio-chat-panel") as HTMLElement;
+    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+      bottom: 830,
+      height: 111,
+      left: 77,
+      right: 365,
+      top: 719,
+      width: 288,
+      x: 77,
+      y: 719,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+
+    expect(
+      (screen.getByLabelText("Portfolio assistant dock") as HTMLElement).style
+        .left,
+    ).toBe("");
+  });
+
   it("reports focus, typing activity, and blur to the avatar director", () => {
     // Catches a chat input that the actor cannot notice until after submission.
     const attention: string[] = [];
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={{
           onInputFocus: () => { attention.push("focus"); },
           onInputActivity: () => { attention.push("activity"); },
@@ -63,6 +134,7 @@ describe("portfolio chat", () => {
     const onInputActivity = vi.fn();
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={{
           onInputActivity,
           onTurnStart: () => {},
@@ -130,6 +202,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={avatarIntegration}
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
@@ -167,6 +240,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={{
           onTurnStart: () => {},
           onEvidence: () => {},
@@ -205,6 +279,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={{
           onTurnStart,
           onEvidence: () => {},
@@ -271,6 +346,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={avatarIntegration}
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
@@ -316,6 +392,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={avatarIntegration}
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
@@ -355,6 +432,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         avatarIntegration={avatarIntegration}
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
@@ -395,6 +473,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
         renderTurnstile={renderTurnstile}
@@ -426,6 +505,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
         renderTurnstile={renderTurnstile}
@@ -450,7 +530,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching preserve approval?" },
@@ -486,7 +566,7 @@ describe("portfolio chat", () => {
       onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does reporting work?" },
     });
@@ -509,7 +589,7 @@ describe("portfolio chat", () => {
       options.onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
     const input = screen.getByLabelText("Ask a question about the portfolio");
 
     fireEvent.change(input, { target: { value: "Tell me about pitching." } });
@@ -540,7 +620,7 @@ describe("portfolio chat", () => {
       options.onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
     const input = screen.getByLabelText("Ask a question about the portfolio");
     const ask = async (question: string, expectedRequests: number) => {
       fireEvent.change(input, { target: { value: question } });
@@ -579,7 +659,7 @@ describe("portfolio chat", () => {
       await requestFinished;
     };
 
-    render(<PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "A general question" },
     });
@@ -610,6 +690,7 @@ describe("portfolio chat", () => {
 
     render(
       <PortfolioChat
+        initiallyOpen
         onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
@@ -640,7 +721,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -668,7 +749,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -690,7 +771,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -717,7 +798,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "What patents did Bradley file?" },
@@ -733,44 +814,6 @@ describe("portfolio chat", () => {
     expect(
       screen.queryByRole("heading", { name: "Supporting portfolio evidence" }),
     ).toBeNull();
-  });
-
-  it("stops chat pointer and click events before they reach the landing surface", async () => {
-    const onLandingClick = vi.fn();
-    const onLandingPointerDown = vi.fn();
-    const onPoseChange = vi.fn();
-    const landingSurfaceRef = createRef<HTMLDivElement>();
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "Grounded answer. [E1]" });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <div ref={landingSurfaceRef}>
-        <PortfolioChat
-          onPoseChange={onPoseChange}
-          askPortfolio={askPortfolio}
-        />
-      </div>,
-    );
-    landingSurfaceRef.current?.addEventListener("click", onLandingClick);
-    landingSurfaceRef.current?.addEventListener(
-      "pointerdown",
-      onLandingPointerDown,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.pointerDown(input);
-    fireEvent.click(input);
-    fireEvent.change(input, { target: { value: "How does pitching work?" } });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-    await waitFor(() => expect(onPoseChange).toHaveBeenCalledWith("music"));
-    const evidenceLink = screen.getByRole("link", { name: "[E1] Pitching system" });
-    evidenceLink.addEventListener("click", (event) => event.preventDefault());
-    fireEvent.click(evidenceLink);
-
-    expect(onLandingPointerDown).not.toHaveBeenCalled();
-    expect(onLandingClick).not.toHaveBeenCalled();
   });
 
 });
