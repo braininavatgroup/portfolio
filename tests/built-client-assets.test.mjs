@@ -32,10 +32,10 @@ test("every client asset referenced by the built server exists", async () => {
   }
 });
 
-test("the production build copies the avatar GLB and its license byte-for-byte", async () => {
+test("the production build copies the configured Bradley avatar byte-for-byte", async () => {
   const assetPaths = [
-    "avatars/quaternius-casual-2.glb",
-    "avatars/quaternius-ultimate-modular-men-LICENSE.txt",
+    "avatars/bradley-meshy-rigged.glb",
+    "avatars/bradley-motion-library.glb",
   ];
 
   for (const assetPath of assetPaths) {
@@ -45,8 +45,15 @@ test("the production build copies the avatar GLB and its license byte-for-byte",
   }
 
   const glb = await readFile(
-    new URL("dist/client/avatars/quaternius-casual-2.glb", repositoryRoot),
+    new URL("dist/client/avatars/bradley-motion-library.glb", repositoryRoot),
   );
   assert.equal(glb.readUInt32LE(0), 0x46546c67, "built avatar is a GLB");
   assert.equal(glb.readUInt32LE(4), 2, "built avatar uses glTF 2");
+
+  const jsonLength = glb.readUInt32LE(12);
+  const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
+  assert.ok(
+    json.animations.some(({ name }) => name === "Orange_Justice_CC0"),
+    "built avatar includes the CC0 Orange Justice clip",
+  );
 });

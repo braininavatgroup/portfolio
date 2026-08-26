@@ -87,6 +87,82 @@ describe("portfolio chat route handler", () => {
     ]);
   });
 
+  it("emits validated agent motion before the first answer delta", async () => {
+    // Catches model-selected direction being buffered until after the answer stream.
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onEffects }) {
+        onEffects?.({
+          siteActions: [],
+          avatarSequence: [
+            { action: "play", animation: "wave_one_hand" },
+            { action: "wait", durationMs: 1_600 },
+            { action: "play", animation: "orange_justice_cc0" },
+          ],
+          issues: [],
+        });
+        yield "It keeps the final approval human. [E3]";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(
+        questionRequest("How does pitching preserve human approval and taste?"),
+      ),
+    );
+
+    expect(events.slice(1)).toEqual([
+      {
+        type: "effects",
+        effects: {
+          siteActions: [],
+          avatarSequence: [
+            { action: "play", animation: "wave_one_hand" },
+            { action: "wait", durationMs: 1_600 },
+            { action: "play", animation: "orange_justice_cc0" },
+          ],
+          issues: [],
+        },
+      },
+      {
+        type: "answer_delta",
+        delta: "It keeps the final approval human. [E3]",
+      },
+      { type: "done" },
+    ]);
+  });
+
+  it("does not emit motion when answer validation fails", async () => {
+    // Catches optional avatar work surviving a rejected primary answer.
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer({ onEffects }) {
+        onEffects?.({
+          siteActions: [],
+          avatarSequence: [
+            { action: "play", animation: "orange_justice_cc0" },
+          ],
+          issues: [],
+        });
+        yield "This cites an unknown source. [E99]";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(
+        questionRequest("How does pitching preserve human approval and taste?"),
+      ),
+    );
+
+    expect(events.some(({ type }) => type === "effects")).toBe(false);
+  });
+
   it("streams uncited social chat after the provider classifies the turn", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onMode }) {
@@ -633,6 +709,32 @@ describe("portfolio chat route handler", () => {
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: "answered" }),
     );
+  });
+
+  it("streams an uncited conversational paragraph before a cited fact", async () => {
+    const provider: PortfolioChatProvider = {
+      async *streamAnswer() {
+        yield "Sure.\n\nBradley's work makes complex systems feel approachable. [E1]";
+      },
+    };
+    const handler = createPortfolioChatHandler({
+      isEnabled: () => true,
+      getProvider: () => provider,
+    });
+
+    const events = await readEvents(
+      await handler(questionRequest("What does Bradley do?")),
+    );
+
+    expect(events.filter((event) => event.type === "answer_delta")).toEqual([
+      { type: "answer_delta", delta: "Sure.\n\n" },
+      {
+        type: "answer_delta",
+        delta: "Bradley's work makes complex systems feel approachable. [E1]",
+      },
+    ]);
+    expect(events.at(-1)).toEqual({ type: "done" });
+    expect(events.some((event) => event.type === "error")).toBe(false);
   });
 
   it.each([

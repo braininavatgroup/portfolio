@@ -10,6 +10,7 @@ import tseslint from "typescript-eslint";
 const eslintConfig = defineConfig([
   globalIgnores([
     ".next/**",
+    ".context/**",
     ".wrangler/**",
     "dist/**",
     "out/**",
@@ -38,7 +39,11 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["components/scene/**/*.tsx", "components/avatar/**/*.tsx"],
+    files: [
+      "components/scene/**/*.tsx",
+      "components/avatar/**/*.tsx",
+      "components/avatar-toybox/**/*.tsx",
+    ],
     rules: {
       "react/no-unknown-property": "off",
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   lazy,
   Suspense,
@@ -10,9 +11,11 @@ import {
   useState,
 } from "react";
 import { AvatarController } from "../lib/avatar/controller";
+import { AvatarDirector } from "../lib/avatar/director";
 import type {
   AvatarTargetId,
   PortfolioResponseEffects,
+  ProjectAvatarTargetId,
 } from "../lib/avatar/contracts";
 import {
   readAvatarEnabled,
@@ -20,8 +23,8 @@ import {
 } from "../lib/avatar/preference";
 import { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import { SiteActionExecutor } from "../lib/avatar/site-actions";
-import { adaptCommandsForReducedMotion } from "../lib/avatar/state";
 import { AvatarTargetRegistry } from "../lib/avatar/target-registry";
+import type { AvatarObstacleId } from "../lib/avatar/target-registry";
 import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
@@ -40,6 +43,9 @@ import { PortfolioChat } from "./PortfolioChat";
 import { PortfolioDossier } from "./PortfolioDossier";
 import { PortfolioHeader } from "./PortfolioHeader";
 import { TransitionStatus } from "./TransitionStatus";
+import { AvatarToyboxBoundary } from "./avatar-toybox/AvatarToyboxBoundary";
+import { useAvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
+import { getOutputToken } from "./scene/output-token-map";
 import type { PoseState } from "./scene/BodyScene";
 
 const PortfolioCanvas = lazy(() =>
@@ -51,6 +57,12 @@ const PortfolioCanvas = lazy(() =>
 const AvatarOverlay = lazy(() =>
   import("./avatar/AvatarOverlay").then((module) => ({
     default: module.AvatarOverlay,
+  })),
+);
+
+const AvatarToyboxOverlay = lazy(() =>
+  import("./avatar-toybox/AvatarToyboxOverlay").then((module) => ({
+    default: module.AvatarToyboxOverlay,
   })),
 );
 
@@ -103,8 +115,10 @@ function useReducedMotion() {
 }
 
 export function PortfolioExperience({
+  avatarLab = false,
   initialPhase = "body",
 }: {
+  avatarLab?: boolean;
   initialPhase?: Extract<TransitionPhase, "body" | "graph">;
 }) {
   const [transition, dispatch] = useReducer(transitionReducer, {
@@ -127,13 +141,21 @@ export function PortfolioExperience({
   );
   const [avatarRunner] = useState(
     () =>
-      new AvatarSequenceRunner((command) => avatarController.execute(command)),
+      new AvatarSequenceRunner((command, signal) =>
+        avatarController.execute(command, signal),
+      ),
+  );
+  const [avatarDirector] = useState(
+    () => new AvatarDirector(avatarController, avatarRunner, avatarRegistry),
   );
   const [avatarActionState] = useState(
     () => new PortfolioAvatarActionState(),
   );
   const [registeredAvatarTargets] = useState(
     () => new Map<AvatarTargetId, HTMLElement>(),
+  );
+  const [registeredAvatarObstacles] = useState(
+    () => new Map<AvatarObstacleId, HTMLElement>(),
   );
 
   const dossier = selectedNode
@@ -142,6 +164,32 @@ export function PortfolioExperience({
   const visibleNodes = visibleGraphNodes(portfolioNodes, {
     selectedDomain,
     selectedProjectId: selectedNode?.projectId ?? null,
+  });
+  const toyboxCollectibles = useMemo(
+    () =>
+      portfolioNodes
+        .filter(({ role }) => role === "output")
+        .map(({ id, label, projectSlug }) => ({
+          id,
+          label,
+          tokenKind: projectSlug ? getOutputToken(projectSlug) : undefined,
+        })),
+    [],
+  );
+  const canOpenToybox = useCallback(() => {
+    const snapshot = avatarController.getSnapshot();
+    return (
+      !avatarLab &&
+      avatarMounted &&
+      avatarEnabled &&
+      snapshot.visible &&
+      !snapshot.failed
+    );
+  }, [avatarController, avatarEnabled, avatarLab, avatarMounted]);
+  const toyboxSession = useAvatarToyboxSession({
+    canOpen: canOpenToybox,
+    collectibles: toyboxCollectibles,
+    reducedMotion,
   });
 
   const showIndex = useCallback(() => {
@@ -185,6 +233,54 @@ export function PortfolioExperience({
     [avatarActionState, selectDomain, showIndex],
   );
 
+  const selectNodeWithAvatar = useCallback(
+    (node: SpatialGraphNode | null) => {
+      const previous = avatarActionState.getSelectedNode();
+      selectNode(node);
+      if (!node || node.role === "root" || node.role === "domain") {
+        if (previous) {
+          window.setTimeout(
+            () => void avatarDirector.handle({ type: "project_close" }),
+            0,
+          );
+        }
+        return;
+      }
+      if (!node.projectSlug) return;
+      const target: ProjectAvatarTargetId = `project:${node.projectSlug}`;
+      window.setTimeout(
+        () =>
+          void avatarDirector.handle({
+            type:
+              previous?.projectSlug === node.projectSlug
+                ? "tab_change"
+                : "project_open",
+            target,
+          }),
+        0,
+      );
+    },
+    [avatarActionState, avatarDirector, selectNode],
+  );
+
+  const showIndexWithAvatar = useCallback(() => {
+    const hadProject = Boolean(avatarActionState.getSelectedNode());
+    showIndex();
+    if (hadProject) {
+      window.setTimeout(
+        () => void avatarDirector.handle({ type: "project_close" }),
+        0,
+      );
+    }
+  }, [avatarActionState, avatarDirector, showIndex]);
+
+  const handleDossierTabChange = useCallback(() => {
+    const projectSlug = avatarActionState.getSelectedNode()?.projectSlug;
+    if (!projectSlug) return;
+    const target: ProjectAvatarTargetId = `project:${projectSlug}`;
+    void avatarDirector.handle({ type: "tab_change", target });
+  }, [avatarActionState, avatarDirector]);
+
   const registerAvatarTarget = useCallback(
     (target: AvatarTargetId, element: HTMLElement | null) => {
       const previous = registeredAvatarTargets.get(target);
@@ -199,9 +295,47 @@ export function PortfolioExperience({
     },
     [avatarRegistry, registeredAvatarTargets],
   );
+  const registerAvatarObstacle = useCallback(
+    (obstacle: AvatarObstacleId, element: HTMLElement | null) => {
+      const previous = registeredAvatarObstacles.get(obstacle);
+      if (previous && previous !== element) {
+        avatarRegistry.unregisterObstacle(obstacle, previous);
+        registeredAvatarObstacles.delete(obstacle);
+      }
+      if (element) {
+        avatarRegistry.registerObstacle(obstacle, element);
+        registeredAvatarObstacles.set(obstacle, element);
+      }
+    },
+    [avatarRegistry, registeredAvatarObstacles],
+  );
+  const registerHeaderObstacle = useCallback(
+    (element: HTMLElement | null) =>
+      registerAvatarObstacle("portfolio:header", element),
+    [registerAvatarObstacle],
+  );
+  const registerDirectorConsoleObstacle = useCallback(
+    (element: HTMLDivElement | null) =>
+      registerAvatarObstacle("avatar:director-console", element),
+    [registerAvatarObstacle],
+  );
   const registerHero = useCallback(
     (element: HTMLHeadingElement | null) =>
       registerAvatarTarget("hero", element),
+    [registerAvatarTarget],
+  );
+  const registerLabHero = useCallback(
+    (element: HTMLDivElement | null) => registerAvatarTarget("hero", element),
+    [registerAvatarTarget],
+  );
+  const registerLabIndex = useCallback(
+    (element: HTMLDivElement | null) =>
+      registerAvatarTarget("portfolio:index", element),
+    [registerAvatarTarget],
+  );
+  const registerLabProject = useCallback(
+    (element: HTMLDivElement | null) =>
+      registerAvatarTarget("project:dubs", element),
     [registerAvatarTarget],
   );
 
@@ -243,13 +377,13 @@ export function PortfolioExperience({
     () => ({
       onTurnStart: () => {
         avatarActionState.beginTurn();
-        avatarRunner.cancel();
-        avatarController.execute({ action: "setState", state: "thinking" });
+        return avatarDirector.handle({ type: "turn_start" });
       },
-      onEvidence: () =>
-        avatarController.execute({ action: "setState", state: "tool_use" }),
-      onFirstText: () =>
-        avatarController.execute({ action: "setState", state: "talking" }),
+      onInputFocus: () => avatarDirector.handle({ type: "input_focus" }),
+      onInputActivity: () => avatarDirector.handle({ type: "input_activity" }),
+      onInputBlur: () => avatarDirector.handle({ type: "input_blur" }),
+      onEvidence: () => avatarDirector.handle({ type: "evidence" }),
+      onFirstText: () => avatarDirector.handle({ type: "first_text" }),
       onEffects: async (effects: PortfolioResponseEffects) => {
         const turn = avatarActionState.getTurn();
         const isCurrentTurn = () => avatarActionState.getTurn() === turn;
@@ -275,19 +409,15 @@ export function PortfolioExperience({
           await new Promise<void>((resolve) => window.setTimeout(resolve, 16));
         }
         if (!isCurrentTurn()) return;
-        const commands = avatarActionState.getReducedMotion()
-          ? adaptCommandsForReducedMotion(effects.avatarSequence)
-          : effects.avatarSequence;
-        await avatarRunner.run(commands);
+        await avatarDirector.perform(effects);
       },
       onNotice: () =>
         avatarController.execute({ action: "setState", state: "confused" }),
       onError: () =>
         avatarController.execute({ action: "setState", state: "error" }),
-      onComplete: () =>
-        avatarController.execute({ action: "setState", state: "idle" }),
+      onComplete: () => avatarDirector.handle({ type: "turn_complete" }),
     }),
-    [avatarActionState, avatarController, avatarRunner, siteActionExecutor],
+    [avatarActionState, avatarController, avatarDirector, siteActionExecutor],
   );
 
   useEffect(() => {
@@ -331,7 +461,14 @@ export function PortfolioExperience({
 
   useEffect(() => {
     avatarActionState.setReducedMotion(reducedMotion);
-  }, [avatarActionState, reducedMotion]);
+    if (reducedMotion) avatarDirector.stop();
+    avatarDirector.setReducedMotion(reducedMotion);
+  }, [avatarActionState, avatarDirector, reducedMotion]);
+
+  useEffect(() => {
+    if (!document.hidden) avatarDirector.startAmbient();
+    return () => avatarDirector.dispose();
+  }, [avatarDirector]);
 
   useEffect(() => {
     const refreshTarget = () => {
@@ -345,10 +482,9 @@ export function PortfolioExperience({
       }
     };
     const handleVisibility = () => {
-      if (document.hidden) {
-        avatarRunner.cancel();
-      } else {
+      if (!document.hidden) {
         refreshTarget();
+        avatarDirector.startAmbient();
       }
     };
     window.addEventListener("scroll", refreshTarget, { passive: true });
@@ -359,24 +495,29 @@ export function PortfolioExperience({
       window.removeEventListener("resize", refreshTarget);
       document.removeEventListener("visibilitychange", handleVisibility);
       avatarActionState.beginTurn();
-      avatarRunner.cancel();
       for (const [target, element] of registeredAvatarTargets) {
         avatarRegistry.unregister(target, element);
       }
       registeredAvatarTargets.clear();
+      for (const [obstacle, element] of registeredAvatarObstacles) {
+        avatarRegistry.unregisterObstacle(obstacle, element);
+      }
+      registeredAvatarObstacles.clear();
     };
   }, [
     avatarController,
     avatarActionState,
+    avatarDirector,
     avatarRegistry,
-    avatarRunner,
+    registeredAvatarObstacles,
     registeredAvatarTargets,
   ]);
 
   const setAvatarPreference = useCallback((enabled: boolean) => {
+    if (!enabled) avatarDirector.stop();
     setAvatarEnabled(enabled);
     writeAvatarEnabled(enabled);
-  }, []);
+  }, [avatarDirector]);
 
   function enterMap() {
     if (transition.phase !== "body") return;
@@ -393,13 +534,112 @@ export function PortfolioExperience({
     dispatch({ type: "EXIT" });
   }
 
+  const avatarOverlay = avatarMounted && !toyboxSession.isPlaying ? (
+    <Suspense fallback={null}>
+      <AvatarOverlay
+        controller={avatarController}
+        debug={avatarLab || avatarDebug}
+        development={
+          avatarLab || process.env.NODE_ENV === "development"
+        }
+        director={avatarDirector}
+        enabled={avatarEnabled}
+        onEnabledChange={setAvatarPreference}
+        onExpandedPanelChange={registerDirectorConsoleObstacle}
+        reducedMotion={reducedMotion}
+        registry={avatarRegistry}
+        runner={avatarRunner}
+        siteActionExecutor={siteActionExecutor}
+      />
+    </Suspense>
+  ) : null;
+  const portfolioChat = (
+    <PortfolioChat
+      avatarIntegration={avatarIntegration}
+      onPoseChange={setPose}
+      registerAvatarTarget={registerAvatarTarget}
+      spotlightTarget={spotlightTarget}
+      turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
+    />
+  );
+
+  if (avatarLab) {
+    return (
+      <main
+        aria-label="Avatar lab"
+        className="avatar-lab"
+        data-theme="light"
+        id="main-content"
+        tabIndex={-1}
+      >
+        {import.meta.env.DEV ? (
+          <Link
+            className="avatar-overlay-toggle"
+            href="/"
+            style={{
+              bottom: "auto",
+              left: "1rem",
+              right: "auto",
+              textDecoration: "none",
+              top: "1rem",
+            }}
+          >
+            Back to portfolio
+          </Link>
+        ) : null}
+        <section aria-label="Avatar stage targets" className="avatar-lab-targets">
+          <div
+            className={spotlightTarget === "hero" ? "avatar-spotlight" : undefined}
+            ref={registerLabHero}
+          >
+            Hero target
+          </div>
+          <div
+            className={
+              spotlightTarget === "portfolio:index" ? "avatar-spotlight" : undefined
+            }
+            ref={registerLabIndex}
+          >
+            Index target
+          </div>
+          <div
+            className={
+              spotlightTarget === "project:dubs" ? "avatar-spotlight" : undefined
+            }
+            ref={registerLabProject}
+          >
+            Dubs target
+          </div>
+        </section>
+        {portfolioChat}
+        {avatarOverlay}
+      </main>
+    );
+  }
+
   return (
     <main
       className={`experience experience-${transition.phase}`}
       data-theme="light"
       id="main-content"
+      tabIndex={-1}
     >
       <TransitionStatus phase={transition.phase} />
+      {import.meta.env.DEV ? (
+        <Link
+          className="avatar-overlay-toggle"
+          href="/?avatarLab=1"
+          style={{
+            bottom: "3.25rem",
+            left: "1rem",
+            right: "auto",
+            textDecoration: "none",
+            top: "auto",
+          }}
+        >
+          Avatar Director
+        </Link>
+      ) : null}
       <PortfolioHeader
         activeView={
           transition.phase === "body" || transition.phase === "returning"
@@ -408,6 +648,7 @@ export function PortfolioExperience({
         }
         onBradleySelect={exitMap}
         onMapSelect={enterMap}
+        obstacleRef={registerHeaderObstacle}
         overlay
       />
       <section
@@ -435,7 +676,7 @@ export function PortfolioExperience({
             focusedNodeId={keyboardNodeId}
             selectedNodeId={selectedNode?.id ?? null}
             onEnter={enterMap}
-            onNodeSelect={selectNode}
+            onNodeSelect={selectNodeWithAvatar}
           />
         </Suspense>
 
@@ -455,41 +696,33 @@ export function PortfolioExperience({
             <PortfolioDossier
               dossier={dossier}
               onDomainSelect={selectDomain}
-              onShowIndex={showIndex}
+              onShowIndex={showIndexWithAvatar}
+              onTabChange={handleDossierTabChange}
               registerAvatarTarget={registerAvatarTarget}
               selectedDomain={selectedDomain}
               spotlightTarget={spotlightTarget}
             />
 
-            <KeyboardNavigator
-              nodes={visibleNodes}
-              onNodeFocus={setKeyboardNodeId}
-              onNodeSelect={selectNode}
-              selectedNodeId={selectedNode?.id ?? null}
-            />
+            {!toyboxSession.isOpen ? (
+              <KeyboardNavigator
+                nodes={visibleNodes}
+                onNodeFocus={setKeyboardNodeId}
+                onNodeSelect={selectNodeWithAvatar}
+                selectedNodeId={selectedNode?.id ?? null}
+              />
+            ) : null}
           </>
         ) : null}
-        <PortfolioChat
-          avatarIntegration={avatarIntegration}
-          onPoseChange={setPose}
-          registerAvatarTarget={registerAvatarTarget}
-          spotlightTarget={spotlightTarget}
-          turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
-        />
-        {avatarMounted ? (
-          <Suspense fallback={null}>
-            <AvatarOverlay
-              controller={avatarController}
-              debug={avatarDebug}
-              development={process.env.NODE_ENV === "development"}
-              enabled={avatarEnabled}
-              onEnabledChange={setAvatarPreference}
-              runner={avatarRunner}
-              siteActionExecutor={siteActionExecutor}
-            />
-          </Suspense>
-        ) : null}
+        {portfolioChat}
       </section>
+      {avatarOverlay}
+      {toyboxSession.isOpen ? (
+        <AvatarToyboxBoundary onFailure={() => toyboxSession.close("Avatar toybox closed after a renderer error.")}>
+          <Suspense fallback={null}>
+            <AvatarToyboxOverlay session={toyboxSession} />
+          </Suspense>
+        </AvatarToyboxBoundary>
+      ) : null}
     </main>
   );
 }

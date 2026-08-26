@@ -2,31 +2,125 @@
 
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { avatarBehaviors, getAvatarBehavior } from "../../lib/avatar/behaviors";
 import { avatarAsset } from "../../lib/avatar/config";
 import type { AllowedAnimation } from "../../lib/avatar/contracts";
 import type { AvatarSnapshot } from "../../lib/avatar/controller";
+import { getAvatarYaw } from "../../lib/avatar/orientation";
+import {
+  avatarAmbientAmplitude,
+  avatarCrossfadeSeconds,
+  avatarPlaybackRate,
+} from "../../lib/avatar/render-motion";
+import { attachBradleyGlasses } from "./bradley-glasses";
 import { ProceduralAvatar } from "./ProceduralAvatar";
 
-type AvatarPoseProps = Pick<AvatarSnapshot, "animation" | "facing" | "pointing">;
+type AvatarPoseProps = Pick<
+  AvatarSnapshot,
+  "animation" | "facing" | "pointing" | "tone"
+> & {
+  reducedMotion: boolean;
+};
 
 type AvatarAssetAdapterProps = AvatarPoseProps & {
+  anchor?: "feet" | "center";
+  stageScale?: number;
   onAvailableAnimationsChange?: (
     available: ReadonlySet<AllowedAnimation>,
   ) => void;
 };
 
-export function getAvailableAnimationAliases(
-  animations: Record<AllowedAnimation, string>,
-  clipNames: Iterable<string>,
+const bradleySolidColor = "#3a4954";
+
+export function applyBradleySolidMaterial(
+  scene: THREE.Object3D,
+  color: THREE.ColorRepresentation,
 ) {
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    metalness: 0,
+    opacity: 1,
+    roughness: 1,
+    side: THREE.DoubleSide,
+    transparent: false,
+    vertexColors: false,
+  });
+  const originals: Array<{
+    mesh: THREE.Mesh;
+    material: THREE.Material | THREE.Material[];
+  }> = [];
+
+  scene.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    originals.push({ mesh: object, material: object.material });
+    object.material = Array.isArray(object.material)
+      ? object.material.map(() => material)
+      : material;
+  });
+
+  return () => {
+    for (const original of originals) {
+      original.mesh.material = original.material;
+    }
+    material.dispose();
+  };
+}
+
+export function getAvatarStageScale(stageScale = 1) {
+  return stageScale;
+}
+
+export function getGlbFootOriginTranslation(
+  groundOffset: number,
+  rawMinimumY: number,
+) {
+  return -(groundOffset + rawMinimumY);
+}
+
+// The checked-in Bradley GLB POSITION accessor has these raw Y bounds.
+const bradleyRawMinimumY = 0;
+const bradleyRawMaximumY = 1.6399997472763062;
+
+export function getAvatarModelOriginY(
+  anchor: "feet" | "center",
+  rawMinimumY: number,
+  rawMaximumY: number,
+) {
+  return anchor === "center"
+    ? -(rawMinimumY + rawMaximumY) / 2
+    : rawMinimumY === 0
+      ? 0
+      : -rawMinimumY;
+}
+
+export function getBradleyGlbFootOriginTranslation() {
+  return getGlbFootOriginTranslation(
+    avatarAsset.groundOffset,
+    bradleyRawMinimumY,
+  );
+}
+
+export function getAvailableAnimationIds(clipNames: Iterable<string>) {
   const availableClips = new Set(clipNames);
   return new Set(
-    (Object.entries(animations) as Array<[AllowedAnimation, string]>)
-      .filter(([, clipName]) => availableClips.has(clipName))
-      .map(([animation]) => animation),
+    avatarBehaviors
+      .filter(({ clipName }) => availableClips.has(clipName))
+      .map(({ id }) => id),
   );
+}
+
+export function combineAnimationClips(
+  nativeClips: readonly THREE.AnimationClip[],
+  externalClips: readonly THREE.AnimationClip[],
+) {
+  const nativeNames = new Set(nativeClips.map((clip) => clip.name));
+  return [
+    ...nativeClips,
+    ...externalClips.filter((clip) => !nativeNames.has(clip.name)),
+  ];
 }
 
 export function getGlbModelUrl(asset: Pick<typeof avatarAsset, "kind" | "modelUrl">) {
@@ -35,11 +129,9 @@ export function getGlbModelUrl(asset: Pick<typeof avatarAsset, "kind" | "modelUr
 
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
-  facing: "left" | "right",
+  facing: AvatarSnapshot["facing"],
 ) {
-  const axisCorrection = forwardAxis === "-z" ? Math.PI : 0;
-  const facingRotation = facing === "left" ? Math.PI : 0;
-  return axisCorrection + facingRotation;
+  return getAvatarYaw(forwardAxis, facing);
 }
 
 export function getAnimationMixerTime(
@@ -51,38 +143,81 @@ export function getAnimationMixerTime(
   return Math.floor(elapsedSeconds / frameDuration) * frameDuration;
 }
 
+export function cloneAvatarScene(scene: THREE.Group) {
+  return cloneSkeleton(scene) as THREE.Group;
+}
+
 function GlbAvatar({
+  anchor,
   animation,
   facing,
   modelUrl,
+  motionUrl,
   onAvailableAnimationsChange,
+  reducedMotion,
+  tone,
 }: AvatarPoseProps & {
+  anchor: "feet" | "center";
   modelUrl: string;
+  motionUrl: string;
   onAvailableAnimationsChange?: AvatarAssetAdapterProps["onAvailableAnimationsChange"];
 }) {
   const root = useRef<THREE.Group>(null);
   const model = useGLTF(modelUrl);
-  const { actions, mixer } = useAnimations(model.animations, root);
+  const scene = useMemo(() => cloneAvatarScene(model.scene), [model.scene]);
+  const motionLibrary = useGLTF(motionUrl);
+  const animationClips = useMemo(
+    () => combineAnimationClips(model.animations, motionLibrary.animations),
+    [model.animations, motionLibrary.animations],
+  );
+  const { actions, mixer } = useAnimations(animationClips, root);
+  const playbackRate = avatarPlaybackRate(tone, avatarAsset.playbackRate);
+  const ambientAmplitude = avatarAmbientAmplitude(tone, reducedMotion);
+  const modelOriginY = getAvatarModelOriginY(
+    anchor,
+    bradleyRawMinimumY,
+    bradleyRawMaximumY,
+  );
 
   useEffect(() => {
     onAvailableAnimationsChange?.(
-      getAvailableAnimationAliases(
-        avatarAsset.animations,
-        model.animations.map((clip) => clip.name),
-      ),
+      getAvailableAnimationIds(animationClips.map((clip) => clip.name)),
     );
-  }, [model.animations, onAvailableAnimationsChange]);
+  }, [animationClips, onAvailableAnimationsChange]);
 
-  useFrame(({ clock }) => {
-    if (avatarAsset.targetFrameRate === null) return;
-    mixer.setTime(
-      getAnimationMixerTime(clock.elapsedTime, avatarAsset.targetFrameRate) *
-        avatarAsset.playbackRate,
-    );
+  useFrame(({ clock }, delta) => {
+    if (root.current) {
+      root.current.rotation.y = THREE.MathUtils.damp(
+        root.current.rotation.y,
+        getGlbYaw(avatarAsset.forwardAxis, facing),
+        9,
+        delta,
+      );
+      root.current.rotation.z =
+        Math.sin(clock.elapsedTime * 1.35) * ambientAmplitude;
+      root.current.position.y =
+        modelOriginY +
+        Math.sin(clock.elapsedTime * 1.7) * ambientAmplitude * 0.45;
+    }
+    if (avatarAsset.targetFrameRate !== null) {
+      mixer.setTime(
+        getAnimationMixerTime(clock.elapsedTime, avatarAsset.targetFrameRate) *
+          playbackRate,
+      );
+    }
   });
 
   useEffect(() => {
-    model.scene.traverse((object) => {
+    return attachBradleyGlasses(scene, avatarAsset.glasses);
+  }, [scene]);
+
+  useEffect(() => {
+    return applyBradleySolidMaterial(scene, bradleySolidColor);
+  }, [scene]);
+
+  useEffect(() => {
+    if (!avatarAsset.flatShading && !avatarAsset.nearestTexture) return;
+    scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       for (const material of materials) {
@@ -98,42 +233,52 @@ function GlbAvatar({
         material.needsUpdate = true;
       }
     });
-  }, [model.scene]);
+  }, [scene]);
 
   useEffect(() => {
-    const clipName = avatarAsset.animations[animation];
+    const clipName = getAvatarBehavior(animation).clipName;
     const next = actions[clipName];
     if (!next) return;
-    next.reset().setEffectiveTimeScale(avatarAsset.playbackRate).fadeIn(0.2).play();
+    const crossfadeSeconds = avatarCrossfadeSeconds(tone);
+    next.reset().setEffectiveTimeScale(playbackRate).fadeIn(crossfadeSeconds).play();
     return () => {
-      next.fadeOut(0.2);
+      next.fadeOut(crossfadeSeconds);
     };
-  }, [actions, animation]);
+  }, [actions, animation, playbackRate, tone]);
 
   return (
     <group
       ref={root}
-      position={[0, avatarAsset.groundOffset, 0]}
-      rotation={[0, getGlbYaw(avatarAsset.forwardAxis, facing), 0]}
+      position={[0, modelOriginY, 0]}
+      rotation={[0, 0, 0]}
       scale={avatarAsset.scale}
     >
-      <primitive object={model.scene} />
+      <primitive dispose={null} object={scene} />
     </group>
   );
 }
 
 export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
-  const { onAvailableAnimationsChange, ...pose } = props;
-  if (avatarAsset.kind === "procedural") {
-    return <ProceduralAvatar {...pose} />;
-  }
+  const {
+    anchor = "feet",
+    onAvailableAnimationsChange,
+    stageScale,
+    ...pose
+  } = props;
+  const avatar = avatarAsset.kind === "procedural" ? (
+    <ProceduralAvatar {...pose} />
+  ) : (() => {
+    const modelUrl = getGlbModelUrl(avatarAsset);
+    return modelUrl ? (
+      <GlbAvatar
+        {...pose}
+        anchor={anchor}
+        modelUrl={modelUrl}
+        motionUrl={avatarAsset.motionUrl ?? modelUrl}
+        onAvailableAnimationsChange={onAvailableAnimationsChange}
+      />
+    ) : null;
+  })();
 
-  const modelUrl = getGlbModelUrl(avatarAsset);
-  return modelUrl ? (
-    <GlbAvatar
-      {...pose}
-      modelUrl={modelUrl}
-      onAvailableAnimationsChange={onAvailableAnimationsChange}
-    />
-  ) : null;
+  return <group scale={getAvatarStageScale(stageScale)}>{avatar}</group>;
 }

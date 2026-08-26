@@ -17,6 +17,21 @@ import type {
   PortfolioChatProviderInput,
 } from "./portfolio-chat-provider";
 import type { PortfolioChatTurnMode } from "../portfolio-chat-protocol";
+import {
+  allowedAvatarAnimations,
+  expandAvatarSequence,
+  formatAvatarBehaviorCatalog,
+  type AllowedAnimation,
+} from "../avatar/behaviors";
+import {
+  avatarConfidenceLevels,
+  avatarEnergyLevels,
+  avatarMischiefLevels,
+  avatarPerformanceIntents,
+  avatarWarmthLevels,
+  type AvatarPerformanceIntent,
+  type AvatarTone,
+} from "../avatar/contracts";
 
 type OpenAIPortfolioProviderOptions = {
   apiKey: string;
@@ -57,7 +72,14 @@ Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal
 
 General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in the portfolio evidence or project titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears. Use an empty evidenceIds array for every general sentence.
 
-Always answer directly and use only as much detail as the visitor's question needs.`;
+Always answer directly and use only as much detail as the visitor's question needs.
+
+Choose an avatar behavior sequence for every answer. Choose exactly one behavior for an ordinary answer. Choose two or three for an explicitly requested performance or a response with a meaningful emotional progression. Match the answer's social and emotional intent rather than isolated keywords. Every allowed behavior is available whenever it fits the context. Use idle_3 when restraint is the best performance. Never mention the behavior choice unless the visitor asks about it.
+
+Classify the performance intent as ordinary, expressive, or requested. Also direct the performance with a bounded tone: energy (low, medium, or high), warmth (reserved or warm), confidence (uncertain, neutral, or assured), and mischief (none or playful). These values adjust timing and subtle body motion; they never block the selected behavior.
+
+Allowed avatar behaviors:
+${formatAvatarBehaviorCatalog()}`;
 
 function portfolioAgentOutput(
   evidence: PortfolioChatProviderInput["evidence"],
@@ -71,12 +93,26 @@ function portfolioAgentOutput(
         evidenceIds: z.array(z.enum(evidenceIds)),
       }),
     ),
+    avatarSequence: z
+      .array(z.enum(allowedAvatarAnimations))
+      .min(1)
+      .max(3),
+    avatarIntent: z.enum(avatarPerformanceIntents),
+    avatarTone: z.object({
+      energy: z.enum(avatarEnergyLevels),
+      warmth: z.enum(avatarWarmthLevels),
+      confidence: z.enum(avatarConfidenceLevels),
+      mischief: z.enum(avatarMischiefLevels),
+    }),
   });
 }
 
 type PortfolioAgentOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
+  avatarSequence: AllowedAnimation[];
+  avatarIntent: AvatarPerformanceIntent;
+  avatarTone: AvatarTone;
 };
 
 type InvalidEvidenceFailureKind =
@@ -222,6 +258,13 @@ export function createOpenAIPortfolioProvider({
         });
         if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");
         input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
+        input.onEffects?.({
+          siteActions: [],
+          avatarSequence: expandAvatarSequence(result.finalOutput.avatarSequence),
+          avatarIntent: result.finalOutput.avatarIntent,
+          avatarTone: result.finalOutput.avatarTone,
+          issues: [],
+        });
         yield renderAgentOutput(result.finalOutput, input.evidence);
         const usage = result.state.usage;
         input.onUsage?.({

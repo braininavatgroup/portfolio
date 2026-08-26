@@ -1,5 +1,6 @@
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
 import type { PortfolioChatMessage } from "../portfolio-chat-conversation";
+import type { PortfolioResponseEffects } from "../avatar/contracts";
 import type {
   PortfolioChatTurnMode,
   PortfolioChatVisitState,
@@ -33,6 +34,7 @@ export type PortfolioChatProviderInput = {
   signal?: AbortSignal;
   safetyIdentifier?: string;
   onMode?: (mode: PortfolioChatTurnMode) => void;
+  onEffects?: (effects: PortfolioResponseEffects) => void;
   onUsage?: (usage: PortfolioChatProviderUsage) => void;
   onFailure?: (kind: PortfolioChatProviderFailureKind) => void;
 };

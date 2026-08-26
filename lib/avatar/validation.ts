@@ -3,11 +3,20 @@ import {
   allowedAvatarAnimations,
   allowedAvatarStates,
   allowedTabs,
+  avatarRouteIds,
+  avatarConfidenceLevels,
+  avatarEnergyLevels,
+  avatarMischiefLevels,
+  avatarPerformanceIntents,
+  avatarWarmthLevels,
   type AllowedAnimation,
   type AllowedTab,
   type AvatarCommand,
+  type AvatarRouteId,
+  type AvatarPerformanceIntent,
   type AvatarState,
   type AvatarTargetId,
+  type AvatarTone,
   type PortfolioResponseEffects,
   type ProjectAvatarTargetId,
   type SiteAction,
@@ -24,9 +33,15 @@ const avatarStateSet = new Set<string>(allowedAvatarStates);
 const animationSet = new Set<string>(allowedAvatarAnimations);
 const tabSet = new Set<string>(allowedTabs);
 const targetSet = new Set<string>(allowedAvatarTargets);
+const routeSet = new Set<string>(avatarRouteIds);
 const projectTargetSet = new Set<string>(
   portfolioData.projects.map(({ slug }) => `project:${slug}`),
 );
+const energySet = new Set<string>(avatarEnergyLevels);
+const warmthSet = new Set<string>(avatarWarmthLevels);
+const confidenceSet = new Set<string>(avatarConfidenceLevels);
+const mischiefSet = new Set<string>(avatarMischiefLevels);
+const performanceIntentSet = new Set<string>(avatarPerformanceIntents);
 
 const maxWaitMs = 10_000;
 
@@ -65,8 +80,62 @@ function isAvatarTarget(value: unknown): value is AvatarTargetId {
   return typeof value === "string" && targetSet.has(value);
 }
 
+function isAvatarRoute(value: unknown): value is AvatarRouteId {
+  return typeof value === "string" && routeSet.has(value);
+}
+
 function isProjectTarget(value: unknown): value is ProjectAvatarTargetId {
   return typeof value === "string" && projectTargetSet.has(value);
+}
+
+function isPerformanceIntent(value: unknown): value is AvatarPerformanceIntent {
+  return typeof value === "string" && performanceIntentSet.has(value);
+}
+
+function parseAvatarTone(
+  value: unknown,
+  issues: string[],
+  issuePrefix = "avatarTone",
+): AvatarTone | null {
+  if (!isObject(value)) {
+    issues.push(`${issuePrefix} must be an object`);
+    return null;
+  }
+  if (
+    !exactKeys(
+      value,
+      ["energy", "warmth", "confidence", "mischief"],
+      issuePrefix,
+      issues,
+    )
+  ) {
+    return null;
+  }
+  if (typeof value.energy !== "string" || !energySet.has(value.energy)) {
+    issues.push(`${issuePrefix}.energy must be an allowed value`);
+    return null;
+  }
+  if (typeof value.warmth !== "string" || !warmthSet.has(value.warmth)) {
+    issues.push(`${issuePrefix}.warmth must be an allowed value`);
+    return null;
+  }
+  if (
+    typeof value.confidence !== "string" ||
+    !confidenceSet.has(value.confidence)
+  ) {
+    issues.push(`${issuePrefix}.confidence must be an allowed value`);
+    return null;
+  }
+  if (typeof value.mischief !== "string" || !mischiefSet.has(value.mischief)) {
+    issues.push(`${issuePrefix}.mischief must be an allowed value`);
+    return null;
+  }
+  return {
+    energy: value.energy as AvatarTone["energy"],
+    warmth: value.warmth as AvatarTone["warmth"],
+    confidence: value.confidence as AvatarTone["confidence"],
+    mischief: value.mischief as AvatarTone["mischief"],
+  };
 }
 
 function clampWait(value: number) {
@@ -172,6 +241,24 @@ function parseAvatarCommand(
         return null;
       }
       return { action: "setState", state: value.state };
+    case "setTone": {
+      if (
+        !exactKeys(
+          value,
+          ["action", "tone"],
+          `avatarSequence[${index}]`,
+          issues,
+        )
+      ) {
+        return null;
+      }
+      const tone = parseAvatarTone(
+        value.tone,
+        issues,
+        `avatarSequence[${index}].tone`,
+      );
+      return tone ? { action: "setTone", tone } : null;
+    }
     case "play":
       if (
         !exactKeys(
@@ -226,6 +313,24 @@ function parseAvatarCommand(
         return null;
       }
       return { action: "walkTo", target: value.target };
+    case "swimTo":
+      if (
+        !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
+        !isAvatarTarget(value.target)
+      ) {
+        issues.push(`avatarSequence[${index}].target must be a known target`);
+        return null;
+      }
+      return { action: "swimTo", target: value.target };
+    case "swimRoute":
+      if (
+        !exactKeys(value, ["action", "route"], `avatarSequence[${index}]`, issues) ||
+        !isAvatarRoute(value.route)
+      ) {
+        issues.push(`avatarSequence[${index}].route must be an allowed route`);
+        return null;
+      }
+      return { action: "swimRoute", route: value.route };
     case "lookAt":
       if (
         !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
@@ -263,7 +368,25 @@ export function parsePortfolioResponseEffects(value: unknown): PortfolioResponse
     return parsed;
   }
 
-  exactKeys(value, ["siteActions", "avatarSequence"], "effects", issues);
+  exactKeys(
+    value,
+    ["siteActions", "avatarSequence", "avatarIntent", "avatarTone"],
+    "effects",
+    issues,
+  );
+
+  if ("avatarIntent" in value) {
+    if (isPerformanceIntent(value.avatarIntent)) {
+      parsed.avatarIntent = value.avatarIntent;
+    } else {
+      issues.push("avatarIntent must be an allowed value");
+    }
+  }
+
+  if ("avatarTone" in value) {
+    const tone = parseAvatarTone(value.avatarTone, issues);
+    if (tone) parsed.avatarTone = tone;
+  }
 
   if ("siteActions" in value) {
     if (Array.isArray(value.siteActions)) {

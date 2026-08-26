@@ -17,6 +17,7 @@ export default function ProjectIndex() {
       data-index-layout="stacked-editorial"
       data-theme="light"
       id="main-content"
+      tabIndex={-1}
     >
       <PortfolioHeader activeView="index" />
       <header className="index-header">

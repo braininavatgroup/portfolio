@@ -37,7 +37,7 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   const adjacent = getAdjacentProjects(caseStudy.project.slug);
 
   return (
-    <main className="artifact-page" data-theme="light" id="main-content">
+    <main className="artifact-page" data-theme="light" id="main-content" tabIndex={-1}>
       <PortfolioHeader />
       <CaseStudyArticle caseStudy={caseStudy} />
       {adjacent ? (

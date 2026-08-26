@@ -22,6 +22,7 @@ type PortfolioDossierProps = {
   selectedDomain: DomainId | null;
   onDomainSelect: (domain: DomainId | null) => void;
   onShowIndex: () => void;
+  onTabChange?: (role: TripletRole) => void;
   registerAvatarTarget?: (
     target: AvatarTargetId,
     element: HTMLElement | null,
@@ -45,6 +46,7 @@ export function PortfolioDossier({
   dossier,
   onDomainSelect,
   onShowIndex,
+  onTabChange,
   registerAvatarTarget,
   selectedDomain,
   spotlightTarget,
@@ -77,6 +79,7 @@ export function PortfolioDossier({
           key={`${dossier.project.slug}:${dossier.selectedRole}`}
           onDragStart={onDragStart}
           onShowIndex={onShowIndex}
+          onTabChange={onTabChange}
         />
       ) : (
         <PortfolioIndex
@@ -242,10 +245,12 @@ function ProjectDossier({
   dossier,
   onDragStart,
   onShowIndex,
+  onTabChange,
 }: {
   dossier: PortfolioDossierRecord;
   onDragStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onShowIndex: () => void;
+  onTabChange?: (role: TripletRole) => void;
 }) {
   const id = useId();
   const [openRole, setOpenRole] = useState<TripletRole | null>(
@@ -285,7 +290,10 @@ function ProjectDossier({
                 aria-controls={contentId}
                 aria-expanded={expanded}
                 className="dossier-section-toggle"
-                onClick={() => setOpenRole(expanded ? null : role)}
+                onClick={() => {
+                  setOpenRole(expanded ? null : role);
+                  if (!expanded) onTabChange?.(role);
+                }}
                 type="button"
               >
                 <span>{roleLabels[role]}</span>

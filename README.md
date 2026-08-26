@@ -13,6 +13,14 @@ npm run dev
 
 The development server prints its local URL, normally `http://localhost:3000`.
 
+Open `/?avatarLab=1` for the isolated avatar programming lab. Its Director
+console provides scene recipes; a live target map with walk, swim, look, point,
+present, and spotlight actions; movement controls; advanced diagnostics; and
+renderer-failure recovery. The stage uses a CSS-pixel foot/path model, keeps
+grounded travel above the floor, and routes swim paths around registered targets,
+the header, and the expanded console. Reduced motion settles travel immediately
+while preserving target, gaze, pointing, and page actions.
+
 ## Routes
 
 - `/` contains the pointer-responsive figure, transition into the graph, graph controls, node details, and portfolio chat.
@@ -28,7 +36,7 @@ The HTML index and case studies keep their current presentation while the graph 
 
 `lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
 
-`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, controller, sequence runner, and site-action boundary. `components/avatar` owns the lazy overlay plus the replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for the architecture, development harness, troubleshooting, and model-swap workflow.
+`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, obstacle-aware CSS-pixel stage layout, controller, behavior director, sequence runner, bounded tone mappings, and site-action boundary. Safe movement commands include `swimTo` for a semantic target and `swimRoute` with the repository-owned `lap` route. `components/avatar` owns the lazy overlay, Director console, and replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for architecture, controls, troubleshooting, and the proof boundary.
 
 ## Evidence policy
 
@@ -44,9 +52,15 @@ During pre-launch, access to the portfolio is a deployment-boundary concern rath
 
 Future public launch controls remain dormant and independent: setting `PORTFOLIO_CHAT_TURNSTILE_REQUIRED=true` requires Turnstile, a Cloudflare route limiter, and a server-only `PORTFOLIO_CHAT_IDENTIFIER_SECRET`. The runtime HMAC-pseudonymizes the trusted Cloudflare connecting IP before using it as a limiter key or OpenAI `safety_identifier`; raw IPs are never forwarded or logged. Leaving the setting false touches none of those capabilities.
 
-The provider is one OpenAI Agents SDK text agent with one model turn and no tools, handoffs, or persistent session. Its instructions define the portfolio-guide task, and every run receives the complete published portfolio evidence plus the bounded transcript from the current browser visit. The agent always answers conversationally: published Bradley facts can carry citations, unknown Bradley details get a natural statement of uncertainty, social chat stays open-ended, and the application owns the one-time third-general-turn nudge. SDK tracing and OpenAI response storage are disabled so this adoption does not broaden the telemetry or retention contract.
+The provider is one OpenAI Agents SDK text agent with one model turn and no tools, handoffs, or persistent session. Its instructions define the portfolio-guide task, and every run receives the complete published portfolio evidence plus the bounded transcript from the current browser visit. The agent always answers conversationally: published Bradley facts can carry citations, unknown Bradley details get a natural statement of uncertainty, social chat stays open-ended, and the application owns the one-time third-general-turn nudge. Its structured result also selects one to three known avatar behaviors, a bounded performance intent, and enum-valued tone. The client holds that direction until the first answer text commits. SDK tracing and OpenAI response storage are disabled so this adoption does not broaden the telemetry or retention contract.
 
 `wrangler.preview.jsonc` owns the site-preview Worker's non-secret configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request UTC-day Durable Object budget, its SQLite migration, disabled public controls, and no custom-domain route. `OPENAI_API_KEY` is supplied only as an encrypted Worker secret.
+
+For local model-backed chat on macOS, store the API key in Keychain under the
+service name `openai-api-key`, then run `npm run dev:chat`. The command passes
+that one secret to the local Worker process without creating a credential file.
+The ordinary `npm run dev` remains credential-free, and production builds do not
+inherit the development chat gate or its local Durable Object binding.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 

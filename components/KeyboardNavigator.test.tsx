@@ -101,6 +101,18 @@ describe("automatic graph keyboard navigation", () => {
     expect(onNodeSelect).not.toHaveBeenCalled();
   });
 
+  it("ignores keys from descendants of ARIA editing controls", () => {
+    const { onNodeFocus, onNodeSelect } = renderNavigator();
+    const textbox = document.body.appendChild(document.createElement("div"));
+    textbox.setAttribute("role", "textbox");
+    const child = textbox.appendChild(document.createElement("span"));
+
+    fireEvent.keyDown(child, { key: "ArrowRight" });
+
+    expect(onNodeFocus).not.toHaveBeenCalled();
+    expect(onNodeSelect).not.toHaveBeenCalled();
+  });
+
   it("uses Escape to restore the index without disabling later traversal", () => {
     const { onNodeFocus, onNodeSelect } = renderNavigator();
 
