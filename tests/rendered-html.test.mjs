@@ -92,8 +92,8 @@ test("the homepage opens directly on the map with its synchronized index", async
   assert.match(html, /Choosing what not to automate/i);
   assert.match(html, /Finding myself in software/i);
   assert.match(html, /data-world-node=["']bradley["']/i);
-  assert.match(html, /world-glyph-brain/i);
-  assert.match(html, /world-glyph-story/i);
+  assert.match(html, /data-family=["']identity["'][^>]*data-world-node=["']bradley["']/i);
+  assert.match(html, /data-family=["']story["'][^>]*data-world-node=["']story-/i);
   assert.doesNotMatch(html, /Explore by keyboard/i);
   assert.doesNotMatch(html, />Replay intro</i);
   assert.doesNotMatch(html, />Keyboard map</i);
