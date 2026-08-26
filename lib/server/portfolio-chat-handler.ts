@@ -44,7 +44,6 @@ export type PortfolioChatStreamEvent = {
 };
 
 type PortfolioChatHandlerDependencies = {
-  isEnabled(): boolean;
   getProvider(): PortfolioChatProvider;
   getRequestContext?(request: Request): PortfolioChatRequestContext;
   record?(event: PortfolioChatStreamEvent): void;
@@ -457,7 +456,6 @@ function streamResponse(
 }
 
 export function createPortfolioChatHandler({
-  isEnabled,
   getProvider,
   getRequestContext,
   record,
@@ -468,13 +466,6 @@ export function createPortfolioChatHandler({
     request: Request,
     prepared?: ParsedPortfolioChatRequest,
   ) {
-    if (!isEnabled()) {
-      return jsonResponse(503, {
-        code: "disabled",
-        message: "Ask the portfolio is not enabled.",
-      });
-    }
-
     const parsed = prepared
       ? { ok: true as const, value: prepared }
       : await parsePortfolioChatRequest(request);

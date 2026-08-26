@@ -18,8 +18,7 @@ the deployment and rollback procedure.
   ends or extends it first. Record the exact expiry with the deployment proof.
 - Artifact: check out the exact independently reviewed PR head after GitHub
   records that tree as merged to `main`, build it once, and record its commit and
-  deterministic `dist/` digest before any upload. Reuse that unchanged build for
-  the disabled and enabled versions; do not rebuild between them.
+  deterministic `dist/` digest before any upload.
 
 ## Runtime configuration
 
@@ -27,7 +26,6 @@ the deployment and rollback procedure.
 
 | Setting | Value |
 | --- | --- |
-| `PORTFOLIO_CHAT_LIVE_ENABLED` | `true` |
 | `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `false` |
 | `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `200` |
 | `OPENAI_PORTFOLIO_MODEL` | `gpt-5.6-terra` |
@@ -84,7 +82,7 @@ seven-day expiry, and each result below:
 | Budget | The Durable Object receives a limit of 200 and rejects exhaustion before provider construction |
 | Provider failure | The route returns the redacted provider error contract without leaking upstream detail |
 | Secret isolation | No key, prompt, answer, IP address, access token, or secret appears in client assets or structured telemetry |
-| Disabled gate | The recorded disabled Worker version, uploaded from the same `dist/` digest with `PORTFOLIO_CHAT_LIVE_ENABLED=false`, returns the disabled contract before provider construction |
+| Configuration | The endpoint is always registered and a missing provider dependency returns the redacted configuration error before provider construction |
 
 The budget exhaustion and provider-failure checks use deterministic local or
 isolated test inputs. They do not consume the live 200-request allowance merely
@@ -92,30 +90,21 @@ to force failure states.
 
 ## Containment and rollback
 
-There is no previous deployment to restore. Before enabling the preview, deploy
-the reviewed build once with its live gate disabled and record the returned
-Worker version ID as `DISABLED_VERSION_ID`:
-
-```sh
-npx wrangler deploy --config wrangler.preview.jsonc \
-  --var PORTFOLIO_CHAT_LIVE_ENABLED:false \
-  --message "BIV-317 disabled rollback target"
-```
-
-Verify that `/api/portfolio-chat` returns the disabled response, then deploy the
-enabled version from the unchanged build and record its version ID. The primary
+The chat route has no deployment gate. Before replacing an existing release,
+record its healthy Worker version ID as `STABLE_VERSION_ID`. The primary
 containment action is an exact version rollback, which does not depend on the
 state of the checkout or `dist/` at incident time:
 
 ```sh
-npx wrangler rollback "$DISABLED_VERSION_ID" \
+npx wrangler rollback "$STABLE_VERSION_ID" \
   --config wrangler.preview.jsonc \
-  --message "BIV-317 preview kill switch" \
+  --message "BIV-317 preview rollback" \
   --yes
 ```
 
-Verify the disabled response after rollback. If the hostname itself must stop
-serving, delete only the dedicated Worker:
+Verify the known-good page and chat response after rollback. If there is no
+healthy prior version and the hostname itself must stop serving, delete only the
+dedicated Worker:
 
 ```sh
 npx wrangler delete bradley-portfolio-preview \

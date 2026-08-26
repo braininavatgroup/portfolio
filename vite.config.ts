@@ -14,6 +14,29 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  vars: {
+    PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
+    PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
+    OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
+    OPENAI_PORTFOLIO_REASONING_EFFORT: "medium",
+  },
+  secrets: {
+    required: ["OPENAI_API_KEY"],
+  },
+  durable_objects: {
+    bindings: [
+      {
+        name: "PORTFOLIO_CHAT_BUDGET",
+        class_name: "PortfolioChatBudgetObject",
+      },
+    ],
+  },
+  migrations: [
+    {
+      tag: "v1",
+      new_sqlite_classes: ["PortfolioChatBudgetObject"],
+    },
+  ],
   d1_databases: d1
     ? [
         {
@@ -47,6 +70,12 @@ export default defineConfig(async () => {
     build: {
       // Three.js is isolated in one lazy chunk. Its gzip size is tracked during verification.
       chunkSizeWarningLimit: 1000,
+    },
+    optimizeDeps: {
+      // The Agents SDK exposes optional MCP transports from its root module.
+      // Their PKCE helper has browser and Node exports but no Workerd export,
+      // so Vite must leave it out of eager pre-bundling for the Worker graph.
+      exclude: ["pkce-challenge"],
     },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
