@@ -188,7 +188,6 @@ TOTAL_STAGES=4
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
-GITHUB_APP_URL="https://github.com/organizations/braininavatgroup/settings/installations"
 CLOUDFLARE_TOKENS_URL="https://dash.cloudflare.com/profile/api-tokens"
 GITHUB_ENVIRONMENT="portfolio-main-preview"
 DEPLOY_GATE="PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED"
@@ -210,6 +209,12 @@ for dependency in gh git node npx openssl; do
 done
 
 cd "$REPO_ROOT"
+if [[ -n "${CONDUCTOR_WORKSPACE_NAME:-}" || -n "${CLAUDE_AGENT_SDK_VERSION:-}" ]]; then
+  printf 'This wizard must run in Apple Terminal or iTerm outside Conductor.\n' >&2
+  printf 'Conductor agent sessions deliberately use a GitHub token without Workflows permission.\n' >&2
+  printf 'Run: cd %q && npm run setup:main-preview\n' "$REPO_ROOT" >&2
+  exit 1
+fi
 banner "Permanent main preview setup"
 
 stage "GitHub preflight and pull request"
@@ -219,8 +224,6 @@ else
   say "GitHub CLI needs authentication; opening its login flow."
   gh auth login
 fi
-say "Connecting Git pushes to that GitHub CLI session."
-gh auth setup-git
 
 CURRENT_BRANCH=$(git branch --show-current)
 if [[ -z "$CURRENT_BRANCH" || "$CURRENT_BRANCH" == "main" ]]; then
@@ -230,12 +233,9 @@ fi
 
 say "Publishing $CURRENT_BRANCH so GitHub can open the setup pull request."
 if ! git push -u origin HEAD; then
-  warn "GitHub rejected the workflow-file push because the installed biv-agent token has not accepted the App's current permissions."
-  open_url "$GITHUB_APP_URL"
-  step "Switch to the braininavatgroup organization context if GitHub shows your personal settings."
-  step "Open biv-agent's Review request and click Accept new permissions; do not edit the App permission dropdowns again."
-  pause "Press Enter after accepting the installation update, then the wizard will mint a fresh token and retry."
-  git push -u origin HEAD
+  printf 'GitHub rejected the push. Do not broaden the biv-agent App permissions.\n' >&2
+  printf 'Confirm this is Apple Terminal or iTerm, then run gh auth refresh -h github.com -s workflow and rerun the wizard.\n' >&2
+  exit 1
 fi
 
 REPOSITORY=$(gh repo view --json nameWithOwner --jq .nameWithOwner)

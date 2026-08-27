@@ -111,7 +111,9 @@ reuses an existing `gh` login, publishes the feature branch and PR, captures
 secrets through hidden prompts, creates the protected GitHub environment, and
 leaves deployment disabled unless `ACTIVATE` is typed explicitly. Secret values
 are streamed directly to Cloudflare or GitHub and are never written to the
-repository, `.env`, command arguments, or shell history. See
+repository, `.env`, command arguments, or shell history. Run the wizard from
+Apple Terminal or iTerm, not a Conductor agent terminal: agent credentials
+deliberately omit permission to change GitHub Actions workflows. See
 [the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
 for secret rotation, iPhone smoke, and rollback requirements.
 

@@ -14,10 +14,14 @@ async function fakeCommand(directory: string, name: string, body: string) {
   await chmod(path, 0o755);
 }
 
-async function runWizard(input: string, options?: { failFirstPush?: boolean }) {
+async function runWizard(
+  input: string,
+  options?: { conductorSession?: boolean; failFirstPush?: boolean; allowFailure?: boolean },
+) {
   const directory = await mkdtemp(join(tmpdir(), "main-preview-wizard-"));
   tempDirectories.push(directory);
   const logPath = join(directory, "calls.log");
+  await writeFile(logPath, "");
 
   await fakeCommand(
     directory,
@@ -105,6 +109,8 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
           WIZARD_CALL_LOG: logPath,
           WIZARD_FAIL_FIRST_PUSH: options?.failFirstPush ? "1" : "0",
           WIZARD_PUSH_FAILED_MARKER: join(directory, "push-failed"),
+          CONDUCTOR_WORKSPACE_NAME: options?.conductorSession ? "vientiane" : "",
+          CLAUDE_AGENT_SDK_VERSION: "",
         },
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -118,8 +124,8 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
       });
       child.once("error", reject);
       child.once("close", (code) => {
-        if (code === 0) {
-          resolve({ stdout, stderr });
+        if (code === 0 || options?.allowFailure) {
+          resolve({ stdout, stderr, exitCode: code });
         } else {
           reject(new Error(`wizard exited ${code}: ${stderr}`));
         }
@@ -174,7 +180,7 @@ describe("main preview setup wizard", () => {
 
     expect(calls).toContain("gh auth status");
     expect(calls).not.toContain("gh auth login");
-    expect(calls).toContain("gh auth setup-git");
+    expect(calls).not.toContain("gh auth setup-git");
     expect(calls).toContain("git push -u origin HEAD");
     expect(calls).toContain("wrangler secret put PORTFOLIO_MAIN_PREVIEW_PASSWORD");
     expect(calls).toContain("wrangler secret put PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET");
@@ -222,29 +228,29 @@ describe("main preview setup wizard", () => {
     );
   });
 
-  it("routes a rejected workflow push to the organization permission approval", async () => {
-    const { calls, stdout } = await runWizard(
-      [
-        "",
-        "",
-        "draft-password-123456789",
-        "draft-password-123456789",
-        "sk-production-secret-value",
-        "y",
-        "0123456789abcdef0123456789abcdef",
-        "cloudflare-token-secret-value",
-        "y",
-        "",
-        "",
-      ].join("\n"),
-      { failFirstPush: true },
-    );
+  it("does not broaden the App when a personal credential rejects the push", async () => {
+    const { calls, stderr, exitCode } = await runWizard("\n", {
+      failFirstPush: true,
+      allowFailure: true,
+    });
 
-    expect(calls.match(/git push -u origin HEAD/g)).toHaveLength(2);
-    expect(calls).toContain(
-      "open https://github.com/organizations/braininavatgroup/settings/installations",
-    );
-    expect(stdout).toContain("Accept new permissions");
-    expect(stdout).toContain("braininavatgroup organization context");
+    expect(exitCode).not.toBe(0);
+    expect(calls.match(/git push -u origin HEAD/g)).toHaveLength(1);
+    expect(calls).not.toContain("settings/installations");
+    expect(stderr).toContain("Do not broaden the biv-agent App permissions");
+    expect(stderr).toContain("gh auth refresh -h github.com -s workflow");
+  });
+
+  it("refuses to push from a Conductor agent credential session", async () => {
+    const { calls, stderr, exitCode } = await runWizard("\n", {
+      conductorSession: true,
+      allowFailure: true,
+    });
+
+    expect(exitCode).not.toBe(0);
+    expect(calls).not.toContain("git push");
+    expect(calls).not.toContain("gh auth setup-git");
+    expect(stderr).toContain("outside Conductor");
+    expect(stderr).toContain("npm run setup:main-preview");
   });
 });
