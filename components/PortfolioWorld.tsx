@@ -131,24 +131,27 @@ const storyView = {
   target: { x: 0, y: -10, z: 800 },
 };
 
-const brokenOrbit: Record<string, readonly [number, number, number]> = {
-  bradley: [50, 12, 650],
-  "story-making-work-playable": [36, 29, 700],
-  "story-choosing-what-not-to-automate": [65, 34, 720],
-  "story-finding-myself-in-software": [10, 57, 720],
-  dubs: [21, 39, 860],
-  writ: [29, 53, 900],
-  kickoff: [80, 40, 840],
-  pitching: [88, 53, 940],
-  reporting: [76, 66, 900],
-  "personal-os": [44, 55, 800],
-  yoohoo: [51, 72, 880],
-  alarm: [61, 56, 960],
-  infamous: [15, 77, 760],
-  "music-practice": [31, 85, 820],
-  "systems-consulting": [50, 87, 880],
-  "real-estate": [68, 82, 920],
-  touring: [86, 73, 990],
+export const portfolioOverviewLayout: Record<
+  string,
+  readonly [number, number, number]
+> = {
+  bradley: [48.88, 19.93, 646.71],
+  "story-making-work-playable": [35.34, 32.79, 698.43],
+  "story-choosing-what-not-to-automate": [63.3, 34.67, 719.72],
+  "story-finding-myself-in-software": [11.29, 53.66, 721.38],
+  dubs: [18.73, 41.17, 859.1],
+  writ: [21.19, 55.82, 898.83],
+  kickoff: [81.31, 42.68, 838.89],
+  pitching: [92.13, 54.87, 939.23],
+  reporting: [70.78, 60.84, 902.14],
+  "personal-os": [34.29, 60.66, 797.65],
+  yoohoo: [52.43, 67.85, 881.72],
+  alarm: [51.08, 48.41, 963.15],
+  infamous: [9.34, 71.43, 762.31],
+  "music-practice": [25.41, 79.45, 822.3],
+  "systems-consulting": [47.11, 81.46, 882.3],
+  "real-estate": [76.49, 82.38, 919.84],
+  touring: [93.41, 72.24, 990.31],
 };
 
 const storyLayouts: Record<
@@ -278,7 +281,7 @@ export function translateWorldPointByScreenDelta(
 
 function createRuntimeNodes(): RuntimeNode[] {
   return portfolioWorldNodes.map((node) => {
-    const [screenX, screenY, z] = brokenOrbit[node.id];
+    const [screenX, screenY, z] = portfolioOverviewLayout[node.id];
     const point = { x: (50 - screenX) * 18, y: (50 - screenY) * 18, z };
     return {
       ...node,
