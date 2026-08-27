@@ -251,7 +251,7 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     position: { x: 65, y: 34 },
     summary: "A story about making systems more capable while keeping consequential judgment human.",
     sectionTitle: "Story",
-    sectionBody: "The campaign systems, personal tooling, Yoohoo, and Good Morning compose this reading.",
+    sectionBody: "The campaign systems, personal tooling, and Yoohoo compose this reading.",
   },
   {
     id: "story-finding-myself-in-software",
@@ -281,9 +281,9 @@ export const portfolioStories: readonly PortfolioStory[] = [
     id: "choosing-what-not-to-automate",
     title: "Choosing what not to automate",
     lede: "Automation begins with a boundary. Some decisions gain from more information and faster execution but still lose their value when nobody owns the final call.",
-    body: "Kickoff, pitching, and reporting draw different boundaries between automatic movement and human review, while personal tooling, Yoohoo, and Good Morning test the same question around attention, permission, and control.",
+    body: "Kickoff, pitching, and reporting draw different boundaries between automatic movement and human review, while personal tooling and Yoohoo test the same question around attention, permission, and control.",
     nodeId: "story-choosing-what-not-to-automate",
-    members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo", "alarm"],
+    members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo"],
   },
   {
     id: "finding-myself-in-software",
