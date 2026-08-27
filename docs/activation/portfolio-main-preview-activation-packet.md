@@ -44,7 +44,8 @@ GitHub environment separately holds the least-privilege
 
 `wrangler.main-preview.jsonc` requires the password gate, sends every static
 asset through the Worker, and retains the 200-request UTC-day chat budget. A
-missing or undersized password/signing secret fails closed with a redacted 503.
+A missing password or missing/undersized signing secret fails closed with a
+redacted 503.
 Successful login creates a seven-day `HttpOnly`, `Secure`, `SameSite=Lax`
 cookie. There is intentionally no logout route or failed-login throttle in this
 version.

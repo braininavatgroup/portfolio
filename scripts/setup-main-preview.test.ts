@@ -159,7 +159,7 @@ describe("main preview setup wizard", () => {
   });
 
   it("reuses GitHub auth, streams secrets, and stays dormant by default", async () => {
-    const password = "draft-password-123456789";
+    const password = "owl7";
     const openAiKey = "sk-production-secret-value";
     const cloudflareToken = "cloudflare-token-secret-value";
     const accountId = "0123456789abcdef0123456789abcdef";

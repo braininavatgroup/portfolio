@@ -172,6 +172,26 @@ describe("main preview password boundary", () => {
     expect(cookie).toContain("Path=/");
   });
 
+  it("accepts any non-empty shared password chosen by the operator", async () => {
+    const env = {
+      ...enabledEnv,
+      PORTFOLIO_MAIN_PREVIEW_PASSWORD: "draft",
+    };
+
+    const response = await withMainPreviewPassword(
+      postLogin("draft", "/work"),
+      env,
+      downstream().next,
+      () => NOW,
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("/work");
+    expect(response.headers.get("set-cookie")).toContain(
+      "portfolio_main_preview_session=",
+    );
+  });
+
   it("accepts a valid signed cookie and adds noindex without buffering the app response", async () => {
     const login = await withMainPreviewPassword(
       postLogin(enabledEnv.PORTFOLIO_MAIN_PREVIEW_PASSWORD!),

@@ -251,10 +251,10 @@ fi
 
 stage "Worker secrets"
 say "The shared password and signing secret stay in memory and stream directly to Cloudflare."
-ask_secret MAIN_PREVIEW_PASSWORD "Choose a shared draft password (at least 16 characters):"
+ask_secret MAIN_PREVIEW_PASSWORD "Choose a shared draft password:"
 ask_secret MAIN_PREVIEW_PASSWORD_CONFIRMATION "Enter the shared password again:"
-if (( ${#MAIN_PREVIEW_PASSWORD} < 16 )); then
-  printf 'The shared password must contain at least 16 characters.\n' >&2
+if [[ -z "$MAIN_PREVIEW_PASSWORD" ]]; then
+  printf 'The shared password cannot be empty.\n' >&2
   exit 1
 fi
 if [[ "$MAIN_PREVIEW_PASSWORD" != "$MAIN_PREVIEW_PASSWORD_CONFIRMATION" ]]; then

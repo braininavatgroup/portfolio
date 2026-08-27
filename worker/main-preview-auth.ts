@@ -298,7 +298,7 @@ export async function withMainPreviewPassword(
 
   const password = env.PORTFOLIO_MAIN_PREVIEW_PASSWORD;
   const sessionSecret = env.PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET;
-  if (!password || password.length < 16 || !sessionSecret || sessionSecret.length < 32) {
+  if (!password || !sessionSecret || sessionSecret.length < 32) {
     return privateResponse("Preview unavailable", { status: 503 });
   }
 
