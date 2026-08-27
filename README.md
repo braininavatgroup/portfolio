@@ -7,16 +7,18 @@ An experimental spatial portfolio for Bradley Berkman's product, systems, and cr
 Requires Node.js 22.13 or newer.
 
 ```bash
-npm ci
+bash scripts/bootstrap-worktree.sh
 npm run setup:chat # once per Mac
 npm run dev
 ```
 
 The development server prints its local URL, normally `http://localhost:3000`.
-After this configuration reaches the default branch, Conductor's shared repo
-settings run `npm ci` for each new workspace and expose the default development
-action on that workspace's allocated port. Workspaces can run concurrently
-because Wrangler and Miniflare keep their state inside each worktree.
+Conductor and manually created Git worktrees use the same idempotent bootstrap
+script. It runs `npm ci` when the lockfile or Node version changes, then records
+that dependency state inside the worktree. Conductor setup also activates the
+versioned `post-checkout` hook, so later `git worktree add` operations bootstrap
+their own dependencies automatically. Workspaces can run concurrently because
+Wrangler and Miniflare keep their state inside each worktree.
 The setup wizard opens the OpenAI project page and separates the credentials:
 
 - The `portfolio-dev` key lives in macOS Keychain under service
