@@ -84,7 +84,7 @@ async function startBuiltWorker(port) {
   };
 }
 
-async function fetchBuiltWorker(request) {
+async function fetchBuiltWorker(request, environment = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -95,6 +95,7 @@ async function fetchBuiltWorker(request) {
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
+      ...environment,
     },
     {
       waitUntil() {},
@@ -102,6 +103,13 @@ async function fetchBuiltWorker(request) {
     },
   );
 }
+
+const protectedEnvironment = {
+  PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "true",
+  PORTFOLIO_MAIN_PREVIEW_PASSWORD: "correct horse battery staple",
+  PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET:
+    "a-long-independent-session-signing-secret-for-preview-only",
+};
 
 test("the built Worker exposes one always-registered portfolio chat route", async () => {
   const port = await availablePort();
@@ -139,4 +147,78 @@ test("the built Worker does not register the retired preview endpoint", async ()
   assert.equal(response.status, 404);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   assert.match(await response.text(), />404<\/h1>/i);
+});
+
+test("the built Worker preserves local development without an asset binding", async () => {
+  const response = await fetchBuiltWorker(
+    new Request("http://localhost/index"),
+    { ASSETS: undefined },
+  );
+
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), />Project index<\/h1>/i);
+});
+
+test("the built Worker gates static assets before touching the asset binding", async () => {
+  let assetCalls = 0;
+  const response = await fetchBuiltWorker(
+    new Request("https://preview.example/protected.css", {
+      headers: { accept: "text/css,*/*;q=0.1" },
+    }),
+    {
+      ...protectedEnvironment,
+      ASSETS: {
+        fetch: async () => {
+          assetCalls += 1;
+          return new Response("protected asset");
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 303);
+  assert.equal(assetCalls, 0);
+  assert.match(
+    response.headers.get("location") ?? "",
+    /^\/_portfolio-preview\/login\?next=/,
+  );
+});
+
+test("the built Worker serves bound static assets after password authentication", async () => {
+  const login = await fetchBuiltWorker(
+    new Request("https://preview.example/_portfolio-preview/login?next=%2Fprotected.css", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        password: protectedEnvironment.PORTFOLIO_MAIN_PREVIEW_PASSWORD,
+      }),
+    }),
+    protectedEnvironment,
+  );
+  const cookie = login.headers.get("set-cookie")?.split(";", 1)[0];
+  assert.equal(login.status, 303);
+  assert.ok(cookie);
+
+  let assetCalls = 0;
+  const response = await fetchBuiltWorker(
+    new Request("https://preview.example/protected.css", {
+      headers: { cookie },
+    }),
+    {
+      ...protectedEnvironment,
+      ASSETS: {
+        fetch: async () => {
+          assetCalls += 1;
+          return new Response("protected asset", {
+            headers: { "content-type": "text/css" },
+          });
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "protected asset");
+  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(assetCalls, 1);
 });

@@ -100,6 +100,17 @@ Worker secret. The local Vite Worker supplies the same model, budget, and
 Durable Object bindings while `npm run dev` injects the separate Keychain-backed
 development key.
 
+The separate permanent preview of tested `main` is defined by
+`wrangler.main-preview.jsonc`. It uses a normal password form and a signed
+seven-day browser cookie, gates static assets as well as application routes,
+and has no custom domain. Its CI deployment job consumes the exact `dist/`
+artifact already proven by CI and remains dormant unless the repository
+variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` is explicitly set to `true`.
+The password, session-signing key, provider key, Cloudflare token, environment,
+and activation are not created by this repository. See
+[the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
+for secret rotation, iPhone smoke, and rollback requirements.
+
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
 ## Verification
@@ -114,4 +125,8 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This repository does not configure or authorize a production/custom-domain release. The dedicated Workers.dev site preview and its bounded activation record are tracked in BIV-317. Chat-specific preview access was retired by BIV-321.
+This repository does not configure or authorize a production/custom-domain
+release. The bounded single-operator Workers.dev site preview remains tracked in
+BIV-317, while the password-protected permanent main preview remains separately
+false-gated until its activation packet is approved. Chat-specific preview
+access was retired by BIV-321.
