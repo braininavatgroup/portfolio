@@ -13,6 +13,7 @@ import {
   portfolioStoryById,
   portfolioWorldNodeById,
   portfolioWorldNodes,
+  type PortfolioWorldFamily,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 
@@ -50,6 +51,76 @@ const MARK_SIZE = 15;
 const LABEL_MAX_WIDTH = 132;
 const LABEL_LINE_HEIGHT = 15;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+type ConnectorAnchor = Point & { family: PortfolioWorldFamily };
+
+const closedMarkVertices: Partial<Record<PortfolioWorldFamily, readonly Point[]>> = {
+  component: [
+    { x: 0, y: -MARK_SIZE * 0.52 },
+    { x: MARK_SIZE * 0.51, y: MARK_SIZE * 0.42 },
+    { x: -MARK_SIZE * 0.51, y: MARK_SIZE * 0.42 },
+  ],
+  personal: [
+    { x: -MARK_SIZE * 0.48, y: -MARK_SIZE * 0.48 },
+    { x: MARK_SIZE * 0.48, y: -MARK_SIZE * 0.48 },
+    { x: MARK_SIZE * 0.48, y: MARK_SIZE * 0.48 },
+    { x: -MARK_SIZE * 0.48, y: MARK_SIZE * 0.48 },
+  ],
+  engagement: [
+    { x: 0, y: -MARK_SIZE * 0.54 },
+    { x: MARK_SIZE * 0.54, y: 0 },
+    { x: 0, y: MARK_SIZE * 0.54 },
+    { x: -MARK_SIZE * 0.54, y: 0 },
+  ],
+};
+
+function cross2d(a: Point, b: Point) {
+  return a.x * b.y - a.y * b.x;
+}
+
+function polygonBoundaryInset(vertices: readonly Point[], direction: Point) {
+  let nearest = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < vertices.length; index += 1) {
+    const start = vertices[index];
+    const end = vertices[(index + 1) % vertices.length];
+    const edge = { x: end.x - start.x, y: end.y - start.y };
+    const denominator = cross2d(direction, edge);
+    if (Math.abs(denominator) < 1e-8) continue;
+    const distance = cross2d(start, edge) / denominator;
+    const segmentPosition = cross2d(start, direction) / denominator;
+    if (distance >= 0 && segmentPosition >= 0 && segmentPosition <= 1) {
+      nearest = Math.min(nearest, distance);
+    }
+  }
+  return Number.isFinite(nearest) ? nearest : 0;
+}
+
+function markBoundaryInset(family: PortfolioWorldFamily, direction: Point) {
+  if (family === "operation") return MARK_SIZE * 0.5;
+  if (family === "formative" || family === "product") return MARK_SIZE * 0.49;
+  const vertices = closedMarkVertices[family];
+  return vertices ? polygonBoundaryInset(vertices, direction) : 0;
+}
+
+export function connectorSegment(from: ConnectorAnchor, to: ConnectorAnchor) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  if (!distance) return { start: { x: from.x, y: from.y }, end: { x: to.x, y: to.y } };
+  const direction = { x: dx / distance, y: dy / distance };
+  const fromInset = markBoundaryInset(from.family, direction);
+  const toInset = markBoundaryInset(to.family, { x: -direction.x, y: -direction.y });
+  return {
+    start: {
+      x: from.x + direction.x * fromInset,
+      y: from.y + direction.y * fromInset,
+    },
+    end: {
+      x: to.x - direction.x * toInset,
+      y: to.y - direction.y * toInset,
+    },
+  };
+}
 
 const overview = {
   position: { x: 0, y: 35, z: -760 },
@@ -894,18 +965,17 @@ function drawLinks(
     const active = isActive(link);
     const strength = selectedId ? (active ? 0.78 : 0.025) : 0.25;
     const alpha = Math.min(from.alpha, to.alpha) * strength;
-    const dx = to.screen.x - from.screen.x;
-    const dy = to.screen.y - from.screen.y;
-    const distance = Math.hypot(dx, dy) || 1;
-    const ux = dx / distance;
-    const uy = dy / distance;
+    const segment = connectorSegment(
+      { x: from.screen.x, y: from.screen.y, family: from.family },
+      { x: to.screen.x, y: to.screen.y, family: to.family },
+    );
     context.save();
     context.globalAlpha = alpha;
     context.strokeStyle = color;
     context.lineWidth = active ? 1.1 : 0.54;
     context.beginPath();
-    context.moveTo(from.screen.x + ux * 12, from.screen.y + uy * 12);
-    context.lineTo(to.screen.x - ux * 15, to.screen.y - uy * 15);
+    context.moveTo(segment.start.x, segment.start.y);
+    context.lineTo(segment.end.x, segment.end.y);
     context.stroke();
     context.restore();
   }
