@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import Home from "./page";
 
 describe("portfolio page", () => {
+  it("opens the accepted spatial composition at the root URL", async () => {
+    const page = await Home();
+
+    expect(page.props.initialPhase).toBe("graph");
+  });
+
   it("has no alternate Avatar Lab page route", () => {
     const pageSource = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     expect(pageSource).not.toContain("avatarLab");
