@@ -35,7 +35,7 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders Bradley as the landing state with direct navigation exits", async () => {
+test("server-renders the accepted composition as the landing state", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -49,11 +49,11 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   assert.match(html, /<main[^>]*tabindex=["']-1["']/i);
   assert.match(html, /id=["']cursorInstrument["']/i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Bradley Berkman</i);
-  assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
-  assert.doesNotMatch(html, />Index</i);
+  assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
+  assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
+  assert.match(html, /<h1>Index<\/h1>/i);
   assert.doesNotMatch(html, />Enter map</i);
-  assert.doesNotMatch(html, /aria-label=["']Portfolio index["']/i);
+  assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.doesNotMatch(html, /Give small operators larger-operator leverage/i);
   assert.doesNotMatch(html, /Bradley Berkman portfolio/i);
   assert.doesNotMatch(html, /Click anywhere to step inside, then follow the work outward\./i);
@@ -76,7 +76,7 @@ test("server-renders Bradley as the landing state with direct navigation exits",
 });
 
 test("the homepage opens directly on the map with its synchronized index", async () => {
-  const response = await render("/?view=graph");
+  const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
 

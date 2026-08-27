@@ -3,6 +3,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  connectorSegment,
   PortfolioWorld,
   projectWorldPoint,
   translateWorldPointByScreenDelta,
@@ -72,5 +73,25 @@ describe("PortfolioWorld", () => {
 
     expect(projectedMoved!.x).toBeCloseTo(projectedStart!.x + 100, 5);
     expect(projectedMoved!.y).toBeCloseTo(projectedStart!.y, 5);
+  });
+
+  it("terminates connectors at each visible mark instead of a padded halo", () => {
+    const circle = connectorSegment(
+      { x: 0, y: 0, family: "product" },
+      { x: 100, y: 0, family: "product" },
+    );
+
+    expect(circle.start.x).toBeCloseTo(7.35, 5);
+    expect(circle.end.x).toBeCloseTo(92.65, 5);
+    expect(circle.start.y).toBe(0);
+    expect(circle.end.y).toBe(0);
+
+    const openMarks = connectorSegment(
+      { x: 10, y: 20, family: "identity" },
+      { x: 70, y: 20, family: "story" },
+    );
+
+    expect(openMarks.start).toEqual({ x: 10, y: 20 });
+    expect(openMarks.end).toEqual({ x: 70, y: 20 });
   });
 });
