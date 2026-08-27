@@ -106,8 +106,12 @@ seven-day browser cookie, gates static assets as well as application routes,
 and has no custom domain. Its CI deployment job consumes the exact `dist/`
 artifact already proven by CI and remains dormant unless the repository
 variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` is explicitly set to `true`.
-The password, session-signing key, provider key, Cloudflare token, environment,
-and activation are not created by this repository. See
+Run `npm run setup:main-preview` for the repeatable four-stage setup wizard. It
+reuses an existing `gh` login, publishes the feature branch and PR, captures
+secrets through hidden prompts, creates the protected GitHub environment, and
+leaves deployment disabled unless `ACTIVATE` is typed explicitly. Secret values
+are streamed directly to Cloudflare or GitHub and are never written to the
+repository, `.env`, command arguments, or shell history. See
 [the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
 for secret rotation, iPhone smoke, and rollback requirements.
 

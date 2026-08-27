@@ -26,6 +26,10 @@ time, and known-good prior version before changing the gate.
 
 ## Runtime secrets and configuration
 
+Run `npm run setup:main-preview` from the prepared feature branch for the
+repeatable human-driven setup. The wizard keeps deployment false-gated unless
+the operator types `ACTIVATE` explicitly.
+
 Provision these only as encrypted secrets on the dedicated Worker:
 
 - `OPENAI_API_KEY`
