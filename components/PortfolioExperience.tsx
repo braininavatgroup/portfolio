@@ -207,11 +207,9 @@ export function PortfolioExperience({
     return (
       transition.phase === "graph" &&
       avatarMounted &&
-      avatarEnabled &&
-      snapshot.visible &&
       !snapshot.failed
     );
-  }, [avatarController, avatarEnabled, avatarMounted, transition.phase]);
+  }, [avatarController, avatarMounted, transition.phase]);
   const closeAvatarDirector = useCallback(() => setAvatarDebug(false), []);
   const toyboxSession = useAvatarToyboxSession({
     canOpen: canOpenToybox,

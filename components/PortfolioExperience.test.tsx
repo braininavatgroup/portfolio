@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarController } from "../lib/avatar/controller";
+import { avatarEnabledStorageKey } from "../lib/avatar/preference";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
@@ -25,6 +26,7 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       debug,
       development,
       director,
+      enabled,
       onExpandedPanelChange,
       registry,
       runner,
@@ -40,6 +42,7 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       runner?: AvatarSequenceRunner;
       siteActionExecutor?: SiteActionExecutor;
     }) => {
+      React.useEffect(() => controller.setVisible(enabled), [controller, enabled]);
       const snapshot = React.useSyncExternalStore(
         controller.subscribe,
         controller.getSnapshot,
@@ -856,5 +859,22 @@ describe("spatial self-portrait", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByLabelText("Test avatar toybox")).toBeNull();
     expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
+  });
+
+  it("lets Shift+G open the game despite the retired avatar visibility preference", async () => {
+    mockMatchMedia();
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    portfolioStorageValues.set(avatarEnabledStorageKey, "false");
+    const shell = document.body.appendChild(document.createElement("div"));
+    shell.id = "app-shell";
+    const portal = document.body.appendChild(document.createElement("div"));
+    portal.id = "avatar-toybox-root";
+    render(<PortfolioExperience initialPhase="graph" />, { container: shell });
+    await act(async () => {});
+    await screen.findByLabelText("Test avatar overlay");
+
+    fireEvent.keyDown(document, { key: "g", shiftKey: true });
+
+    expect((await screen.findByTestId("toybox-status")).textContent).toBe("choosing");
   });
 });
