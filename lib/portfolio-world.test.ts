@@ -38,7 +38,7 @@ describe("accepted portfolio world", () => {
       },
       {
         title: "Choosing what not to automate",
-        members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo", "alarm"],
+        members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo"],
       },
       {
         title: "Finding myself in software",
@@ -59,6 +59,22 @@ describe("accepted portfolio world", () => {
         ],
       },
     ]);
+  });
+
+  it("does not connect Good Morning to Choosing what not to automate", () => {
+    const links = getVisibleWorldLinks({
+      activeStoryId: "choosing-what-not-to-automate",
+      selectedId: "story-choosing-what-not-to-automate",
+    });
+
+    expect(
+      links.some(
+        ({ from, to, storyId }) =>
+          from === "story-choosing-what-not-to-automate" &&
+          to === "alarm" &&
+          storyId === "choosing-what-not-to-automate",
+      ),
+    ).toBe(false);
   });
 
   it("keeps Bradley disconnected at rest and reveals authorship on selection", () => {

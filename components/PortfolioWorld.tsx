@@ -178,7 +178,6 @@ const storyLayouts: Record<
       reporting: { x: -330, y: 110, z: 820 },
       "personal-os": { x: -340, y: -110, z: 820 },
       yoohoo: { x: -130, y: -230, z: 820 },
-      alarm: { x: 100, y: -170, z: 820 },
     },
   },
   "finding-myself-in-software": {
