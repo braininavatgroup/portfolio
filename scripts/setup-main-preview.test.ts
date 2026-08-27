@@ -14,7 +14,7 @@ async function fakeCommand(directory: string, name: string, body: string) {
   await chmod(path, 0o755);
 }
 
-async function runWizard(input: string) {
+async function runWizard(input: string, options?: { failFirstPush?: boolean }) {
   const directory = await mkdtemp(join(tmpdir(), "main-preview-wizard-"));
   tempDirectories.push(directory);
   const logPath = join(directory, "calls.log");
@@ -52,6 +52,10 @@ if [[ "\${1:-}" == "branch" ]]; then
   printf 'tailscale-phone-localhost-testing\\n'
 else
   printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+  if [[ "\${WIZARD_FAIL_FIRST_PUSH:-}" == "1" && ! -f "$WIZARD_PUSH_FAILED_MARKER" ]]; then
+    : > "$WIZARD_PUSH_FAILED_MARKER"
+    exit 1
+  fi
 fi
 `,
   );
@@ -99,6 +103,8 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
           ...process.env,
           PATH: `${directory}${delimiter}${process.env.PATH}`,
           WIZARD_CALL_LOG: logPath,
+          WIZARD_FAIL_FIRST_PUSH: options?.failFirstPush ? "1" : "0",
+          WIZARD_PUSH_FAILED_MARKER: join(directory, "push-failed"),
         },
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -214,5 +220,31 @@ describe("main preview setup wizard", () => {
     expect(calls).toContain(
       "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
     );
+  });
+
+  it("routes a rejected workflow push to the organization permission approval", async () => {
+    const { calls, stdout } = await runWizard(
+      [
+        "",
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "",
+      ].join("\n"),
+      { failFirstPush: true },
+    );
+
+    expect(calls.match(/git push -u origin HEAD/g)).toHaveLength(2);
+    expect(calls).toContain(
+      "open https://github.com/organizations/braininavatgroup/settings/installations",
+    );
+    expect(stdout).toContain("Accept new permissions");
+    expect(stdout).toContain("braininavatgroup organization context");
   });
 });

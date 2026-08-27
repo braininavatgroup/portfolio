@@ -230,10 +230,11 @@ fi
 
 say "Publishing $CURRENT_BRANCH so GitHub can open the setup pull request."
 if ! git push -u origin HEAD; then
-  warn "GitHub rejected the workflow-file push. The installed biv-agent app needs Workflows: read and write."
+  warn "GitHub rejected the workflow-file push because the installed biv-agent token has not accepted the App's current permissions."
   open_url "$GITHUB_APP_URL"
-  step "Open biv-agent, grant Workflows read/write for this repository, and save."
-  pause "Press Enter after saving the permission, then the wizard will retry."
+  step "Switch to the braininavatgroup organization context if GitHub shows your personal settings."
+  step "Open biv-agent's Review request and click Accept new permissions; do not edit the App permission dropdowns again."
+  pause "Press Enter after accepting the installation update, then the wizard will mint a fresh token and retry."
   git push -u origin HEAD
 fi
 
