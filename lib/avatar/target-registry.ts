@@ -42,6 +42,15 @@ function viewportSize() {
 export class AvatarTargetRegistry {
   #targets = new Map<AvatarTargetId, TargetElement>();
   #obstacles = new Map<AvatarObstacleId, TargetElement>();
+  #stage: TargetElement | null = null;
+
+  registerStage(element: TargetElement) {
+    this.#stage = element;
+  }
+
+  unregisterStage(element: TargetElement) {
+    if (this.#stage === element) this.#stage = null;
+  }
 
   register(target: AvatarTargetId, element: TargetElement) {
     this.#targets.set(target, element);
@@ -95,8 +104,13 @@ export class AvatarTargetRegistry {
   }
 
   resolveStageMap(): AvatarStageMap {
+    const viewport = viewportSize();
+    const stageBounds = this.#stage?.getBoundingClientRect();
+    const stageWidth = stageBounds && stageBounds.width > 0
+      ? Math.max(1, Math.min(viewport.width, stageBounds.right))
+      : viewport.width;
     return {
-      viewport: viewportSize(),
+      viewport: { width: stageWidth, height: viewport.height },
       targets: this.resolveAll(),
       obstacles: this.resolveObstacles(),
     };

@@ -98,7 +98,7 @@ describe("avatar toybox session lease", () => {
     expect(result.current.status).toBe("closed");
 
     canOpen.mockReturnValue(true);
-    setViewport(899, 800);
+    setViewport(719, 800);
     act(() => dispatchShortcut());
     expect(result.current.status).toBe("closed");
 
@@ -137,7 +137,7 @@ describe("avatar toybox session lease", () => {
     act(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "1", bubbles: true })));
     expect(result.current.status).toBe("collecting");
 
-    setViewport(800, 700);
+    setViewport(700, 700);
     act(() => window.dispatchEvent(new Event("resize")));
     expect(result.current.status).toBe("closed");
   });

@@ -47,7 +47,7 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   assert.match(html, /<div[^>]*id=["']avatar-toybox-root["']/i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*tabindex=["']-1["']/i);
-  assert.match(html, /<main[^>]*data-theme=["']light["']/i);
+  assert.match(html, /id=["']cursorInstrument["']/i);
   assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Bradley Berkman</i);
   assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
@@ -64,8 +64,10 @@ test("server-renders Bradley as the landing state with direct navigation exits",
   assert.match(html, /id=["']portfolio-question["']/i);
   assert.match(
     html,
-    /placeholder=["']Ask about the work, decisions, or outcomes\.["']/i,
+    /placeholder=["']Ask a follow-up["']/i,
   );
+  assert.match(html, /aria-label=["']Open portfolio assistant["']/i);
+  assert.match(html, /class=["'][^"']*portfolio-chat-panel[^"']*["'][^>]*hidden/i);
   assert.doesNotMatch(html, /Try one of the rotating questions/i);
   assert.doesNotMatch(html, /No external model is called/i);
   assert.doesNotMatch(html, /Local tool/i);
@@ -78,14 +80,20 @@ test("the homepage opens directly on the map with its synchronized index", async
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /<main[^>]*data-theme=["']light["']/i);
+  assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
   assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
-  assert.doesNotMatch(html, />Index</i);
-  assert.match(html, /href=["']\/index["'][^>]*>View as list</i);
+  assert.match(html, /<h1>Index<\/h1>/i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
+  assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
-  assert.match(html, /Music promotion/i);
-  assert.match(html, /Campaign kickoff and intake/i);
+  assert.match(html, /INFAMOUS PR/i);
+  assert.match(html, /Campaign kickoff/i);
+  assert.match(html, /Making work playable/i);
+  assert.match(html, /Choosing what not to automate/i);
+  assert.match(html, /Finding myself in software/i);
+  assert.match(html, /data-world-node=["']bradley["']/i);
+  assert.match(html, /data-family=["']identity["'][^>]*data-world-node=["']bradley["']/i);
+  assert.match(html, /data-family=["']story["'][^>]*data-world-node=["']story-/i);
   assert.doesNotMatch(html, /Explore by keyboard/i);
   assert.doesNotMatch(html, />Replay intro</i);
   assert.doesNotMatch(html, />Keyboard map</i);

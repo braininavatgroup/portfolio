@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isExactToyboxShortcut } from "../../lib/dom-keyboard";
+import { isExactShiftShortcut } from "../../lib/dom-keyboard";
 import {
   advanceActiveTime,
   BRAIN_FOOD_DURATION_SECONDS,
@@ -51,6 +51,7 @@ export type AvatarToyboxSession = {
   announcement: string;
   heldDirection: Vec2;
   modalRef: (element: HTMLElement | null) => void;
+  open: () => void;
   close: (reason?: string) => void;
   startCollecting: () => void;
   startTossing: () => void;
@@ -82,7 +83,12 @@ const FOCUSABLE = [
 ].join(",");
 
 function currentViewport(): ViewportBounds {
-  return { width: window.innerWidth, height: window.innerHeight, hudHeight: 96, padding: 24 };
+  const world = document.querySelector<HTMLElement>(".portfolio-world");
+  const bounds = world?.getBoundingClientRect();
+  const width = bounds && bounds.width > 0
+    ? Math.min(window.innerWidth, bounds.right)
+    : window.innerWidth;
+  return { width, height: window.innerHeight, hudHeight: 80, padding: 24 };
 }
 
 function initialBrainBody(bounds: ViewportBounds): BrainFoodBody {
@@ -104,10 +110,12 @@ function directionFromHeld(held: ReadonlySet<string>): Vec2 {
 export function useAvatarToyboxSession({
   canOpen,
   collectibles: roster,
+  onOpen,
   reducedMotion,
 }: {
   canOpen: () => boolean;
   collectibles: readonly ToyboxCollectible[];
+  onOpen?: () => void;
   reducedMotion: boolean;
 }): AvatarToyboxSession {
   const [status, setStatus] = useState<ToyboxStatus>("closed");
@@ -248,10 +256,11 @@ export function useAvatarToyboxSession({
     const bounds = currentViewport();
     if (!isToyboxViewportEligible(bounds) || !acquireShell()) return;
     closingRef.current = false;
+    onOpen?.();
     setResultKind(null);
     setAnnouncement("Avatar toybox opened. Choose Brain Food or Toss Bradley.");
     commitStatus("choosing");
-  }, [acquireShell, canOpen, commitStatus]);
+  }, [acquireShell, canOpen, commitStatus, onOpen]);
 
   const startCollecting = useCallback(() => {
     cancelInput();
@@ -306,14 +315,13 @@ export function useAvatarToyboxSession({
 
   useEffect(() => {
     const handleClosedKey = (event: KeyboardEvent) => {
-      if (!isExactToyboxShortcut(event)) return;
-      if (!canOpen() || document.hidden || !isToyboxViewportEligible(currentViewport())) return;
+      if (!isExactShiftShortcut(event, "g")) return;
       event.preventDefault();
       openChooser();
     };
     document.addEventListener("keydown", handleClosedKey);
     return () => document.removeEventListener("keydown", handleClosedKey);
-  }, [canOpen, openChooser]);
+  }, [openChooser]);
 
   useEffect(() => {
     if (status === "closed") return;
@@ -601,6 +609,7 @@ export function useAvatarToyboxSession({
     remainingSeconds: Math.max(0, Math.ceil(BRAIN_FOOD_DURATION_SECONDS - elapsed)),
     announcement,
     modalRef,
+    open: openChooser,
     close,
     startCollecting,
     startTossing,

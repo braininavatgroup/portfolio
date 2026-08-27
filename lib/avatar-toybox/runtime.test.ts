@@ -19,9 +19,9 @@ const viewport = { width: 1200, height: 800, hudHeight: 96, padding: 24 };
 
 describe("avatar toybox runtime", () => {
   it("uses one CSS-pixel viewport eligibility boundary", () => {
-    expect(isToyboxViewportEligible({ width: 900, height: 600 })).toBe(true);
-    expect(isToyboxViewportEligible({ width: 899, height: 600 })).toBe(false);
-    expect(isToyboxViewportEligible({ width: 900, height: 599 })).toBe(false);
+    expect(isToyboxViewportEligible({ width: 720, height: 600 })).toBe(true);
+    expect(isToyboxViewportEligible({ width: 719, height: 600 })).toBe(false);
+    expect(isToyboxViewportEligible({ width: 720, height: 599 })).toBe(false);
   });
 
   it("places a stable ordered roster below the HUD and within safe bounds", () => {

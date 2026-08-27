@@ -145,6 +145,30 @@ export class AvatarController {
     this.#replace(createInitialSnapshot(this.#stageViewport(this.#registry.resolveStageMap())));
   }
 
+  refreshStage(rehome = false) {
+    const viewport = this.#stageViewport(this.#registry.resolveStageMap());
+    const minimum = Math.min(actorHalfWidth, viewport.width / 2);
+    const maximum = Math.max(minimum, viewport.width - actorHalfWidth);
+    const x = rehome
+      ? homeX(viewport.width)
+      : Math.min(maximum, Math.max(minimum, this.#snapshot.position.x));
+    if (rehome || x !== this.#snapshot.position.x) this.#invalidateMotion();
+    this.#update({
+      position: { x, y: viewport.floorY },
+      ...(rehome || x !== this.#snapshot.position.x
+        ? {
+            animation: resolveAvatarAnimation("idle"),
+            state: "idle" as const,
+            motion: null,
+            locomotion: "grounded" as const,
+            facing: "front" as const,
+            pointing: null,
+            target: null,
+          }
+        : {}),
+    });
+  }
+
   dispose() {
     this.stopMotion();
   }

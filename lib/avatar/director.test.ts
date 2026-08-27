@@ -206,6 +206,22 @@ describe("AvatarDirector", () => {
     });
   });
 
+  it("returns beside the chat instead of walking into the reader when a project closes", async () => {
+    vi.useFakeTimers();
+    const { director, runner } = createDirector();
+    const run = vi.spyOn(runner, "run");
+
+    const closing = director.handle({ type: "project_close" });
+    await vi.runAllTimersAsync();
+    await closing;
+
+    expect(run).toHaveBeenCalledWith([
+      { action: "walkTo", target: "portfolio:chat" },
+      { action: "lookAt", target: "portfolio:chat" },
+      { action: "setState", state: "idle" },
+    ]);
+  });
+
   it("preserves project attention without stage travel under reduced motion", async () => {
     // Catches contextual navigation ignoring the same motion preference as agent-selected commands.
     const { controller, director } = createDirector();

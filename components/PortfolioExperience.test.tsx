@@ -25,8 +25,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       debug,
       development,
       director,
-      enabled,
-      onEnabledChange,
       onExpandedPanelChange,
       registry,
       runner,
@@ -74,12 +72,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
           <output data-testid="avatar-command-log">
             {commands.current.join(",")}
           </output>
-          <button
-            onClick={() => onEnabledChange(!enabled)}
-            type="button"
-          >
-            {enabled ? "Hide assistant" : "Show assistant"}
-          </button>
         </section>
       );
     },
@@ -179,6 +171,9 @@ beforeEach(() => {
 
 async function renderExperience(initialPhase: "body" | "graph" = "graph") {
   mockMatchMedia();
+  if (initialPhase === "graph" && !window.location.search) {
+    window.history.replaceState({}, "", "/?view=graph");
+  }
   render(<PortfolioExperience initialPhase={initialPhase} />);
   await act(async () => {});
 }
@@ -213,6 +208,10 @@ function effectsResponse(
 }
 
 async function askExperience(question: string) {
+  const trigger = screen.queryByRole("button", {
+    name: "Open portfolio assistant",
+  });
+  if (trigger) fireEvent.click(trigger);
   const input = screen.getByLabelText("Ask a question about the portfolio");
   fireEvent.change(input, { target: { value: question } });
   fireEvent.submit(document.getElementById("portfolio-question-form")!);
@@ -220,14 +219,119 @@ async function askExperience(question: string) {
 }
 
 describe("spatial self-portrait", () => {
-  it("offers the Avatar Director from the normal development portfolio", async () => {
-    await renderExperience("body");
+  it("renders the accepted one-world composition with its shared reader", async () => {
+    await renderExperience("graph");
 
-    const directorLink = screen.getByRole("link", { name: "Avatar Director" });
-    expect(directorLink.getAttribute("href")).toBe("/?avatarLab=1");
+    expect(document.querySelector(".portfolio-world")).toBeTruthy();
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Making work playable" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Choosing what not to automate" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Finding myself in software" }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
-  it("keeps agent chat in the isolated development avatar lab", async () => {
+  it("uses the index and world as two controls for the same story state", async () => {
+    await renderExperience("graph");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Making work playable" }),
+    );
+
+    expect(window.location.hash).toBe("#story/making-work-playable");
+
+    expect(
+      screen.getByRole("complementary", {
+        name: "Making work playable story",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Story Making work playable" })
+      .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+    expect(window.location.hash).toBe("#story/making-work-playable/dubs");
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Product Dubs" }));
+    expect(window.location.hash).toBe("#story/making-work-playable");
+    expect(
+      screen.getByRole("complementary", { name: "Making work playable story" }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Story Making work playable" }),
+    );
+    expect(window.location.hash).toBe("");
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    expect(window.location.hash).toBe("");
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
+  });
+
+  it("does not add duplicate history when reset is already at overview", async () => {
+    await renderExperience("graph");
+    const push = vi.spyOn(window.history, "pushState");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("restores a direct story and node state from browser history", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?view=graph#story/choosing-what-not-to-automate/pitching",
+    );
+    await renderExperience("graph");
+
+    expect(
+      screen.getByRole("complementary", { name: "Campaign pitching record" }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Story Choosing what not to automate" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(document.querySelector(".reader-path")?.textContent).toContain(
+      "Choosing what not to automate",
+    );
+  });
+
+  it("opens the Avatar Director over the canvas with Shift+A and exposes no mode buttons", async () => {
+    await renderExperience("graph");
+    const before = window.location.href;
+
+    expect(screen.queryByRole("button", { name: "Avatar Director" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Game mode" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
+
+    expect(window.location.href).toBe(before);
+    expect(document.querySelector(".portfolio-world")).toBeTruthy();
+    expect(await screen.findByLabelText("Avatar Director console")).toBeTruthy();
+  });
+
+  it("keeps agent chat and the live canvas mounted while Director is open", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -240,35 +344,18 @@ describe("spatial self-portrait", () => {
       ),
     );
     mockMatchMedia();
-    const { container } = render(
-      <PortfolioExperience avatarLab initialPhase="graph" />,
-    );
+    const { container } = render(<PortfolioExperience initialPhase="graph" />);
     await act(async () => {});
 
-    expect(
-      screen.getByRole("main", { name: "Avatar lab" }).className,
-    ).toContain("avatar-lab");
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
     expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
     expect(await screen.findByLabelText("Avatar Director console")).toBeTruthy();
-    expect(screen.queryByText("Avatar developer controls")).toBeNull();
-    expect(container.querySelector(".portfolio-header")).toBeNull();
-    expect(container.querySelector(".scene-shell")).toBeNull();
+    expect(container.querySelector(".portfolio-world")).toBeTruthy();
+    expect(container.querySelector(".portfolio-reader")).toBeTruthy();
     expect(container.querySelector(".portfolio-chat")).toBeTruthy();
-    expect(
-      screen.getByRole("region", { name: "Avatar stage targets" }),
-    ).toBeTruthy();
     expect(
       screen.getByLabelText("Ask a question about the portfolio"),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Back to portfolio" }).getAttribute("href"),
-    ).toBe("/");
-    expect(screen.queryByTestId("scene-canvas")).toBeNull();
-    expect(
-      screen.queryByText(
-        "I find where judgment matters, then build the system around it.",
-      ),
-    ).toBeNull();
 
     await askExperience("Show me a wave");
     await waitFor(() =>
@@ -307,7 +394,7 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
-  it("keeps the map primary while exposing the standalone index as a list fallback", async () => {
+  it("keeps the map primary while the shared reader supplies the index", async () => {
     await renderExperience();
 
     const navigation = screen.getByRole("navigation", {
@@ -316,13 +403,11 @@ describe("spatial self-portrait", () => {
     expect(navigation.querySelector('[aria-current="page"]')?.textContent).toBe(
       "Map",
     );
-    expect(screen.queryByRole("link", { name: "Index" })).toBeNull();
-    expect(
-      screen.getByRole("link", { name: "View as list" }).getAttribute("href"),
-    ).toBe("/index");
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Stories" })).toBeTruthy();
+    expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
   it("lets a direct map visit bypass the landing transition", async () => {
@@ -355,54 +440,30 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByRole("complementary")).toBeNull();
   });
 
-  it("starts with the compact hierarchy and lets a domain hub focus its projects", async () => {
+  it("renders the locked mark grammar at one optical scale", async () => {
     await renderExperience();
 
-    expect(screen.getByTestId("visible-node-roles").textContent).toBe(
-      [
-        "root",
-        "domain",
-        "domain",
-        "domain",
-        "output",
-        "output",
-        "output",
-        "output",
-        "output",
-        "output",
-        "output",
-        "output",
-        "output",
-      ].join(","),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Music domain" }));
-
-    expect(screen.getByTestId("visible-node-roles").textContent).toBe(
-      ["root", "domain", "output", "output", "output"].join(","),
-    );
-    expect(
-      screen
-        .getByRole("button", { name: "Music promotion" })
-        .getAttribute("aria-expanded"),
-    ).toBe("true");
+    expect(document.querySelector(".portfolio-world canvas")).toBeTruthy();
+    expect(document.querySelectorAll('[data-family="identity"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-family="story"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="operation"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="component"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="personal"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-family="engagement"]')).toHaveLength(2);
+    expect(document.querySelectorAll('[data-family="product"]')).toHaveLength(4);
   });
 
-  it("opens a complete project dossier and restores the index from its back control", async () => {
+  it("opens a project record in the reader and restores the index", async () => {
     await renderExperience();
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
     expect(
-      screen.getByRole("complementary", { name: "Dubs project dossier" }),
+      screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
-    expect(
-      screen
-        .getByRole("button", { name: "Approach" })
-        .getAttribute("aria-expanded"),
-    ).toBe("true");
+    expect(screen.getByText(/movement of an idea/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /Portfolio index/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
 
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
@@ -412,6 +473,9 @@ describe("spatial self-portrait", () => {
   it("connects chat attention and direct project navigation to the avatar director", async () => {
     // Catches the contextual director existing in isolation without owning real interface events.
     await renderExperience();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
     const input = screen.getByLabelText("Ask a question about the portfolio");
 
     fireEvent.focus(input);
@@ -422,7 +486,7 @@ describe("spatial self-portrait", () => {
       "portfolio:chat",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
     await waitFor(() =>
       expect(screen.getByTestId("avatar-command-log").textContent).toContain(
         "walkTo",
@@ -430,53 +494,23 @@ describe("spatial self-portrait", () => {
     );
     expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
 
-    fireEvent.click(screen.getByRole("button", { name: "Output" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
-        "lookAt",
-      ),
-    );
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
   });
 
-  it("keeps the dossier position when graph selection changes its contents", async () => {
+  it("keeps the reader fixed when selection changes its contents", async () => {
     await renderExperience();
     const panel = screen.getByRole("complementary", {
       name: "Portfolio index",
     });
-    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
-      bottom: 400,
-      height: 300,
-      left: 600,
-      right: 984,
-      top: 100,
-      width: 384,
-      x: 600,
-      y: 100,
-      toJSON: () => ({}),
-    });
-    fireEvent.pointerDown(screen.getByLabelText("Move portfolio panel"), {
-      button: 0,
-      clientX: 700,
-      clientY: 130,
-      pointerId: 1,
-    });
-    fireEvent.pointerMove(window, {
-      clientX: 200,
-      clientY: 200,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(window, { pointerId: 1 });
-
-    expect(panel.style.left).toBe("100px");
-    expect(panel.style.top).toBe("170px");
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Dubs approach" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
     const projectPanel = screen.getByRole("complementary", {
-      name: "Dubs project dossier",
+      name: "Dubs record",
     });
-    expect(projectPanel.style.left).toBe("100px");
-    expect(projectPanel.style.top).toBe("170px");
+    expect(projectPanel).toBe(panel);
+    expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
   it("resolves hero, real chat, and current dossier semantic targets", async () => {
@@ -540,11 +574,13 @@ describe("spatial self-portrait", () => {
     await askExperience("Open Dubs output");
     expect(
       await screen.findByRole("complementary", {
-        name: "Dubs project dossier",
+        name: "Dubs record",
       }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Output" }).getAttribute("aria-expanded"),
+      screen
+        .getByRole("button", { name: "Product Dubs" })
+        .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(scrollTo).toHaveBeenCalledTimes(1);
 
@@ -588,7 +624,7 @@ describe("spatial self-portrait", () => {
 
     await askExperience("Spotlight Dubs");
     const project = await screen.findByRole("complementary", {
-      name: "Dubs project dossier",
+      name: "Dubs record",
     });
     expect(project.className).toContain("avatar-spotlight");
 
@@ -621,7 +657,7 @@ describe("spatial self-portrait", () => {
 
     expect(
       await screen.findByRole("complementary", {
-        name: "Dubs project dossier",
+        name: "Dubs record",
       }),
     ).toBeTruthy();
     await waitFor(() =>
@@ -724,28 +760,14 @@ describe("spatial self-portrait", () => {
     ).toBe(false);
   });
 
-  it("persists hiding without removing chat or portfolio navigation", async () => {
-    // Catches the optional overlay becoming the only access path or forgetting the user's hide choice.
-    await renderExperience();
+  it("keeps the resting composition free of avatar and mode control pills", async () => {
+    await renderExperience("graph");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
-
-    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe(
-      "false",
-    );
-    expect(
-      screen.getByLabelText("Ask a question about the portfolio"),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Bradley Berkman" })).toBeTruthy();
-
-    cleanup();
-    await renderExperience();
-    expect(
-      await screen.findByRole("button", { name: "Show assistant" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByLabelText("Ask a question about the portfolio"),
-    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show assistant" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Avatar Director" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Game mode" })).toBeNull();
+    expect(screen.getByLabelText("Ask a question about the portfolio")).toBeTruthy();
   });
 
   it("registers the visible header as a stage obstacle without exposing it as a target", async () => {
@@ -786,26 +808,12 @@ describe("spatial self-portrait", () => {
     );
   });
 
-  it("stops ownership before persisting a hidden avatar preference", async () => {
-    await renderExperience();
-    await screen.findByLabelText("Test avatar overlay");
-    const director = Reflect.get(
-      globalThis,
-      "__portfolioTestAvatarDirector",
-    ) as { stop: () => void };
-    const stop = vi.spyOn(director, "stop");
-
-    fireEvent.click(await screen.findByRole("button", { name: "Hide assistant" }));
-
-    expect(stop).toHaveBeenCalled();
-    expect(portfolioStorageValues.get("portfolio-avatar-enabled:v1")).toBe("false");
-  });
-
   it("unregisters stage elements and disposes the director exactly once on unmount", async () => {
     mockMatchMedia();
-    const rendered = render(<PortfolioExperience avatarLab initialPhase="graph" />);
+    const rendered = render(<PortfolioExperience initialPhase="graph" />);
     await act(async () => {});
     await screen.findByLabelText("Test avatar overlay");
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
     const registry = Reflect.get(
       globalThis,
       "__portfolioTestAvatarRegistry",

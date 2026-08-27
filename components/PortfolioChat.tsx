@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   PortfolioChatClientError,
   streamPortfolioAnswer,
@@ -52,6 +60,7 @@ export type PortfolioChatAvatarIntegration = {
 
 export function PortfolioChat({
   avatarIntegration,
+  initiallyOpen = false,
   onPoseChange,
   registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
@@ -60,6 +69,7 @@ export function PortfolioChat({
   turnstileSiteKey,
 }: {
   avatarIntegration?: PortfolioChatAvatarIntegration;
+  initiallyOpen?: boolean;
   onPoseChange: (pose: PoseState) => void;
   registerAvatarTarget?: (
     target: AvatarTargetId,
@@ -71,12 +81,21 @@ export function PortfolioChat({
   turnstileSiteKey?: string;
 }) {
   const [input, setInput] = useState("");
+  const [lastQuestion, setLastQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [evidence, setEvidence] = useState<PortfolioGroundingEvidence[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
+  const [open, setOpen] = useState(initiallyOpen);
+  const [transcript, setTranscript] = useState<PortfolioChatMessage[]>([]);
+  const [panelPosition, setPanelPosition] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const conversation = useRef<PortfolioChatMessage[]>([]);
   const visitState = useRef<PortfolioChatVisitState>({
     generalTurns: 0,
@@ -86,6 +105,13 @@ export function PortfolioChat({
   const inputActivityTimer = useRef<number | null>(null);
   const requestController = useRef<AbortController | null>(null);
   const chatRegion = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const threadRef = useRef<HTMLDivElement | null>(null);
+  const panelDrag = useRef<{
+    pointerId: number;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
   const turnstileController = useRef<TurnstileController | null>(null);
   const setChatRegion = useCallback(
@@ -137,21 +163,65 @@ export function PortfolioChat({
   }, [renderTurnstileWidget, turnstileSiteKey]);
 
   useEffect(() => {
-    const region = chatRegion.current;
-    const containInteraction = (event: Event) => event.stopPropagation();
-    region?.addEventListener("click", containInteraction);
-    region?.addEventListener("pointerdown", containInteraction);
-    region?.addEventListener("pointerup", containInteraction);
-
     return () => {
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
       if (inputActivityTimer.current !== null) {
         window.clearTimeout(inputActivityTimer.current);
       }
       requestController.current?.abort();
-      region?.removeEventListener("click", containInteraction);
-      region?.removeEventListener("pointerdown", containInteraction);
-      region?.removeEventListener("pointerup", containInteraction);
+    };
+  }, []);
+
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, [answer, lastQuestion, message, pending, transcript]);
+
+  useEffect(() => {
+    const clampPanel = (x: number, y: number, width: number, height: number) => {
+      const reader = document.querySelector<HTMLElement>(".portfolio-reader");
+      const readerLeft = reader?.getBoundingClientRect().left ?? window.innerWidth;
+      return {
+        x: Math.min(Math.max(x, 82), Math.max(82, readerLeft - width - 12)),
+        y: Math.min(Math.max(y, 12), Math.max(12, window.innerHeight - height - 12)),
+        width,
+        height,
+      };
+    };
+    const move = (event: PointerEvent) => {
+      const active = panelDrag.current;
+      const panel = panelRef.current;
+      if (!active || !panel || event.pointerId !== active.pointerId) return;
+      const bounds = panel.getBoundingClientRect();
+      setPanelPosition(
+        clampPanel(
+          event.clientX - active.offsetX,
+          event.clientY - active.offsetY,
+          bounds.width,
+          bounds.height,
+        ),
+      );
+    };
+    const stop = (event: PointerEvent) => {
+      if (panelDrag.current?.pointerId !== event.pointerId) return;
+      panelDrag.current = null;
+    };
+    const resize = () => {
+      setPanelPosition((current) =>
+        current
+          ? clampPanel(current.x, current.y, current.width, current.height)
+          : current,
+      );
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
@@ -268,7 +338,10 @@ export function PortfolioChat({
           }
           if (event.type === "notice" || event.type === "error") {
             if (event.type === "error") streamFailed = true;
-            if (event.type === "error") setAnswer("");
+            if (event.type === "error") {
+              setAnswer("");
+              setInput((current) => current || question);
+            }
             setMessage(event.message);
             scheduleAvatarWork(() =>
               event.type === "notice"
@@ -286,11 +359,13 @@ export function PortfolioChat({
         streamedAnswer.trim() &&
         requestController.current === controller
       ) {
-        conversation.current = appendPortfolioChatTurn(
+        const nextConversation = appendPortfolioChatTurn(
           conversation.current,
           question,
           streamedAnswer,
         );
+        conversation.current = nextConversation;
+        setTranscript(nextConversation);
         if (turnMode === "general") {
           const isThirdGeneralTurn =
             visitStateAtStart.generalTurns >= 2 &&
@@ -305,6 +380,7 @@ export function PortfolioChat({
     } catch (error) {
       if (controller.signal.aborted) return;
       setAnswer("");
+      setInput((current) => current || question);
       scheduleAvatarWork(() => avatarIntegration?.onError());
       setMessage(
         error instanceof PortfolioChatClientError
@@ -335,6 +411,8 @@ export function PortfolioChat({
     event.preventDefault();
     const question = input.trim();
     if (!question) return;
+    setLastQuestion(question);
+    setInput("");
     setPoseForQuestion(question);
     void runQuestion(question);
   }
@@ -343,100 +421,166 @@ export function PortfolioChat({
     const label = index + 1;
     return answer.includes(`[E${label}]`) ? [{ item, label }] : [];
   });
+  const history =
+    lastQuestion &&
+    answer &&
+    transcript.at(-2)?.role === "user" &&
+    transcript.at(-2)?.content === lastQuestion &&
+    transcript.at(-1)?.role === "assistant" &&
+    transcript.at(-1)?.content === answer
+      ? transcript.slice(0, -2)
+      : transcript;
+
+  function beginPanelDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (
+      event.button !== 0 ||
+      window.matchMedia("(max-width: 900px)").matches ||
+      (event.target instanceof Element && event.target.closest("button"))
+    ) {
+      return;
+    }
+    const bounds = panelRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    event.preventDefault();
+    panelDrag.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - bounds.left,
+      offsetY: event.clientY - bounds.top,
+    };
+  }
+
+  function minimize() {
+    const bounds = panelRef.current?.getBoundingClientRect();
+    const isMobile =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 900px)").matches;
+    if (
+      !isMobile &&
+      bounds?.width &&
+      bounds.height
+    ) {
+      setPanelPosition({
+        x: bounds.left,
+        y: bounds.top,
+        width: bounds.width,
+        height: bounds.height,
+      });
+    }
+    setOpen(false);
+  }
+
+  const dockStyle = panelPosition
+    ? ({
+        left: `${
+          open
+            ? panelPosition.x - 63
+            : panelPosition.x + panelPosition.width - 103
+        }px`,
+        top: `${
+          open
+            ? panelPosition.y
+            : panelPosition.y + panelPosition.height - 40
+        }px`,
+        right: "auto",
+        bottom: "auto",
+      } satisfies CSSProperties)
+    : undefined;
 
   return (
     <section
       ref={setChatRegion}
       className={`portfolio-chat${spotlightTarget === "portfolio:chat" ? " avatar-spotlight" : ""}`}
-      aria-labelledby="chat-heading"
+      aria-label="Portfolio assistant dock"
+      data-open={open ? "true" : "false"}
+      style={dockStyle}
     >
-      <div className="chat-heading-row">
-        <div>
-          <p className="eyebrow">Ask the portfolio</p>
-          <h2 id="chat-heading">Find the work behind the question.</h2>
-        </div>
-      </div>
-      <form id="portfolio-question-form" onSubmit={submit}>
-        <label className="sr-only" htmlFor="portfolio-question">
-          Ask a question about the portfolio
-        </label>
-        <input
-          id="portfolio-question"
-          name="question"
-          onBlur={() => {
-            if (inputActivityTimer.current !== null) {
-              window.clearTimeout(inputActivityTimer.current);
-              inputActivityTimer.current = null;
-            }
-            void avatarIntegration?.onInputBlur?.();
-          }}
-          onChange={(event) => {
-            setInput(event.target.value);
-            if (inputActivityTimer.current !== null) return;
-            void avatarIntegration?.onInputActivity?.();
-            inputActivityTimer.current = window.setTimeout(() => {
-              inputActivityTimer.current = null;
-            }, 250);
-          }}
-          onFocus={() => {
-            void avatarIntegration?.onInputFocus?.();
-          }}
-          placeholder="Ask about the work, decisions, or outcomes."
-          type="text"
-          value={input}
-        />
-        <button disabled={pending} type="submit">
-          {pending ? "Asking…" : "Ask"}
-        </button>
-      </form>
-      {turnstileSiteKey ? (
-        <div
-          aria-label="Security verification"
-          className="chat-turnstile"
-          role="group"
+      <div className="portfolio-chat-anchor">
+        <section
+          aria-label="Portfolio assistant"
+          className="portfolio-chat-panel"
+          hidden={!open}
+          ref={panelRef}
         >
-          <div ref={turnstileContainer} />
-          {challengeMessage ? (
-            <p className="chat-note">{challengeMessage}</p>
-          ) : null}
-        </div>
-      ) : null}
-      {answer || message || citedEvidence.length > 0 || pending ? (
-        <div className="chat-reply" aria-live="polite">
-          {answer ? (
-            <section aria-labelledby="chat-answer-heading" className="chat-answer">
-              <h3 id="chat-answer-heading">Answer</h3>
-              <p>{answer}</p>
-            </section>
-          ) : null}
-          {message ? <p className="chat-message">{message}</p> : null}
-          {pending && !answer ? <p className="chat-message">Reading the portfolio…</p> : null}
-          {citedEvidence.length > 0 ? (
-            <section
-              aria-labelledby="chat-evidence-heading"
-              className="chat-evidence"
-            >
-              <h3 id="chat-evidence-heading">Supporting portfolio evidence</h3>
-              <ol>
+          <header className="portfolio-chat-head" onPointerDown={beginPanelDrag}>
+            <b>Ask the portfolio</b>
+            <button aria-label="Minimize portfolio assistant" onClick={minimize} type="button">×</button>
+          </header>
+          <div aria-live="polite" className="portfolio-chat-thread" ref={threadRef}>
+            {history.map((item, index) =>
+              item.role === "user" ? (
+                <div className="chat-question" key={`history-${index}`}><p>{item.content}</p></div>
+              ) : (
+                <p className="chat-answer" key={`history-${index}`}>{item.content}</p>
+              ),
+            )}
+            {lastQuestion ? <div className="chat-question"><p>{lastQuestion}</p></div> : null}
+            {answer ? (
+              <section aria-labelledby="chat-answer-heading">
+                <h3 className="sr-only" id="chat-answer-heading">Answer</h3>
+                <p className="chat-answer">{answer}</p>
+              </section>
+            ) : null}
+            {message ? <p className="chat-message">{message}</p> : null}
+            {pending && !answer ? <p className="chat-message">Reading the portfolio…</p> : null}
+            {citedEvidence.length > 0 ? (
+              <section aria-labelledby="chat-evidence-heading" className="chat-evidence-pills">
+                <h3 className="sr-only" id="chat-evidence-heading">Supporting portfolio evidence</h3>
                 {citedEvidence.map(({ item, label }) => (
-                  <li key={item.id}>
-                    <div>
-                      <a href={item.href}>[E{label}] {item.title}</a>
-                      <div className="chat-evidence-labels">
-                        {item.stageRole ? (
-                          <span>{stageRoleLabels[item.stageRole]}</span>
-                        ) : null}
-                        <span>Evidence {item.evidenceStatus}</span>
-                      </div>
-                    </div>
-                    <p>{item.excerpt}</p>
-                  </li>
+                  <a aria-label={`[E${label}] ${item.title}`} href={item.href} key={item.id}>
+                    E{label} · {item.title}
+                    <span className="sr-only">{stageRoleLabels[item.stageRole ?? "output"]}</span>
+                    <span className="sr-only">Evidence {item.evidenceStatus}</span>
+                    <span className="sr-only">{item.excerpt}</span>
+                  </a>
                 ))}
-              </ol>
-            </section>
+              </section>
+            ) : null}
+          </div>
+          {turnstileSiteKey ? (
+            <div aria-label="Security verification" className="chat-turnstile" role="group">
+              <div ref={turnstileContainer} />
+              {challengeMessage ? <p className="chat-note">{challengeMessage}</p> : null}
+            </div>
           ) : null}
-        </div>
-      ) : null}
+          <form className="portfolio-chat-composer" id="portfolio-question-form" onSubmit={submit}>
+            <label className="sr-only" htmlFor="portfolio-question">Ask a question about the portfolio</label>
+            <input
+              id="portfolio-question"
+              name="question"
+              onBlur={() => {
+                if (inputActivityTimer.current !== null) {
+                  window.clearTimeout(inputActivityTimer.current);
+                  inputActivityTimer.current = null;
+                }
+                void avatarIntegration?.onInputBlur?.();
+              }}
+              onChange={(event) => {
+                setInput(event.target.value);
+                if (inputActivityTimer.current !== null) return;
+                void avatarIntegration?.onInputActivity?.();
+                inputActivityTimer.current = window.setTimeout(() => {
+                  inputActivityTimer.current = null;
+                }, 250);
+              }}
+              onFocus={() => void avatarIntegration?.onInputFocus?.()}
+              placeholder="Ask a follow-up"
+              type="text"
+              value={input}
+            />
+            <button aria-label={pending ? "Asking…" : "Ask"} disabled={pending} type="submit">↑</button>
+          </form>
+        </section>
+        <button
+          aria-expanded={open}
+          aria-label="Open portfolio assistant"
+          className="portfolio-chat-trigger"
+          hidden={open}
+          onClick={() => setOpen(true)}
+          type="button"
+        >
+          <span aria-hidden="true" className="portfolio-chat-glyph" />
+        </button>
+      </div>
     </section>
   );
 }
