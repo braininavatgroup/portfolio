@@ -4,6 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   connectorSegment,
+  portfolioOverviewLayout,
   PortfolioWorld,
   projectWorldPoint,
   translateWorldPointByScreenDelta,
@@ -93,5 +94,45 @@ describe("PortfolioWorld", () => {
 
     expect(openMarks.start).toEqual({ x: 10, y: 20 });
     expect(openMarks.end).toEqual({ x: 70, y: 20 });
+  });
+
+  it("reconstructs the authored overview composition at its reference viewport", () => {
+    const width = 915;
+    const height = 787;
+    const fov = 621.6;
+    const expectedCenters: Record<string, readonly [number, number]> = {
+      bradley: [448.5, 153.5],
+      "story-making-work-playable": [344.5, 261.5],
+      "story-choosing-what-not-to-automate": [558.5, 277.5],
+      "story-finding-myself-in-software": [165.5, 421.5],
+      dubs: [241, 331.5],
+      writ: [263.5, 431.5],
+      alarm: [464.5, 381.5],
+      "personal-os": [345, 469.5],
+      yoohoo: [474, 513.5],
+      kickoff: [677, 341.5],
+      pitching: [734.5, 424],
+      reporting: [597, 465],
+      touring: [733.5, 533],
+      "real-estate": [632.5, 606],
+      infamous: [160.5, 550],
+      "music-practice": [285, 599.5],
+      "systems-consulting": [438, 605],
+    };
+
+    for (const [id, [expectedX, expectedY]] of Object.entries(expectedCenters)) {
+      const [layoutX, layoutY, z] = portfolioOverviewLayout[id];
+      const projected = projectWorldPoint(
+        { x: (50 - layoutX) * 18, y: (50 - layoutY) * 18, z },
+        { x: 0, y: 35, z: -760 },
+        { x: 0, y: 0, z: 760 },
+        fov,
+        width,
+        height,
+      );
+
+      expect(projected?.x, `${id} x`).toBeCloseTo(expectedX, 0);
+      expect(projected?.y, `${id} y`).toBeCloseTo(expectedY, 0);
+    }
   });
 });
