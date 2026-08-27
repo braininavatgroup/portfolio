@@ -100,6 +100,23 @@ Worker secret. The local Vite Worker supplies the same model, budget, and
 Durable Object bindings while `npm run dev` injects the separate Keychain-backed
 development key.
 
+The separate permanent preview of tested `main` is defined by
+`wrangler.main-preview.jsonc`. It uses a normal password form and a signed
+seven-day browser cookie, gates static assets as well as application routes,
+and has no custom domain. Its CI deployment job consumes the exact `dist/`
+artifact already proven by CI and remains dormant unless the repository
+variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` is explicitly set to `true`.
+Run `npm run setup:main-preview` for the repeatable four-stage setup wizard. It
+reuses an existing `gh` login, publishes the feature branch and PR, captures
+secrets through hidden prompts, creates the protected GitHub environment, and
+leaves deployment disabled unless `ACTIVATE` is typed explicitly. Secret values
+are streamed directly to Cloudflare or GitHub and are never written to the
+repository, `.env`, command arguments, or shell history. Run the wizard from
+Apple Terminal or iTerm, not a Conductor agent terminal: agent credentials
+deliberately omit permission to change GitHub Actions workflows. See
+[the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
+for secret rotation, iPhone smoke, and rollback requirements.
+
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
 ## Verification
@@ -114,4 +131,8 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This repository does not configure or authorize a production/custom-domain release. The dedicated Workers.dev site preview and its bounded activation record are tracked in BIV-317. Chat-specific preview access was retired by BIV-321.
+This repository does not configure or authorize a production/custom-domain
+release. The bounded single-operator Workers.dev site preview remains tracked in
+BIV-317, while the password-protected permanent main preview remains separately
+false-gated until its activation packet is approved. Chat-specific preview
+access was retired by BIV-321.

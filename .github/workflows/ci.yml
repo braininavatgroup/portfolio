@@ -25,3 +25,40 @@ jobs:
       - run: npm run test:dev-start
       - run: npm run test:worktree-bootstrap
       - run: npm run test:rendered
+      - name: Upload tested main-preview artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-main-preview-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy_main_preview:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED == 'true'
+    needs: ci
+    environment: portfolio-main-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - name: Download tested main-preview artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-main-preview-${{ github.sha }}
+          path: dist
+      - name: Record tested artifact digest
+        run: find dist -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256
+      - name: Deploy tested main-preview artifact
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.main-preview.jsonc --strict --message "main ${{ github.sha }}"

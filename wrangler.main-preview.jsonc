@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bradley-portfolio-main-preview",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED": "true",
+    "PORTFOLIO_CHAT_TURNSTILE_REQUIRED": "false",
+    "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT": "200",
+    "OPENAI_PORTFOLIO_MODEL": "gpt-5.6-terra",
+    "OPENAI_PORTFOLIO_REASONING_EFFORT": "medium"
+  },
+  "secrets": {
+    "required": [
+      "OPENAI_API_KEY",
+      "PORTFOLIO_MAIN_PREVIEW_PASSWORD",
+      "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PORTFOLIO_CHAT_BUDGET",
+        "class_name": "PortfolioChatBudgetObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PortfolioChatBudgetObject"]
+    }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.js", "**/*.mjs"]
+    }
+  ],
+  "no_bundle": true,
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true
+  }
+}

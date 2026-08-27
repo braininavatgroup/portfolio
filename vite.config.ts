@@ -12,6 +12,8 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
+const TAILSCALE_DEV_HOST = "bradleys-macbook-air.tail847e36.ts.net";
+
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
@@ -78,9 +80,12 @@ export default defineConfig(async () => {
       // so Vite must leave it out of eager pre-bundling for the Worker graph.
       exclude: ["pkce-challenge"],
     },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      allowedHosts: [TAILSCALE_DEV_HOST],
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     resolve: {
       alias: {
         // The Agents SDK's unused MCP OAuth client imports this package at its
