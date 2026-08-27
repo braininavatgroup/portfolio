@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repository_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+bootstrap_script="$repository_root/scripts/bootstrap-worktree.sh"
+
+if [[ -n "$repository_root" && -f "$bootstrap_script" ]]; then
+  PORTFOLIO_BOOTSTRAP_CONFIGURE_HOOKS=0 bash "$bootstrap_script"
+fi

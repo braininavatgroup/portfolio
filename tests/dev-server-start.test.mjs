@@ -119,7 +119,7 @@ test("Conductor gives every local workspace an isolated default run command", as
     "utf8",
   );
 
-  assert.match(settings, /setup = "npm ci"/);
+  assert.match(settings, /setup = "bash scripts\/bootstrap-worktree\.sh"/);
   assert.match(settings, /run_mode = "concurrent"/);
   assert.match(settings, /available_in = \[ "local" \]/);
   assert.match(

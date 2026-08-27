@@ -23,4 +23,5 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run test:dev-start
+      - run: npm run test:worktree-bootstrap
       - run: npm run test:rendered
