@@ -22,9 +22,9 @@ A **node** is a dot on the map. Opening one reads one of two content types:
 
 - A **record** — the complete short piece for one thing, readable in the
   reader panel and at `/index/<id>`.
-- A **Thread** — a narrated path through the map; the only long-form type.
+- A **thread** — a narrated path through the map; the only long-form type.
 
-A record says what a thing is; a Thread says why things belong together.
+A record says what a thing is; a thread says why things belong together.
 Nothing else exists. All authored content lives in `lib/portfolio-world.ts`;
 chat-only facts live in `lib/portfolio-private-grounding.ts` and are never
 rendered. The current copy is migrated placeholder — every word is replaceable.
@@ -39,7 +39,7 @@ rendered. The current copy is migrated placeholder — every word is replaceable
    chat already carry the detail), real LinkedIn/GitHub/Instagram URLs in
    `portfolioContact`, and the CV file at `public/cv/bradley-berkman-cv.pdf`
    (the link exists and 404s until the file lands).
-3. **3 Threads as serialized essays** — expand each `lede`/`body` into a real
+3. **3 threads as serialized essays** — expand each `lede`/`body` into a real
    piece. Working claims, all revisable (retitle, re-member, merge to two, or
    add a consulting thread if the material asks):
    - *Choosing what not to automate* → the operations story: one campaign
