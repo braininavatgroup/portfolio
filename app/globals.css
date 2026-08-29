@@ -1592,6 +1592,80 @@ input:focus-visible {
   padding: 1.25rem clamp(1.25rem, 4vw, 3rem) 1.5rem;
 }
 
+.node-article {
+  margin: 0 auto;
+  max-width: 42rem;
+  padding-top: 1rem;
+}
+
+.node-article header h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 0.4rem 0 0.5rem;
+}
+
+.node-principle {
+  border-left: 2px solid #28433c;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.45;
+  margin: 1rem 0 0;
+  padding-left: 0.85rem;
+}
+
+.node-body {
+  border-top: 1px solid #28433c;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
+
+.node-body p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 0.85rem;
+}
+
+.node-contact h2,
+.node-threads h2 {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: -0.035em;
+  margin: 0 0 0.6rem;
+}
+
+.node-contact,
+.node-threads {
+  border-top: 1px solid #28433c;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
+
+.node-contact ul,
+.node-threads ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.node-contact li,
+.node-threads li {
+  border-top: 1px solid #28433c;
+  padding: 0.55rem 0;
+}
+
+.node-contact li:first-child,
+.node-threads li:first-child { border-top: 0; }
+
+.node-footer {
+  border-top: 1px solid #28433c;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding: 1rem 0 0.5rem;
+}
+
 .flat-index {
   align-content: start;
   display: block;
@@ -2329,15 +2403,47 @@ input:focus-visible {
   margin: 12px 0 17px;
 }
 
-.reader-kind[data-story] {
+.reader-kind[data-thread] {
   background: var(--world-story);
   color: var(--reader-paper);
   display: inline-block;
   padding: 5px 7px 4px;
 }
 
-.reader-kind[data-story="finding-myself-in-software"] {
+.reader-kind[data-thread="finding-myself-in-software"] {
   background: var(--world-finding);
+}
+
+.reader-principle {
+  border-left: 2px solid var(--world-story);
+  color: var(--ink);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0 0 22px;
+  padding-left: 12px;
+}
+
+.reader-record-section > p + p {
+  margin-top: 10px;
+}
+
+.reader-contact a {
+  border-top: 1px solid var(--map-line);
+  color: var(--ink);
+  display: block;
+  font-size: 13px;
+  padding: 9px 0 10px;
+  text-decoration: none;
+}
+
+.reader-contact a:last-child {
+  border-bottom: 1px solid var(--map-line);
+}
+
+.reader-contact a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .reader-index-group,

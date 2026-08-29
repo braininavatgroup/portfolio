@@ -44,16 +44,18 @@ both preserve the current map, reader, chat, and history state.
 
 ## Routes
 
-- `/` contains the pointer-responsive figure, transition into the graph, graph controls, node details, and portfolio chat.
-- `/index` is the complete HTML project index and works without WebGL.
-- `/index/[slug]` contains a project's case study and evidence state.
-- Legacy `/work` routes redirect to their canonical `/index` equivalents.
+- `/` contains the pointer-responsive figure, transition into the graph, graph controls, node records, and portfolio chat.
+- `/index` is the complete HTML index of threads and nodes and works without WebGL.
+- `/index/[slug]` is a node's canonical record page (same content as the reader panel).
+- Legacy `/work` routes and retired case-study slugs redirect to their canonical `/index` equivalents.
 
-The HTML index and case studies keep their current presentation while the graph uses the new stage model.
+## Content model
+
+A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the complete short piece for one thing, readable in the reader panel and on its canonical page) or a **thread** (a narrated path through the map; the only long-form type). Authored content lives in `lib/portfolio-world.ts`; chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. `docs/content/writing-session-brief.md` is the brief for writing the real content.
 
 ## Portfolio model
 
-`lib/portfolio-model.ts` defines projects, reusable entities, relations, projections, validation, and pure lookups. `lib/portfolio-adapter.ts` currently accepts the legacy `ArtifactRecord[]` collection and translates each record into that model. This adapter is a temporary input compatibility boundary, not the permanent content contract.
+`lib/portfolio-model.ts` defines projects, reusable entities, relations, projections, validation, and pure lookups. `lib/portfolio-adapter.ts` translates the `ArtifactRecord[]` scaffolding in `lib/portfolio.ts` into that model. That scaffolding only feeds the body-phase brain scene, avatar targets, and scene tokens; it is not authored site content.
 
 `lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
 
@@ -61,7 +63,7 @@ The HTML index and case studies keep their current presentation while the graph 
 
 ## Evidence policy
 
-The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof. Missing inputs are labeled `Evidence needed` and occupy replaceable slots. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
+The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof; a piece that leans on unpublished material says so in its prose or leaves it out. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
 
 Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, Yoohoo and Good Morning interfaces, the personal-tooling map, and one complete spec-to-agent record.
 

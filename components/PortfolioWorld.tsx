@@ -10,7 +10,7 @@ import {
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
-  portfolioStoryById,
+  portfolioThreadById,
   portfolioWorldNodeById,
   portfolioWorldNodes,
   type PortfolioWorldFamily,
@@ -40,7 +40,7 @@ type RuntimeNode = PortfolioWorldNode & {
 };
 
 type PortfolioWorldProps = {
-  activeStoryId: string | null;
+  activeThreadId: string | null;
   selectedId: string | null;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
@@ -136,9 +136,9 @@ export const portfolioOverviewLayout: Record<
   readonly [number, number, number]
 > = {
   bradley: [48.88, 19.93, 646.71],
-  "story-making-work-playable": [35.34, 32.79, 698.43],
-  "story-choosing-what-not-to-automate": [63.3, 34.67, 719.72],
-  "story-finding-myself-in-software": [11.29, 53.66, 721.38],
+  "thread-making-work-playable": [35.34, 32.79, 698.43],
+  "thread-choosing-what-not-to-automate": [63.3, 34.67, 719.72],
+  "thread-finding-myself-in-software": [11.29, 53.66, 721.38],
   dubs: [18.73, 41.17, 859.1],
   writ: [21.19, 55.82, 898.83],
   kickoff: [81.31, 42.68, 838.89],
@@ -325,7 +325,7 @@ function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string
 }
 
 export function PortfolioWorld({
-  activeStoryId,
+  activeThreadId,
   onReset,
   onSelect,
   registerAvatarStage,
@@ -343,8 +343,8 @@ export function PortfolioWorld({
     goalTarget: clone(overview.target),
     fov: 720,
   });
-  const state = useRef<{ activeStoryId: string | null; selectedId: string | null }>({
-    activeStoryId: null,
+  const state = useRef<{ activeThreadId: string | null; selectedId: string | null }>({
+    activeThreadId: null,
     selectedId: null,
   });
   const drag = useRef<{
@@ -358,13 +358,13 @@ export function PortfolioWorld({
   const brainImage = useRef<HTMLImageElement | null>(null);
   const brainCache = useRef(new Map<string, HTMLCanvasElement>());
   const focusIds = useMemo(
-    () => getWorldFocusIds({ activeStoryId, selectedId }),
-    [activeStoryId, selectedId],
+    () => getWorldFocusIds({ activeThreadId, selectedId }),
+    [activeThreadId, selectedId],
   );
   const focusRef = useRef(focusIds);
   const links = useMemo(
-    () => getVisibleWorldLinks({ activeStoryId, selectedId }),
-    [activeStoryId, selectedId],
+    () => getVisibleWorldLinks({ activeThreadId, selectedId }),
+    [activeThreadId, selectedId],
   );
   const linksRef = useRef(links);
   const setWorldElement = useCallback(
@@ -394,17 +394,17 @@ export function PortfolioWorld({
 
   useEffect(() => {
     const previous = state.current;
-    state.current = { activeStoryId, selectedId };
+    state.current = { activeThreadId, selectedId };
     const nodes = runtime.current;
     const byId = new Map(nodes.map((node) => [node.id, node]));
-    const activeStory = activeStoryId
-      ? portfolioStoryById.get(activeStoryId)
+    const activeStory = activeThreadId
+      ? portfolioThreadById.get(activeThreadId)
       : undefined;
 
     if (activeStory) {
       // A record opened from a Story is evidence inside the same authored
       // composition. It does not collapse into a generic focus layout.
-      if (previous.activeStoryId !== activeStoryId) {
+      if (previous.activeThreadId !== activeThreadId) {
         applyStoryGoals(nodes, activeStory.id, size.current, camera.current);
       }
       return;
@@ -450,7 +450,7 @@ export function PortfolioWorld({
     });
     camera.current.goalPosition = { x: -120, y: 70, z: -580 };
     camera.current.goalTarget = { x: 0, y: 0, z: 610 };
-  }, [activeStoryId, focusIds, selectedId]);
+  }, [activeThreadId, focusIds, selectedId]);
 
   useEffect(() => {
     const world = worldRef.current;
@@ -577,7 +577,7 @@ export function PortfolioWorld({
       }
       nodes.forEach((node) => {
         node.base = clone(working.get(node.id)!);
-        if (!state.current.selectedId && !state.current.activeStoryId) {
+        if (!state.current.selectedId && !state.current.activeThreadId) {
           node.point = clone(node.base);
           node.goal = clone(node.base);
         }
@@ -600,10 +600,10 @@ export function PortfolioWorld({
         Math.min(720, (width - 75) * 0.74, height * 0.9),
       );
       fitOverview();
-      if (state.current.activeStoryId) {
+      if (state.current.activeThreadId) {
         applyStoryGoals(
           runtime.current,
-          state.current.activeStoryId,
+          state.current.activeThreadId,
           size.current,
           camera.current,
           measure,
@@ -625,7 +625,7 @@ export function PortfolioWorld({
       const nodes = runtime.current;
       const active = state.current;
       const currentCamera = camera.current;
-      const rate = reduceMotion ? 1 : active.activeStoryId ? 0.075 : 0.055;
+      const rate = reduceMotion ? 1 : active.activeThreadId ? 0.075 : 0.055;
       const cameraRate = reduceMotion ? 1 : 0.045;
       for (const node of nodes) {
         if (drag.current?.id !== node.id) {
@@ -661,7 +661,7 @@ export function PortfolioWorld({
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, active.activeStoryId, world);
+        drawLinks(context, nodes, linksRef.current, active.selectedId, active.activeThreadId, world);
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
@@ -729,7 +729,7 @@ export function PortfolioWorld({
       if (!active.moved) {
         const selected = portfolioWorldNodeById.get(active.id);
         if (selected) onSelect(selected);
-      } else if (node && !state.current.selectedId && !state.current.activeStoryId) {
+      } else if (node && !state.current.selectedId && !state.current.activeThreadId) {
         node.base = clone(node.point);
         node.rawBase = clone(node.point);
         node.userPlaced = true;
@@ -751,7 +751,7 @@ export function PortfolioWorld({
     <section
       aria-label="Spatial portfolio world"
       className="portfolio-world"
-      data-active-story={activeStoryId ?? undefined}
+      data-active-thread={activeThreadId ?? undefined}
       data-selected-node={selectedId ?? undefined}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
@@ -800,7 +800,7 @@ function applyStoryGoals(
   camera: Camera,
   measure: (value: string) => number = (value) => value.length * 6.2,
 ) {
-  const story = portfolioStoryById.get(storyId);
+  const story = portfolioThreadById.get(storyId);
   const layout = storyLayouts[storyId];
   if (!story || !layout) return;
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -935,7 +935,7 @@ function drawLinks(
   nodes: RuntimeNode[],
   links: ReturnType<typeof getVisibleWorldLinks>,
   selectedId: string | null,
-  activeStoryId: string | null,
+  activeThreadId: string | null,
   world: HTMLElement,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -947,18 +947,18 @@ function drawLinks(
     if (!selectedId || !selected) return false;
     if (selectedId === "bradley") return link.layer === "story-root";
     if (selected.family === "story") {
-      if (selected.storyId === "finding-myself-in-software") {
+      if (selected.threadId === "finding-myself-in-software") {
         return link.layer === "factual" ||
           (link.layer === "story-root" && (link.from === selectedId || link.to === selectedId));
       }
       return (
         (link.layer === "story-root" && (link.from === selectedId || link.to === selectedId)) ||
-        (link.layer === "story-membership" && link.storyId === selected.storyId)
+        (link.layer === "story-membership" && link.threadId === selected.threadId)
       );
     }
     return link.from === selectedId || link.to === selectedId;
   };
-  void activeStoryId;
+  void activeThreadId;
   void style;
   for (const link of links) {
     const from = byId.get(link.from);

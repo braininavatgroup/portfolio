@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { PortfolioHeader } from "../../components/PortfolioHeader";
-import { groupProjectsByFacet } from "../../lib/case-study";
-import { domains, portfolioThroughline } from "../../lib/portfolio";
-import { portfolioData } from "../../lib/portfolio-data";
-
-const projectGroups = groupProjectsByFacet(
-  portfolioData.projects,
-  "domain",
-  domains,
-);
+import {
+  portfolioThreads,
+  portfolioThroughline,
+  portfolioWorldIndexGroups,
+  portfolioWorldNodeById,
+} from "../../lib/portfolio-world";
 
 export default function ProjectIndex() {
   return (
@@ -21,41 +18,67 @@ export default function ProjectIndex() {
     >
       <PortfolioHeader activeView="index" />
       <header className="index-header">
-        <h1>Project index</h1>
+        <h1>Index</h1>
         <p className="lede">{portfolioThroughline}</p>
       </header>
 
-      {projectGroups.map((group) => (
+      <section className="domain-section" data-project-count={portfolioThreads.length} id="threads">
+        <div className="domain-heading">
+          <div>
+            <h2>Threads</h2>
+            <p>Narrated paths through the work.</p>
+          </div>
+        </div>
+        <div className="domain-work">
+          <ol className="artifact-index-list">
+            {portfolioThreads.map((thread) => (
+              <li className="artifact-index-entry" key={thread.id}>
+                <Link
+                  className="artifact-main-link"
+                  href={`/?view=graph#thread/${thread.id}`}
+                >
+                  <span className="artifact-index-copy">
+                    <strong>{thread.title}</strong>
+                    <small>{thread.lede}</small>
+                  </span>
+                  <span className="artifact-index-meta">
+                    <span aria-hidden="true">↗</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {portfolioWorldIndexGroups.map((group) => (
         <section
           className="domain-section"
-          data-project-count={group.projects.length}
+          data-project-count={group.nodeIds.length}
           id={group.id}
           key={group.id}
         >
           <div className="domain-heading">
             <div>
-              <h2>{group.label}</h2>
-              {group.description ? <p>{group.description}</p> : null}
+              <h2>{group.title}</h2>
             </div>
           </div>
           <div className="domain-work">
             <ol className="artifact-index-list">
-              {group.projects.map((project) => {
-                const evidenceStatus = project.facets?.evidenceStatus?.[0];
+              {group.nodeIds.map((nodeId) => {
+                const node = portfolioWorldNodeById.get(nodeId);
+                if (!node) return null;
                 return (
-                  <li className="artifact-index-entry" key={project.slug}>
+                  <li className="artifact-index-entry" key={node.id}>
                     <Link
                       className="artifact-main-link"
-                      href={`/index/${project.slug}`}
+                      href={`/index/${node.id}`}
                     >
                       <span className="artifact-index-copy">
-                        <strong>{project.title}</strong>
-                        <small>{project.summary}</small>
+                        <strong>{node.label}</strong>
+                        <small>{node.summary}</small>
                       </span>
                       <span className="artifact-index-meta">
-                        {evidenceStatus ? (
-                          <em>{`Evidence ${evidenceStatus}`}</em>
-                        ) : null}
                         <span aria-hidden="true">↗</span>
                       </span>
                     </Link>

@@ -1,3 +1,16 @@
+// Presentation scaffolding for the body-phase brain scene, avatar targets,
+// and scene tokens. This file is NOT authored site content: the reader, the
+// flat index, and the chat grounding are built from lib/portfolio-world.ts.
+// Text here only surfaces as labels inside the body-phase 3D composition.
+
+export type EvidenceStatus = "available" | "partial" | "needed";
+
+export type EvidenceItem = {
+  label: string;
+  status: EvidenceStatus;
+  note: string;
+};
+
 export type DomainId = "music" | "consulting" | "development";
 export type ChainLayer =
   | "judgment"
@@ -5,7 +18,6 @@ export type ChainLayer =
   | "system"
   | "artifact"
   | "operation";
-export type EvidenceStatus = "available" | "partial" | "needed";
 export type ArtifactTokenKind =
   | "intake"
   | "selection"
@@ -21,12 +33,6 @@ export type ChainEntry = {
   layer: ChainLayer;
   title: string;
   detail: string;
-};
-
-export type EvidenceItem = {
-  label: string;
-  status: EvidenceStatus;
-  note: string;
 };
 
 export type ArtifactRecord = {
@@ -314,40 +320,3 @@ export const artifactSlugs = artifacts.map((artifact) => artifact.slug);
 
 export const getArtifact = (slug: string) =>
   artifacts.find((artifact) => artifact.slug === slug);
-
-export const audienceStatement =
-  "For AI product teams, music-world collaborators, and consulting clients looking for someone who can turn judgment into a system without sanding away the character of the work.";
-
-export const portfolioThroughline =
-  "Give small operators larger-operator leverage, help deserving work find its audience, and make complexity legible enough to act on.";
-
-export const careerTimeline = [
-  {
-    period: "Origin / 2016",
-    title: "Electronic music becomes the native domain",
-    detail:
-      "Electronic music became the starting point for the work represented here.",
-    evidenceStatus: "partial" as const,
-  },
-  {
-    period: "2021–2024",
-    title: "Head of Music Promotion at INFAMOUS PR",
-    detail:
-      "Led music-promotion strategy and operations at INFAMOUS PR. Representative campaigns and outcomes are being prepared for publication.",
-    evidenceStatus: "partial" as const,
-  },
-  {
-    period: "After 2024",
-    title: "The work branches into consulting, development, and agent systems",
-    detail:
-      "Expanded the same process-modeling work into consulting, product development, and agent systems.",
-    evidenceStatus: "partial" as const,
-  },
-  {
-    period: "Current",
-    title: "Strategy and creativity in the room",
-    detail:
-      "The current focus is strategy, creative direction, and product work with teams that value close collaboration.",
-    evidenceStatus: "needed" as const,
-  },
-];

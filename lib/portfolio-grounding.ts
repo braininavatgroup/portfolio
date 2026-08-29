@@ -1,31 +1,22 @@
 import {
-  getBranch,
-  getBranchEntities,
-  getEntity,
-  mainProjection,
-  portfolioData,
-} from "./portfolio-data";
+  portfolioContact,
+  portfolioThreads,
+  portfolioThroughline,
+  portfolioWorldNodes,
+  type PortfolioWorldNode,
+} from "./portfolio-world";
 import {
   audienceStatement,
   careerTimeline,
-  domains,
-  portfolioThroughline,
-  type EvidenceStatus,
-} from "./portfolio";
-import type {
-  PortfolioEntity,
-  ProjectRecord,
-  TripletRole,
-} from "./portfolio-model";
+  privateFacts,
+} from "./portfolio-private-grounding";
 
 export type PortfolioGroundingEvidence = {
   id: string;
   title: string;
   excerpt: string;
   href: string;
-  evidenceStatus: EvidenceStatus;
   projectTitle: string;
-  stageRole?: TripletRole;
 };
 
 export type PortfolioGrounding = {
@@ -33,80 +24,68 @@ export type PortfolioGrounding = {
   evidence: PortfolioGroundingEvidence[];
 };
 
-function evidenceStatus(
-  record: Pick<ProjectRecord | PortfolioEntity, "facets">,
-  fallback: EvidenceStatus = "needed",
-): EvidenceStatus {
-  const status = record.facets?.evidenceStatus?.[0];
-  return status === "available" || status === "partial" || status === "needed"
-    ? status
-    : fallback;
+const contentNodes = portfolioWorldNodes.filter(
+  (node) => node.family !== "story",
+);
+
+function threadsContaining(nodeId: string) {
+  return portfolioThreads.filter(({ members }) => members.includes(nodeId));
 }
 
-function completeProjectEvidence(
-  project: ProjectRecord,
-): PortfolioGroundingEvidence {
-  const branch = getBranch(project.id, mainProjection.id);
-  const entities = branch ? getBranchEntities(branch) : [];
-  const stageRoles = new Map(
-    branch?.steps.flatMap((step) =>
-      step.entityIds.map((entityId) => [entityId, step.role] as const),
-    ),
-  );
-  const projectStatus = evidenceStatus(project);
+function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
+  const threads = threadsContaining(node.id);
   const lines = [
-    `Summary: ${project.summary}`,
-    ...(project.facets?.domain?.length
-      ? [`Domain: ${project.facets.domain.join(", ")}`]
+    `Kind: ${node.kind}`,
+    `Summary: ${node.summary}`,
+    ...(node.principle ? [`Principle: ${node.principle}`] : []),
+    ...node.body,
+    ...(threads.length
+      ? [`Threads: ${threads.map(({ title }) => title).join("; ")}`]
       : []),
-    `Project evidence status: ${projectStatus}`,
-    ...entities.map((entity) => {
-      const role = stageRoles.get(entity.id);
-      const status = evidenceStatus(entity, projectStatus);
-      const detail = entity.detail ?? entity.summary;
-      return `${role ? `${role}; ` : ""}evidence ${status}; ${entity.title}: ${detail}`;
-    }),
   ];
-
   return {
-    id: `project:${project.id}`,
-    title: project.title,
+    id: `node:${node.id}`,
+    title: node.label,
     excerpt: lines.join("\n"),
-    href: `/index/${project.slug}`,
-    evidenceStatus: projectStatus,
-    projectTitle: project.title,
+    href: `/index/${node.id}`,
+    projectTitle: node.label,
   };
 }
 
-function completePortfolioEvidence() {
-  const root = getEntity(mainProjection.rootEntityId);
-  const portfolioExcerpt = root
-    ? [
-        root.detail ?? root.summary,
-        `Throughline: ${portfolioThroughline}`,
-        `Audience: ${audienceStatement}`,
-        "Domains:",
-        ...domains.map(({ label, description }) => `${label}: ${description}`),
-        "Career:",
-        ...careerTimeline.map(
-          ({ period, title, detail }) => `${period}; ${title}: ${detail}`,
-        ),
-      ].join("\n")
-    : "";
+function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
+  const portfolioExcerpt = [
+    "I find where judgment matters, then build the system around it.",
+    `Throughline: ${portfolioThroughline}`,
+    `Audience: ${audienceStatement}`,
+    `Contact: ${portfolioContact.email}`,
+    "Career:",
+    ...careerTimeline.map(
+      ({ period, title, detail }) => `${period}; ${title}: ${detail}`,
+    ),
+    ...privateFacts,
+  ].join("\n");
+
   return [
-    ...(root
-      ? [
-          {
-            id: `entity:${root.id}`,
-            title: root.title,
-            excerpt: portfolioExcerpt,
-            href: "/",
-            evidenceStatus: "available" as const,
-            projectTitle: "Portfolio",
-          },
-        ]
-      : []),
-    ...portfolioData.projects.map(completeProjectEvidence),
+    {
+      id: "entity:portfolio:brain",
+      title: "Bradley Berkman",
+      excerpt: portfolioExcerpt,
+      href: "/",
+      projectTitle: "Portfolio",
+    },
+    ...contentNodes.map(nodeEvidence),
+    ...portfolioThreads.map((thread) => ({
+      id: `thread:${thread.id}`,
+      title: thread.title,
+      excerpt: [
+        `Thread: ${thread.title}`,
+        thread.lede,
+        thread.body,
+        `Members: ${thread.members.join(", ")}`,
+      ].join("\n"),
+      href: `/?view=graph#thread/${thread.id}`,
+      projectTitle: thread.title,
+    })),
   ];
 }
 

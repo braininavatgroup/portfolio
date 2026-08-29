@@ -35,12 +35,6 @@ import type {
 import { classifyPose } from "../lib/pose";
 import type { PoseState } from "./scene/BodyScene";
 
-const stageRoleLabels = {
-  instinct: "Instinct",
-  approach: "Approach",
-  output: "Output",
-} as const;
-
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments
 ) => void | Promise<void>;
@@ -528,8 +522,6 @@ export function PortfolioChat({
                 {citedEvidence.map(({ item, label }) => (
                   <a aria-label={`[E${label}] ${item.title}`} href={item.href} key={item.id}>
                     E{label} · {item.title}
-                    <span className="sr-only">{stageRoleLabels[item.stageRole ?? "output"]}</span>
-                    <span className="sr-only">Evidence {item.evidenceStatus}</span>
                     <span className="sr-only">{item.excerpt}</span>
                   </a>
                 ))}

@@ -29,9 +29,8 @@ import { visibleGraphNodes } from "../lib/graph-emphasis";
 import { isExactShiftShortcut } from "../lib/dom-keyboard";
 import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
-import { getPortfolioDossier } from "../lib/portfolio-dossier";
 import {
-  portfolioStoryById,
+  portfolioThreadById,
   portfolioWorldNodes,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
@@ -122,19 +121,20 @@ function useReducedMotion() {
 
 function readWorldLocation() {
   const parts = window.location.hash.slice(1).split("/").filter(Boolean);
-  if (parts[0] === "story") {
-    return { storyId: parts[1] ?? null, nodeId: parts[2] ?? null };
+  // "thread/…" is canonical; "story/…" remains parseable for old links.
+  if (parts[0] === "thread" || parts[0] === "story") {
+    return { threadId: parts[1] ?? null, nodeId: parts[2] ?? null };
   }
-  return { storyId: null, nodeId: parts[0] ?? null };
+  return { threadId: null, nodeId: parts[0] ?? null };
 }
 
-function pushWorldLocation(nodeId: string | null, storyId: string | null) {
+function pushWorldLocation(nodeId: string | null, threadId: string | null) {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "graph");
-  url.hash = storyId
-    ? `story/${storyId}${nodeId ? `/${nodeId}` : ""}`
+  url.hash = threadId
+    ? `thread/${threadId}${nodeId ? `/${nodeId}` : ""}`
     : nodeId ?? "";
-  window.history.pushState({ nodeId, storyId }, "", url);
+  window.history.pushState({ nodeId, threadId }, "", url);
 }
 
 export function PortfolioExperience({
@@ -152,7 +152,7 @@ export function PortfolioExperience({
   const [keyboardNodeId, setKeyboardNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
-  const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [spotlightTarget, setSpotlightTarget] =
     useState<AvatarTargetId | null>(null);
   const [avatarEnabled, setAvatarEnabled] = useState(true);
@@ -234,7 +234,7 @@ export function PortfolioExperience({
     setSelectedDomain(null);
     setSelectedNode(null);
     setSelectedWorldId(null);
-    setActiveStoryId(null);
+    setActiveThreadId(null);
     setKeyboardNodeId(null);
   }, [avatarActionState]);
 
@@ -258,8 +258,7 @@ export function PortfolioExperience({
         return;
       }
 
-      const nextDossier = getPortfolioDossier(node);
-      if (!nextDossier) {
+      if (!node.projectSlug) {
         showIndex();
         return;
       }
@@ -272,7 +271,7 @@ export function PortfolioExperience({
         ({ projectSlug }) => projectSlug === node.projectSlug,
       );
       setSelectedWorldId(worldNode?.id ?? null);
-      setActiveStoryId(null);
+      setActiveThreadId(null);
     },
     [avatarActionState, selectDomain, showIndex],
   );
@@ -316,10 +315,10 @@ export function PortfolioExperience({
         setSelectedDomain(null);
         setKeyboardNodeId(null);
 
-        if (activeStoryId && node.family !== "story") {
-          const story = portfolioStoryById.get(activeStoryId);
+        if (activeThreadId && node.family !== "story") {
+          const story = portfolioThreadById.get(activeThreadId);
           setSelectedWorldId(story?.nodeId ?? null);
-          pushWorldLocation(null, activeStoryId);
+          pushWorldLocation(null, activeThreadId);
         } else {
           showIndex();
           pushWorldLocation(null, null);
@@ -337,12 +336,12 @@ export function PortfolioExperience({
       setKeyboardNodeId(null);
 
       if (node.family === "story") {
-        setActiveStoryId(node.storyId ?? null);
+        setActiveThreadId(node.threadId ?? null);
         const previous = avatarActionState.getSelectedNode();
         avatarActionState.clearSelection();
         setSelectedNode(null);
         setSelectedDomain(null);
-        pushWorldLocation(null, node.storyId ?? null);
+        pushWorldLocation(null, node.threadId ?? null);
         if (previous) {
           window.setTimeout(
             () => void avatarDirector.handle({ type: "project_close" }),
@@ -352,13 +351,13 @@ export function PortfolioExperience({
         return;
       }
 
-      const retainedStoryId = activeStoryId &&
-        portfolioStoryById.get(activeStoryId)?.members.includes(node.id)
-        ? activeStoryId
+      const retainedStoryId = activeThreadId &&
+        portfolioThreadById.get(activeThreadId)?.members.includes(node.id)
+        ? activeThreadId
         : null;
 
       if (!node.projectSlug) {
-        setActiveStoryId(retainedStoryId);
+        setActiveThreadId(retainedStoryId);
         const previous = avatarActionState.getSelectedNode();
         avatarActionState.clearSelection();
         setSelectedNode(null);
@@ -380,11 +379,11 @@ export function PortfolioExperience({
         ) ?? portfolioNodes.find(({ projectSlug }) => projectSlug === node.projectSlug);
       if (spatialNode) selectNodeWithAvatar(spatialNode);
       setSelectedWorldId(node.id);
-      setActiveStoryId(retainedStoryId);
+      setActiveThreadId(retainedStoryId);
       pushWorldLocation(node.id, retainedStoryId);
     },
     [
-      activeStoryId,
+      activeThreadId,
       avatarActionState,
       avatarDirector,
       selectedWorldId,
@@ -393,16 +392,16 @@ export function PortfolioExperience({
     ],
   );
 
-  const selectStory = useCallback((storyId: string) => {
-    const storyNode = portfolioWorldNodes.find(
-      (node) => node.storyId === storyId,
+  const selectThread = useCallback((threadId: string) => {
+    const threadNode = portfolioWorldNodes.find(
+      (node) => node.threadId === threadId,
     );
-    if (storyNode) selectWorldNode(storyNode);
+    if (threadNode) selectWorldNode(threadNode);
   }, [selectWorldNode]);
 
   const showIndexWithAvatar = useCallback(() => {
     const hadProject = Boolean(avatarActionState.getSelectedNode());
-    const hadComposition = Boolean(selectedWorldId || activeStoryId);
+    const hadComposition = Boolean(selectedWorldId || activeThreadId);
     showIndex();
     if (hadComposition) pushWorldLocation(null, null);
     if (hadProject) {
@@ -411,7 +410,7 @@ export function PortfolioExperience({
         0,
       );
     }
-  }, [activeStoryId, avatarActionState, avatarDirector, selectedWorldId, showIndex]);
+  }, [activeThreadId, avatarActionState, avatarDirector, selectedWorldId, showIndex]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -586,11 +585,11 @@ export function PortfolioExperience({
       dispatch({ type: graphRequested ? "ENTER" : "EXIT" });
       if (!graphRequested) return;
 
-      const { nodeId, storyId } = readWorldLocation();
-      const story = storyId ? portfolioStoryById.get(storyId) : undefined;
+      const { nodeId, threadId } = readWorldLocation();
+      const story = threadId ? portfolioThreadById.get(threadId) : undefined;
       const node = nodeId ? portfolioWorldNodes.find(({ id }) => id === nodeId) : undefined;
       if (story) {
-        setActiveStoryId(story.id);
+        setActiveThreadId(story.id);
         setSelectedWorldId(node?.id ?? story.nodeId);
       } else if (node) {
         setSelectedWorldId(node.id);
@@ -747,7 +746,7 @@ export function PortfolioExperience({
       >
         {transition.phase === "graph" ? (
           <PortfolioWorld
-            activeStoryId={activeStoryId}
+            activeThreadId={activeThreadId}
             onReset={showIndexWithAvatar}
             onSelect={selectWorldNode}
             registerAvatarStage={registerAvatarStage}
@@ -789,10 +788,10 @@ export function PortfolioExperience({
         {transition.phase === "graph" ? (
           <>
             <PortfolioReader
-              activeStoryId={activeStoryId}
+              activeThreadId={activeThreadId}
               onReset={showIndexWithAvatar}
               onSelect={selectWorldNode}
-              onSelectStory={selectStory}
+              onSelectThread={selectThread}
               registerAvatarTarget={registerAvatarTarget}
               selectedId={selectedWorldId}
               spotlightTarget={spotlightTarget}

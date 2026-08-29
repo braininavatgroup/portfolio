@@ -16,7 +16,7 @@ describe("PortfolioWorld", () => {
   it("keeps the world surface free of a background grid", () => {
     render(
       <PortfolioWorld
-        activeStoryId={null}
+        activeThreadId={null}
         onReset={() => {}}
         onSelect={() => {}}
         selectedId={null}
@@ -29,7 +29,7 @@ describe("PortfolioWorld", () => {
   it("renders the accepted composed world on one shallow-3D canvas", () => {
     render(
       <PortfolioWorld
-        activeStoryId={null}
+        activeThreadId={null}
         onReset={() => {}}
         onSelect={() => {}}
         selectedId={null}
@@ -102,9 +102,9 @@ describe("PortfolioWorld", () => {
     const fov = 621.6;
     const expectedCenters: Record<string, readonly [number, number]> = {
       bradley: [448.5, 153.5],
-      "story-making-work-playable": [344.5, 261.5],
-      "story-choosing-what-not-to-automate": [558.5, 277.5],
-      "story-finding-myself-in-software": [165.5, 421.5],
+      "thread-making-work-playable": [344.5, 261.5],
+      "thread-choosing-what-not-to-automate": [558.5, 277.5],
+      "thread-finding-myself-in-software": [165.5, 421.5],
       dubs: [241, 331.5],
       writ: [263.5, 431.5],
       alarm: [464.5, 381.5],

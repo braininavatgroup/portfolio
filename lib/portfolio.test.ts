@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  artifactSlugs,
-  artifacts,
-  careerTimeline,
-  getArtifact,
-} from "./portfolio";
+import { artifactSlugs, artifacts, getArtifact } from "./portfolio";
 
 describe("portfolio content contract", () => {
   it("keeps artifact slugs unique", () => {
@@ -31,16 +26,6 @@ describe("portfolio content contract", () => {
       );
       expect(getArtifact(artifact.slug)).toBe(artifact);
     }
-  });
-
-  it("keeps the evidence-backed career sequence linear", () => {
-    expect(careerTimeline.map((item) => item.period)).toEqual([
-      "Origin / 2016",
-      "2021–2024",
-      "After 2024",
-      "Current",
-    ]);
-    expect(careerTimeline.at(-1)?.evidenceStatus).toBe("needed");
   });
 
   it("uses the approved product names in the development bundle", () => {
