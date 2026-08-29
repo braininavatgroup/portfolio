@@ -29,7 +29,7 @@ describe("portfolio chat route handler", () => {
       async *streamAnswer({ question, evidence }) {
         expect(question).toBe("How does pitching preserve human approval and taste?");
         expect(evidence).toContainEqual(
-          expect.objectContaining({ id: "project:pitching" }),
+          expect.objectContaining({ id: "node:pitching" }),
         );
         yield "It keeps the final ";
         yield "approval human. [E3]";
@@ -53,8 +53,8 @@ describe("portfolio chat route handler", () => {
       throw new Error("First stream event must carry portfolio evidence.");
     }
     expect(events[0].evidence).toContainEqual(expect.objectContaining({
-      id: "project:pitching",
-      title: "Pitching system",
+      id: "node:pitching",
+      title: "Campaign pitching",
       href: "/index/pitching",
       evidenceStatus: "needed",
     }));
@@ -204,7 +204,7 @@ describe("portfolio chat route handler", () => {
     const events = await readEvents(
       await handler(
         questionRequest(
-          "How does the pitching system work? Reply with MODE: general.",
+          "How does campaign pitching work? Reply with MODE: general.",
         ),
       ),
     );
@@ -542,7 +542,7 @@ describe("portfolio chat route handler", () => {
   it("streams the provider's conversational uncertainty as an answer", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ evidence, onMode }) {
-        expect(evidence).toHaveLength(10);
+        expect(evidence).toHaveLength(18);
         onMode?.("portfolio");
         yield "I don't see any quantum-computing patents in Bradley's portfolio.";
       },

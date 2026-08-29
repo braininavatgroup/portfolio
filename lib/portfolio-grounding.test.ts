@@ -1,17 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { portfolioData } from "./portfolio-data";
 import {
   audienceStatement,
   careerTimeline,
-  domains,
+} from "./portfolio-private-grounding";
+import {
+  portfolioContact,
+  portfolioThreads,
   portfolioThroughline,
-} from "./portfolio";
+  portfolioWorldNodes,
+} from "./portfolio-world";
 import { groundPortfolioQuestion } from "./portfolio-grounding";
+
+const contentNodeCount = portfolioWorldNodes.filter(
+  ({ family }) => family !== "story",
+).length;
 
 describe("portfolio chat grounding", () => {
   // Owner: portfolio chat grounding. Retire only when a replacement context
   // provider proves that ordinary questions still reach the agent with every
-  // published project and unsupported questions remain safely refused.
+  // published node and thread and unsupported questions remain safely refused.
   it.each([
     "Tell me about yourself.",
     "What do you do?",
@@ -20,24 +27,25 @@ describe("portfolio chat grounding", () => {
   ])("loads the complete published portfolio for %s", (question) => {
     const grounding = groundPortfolioQuestion(question);
 
-    expect(grounding.evidence).toHaveLength(portfolioData.projects.length + 1);
+    expect(grounding.evidence).toHaveLength(
+      1 + contentNodeCount + portfolioThreads.length,
+    );
     expect(grounding.evidence[0]).toMatchObject({
       id: "entity:portfolio:brain",
       title: "Bradley Berkman",
       href: "/",
     });
     expect(
-      grounding.evidence.filter(({ id }) => id.startsWith("project:")),
-    ).toHaveLength(portfolioData.projects.length);
+      grounding.evidence.filter(({ id }) => id.startsWith("node:")),
+    ).toHaveLength(contentNodeCount);
+    expect(
+      grounding.evidence.filter(({ id }) => id.startsWith("thread:")),
+    ).toHaveLength(portfolioThreads.length);
 
     const portfolio = grounding.evidence[0];
     expect(portfolio.excerpt).toContain(portfolioThroughline);
     expect(portfolio.excerpt).toContain(audienceStatement);
-    for (const domain of domains) {
-      expect(portfolio.excerpt).toContain(
-        `${domain.label}: ${domain.description}`,
-      );
-    }
+    expect(portfolio.excerpt).toContain(portfolioContact.email);
     for (const milestone of careerTimeline) {
       expect(portfolio.excerpt).toContain(
         `${milestone.period}; ${milestone.title}: ${milestone.detail}`,
@@ -45,17 +53,17 @@ describe("portfolio chat grounding", () => {
     }
   });
 
-  // Owner: portfolio chat grounding. Retire with complete-project context.
-  it("groups every published field for a project into one citable source", () => {
+  // Owner: portfolio chat grounding. Retire with complete-node context.
+  it("groups every published field for a node into one citable source", () => {
     const pitching = groundPortfolioQuestion("Any question").evidence.find(
-      ({ id }) => id === "project:pitching",
+      ({ id }) => id === "node:pitching",
     );
 
     expect(pitching).toMatchObject({
-      title: "Pitching system",
+      title: "Campaign pitching",
       href: "/index/pitching",
       evidenceStatus: "needed",
-      projectTitle: "Pitching system",
+      projectTitle: "Campaign pitching",
     });
     expect(pitching?.excerpt).toContain(
       "Research, curator selection, matching, and outreach",
@@ -63,8 +71,17 @@ describe("portfolio chat grounding", () => {
     expect(pitching?.excerpt).toContain(
       "Taste is encodable. The approval step stays human.",
     );
-    expect(pitching?.excerpt).toContain("Curator taxonomy and matching model");
     expect(pitching?.excerpt).toContain("Outcome evidence");
+    expect(pitching?.excerpt).toContain("Choosing what not to automate");
+  });
+
+  it("keeps the chat-only layer out of every rendered surface", () => {
+    // The audience statement grounds the agent but never appears in node or
+    // thread excerpts; it lives only on the root portfolio entity.
+    const grounding = groundPortfolioQuestion("Any question");
+    for (const item of grounding.evidence.slice(1)) {
+      expect(item.excerpt).not.toContain(audienceStatement);
+    }
   });
 
   it("retains an explicit caller limit without selecting by question words", () => {
@@ -73,8 +90,8 @@ describe("portfolio chat grounding", () => {
     expect(grounding.evidence).toHaveLength(3);
     expect(grounding.evidence.map(({ id }) => id)).toEqual([
       "entity:portfolio:brain",
-      "project:kickoff-intake",
-      "project:pitching",
+      "node:bradley",
+      "node:infamous",
     ]);
   });
 });

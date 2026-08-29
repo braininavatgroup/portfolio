@@ -2,63 +2,87 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { portfolioStories } from "../lib/portfolio-world";
+import {
+  portfolioContact,
+  portfolioThreads,
+  portfolioWorldNodeById,
+} from "../lib/portfolio-world";
 import { PortfolioReader } from "./PortfolioReader";
 
 afterEach(cleanup);
 
-describe("PortfolioReader", () => {
-  it("uses the same compact row contract for Stories as the rest of the Index", () => {
-    const { container } = render(
-      <PortfolioReader
-        activeStoryId={null}
-        onReset={() => {}}
-        onSelect={() => {}}
-        onSelectStory={() => {}}
-        selectedId={null}
-      />,
-    );
+const baseProps = {
+  activeThreadId: null,
+  onReset: () => {},
+  onSelect: () => {},
+  onSelectThread: () => {},
+  selectedId: null,
+};
 
-    for (const story of portfolioStories) {
-      const row = screen.getByRole("button", { name: story.title });
+describe("PortfolioReader", () => {
+  it("uses the same compact row contract for Threads as the rest of the Index", () => {
+    const { container } = render(<PortfolioReader {...baseProps} />);
+
+    for (const thread of portfolioThreads) {
+      const row = screen.getByRole("button", { name: thread.title });
       expect(row.classList.contains("reader-index-row")).toBe(true);
-      expect(screen.queryByText(story.lede)).toBeNull();
+      expect(screen.queryByText(thread.lede)).toBeNull();
     }
-    expect(container.querySelector(".reader-story-row")).toBeNull();
+    expect(container.querySelector(".reader-thread-row")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "View as list" }).getAttribute("href"),
+    ).toBe("/index");
   });
 
-  it("keeps the editorial copy on the Story page", () => {
-    const story = portfolioStories[0];
+  it("keeps the editorial copy on the Thread page", () => {
+    const thread = portfolioThreads[0];
     render(
       <PortfolioReader
-        activeStoryId={story.id}
-        onReset={() => {}}
-        onSelect={() => {}}
-        onSelectStory={() => {}}
-        selectedId={story.nodeId}
+        {...baseProps}
+        activeThreadId={thread.id}
+        selectedId={thread.nodeId}
       />,
     );
 
-    expect(screen.getByText(story.lede)).toBeTruthy();
-    expect(screen.getByText(story.body)).toBeTruthy();
+    expect(screen.getByText(thread.lede)).toBeTruthy();
+    expect(screen.getByText(thread.body)).toBeTruthy();
+  });
+
+  it("renders the complete mini-study for a record", () => {
+    render(<PortfolioReader {...baseProps} selectedId="pitching" />);
+
+    const node = portfolioWorldNodeById.get("pitching")!;
+    expect(screen.getByText(node.principle!)).toBeTruthy();
+    for (const paragraph of node.body) {
+      expect(screen.getByText(paragraph)).toBeTruthy();
+    }
+    expect(screen.getAllByText("Evidence needed").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Read the current case study")).toBeNull();
+  });
+
+  it("shows contact details only on the Bradley record", () => {
+    render(<PortfolioReader {...baseProps} selectedId="bradley" />);
+    expect(
+      screen.getByRole("link", { name: portfolioContact.email }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: portfolioContact.cv.label }),
+    ).toBeTruthy();
+
+    cleanup();
+    render(<PortfolioReader {...baseProps} selectedId="dubs" />);
+    expect(screen.queryByText(portfolioContact.email)).toBeNull();
   });
 
   it("restores the visitor's Index scroll position after inspecting a record", () => {
-    const props = {
-      activeStoryId: null,
-      onReset: () => {},
-      onSelect: () => {},
-      onSelectStory: () => {},
-      selectedId: null,
-    };
-    const { rerender } = render(<PortfolioReader {...props} />);
+    const { rerender } = render(<PortfolioReader {...baseProps} />);
     const reader = screen.getByRole("complementary", { name: "Portfolio index" });
     reader.scrollTop = 420;
     fireEvent.scroll(reader);
 
-    rerender(<PortfolioReader {...props} selectedId="dubs" />);
+    rerender(<PortfolioReader {...baseProps} selectedId="dubs" />);
     reader.scrollTop = 0;
-    rerender(<PortfolioReader {...props} />);
+    rerender(<PortfolioReader {...baseProps} />);
 
     expect(reader.scrollTop).toBe(420);
   });

@@ -79,7 +79,7 @@ function words(text: string) {
 function includesPortfolioAlias(text: string, grounding: PortfolioGrounding) {
   const normalizedText = ` ${words(text).join(" ")} `;
   const aliases = grounding.evidence.flatMap(({ id, projectTitle, title }) => [
-    id.replace(/^(?:project|entity):/, "").replaceAll("-", " "),
+    id.replace(/^(?:project|entity|node|thread):/, "").replaceAll("-", " "),
     projectTitle,
     title,
   ]);

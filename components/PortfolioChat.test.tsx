@@ -23,7 +23,6 @@ const evidence = {
   href: "/index/pitching",
   evidenceStatus: "needed" as const,
   projectTitle: "Pitching system",
-  stageRole: "instinct" as const,
 };
 
 describe("portfolio chat", () => {
@@ -547,7 +546,6 @@ describe("portfolio chat", () => {
       screen.getByRole("link", { name: "[E1] Pitching system" }).getAttribute("href"),
     ).toBe("/index/pitching");
     expect(screen.getByText("Evidence needed")).toBeTruthy();
-    expect(screen.getByText("Instinct")).toBeTruthy();
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 

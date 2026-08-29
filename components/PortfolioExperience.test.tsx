@@ -241,40 +241,40 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
-  it("uses the index and world as two controls for the same story state", async () => {
+  it("uses the index and world as two controls for the same thread state", async () => {
     await renderExperience("graph");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Making work playable" }),
     );
 
-    expect(window.location.hash).toBe("#story/making-work-playable");
+    expect(window.location.hash).toBe("#thread/making-work-playable");
 
     expect(
       screen.getByRole("complementary", {
-        name: "Making work playable story",
+        name: "Making work playable thread",
       }),
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("button", { name: "Story Making work playable" })
+        .getByRole("button", { name: "Thread Making work playable" })
       .getAttribute("aria-pressed"),
     ).toBe("true");
 
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
-    expect(window.location.hash).toBe("#story/making-work-playable/dubs");
+    expect(window.location.hash).toBe("#thread/making-work-playable/dubs");
     expect(
       screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Product Dubs" }));
-    expect(window.location.hash).toBe("#story/making-work-playable");
+    expect(window.location.hash).toBe("#thread/making-work-playable");
     expect(
-      screen.getByRole("complementary", { name: "Making work playable story" }),
+      screen.getByRole("complementary", { name: "Making work playable thread" }),
     ).toBeTruthy();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Story Making work playable" }),
+      screen.getByRole("button", { name: "Thread Making work playable" }),
     );
     expect(window.location.hash).toBe("");
     expect(
@@ -299,7 +299,7 @@ describe("spatial self-portrait", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("restores a direct story and node state from browser history", async () => {
+  it("restores a direct thread and node state from a legacy story link", async () => {
     window.history.replaceState(
       {},
       "",
@@ -312,7 +312,7 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("button", { name: "Story Choosing what not to automate" })
+        .getByRole("button", { name: "Thread Choosing what not to automate" })
         .getAttribute("aria-pressed"),
     ).toBe("false");
     expect(document.querySelector(".reader-path")?.textContent).toContain(
@@ -409,7 +409,7 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Stories" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Threads" })).toBeTruthy();
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
