@@ -25,14 +25,14 @@ describe("DOM keyboard ownership", () => {
     } else {
       const replacement = document.createElement(selector);
       wrapper.replaceWith(replacement);
-      replacement.append(document.createElement("span"));
-      document.body.append(replacement);
+      replacement.appendChild(document.createElement("span"));
+      document.body.appendChild(replacement);
       expect(isInteractiveKeyboardTarget(replacement.firstElementChild)).toBe(true);
       replacement.remove();
       return;
     }
-    wrapper.append(document.createElement("span"));
-    document.body.append(wrapper);
+    wrapper.appendChild(document.createElement("span"));
+    document.body.appendChild(wrapper);
     expect(isInteractiveKeyboardTarget(wrapper.firstElementChild)).toBe(true);
     wrapper.remove();
   });

@@ -145,7 +145,7 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
     `printf 'open %s\\n' "$1" >> "$WIZARD_CALL_LOG"`,
   );
 
-  const result = await new Promise<{ stdout: string; stderr: string }>(
+  const result = await new Promise<{ stdout: string; stderr: string; exitCode: number | null }>(
     (resolve, reject) => {
       const child = spawn("bash", [scriptUrl.pathname], {
         cwd: new URL("..", import.meta.url).pathname,
