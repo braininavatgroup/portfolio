@@ -35,6 +35,11 @@ test("main-preview deployment consumes the tested artifact behind an explicit fa
   assert.match(upload.if, /github\.event_name\s*==\s*'push'/);
   assert.equal(upload.with.path, "dist");
   assert.equal(upload.with.name, "portfolio-main-preview-${{ github.sha }}");
+  assert.equal(
+    upload.with.overwrite,
+    true,
+    "a full rerun must replace the rebuilt artifact for the same immutable SHA",
+  );
 
   const download = stepUsing(deploy, "actions/download-artifact@v4");
   assert.ok(download, "deploy job must download the CI artifact");

@@ -119,6 +119,13 @@ deliberately omit permission to change GitHub Actions workflows. See
 [the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
 for secret rotation, iPhone smoke, and rollback requirements.
 
+For initial setup, run the wizard from its prepared feature branch. After that
+change has merged, it can instead run from a clean `main` checkout whose local
+`HEAD` equals freshly fetched `origin/main`. In this post-merge mode it creates
+neither a branch push nor a pull request: after `ACTIVATE`, it finds the
+successful push CI run for that exact SHA, sets the deployment gate, and reruns
+that immutable workflow so GitHub retains its original `GITHUB_SHA` and ref.
+
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service.
 
 ## Verification

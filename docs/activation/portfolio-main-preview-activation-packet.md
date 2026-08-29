@@ -26,9 +26,13 @@ time, and known-good prior version before changing the gate.
 
 ## Runtime secrets and configuration
 
-Run `npm run setup:main-preview` from the prepared feature branch for the
-repeatable human-driven setup. The wizard keeps deployment false-gated unless
-the operator types `ACTIVATE` explicitly.
+Run `npm run setup:main-preview` from the prepared feature branch for initial
+human-driven setup. After the setup change has merged, run it from a clean
+`main` checkout only when local `HEAD` equals freshly fetched `origin/main`.
+That post-merge path skips feature-branch publication and pull-request creation,
+finds the successful `ci.yml` push run for the exact merged SHA, and reruns it
+only after the operator types `ACTIVATE` and the deployment gate is set to
+`true`. The wizard otherwise keeps deployment false-gated.
 
 Provision these only as encrypted secrets on the dedicated Worker:
 

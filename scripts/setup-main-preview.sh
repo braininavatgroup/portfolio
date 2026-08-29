@@ -193,6 +193,9 @@ GITHUB_ENVIRONMENT="portfolio-main-preview"
 DEPLOY_GATE="PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED"
 PR_URL=""
 DEPLOY_GATE_STATE="unknown"
+POST_MERGE_MAIN=false
+TARGET_SHA=""
+SUCCESSFUL_PUSH_RUN_ID=""
 
 cleanup_main_preview_secrets() {
   unset MAIN_PREVIEW_PASSWORD MAIN_PREVIEW_PASSWORD_CONFIRMATION
@@ -226,27 +229,44 @@ else
 fi
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [[ -z "$CURRENT_BRANCH" || "$CURRENT_BRANCH" == "main" ]]; then
-  printf 'Run this wizard from the prepared feature branch, not main.\n' >&2
+if [[ -z "$CURRENT_BRANCH" ]]; then
+  printf 'Run this wizard from a prepared feature branch or an up-to-date main checkout.\n' >&2
   exit 1
 fi
 
-say "Publishing $CURRENT_BRANCH so GitHub can open the setup pull request."
-if ! git push -u origin HEAD; then
-  printf 'GitHub rejected the push. Do not broaden the biv-agent App permissions.\n' >&2
-  printf 'Confirm this is Apple Terminal or iTerm, then run gh auth refresh -h github.com -s workflow and rerun the wizard.\n' >&2
-  exit 1
+if [[ "$CURRENT_BRANCH" == "main" ]]; then
+  say "Checking that this checkout is the exact current origin/main commit."
+  git fetch origin main:refs/remotes/origin/main
+  LOCAL_HEAD_SHA=$(git rev-parse HEAD)
+  ORIGIN_MAIN_SHA=$(git rev-parse origin/main)
+  if [[ "$LOCAL_HEAD_SHA" != "$ORIGIN_MAIN_SHA" ]]; then
+    printf 'Local HEAD (%s) does not equal fetched origin/main (%s).\n' "$LOCAL_HEAD_SHA" "$ORIGIN_MAIN_SHA" >&2
+    printf 'Update the checkout to the exact merged main commit before activating it.\n' >&2
+    exit 1
+  fi
+  POST_MERGE_MAIN=true
+  TARGET_SHA="$ORIGIN_MAIN_SHA"
+  say "Activation will target the successful main push for $TARGET_SHA."
+else
+  say "Publishing $CURRENT_BRANCH so GitHub can open the setup pull request."
+  if ! git push -u origin HEAD; then
+    printf 'GitHub rejected the push. Do not broaden the biv-agent App permissions.\n' >&2
+    printf 'Confirm this is Apple Terminal or iTerm, then run gh auth refresh -h github.com -s workflow and rerun the wizard.\n' >&2
+    exit 1
+  fi
 fi
 
 REPOSITORY=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-if PR_URL=$(gh pr view --json url --jq .url 2>/dev/null); then
-  say "Using the existing pull request: $PR_URL"
-else
-  PR_URL=$(gh pr create \
-    --base main \
-    --title "Add password-protected main preview" \
-    --body "Adds a password-protected Workers.dev preview of the latest tested main build. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
-  say "Created pull request: $PR_URL"
+if [[ "$POST_MERGE_MAIN" == "false" ]]; then
+  if PR_URL=$(gh pr view --json url --jq .url 2>/dev/null); then
+    say "Using the existing pull request: $PR_URL"
+  else
+    PR_URL=$(gh pr create \
+      --base main \
+      --title "Add password-protected main preview" \
+      --body "Adds a password-protected Workers.dev preview of the latest tested main build. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
+    say "Created pull request: $PR_URL"
+  fi
 fi
 
 stage "Worker secrets"
@@ -354,14 +374,39 @@ else
   say "Type ACTIVATE only if every successfully tested main push should update the password-protected Worker."
   ask ACTIVATION_CONFIRMATION "Type ACTIVATE to arm deployment, or press Enter to leave it disabled:"
   if [[ "$ACTIVATION_CONFIRMATION" == "ACTIVATE" ]]; then
+    if [[ "$POST_MERGE_MAIN" == "true" ]]; then
+      SUCCESSFUL_PUSH_RUN_ID=$(gh run list \
+        --workflow ci.yml \
+        --branch main \
+        --commit "$TARGET_SHA" \
+        --event push \
+        --status success \
+        --json databaseId \
+        --jq '.[0].databaseId')
+      if [[ -z "$SUCCESSFUL_PUSH_RUN_ID" ]]; then
+        printf 'No successful ci.yml push run was found for main commit %s. Deployment remains disabled.\n' "$TARGET_SHA" >&2
+        exit 1
+      fi
+    fi
     set_var "$DEPLOY_GATE" true
-    warn "Deployment is armed. Review and merge the pull request to trigger the protected main deployment."
+    if [[ "$POST_MERGE_MAIN" == "true" ]]; then
+      gh run rerun "$SUCCESSFUL_PUSH_RUN_ID"
+      warn "Deployment is armed. Re-running successful main CI run $SUCCESSFUL_PUSH_RUN_ID for $TARGET_SHA."
+    else
+      warn "Deployment is armed. Review and merge the pull request to trigger the protected main deployment."
+    fi
   else
     say "Deployment remains disabled. Re-run this wizard when you are ready to activate it."
   fi
 fi
 
-open_url "$PR_URL"
+if [[ -n "$PR_URL" ]]; then
+  open_url "$PR_URL"
+fi
 finish
-note "Pull request: $PR_URL"
+if [[ -n "$PR_URL" ]]; then
+  note "Pull request: $PR_URL"
+elif [[ -n "$SUCCESSFUL_PUSH_RUN_ID" ]]; then
+  note "Re-run CI workflow: https://github.com/$REPOSITORY/actions/runs/$SUCCESSFUL_PUSH_RUN_ID"
+fi
 note "No password, signing secret, provider key, or Cloudflare token was written to this repository or shell history."

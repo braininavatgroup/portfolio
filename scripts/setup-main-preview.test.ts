@@ -16,7 +16,12 @@ async function fakeCommand(directory: string, name: string, body: string) {
 
 async function runWizard(
   input: string,
-  options?: { conductorSession?: boolean; failFirstPush?: boolean; allowFailure?: boolean },
+  options?: {
+    conductorSession?: boolean;
+    failFirstPush?: boolean;
+    allowFailure?: boolean;
+    postMergeMain?: boolean;
+  },
 ) {
   const directory = await mkdtemp(join(tmpdir(), "main-preview-wizard-"));
   tempDirectories.push(directory);
@@ -44,6 +49,11 @@ case "\${1:-} \${2:-}" in
     ;;
   "variable get") exit 1 ;;
   "variable set") printf 'gh variable set %s %s %s\\n' "$3" "$4" "$5" >> "$WIZARD_CALL_LOG" ;;
+  "run list")
+    printf 'gh %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    printf '123456789\\n'
+    ;;
+  "run rerun") printf 'gh run rerun %s\\n' "$3" >> "$WIZARD_CALL_LOG" ;;
   *) printf 'unexpected gh call: %s\\n' "$*" >&2; exit 9 ;;
 esac
 `,
@@ -52,15 +62,31 @@ esac
     directory,
     "git",
     `
-if [[ "\${1:-}" == "branch" ]]; then
-  printf 'tailscale-phone-localhost-testing\\n'
-else
-  printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+case "\${1:-} \${2:-}" in
+  "branch --show-current")
+    if [[ "\${WIZARD_POST_MERGE_MAIN:-}" == "1" ]]; then
+      printf 'main\\n'
+    else
+      printf 'tailscale-phone-localhost-testing\\n'
+    fi
+    ;;
+  "fetch origin") printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG" ;;
+  "rev-parse HEAD")
+    printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    printf '0123456789abcdef0123456789abcdef01234567\\n'
+    ;;
+  "rev-parse origin/main")
+    printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    printf '0123456789abcdef0123456789abcdef01234567\\n'
+    ;;
+  *)
+    printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
   if [[ "\${WIZARD_FAIL_FIRST_PUSH:-}" == "1" && ! -f "$WIZARD_PUSH_FAILED_MARKER" ]]; then
     : > "$WIZARD_PUSH_FAILED_MARKER"
     exit 1
   fi
-fi
+    ;;
+esac
 `,
   );
   await fakeCommand(
@@ -109,6 +135,7 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
           WIZARD_CALL_LOG: logPath,
           WIZARD_FAIL_FIRST_PUSH: options?.failFirstPush ? "1" : "0",
           WIZARD_PUSH_FAILED_MARKER: join(directory, "push-failed"),
+          WIZARD_POST_MERGE_MAIN: options?.postMergeMain ? "1" : "0",
           CONDUCTOR_WORKSPACE_NAME: options?.conductorSession ? "vientiane" : "",
           CLAUDE_AGENT_SDK_VERSION: "",
         },
@@ -226,6 +253,41 @@ describe("main preview setup wizard", () => {
     expect(calls).toContain(
       "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
     );
+  });
+
+  it("binds a merged main checkout to its successful push run before activating it", async () => {
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+    const { calls } = await runWizard(
+      [
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "ACTIVATE",
+      ].join("\n"),
+      { postMergeMain: true },
+    );
+
+    expect(calls).toContain("git fetch origin main:refs/remotes/origin/main");
+    expect(calls).toContain("git rev-parse HEAD");
+    expect(calls).toContain("git rev-parse origin/main");
+    expect(calls).not.toContain("git push -u origin HEAD");
+    expect(calls).not.toContain("gh pr create");
+    expect(calls).toContain(
+      `gh run list --workflow ci.yml --branch main --commit ${sha} --event push --status success --json databaseId --jq .[0].databaseId`,
+    );
+    expect(calls).toContain(
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+    );
+    expect(calls).toContain("gh run rerun 123456789");
+    expect(
+      calls.indexOf("gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true"),
+    ).toBeLessThan(calls.indexOf("gh run rerun 123456789"));
   });
 
   it("does not broaden the App when a personal credential rejects the push", async () => {
