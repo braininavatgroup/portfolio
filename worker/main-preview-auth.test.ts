@@ -78,7 +78,9 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(503);
     expect(await response.text()).toBe("Preview unavailable");
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
     expect(app.calls()).toBe(0);
   });
 
@@ -97,7 +99,9 @@ describe("main preview password boundary", () => {
     expect(response.headers.get("location")).toBe(
       "/_portfolio-preview/login?next=%2Fwork%3Fdraft%3D1",
     );
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
     expect(app.calls()).toBe(0);
   });
 
@@ -114,7 +118,9 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
     expect(body).toContain('type="password"');
     expect(body).toContain('name="password"');
     expect(body).toContain("Bradley Berkman");
@@ -136,7 +142,9 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Authentication required" });
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
     expect(app.calls()).toBe(0);
   });
 
@@ -211,7 +219,9 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-application")).toBe("reached");
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
     expect(await response.text()).toBe("protected application");
     expect(app.calls()).toBe(1);
   });
@@ -267,6 +277,8 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(413);
     expect(await response.text()).toBe("Request too large");
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
   });
 });
