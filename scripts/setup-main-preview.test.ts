@@ -21,6 +21,8 @@ async function runWizard(
     failFirstPush?: boolean;
     allowFailure?: boolean;
     postMergeMain?: boolean;
+    dirtyPostMerge?: boolean;
+    failGateWrite?: boolean;
   },
 ) {
   const directory = await mkdtemp(join(tmpdir(), "main-preview-wizard-"));
@@ -47,8 +49,20 @@ case "\${1:-} \${2:-}" in
     IFS= read -r secret || true
     printf 'gh secret set %s %s bytes=%s\\n' "$3" "$4 $5" "\${#secret}" >> "$WIZARD_CALL_LOG"
     ;;
-  "variable get") exit 1 ;;
-  "variable set") printf 'gh variable set %s %s %s\\n' "$3" "$4" "$5" >> "$WIZARD_CALL_LOG" ;;
+  "variable get")
+    if [[ -f "$WIZARD_GATE_STATE_FILE" ]]; then
+      cat "$WIZARD_GATE_STATE_FILE"
+    else
+      exit 1
+    fi
+    ;;
+  "variable set")
+    printf 'gh variable set %s %s %s\\n' "$3" "$4" "$5" >> "$WIZARD_CALL_LOG"
+    if [[ "\${WIZARD_FAIL_GATE_WRITE:-}" == "1" && "$5" == "true" ]]; then
+      exit 1
+    fi
+    printf '%s' "$5" > "$WIZARD_GATE_STATE_FILE"
+    ;;
   "run list")
     printf 'gh %s\\n' "$*" >> "$WIZARD_CALL_LOG"
     printf '123456789\\n'
@@ -71,6 +85,12 @@ case "\${1:-} \${2:-}" in
     fi
     ;;
   "fetch origin") printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG" ;;
+  "status --porcelain")
+    printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    if [[ "\${WIZARD_DIRTY_POST_MERGE:-}" == "1" ]]; then
+      printf ' M wrangler.main-preview.jsonc\\n'
+    fi
+    ;;
   "rev-parse HEAD")
     printf 'git %s\\n' "$*" >> "$WIZARD_CALL_LOG"
     printf '0123456789abcdef0123456789abcdef01234567\\n'
@@ -136,6 +156,9 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
           WIZARD_FAIL_FIRST_PUSH: options?.failFirstPush ? "1" : "0",
           WIZARD_PUSH_FAILED_MARKER: join(directory, "push-failed"),
           WIZARD_POST_MERGE_MAIN: options?.postMergeMain ? "1" : "0",
+          WIZARD_DIRTY_POST_MERGE: options?.dirtyPostMerge ? "1" : "0",
+          WIZARD_FAIL_GATE_WRITE: options?.failGateWrite ? "1" : "0",
+          WIZARD_GATE_STATE_FILE: join(directory, "gate-state"),
           CONDUCTOR_WORKSPACE_NAME: options?.conductorSession ? "vientiane" : "",
           CLAUDE_AGENT_SDK_VERSION: "",
         },
@@ -288,6 +311,46 @@ describe("main preview setup wizard", () => {
     expect(
       calls.indexOf("gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true"),
     ).toBeLessThan(calls.indexOf("gh run rerun 123456789"));
+  });
+
+  it("rejects a dirty merged-main checkout before handling credentials or secrets", async () => {
+    const { calls, stderr, exitCode } = await runWizard("\n", {
+      postMergeMain: true,
+      dirtyPostMerge: true,
+      allowFailure: true,
+    });
+
+    expect(exitCode).not.toBe(0);
+    expect(calls).toContain("git status --porcelain");
+    expect(stderr).toContain("clean checkout");
+    expect(calls).not.toContain("node validate-openai-key");
+    expect(calls).not.toContain("wrangler secret put");
+    expect(calls).not.toContain("gh secret set");
+  });
+
+  it("fails closed without rerunning CI when deployment-gate arming fails", async () => {
+    const { calls, stderr, exitCode } = await runWizard(
+      [
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "ACTIVATE",
+      ].join("\n"),
+      { postMergeMain: true, failGateWrite: true, allowFailure: true },
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(calls).toContain(
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+    );
+    expect(calls).not.toContain("gh run rerun 123456789");
+    expect(stderr).toContain("could not be armed");
   });
 
   it("does not broaden the App when a personal credential rejects the push", async () => {

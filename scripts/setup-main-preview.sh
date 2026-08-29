@@ -166,6 +166,19 @@ set_var() {
   warn "skipped GitHub variable $name, gh not ready; set it later"
 }
 
+arm_deployment_gate() {
+  local readback
+  if ! gh variable set "$DEPLOY_GATE" --body true >/dev/null 2>&1; then
+    printf 'Deployment gate could not be armed. The successful CI run was not rerun.\n' >&2
+    return 1
+  fi
+  if ! readback=$(gh variable get "$DEPLOY_GATE" --json value --jq .value 2>/dev/null) || [[ "$readback" != "true" ]]; then
+    printf 'Deployment gate could not be armed. The successful CI run was not rerun.\n' >&2
+    return 1
+  fi
+  DEPLOY_GATE_STATE="true"
+}
+
 # finish clears, then shows a closing summary of everything configured.
 finish() {
   _clear
@@ -218,6 +231,17 @@ if [[ -n "${CONDUCTOR_WORKSPACE_NAME:-}" || -n "${CLAUDE_AGENT_SDK_VERSION:-}" ]
   printf 'Run: cd %q && npm run setup:main-preview\n' "$REPO_ROOT" >&2
   exit 1
 fi
+
+CURRENT_BRANCH=$(git branch --show-current)
+if [[ -z "$CURRENT_BRANCH" ]]; then
+  printf 'Run this wizard from a prepared feature branch or an up-to-date main checkout.\n' >&2
+  exit 1
+fi
+if [[ "$CURRENT_BRANCH" == "main" ]] && [[ -n "$(git status --porcelain)" ]]; then
+  printf 'Post-merge activation requires a clean checkout. Commit, stash, or remove tracked and untracked changes before rerunning this wizard.\n' >&2
+  exit 1
+fi
+
 banner "Permanent main preview setup"
 
 stage "GitHub preflight and pull request"
@@ -226,12 +250,6 @@ if gh auth status >/dev/null 2>&1; then
 else
   say "GitHub CLI needs authentication; opening its login flow."
   gh auth login
-fi
-
-CURRENT_BRANCH=$(git branch --show-current)
-if [[ -z "$CURRENT_BRANCH" ]]; then
-  printf 'Run this wizard from a prepared feature branch or an up-to-date main checkout.\n' >&2
-  exit 1
 fi
 
 if [[ "$CURRENT_BRANCH" == "main" ]]; then
@@ -388,7 +406,9 @@ else
         exit 1
       fi
     fi
-    set_var "$DEPLOY_GATE" true
+    if ! arm_deployment_gate; then
+      exit 1
+    fi
     if [[ "$POST_MERGE_MAIN" == "true" ]]; then
       gh run rerun "$SUCCESSFUL_PUSH_RUN_ID"
       warn "Deployment is armed. Re-running successful main CI run $SUCCESSFUL_PUSH_RUN_ID for $TARGET_SHA."
