@@ -62,7 +62,6 @@ describe("portfolio chat grounding", () => {
     expect(pitching).toMatchObject({
       title: "Campaign pitching",
       href: "/index/pitching",
-      evidenceStatus: "needed",
       projectTitle: "Campaign pitching",
     });
     expect(pitching?.excerpt).toContain(
@@ -71,7 +70,6 @@ describe("portfolio chat grounding", () => {
     expect(pitching?.excerpt).toContain(
       "Taste is encodable. The approval step stays human.",
     );
-    expect(pitching?.excerpt).toContain("Outcome evidence");
     expect(pitching?.excerpt).toContain("Choosing what not to automate");
   });
 

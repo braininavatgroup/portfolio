@@ -156,7 +156,7 @@ test("the built Worker preserves local development without an asset binding", as
   );
 
   assert.equal(response.status, 200);
-  assert.match(await response.text(), />Project index<\/h1>/i);
+  assert.match(await response.text(), />Index<\/h1>/i);
 });
 
 test("the built Worker gates static assets before touching the asset binding", async () => {

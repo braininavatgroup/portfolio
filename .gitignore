@@ -41,3 +41,4 @@ yarn-error.log*
 /tsconfig.tsbuildinfo
 /outputs/
 /work/
+graphify-out/

@@ -21,7 +21,6 @@ const evidence = {
   excerpt:
     "Research, curator selection, matching, and outreach arranged around a human approval step.",
   href: "/index/pitching",
-  evidenceStatus: "needed" as const,
   projectTitle: "Pitching system",
 };
 
@@ -545,7 +544,6 @@ describe("portfolio chat", () => {
     expect(
       screen.getByRole("link", { name: "[E1] Pitching system" }).getAttribute("href"),
     ).toBe("/index/pitching");
-    expect(screen.getByText("Evidence needed")).toBeTruthy();
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 

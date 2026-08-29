@@ -42,23 +42,23 @@ const replies: Record<Exclude<PoseState, "idle">, PoseReply> = {
   },
   systems: {
     text: "The real-estate deal tracker shows an ambiguous process translated into a schema inside familiar tools.",
-    href: "/index/real-estate-deal-tracker",
-    linkLabel: "Open the deal-tracker chain",
+    href: "/index/real-estate",
+    linkLabel: "Open the deal tracker",
   },
   building: {
-    text: "The three-maturity bundle separates what shipped, what was specified, and what remains a sketch.",
-    href: "/index/three-maturity-bundle",
-    linkLabel: "Open the development bundle",
+    text: "Writ, Yoohoo, and Good Morning separate what shipped, what was specified, and what remains a sketch.",
+    href: "/index/writ",
+    linkLabel: "Open the products",
   },
   thinking: {
-    text: "The spec-discipline chain shows where product judgment becomes a contract another agent can execute and review.",
-    href: "/index/spec-discipline",
-    linkLabel: "Open the spec record",
+    text: "The personal operating system shows where product judgment becomes a contract another agent can execute and review.",
+    href: "/index/personal-os",
+    linkLabel: "Open the personal operating system",
   },
   listening: {
-    text: "The work directory is the fastest overview of the music, consulting, and development projects.",
+    text: "The index is the fastest overview of the threads and everything on the map.",
     href: "/index",
-    linkLabel: "Browse all work",
+    linkLabel: "Browse the index",
   },
 };
 

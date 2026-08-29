@@ -79,9 +79,6 @@ export default function ProjectIndex() {
                         <small>{node.summary}</small>
                       </span>
                       <span className="artifact-index-meta">
-                        {node.evidenceStatus ? (
-                          <em>{`Evidence ${node.evidenceStatus}`}</em>
-                        ) : null}
                         <span aria-hidden="true">↗</span>
                       </span>
                     </Link>

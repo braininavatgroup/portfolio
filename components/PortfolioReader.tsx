@@ -163,18 +163,6 @@ function WorldRecord({
         ))}
       </section>
       {node.id === "bradley" ? <ContactSection /> : null}
-      {node.evidence?.length ? (
-        <section className="reader-record-section reader-evidence">
-          <h2>Evidence</h2>
-          {node.evidence.map(({ label, status, note }) => (
-            <p key={label}>
-              <strong>{label}</strong>
-              <em>{`Evidence ${status}`}</em>
-              <span>{note}</span>
-            </p>
-          ))}
-        </section>
-      ) : null}
       {node.id === "bradley" || containingThreads.length > 0 ? (
         <section className="reader-record-section">
           <h2>Threads</h2>

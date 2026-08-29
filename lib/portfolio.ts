@@ -3,9 +3,13 @@
 // flat index, and the chat grounding are built from lib/portfolio-world.ts.
 // Text here only surfaces as labels inside the body-phase 3D composition.
 
-import type { EvidenceItem, EvidenceStatus } from "./portfolio-world";
+export type EvidenceStatus = "available" | "partial" | "needed";
 
-export type { EvidenceItem, EvidenceStatus } from "./portfolio-world";
+export type EvidenceItem = {
+  label: string;
+  status: EvidenceStatus;
+  note: string;
+};
 
 export type DomainId = "music" | "consulting" | "development";
 export type ChainLayer =

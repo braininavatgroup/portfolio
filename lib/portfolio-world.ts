@@ -1,18 +1,11 @@
 // Authored site content lives here (and in lib/portfolio-private-grounding.ts
-// for chat-only facts). Two content types exist:
-//   - Node: a mini-study — the complete piece for one thing, readable in the
-//     reader panel and on its canonical /index/<id> page.
-//   - Thread: a narrated path through nodes — the only long-form type.
+// for chat-only facts). A "node" is a dot on the map; opening one reads one of
+// two content types:
+//   - Record: the complete short piece for one thing, readable in the reader
+//     panel and on its canonical /index/<id> page.
+//   - Thread: a narrated path through the map — the only long-form type.
 // Everything under lib/portfolio.ts and lib/spatial-graph.ts is presentation
 // scaffolding for the body-phase scene, not authored content.
-
-export type EvidenceStatus = "available" | "partial" | "needed";
-
-export type EvidenceItem = {
-  label: string;
-  status: EvidenceStatus;
-  note: string;
-};
 
 export type PortfolioWorldFamily =
   | "identity"
@@ -43,8 +36,6 @@ export type PortfolioWorldNode = {
   summary: string;
   principle?: string;
   body: readonly string[];
-  evidenceStatus?: EvidenceStatus;
-  evidence?: readonly EvidenceItem[];
   projectSlug?: string;
   threadId?: string;
 };
@@ -147,12 +138,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
       "Treat kickoff as one stateful handoff instead of a pile of administrative steps.",
       "The quality of everything downstream depends on capturing the right information and sequencing commitments once.",
     ],
-    evidenceStatus: "partial",
-    evidence: [
-      { label: "Requirements and field map", status: "partial", note: "Requirements and field mapping are partially documented." },
-      { label: "Workflow capture", status: "needed", note: "Form and workflow screenshots are not yet published." },
-      { label: "Independent operation", status: "needed", note: "A handoff record or run log is not yet published." },
-    ],
     projectSlug: "kickoff-intake",
   },
   {
@@ -168,11 +153,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     body: [
       "Model fit, expected value, and credit cost without automating the final taste decision.",
       "A useful system should increase the quality of attention without pretending uncertainty has disappeared.",
-    ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Selection model", status: "needed", note: "The taxonomy, weighting rules, and a sample decision are not yet published." },
-      { label: "Outcome evidence", status: "needed", note: "Measured approval and budget results are not yet published." },
     ],
     projectSlug: "pitching",
   },
@@ -190,11 +170,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
       "Define the reporting judgment clearly enough that another operator can run it.",
       "Delegation is the strongest test that the system contains the reasoning rather than hiding it in its author.",
     ],
-    evidenceStatus: "partial",
-    evidence: [
-      { label: "Report examples", status: "partial", note: "Representative report examples are being prepared." },
-      { label: "Handoff proof", status: "needed", note: "Documentation and an independent run record are not yet published." },
-    ],
     projectSlug: "reporting",
   },
   {
@@ -211,11 +186,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
       "Model the process before adding software or asking the team to change tools.",
       "The leverage came from making states and ownership explicit, not from expanding the technology stack.",
     ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Before", status: "needed", note: "The baseline workflow is not yet published." },
-      { label: "After", status: "needed", note: "The implemented tracker and changed result are not yet published." },
-    ],
     projectSlug: "real-estate-deal-tracker",
   },
   {
@@ -231,11 +201,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     body: [
       "Respect the habits around the work while making its states, owners, and exceptions explicit.",
       "Adoption depends on fitting the work as it happens, not demonstrating a technically cleaner isolated product.",
-    ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Before", status: "needed", note: "The baseline advancing workflow is not yet published." },
-      { label: "After", status: "needed", note: "The tool and evidence of changed operation are not yet published." },
     ],
     projectSlug: "touring-advancing-tool",
   },
@@ -254,12 +219,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
       "Documentation earns its place when the system reads it, updates it, and makes the next run better.",
       "Spec discipline is part of this system: product intent, constraints, and proof go into a durable specification before a build is delegated, and the most useful agent record shows the input, output, review, and correction rather than only a finished artifact.",
     ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "System map", status: "needed", note: "The system map and shared workflow record are not yet published." },
-      { label: "Maintenance record", status: "needed", note: "An agent-authored change with review evidence is not yet published." },
-      { label: "Spec-to-agent record", status: "needed", note: "A real spec, agent output, revisions, and final artifact are not yet published together." },
-    ],
     projectSlug: "personal-tooling",
   },
   {
@@ -276,10 +235,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
       "Preserve the shape of the thought instead of forcing it into a rigid interface.",
       "The product's value depends on how it changes the act of working through an idea.",
     ],
-    evidenceStatus: "partial",
-    evidence: [
-      { label: "Dubs evidence", status: "needed", note: "The build, spec, interface, and representative output are not yet published." },
-    ],
     projectSlug: "dubs",
   },
   {
@@ -294,10 +249,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     principle: "A good idea becomes legible before it becomes complete.",
     body: [
       "Shipped.",
-    ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Writ release or build", status: "needed", note: "Runnable or release evidence is not yet published." },
     ],
     projectSlug: "three-maturity-bundle",
   },
@@ -314,10 +265,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     body: [
       "Specified.",
     ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Yoohoo spec", status: "needed", note: "The specification and interface work are not yet published." },
-    ],
     projectSlug: "three-maturity-bundle",
   },
   {
@@ -332,10 +279,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     principle: "A good idea becomes legible before it becomes complete.",
     body: [
       "Exploratory.",
-    ],
-    evidenceStatus: "needed",
-    evidence: [
-      { label: "Good Morning sketch", status: "needed", note: "The sketch is not yet published. This project has not shipped." },
     ],
     projectSlug: "three-maturity-bundle",
   },

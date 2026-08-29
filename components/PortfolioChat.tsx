@@ -522,7 +522,6 @@ export function PortfolioChat({
                 {citedEvidence.map(({ item, label }) => (
                   <a aria-label={`[E${label}] ${item.title}`} href={item.href} key={item.id}>
                     E{label} · {item.title}
-                    <span className="sr-only">Evidence {item.evidenceStatus}</span>
                     <span className="sr-only">{item.excerpt}</span>
                   </a>
                 ))}

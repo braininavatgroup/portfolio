@@ -48,7 +48,7 @@ describe("PortfolioReader", () => {
     expect(screen.getByText(thread.body)).toBeTruthy();
   });
 
-  it("renders the complete mini-study for a record", () => {
+  it("renders the complete record", () => {
     render(<PortfolioReader {...baseProps} selectedId="pitching" />);
 
     const node = portfolioWorldNodeById.get("pitching")!;
@@ -56,7 +56,6 @@ describe("PortfolioReader", () => {
     for (const paragraph of node.body) {
       expect(screen.getByText(paragraph)).toBeTruthy();
     }
-    expect(screen.getAllByText("Evidence needed").length).toBeGreaterThan(0);
     expect(screen.queryByText("Read the current case study")).toBeNull();
   });
 

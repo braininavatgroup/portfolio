@@ -90,7 +90,7 @@ export function adaptArtifactRecords(
         summary: record.summary,
         detail: artifact.detail,
         facets: { sourceLayer: [artifact.layer] },
-        links: [{ label: "View case study", href: `/index/${record.slug}` }],
+        links: [{ label: "View record", href: `/index/${record.slug}` }],
       },
       {
         id: outputIds[1],

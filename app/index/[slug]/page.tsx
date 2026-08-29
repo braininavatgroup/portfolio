@@ -81,20 +81,6 @@ export default async function NodePage({ params }: NodePageProps) {
             </ul>
           </section>
         ) : null}
-        {node.evidence?.length ? (
-          <section className="node-evidence">
-            <h2>Evidence</h2>
-            <ul>
-              {node.evidence.map(({ label, status, note }) => (
-                <li key={label}>
-                  <strong>{label}</strong>
-                  <em>{`Evidence ${status}`}</em>
-                  <span>{note}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
         {containingThreads.length > 0 ? (
           <section className="node-threads">
             <h2>Threads</h2>

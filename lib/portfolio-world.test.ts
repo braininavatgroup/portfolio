@@ -117,17 +117,12 @@ describe("accepted portfolio world", () => {
 });
 
 describe("authored content contract", () => {
-  it("gives every node a complete mini-study record", () => {
+  it("gives every node a complete record", () => {
     for (const node of portfolioWorldNodes) {
       expect(node.label).not.toBe("");
       expect(node.summary).not.toBe("");
       expect(node.body.length).toBeGreaterThan(0);
       expect(node.body.every((paragraph) => paragraph.length > 0)).toBe(true);
-      for (const item of node.evidence ?? []) {
-        expect(item.label).not.toBe("");
-        expect(item.note).not.toBe("");
-        expect(["available", "partial", "needed"]).toContain(item.status);
-      }
     }
   });
 

@@ -56,7 +56,6 @@ describe("portfolio chat route handler", () => {
       id: "node:pitching",
       title: "Campaign pitching",
       href: "/index/pitching",
-      evidenceStatus: "needed",
     }));
     expect(events.slice(1)).toEqual([
       {

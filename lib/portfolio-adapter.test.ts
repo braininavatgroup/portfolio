@@ -64,7 +64,7 @@ describe("artifact record adapter", () => {
       evidenceStatus: ["partial"],
     });
     expect(data.entities.find(({ id }) => id === "example:artifact")?.links).toEqual([
-      { label: "View case study", href: "/index/example" },
+      { label: "View record", href: "/index/example" },
     ]);
   });
 

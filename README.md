@@ -44,14 +44,14 @@ both preserve the current map, reader, chat, and history state.
 
 ## Routes
 
-- `/` contains the pointer-responsive figure, transition into the graph, graph controls, node mini-studies, and portfolio chat.
+- `/` contains the pointer-responsive figure, transition into the graph, graph controls, node records, and portfolio chat.
 - `/index` is the complete HTML index of threads and nodes and works without WebGL.
-- `/index/[slug]` is a node's canonical mini-study page (same content as the reader panel).
+- `/index/[slug]` is a node's canonical record page (same content as the reader panel).
 - Legacy `/work` routes and retired case-study slugs redirect to their canonical `/index` equivalents.
 
 ## Content model
 
-Two authored content types exist. A **node** is a mini-study: the complete piece for one thing, readable in the reader panel and on its canonical page. A **thread** is a narrated path through nodes: the only long-form type. Authored content lives in `lib/portfolio-world.ts`; chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. `docs/content/writing-session-brief.md` is the brief for writing the real content.
+A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the complete short piece for one thing, readable in the reader panel and on its canonical page) or a **thread** (a narrated path through the map; the only long-form type). Authored content lives in `lib/portfolio-world.ts`; chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. `docs/content/writing-session-brief.md` is the brief for writing the real content.
 
 ## Portfolio model
 
@@ -63,7 +63,7 @@ Two authored content types exist. A **node** is a mini-study: the complete piece
 
 ## Evidence policy
 
-The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof. Missing inputs are labeled `Evidence needed` and occupy replaceable slots. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
+The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof; a piece that leans on unpublished material says so in its prose or leaves it out. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
 
 Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, Yoohoo and Good Morning interfaces, the personal-tooling map, and one complete spec-to-agent record.
 

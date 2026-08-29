@@ -35,7 +35,7 @@ test("the flat index lists threads and every node with its canonical page", asyn
   assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
   assert.doesNotMatch(html, /class=["'][^"']*domain-heading-meta/i);
   assert.doesNotMatch(html, /class=["'][^"']*artifact-index-number/i);
-  assert.doesNotMatch(html, /Evidence undefined/i);
+  assert.doesNotMatch(html, /Evidence (available|partial|needed|undefined)/i);
   assert.doesNotMatch(html, /Career timeline/i);
   assert.doesNotMatch(html, /For AI product teams/i);
   assert.doesNotMatch(html, /case stud/i);
@@ -102,7 +102,7 @@ test("the flat index lists threads and every node with its canonical page", asyn
 
   const pitchingResponse = await render("/index/pitching");
   const pitchingHtml = await pitchingResponse.text();
-  assert.match(pitchingHtml, /Evidence (available|partial|needed)/i);
+  assert.doesNotMatch(pitchingHtml, /Evidence (available|partial|needed)/i);
   assert.match(pitchingHtml, /Taste is encodable\. The approval step stays human\./i);
 });
 

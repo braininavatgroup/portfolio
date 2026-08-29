@@ -3,7 +3,6 @@ import {
   portfolioThreads,
   portfolioThroughline,
   portfolioWorldNodes,
-  type EvidenceStatus,
   type PortfolioWorldNode,
 } from "./portfolio-world";
 import {
@@ -17,7 +16,6 @@ export type PortfolioGroundingEvidence = {
   title: string;
   excerpt: string;
   href: string;
-  evidenceStatus: EvidenceStatus;
   projectTitle: string;
 };
 
@@ -41,9 +39,6 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     `Summary: ${node.summary}`,
     ...(node.principle ? [`Principle: ${node.principle}`] : []),
     ...node.body,
-    ...(node.evidence?.map(
-      ({ label, status, note }) => `Evidence ${status}; ${label}: ${note}`,
-    ) ?? []),
     ...(threads.length
       ? [`Threads: ${threads.map(({ title }) => title).join("; ")}`]
       : []),
@@ -53,7 +48,6 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     title: node.label,
     excerpt: lines.join("\n"),
     href: `/index/${node.id}`,
-    evidenceStatus: node.evidenceStatus ?? "available",
     projectTitle: node.label,
   };
 }
@@ -77,7 +71,6 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
       title: "Bradley Berkman",
       excerpt: portfolioExcerpt,
       href: "/",
-      evidenceStatus: "available",
       projectTitle: "Portfolio",
     },
     ...contentNodes.map(nodeEvidence),
@@ -91,7 +84,6 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
         `Members: ${thread.members.join(", ")}`,
       ].join("\n"),
       href: `/?view=graph#thread/${thread.id}`,
-      evidenceStatus: "available" as const,
       projectTitle: thread.title,
     })),
   ];

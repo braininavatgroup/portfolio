@@ -11,7 +11,6 @@ const evidence: PortfolioGroundingEvidence[] = [
     excerpt:
       "Research, curator selection, matching, and outreach arranged around a human approval step.",
     href: "/index/pitching",
-    evidenceStatus: "needed",
     projectTitle: "Pitching system",
   },
 ];
@@ -21,7 +20,6 @@ const secondEvidence: PortfolioGroundingEvidence = {
   title: "Campaign reporting",
   excerpt: "Reporting turns campaign activity into a reviewable record.",
   href: "/index/reporting",
-  evidenceStatus: "needed",
   projectTitle: "Campaign reporting",
 };
 

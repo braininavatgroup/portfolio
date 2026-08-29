@@ -1628,7 +1628,6 @@ input:focus-visible {
 }
 
 .node-contact h2,
-.node-evidence h2,
 .node-threads h2 {
   font-size: clamp(1rem, 2vw, 1.2rem);
   letter-spacing: -0.035em;
@@ -1636,7 +1635,6 @@ input:focus-visible {
 }
 
 .node-contact,
-.node-evidence,
 .node-threads {
   border-top: 1px solid #28433c;
   margin-top: 1.25rem;
@@ -1644,7 +1642,6 @@ input:focus-visible {
 }
 
 .node-contact ul,
-.node-evidence ul,
 .node-threads ul {
   list-style: none;
   margin: 0;
@@ -1659,27 +1656,6 @@ input:focus-visible {
 
 .node-contact li:first-child,
 .node-threads li:first-child { border-top: 0; }
-
-.node-evidence li {
-  display: grid;
-  gap: 0.15rem;
-  padding: 0.55rem 0;
-}
-
-.node-evidence em {
-  color: #91a49d;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.6rem;
-  font-style: normal;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.node-evidence span {
-  color: #91a49d;
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
 
 .node-footer {
   border-top: 1px solid #28433c;
@@ -2450,34 +2426,6 @@ input:focus-visible {
 
 .reader-record-section > p + p {
   margin-top: 10px;
-}
-
-.reader-evidence p {
-  display: grid;
-  gap: 2px;
-}
-
-.reader-evidence p + p {
-  margin-top: 12px;
-}
-
-.reader-evidence strong {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.reader-evidence em {
-  color: var(--reader-muted);
-  font-size: 10px;
-  font-style: normal;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.reader-evidence span {
-  color: var(--reader-body);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .reader-contact a {

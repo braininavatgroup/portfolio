@@ -1,7 +1,9 @@
 # Portfolio design-system checkpoint
 
 Status: accepted design direction, 26 August 2026. This document records the
-client-facing composition in `public/design-system-current.html`; it is not a
+client-facing composition. Its static HTML snapshot
+(`public/design-system-current.html`) was retired once it drifted from the
+authored content; it remains recoverable from git history. This is not a
 production-integration specification.
 
 ## Composition
