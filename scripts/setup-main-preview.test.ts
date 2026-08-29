@@ -23,6 +23,9 @@ async function runWizard(
     postMergeMain?: boolean;
     dirtyPostMerge?: boolean;
     failGateWrite?: boolean;
+    failGateReadbackAfterArm?: boolean;
+    failWorkflowDispatch?: boolean;
+    failDisarmReadback?: boolean;
   },
 ) {
   const directory = await mkdtemp(join(tmpdir(), "main-preview-wizard-"));
@@ -51,6 +54,13 @@ case "\${1:-} \${2:-}" in
     ;;
   "variable get")
     if [[ -f "$WIZARD_GATE_STATE_FILE" ]]; then
+      gate_state=$(cat "$WIZARD_GATE_STATE_FILE")
+      if [[ "$gate_state" == "true" && "\${WIZARD_FAIL_GATE_READBACK_AFTER_ARM:-}" == "1" ]]; then
+        exit 1
+      fi
+      if [[ "$gate_state" == "false" && -f "$WIZARD_GATE_ARMED_MARKER" && "\${WIZARD_FAIL_DISARM_READBACK:-}" == "1" ]]; then
+        exit 1
+      fi
       cat "$WIZARD_GATE_STATE_FILE"
     else
       exit 1
@@ -62,12 +72,25 @@ case "\${1:-} \${2:-}" in
       exit 1
     fi
     printf '%s' "$5" > "$WIZARD_GATE_STATE_FILE"
+    if [[ "$5" == "true" ]]; then
+      : > "$WIZARD_GATE_ARMED_MARKER"
+    fi
     ;;
   "run list")
     printf 'gh %s\\n' "$*" >> "$WIZARD_CALL_LOG"
     printf '123456789\\n'
     ;;
-  "run rerun") printf 'gh run rerun %s\\n' "$3" >> "$WIZARD_CALL_LOG" ;;
+  "run download")
+    printf 'gh %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    mkdir -p "$9"
+    printf 'tested main artifact\\n' > "$9/index.html"
+    ;;
+  "workflow run")
+    printf 'gh %s\\n' "$*" >> "$WIZARD_CALL_LOG"
+    if [[ "\${WIZARD_FAIL_WORKFLOW_DISPATCH:-}" == "1" ]]; then
+      exit 1
+    fi
+    ;;
   *) printf 'unexpected gh call: %s\\n' "$*" >&2; exit 9 ;;
 esac
 `,
@@ -158,7 +181,13 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
           WIZARD_POST_MERGE_MAIN: options?.postMergeMain ? "1" : "0",
           WIZARD_DIRTY_POST_MERGE: options?.dirtyPostMerge ? "1" : "0",
           WIZARD_FAIL_GATE_WRITE: options?.failGateWrite ? "1" : "0",
+          WIZARD_FAIL_GATE_READBACK_AFTER_ARM: options?.failGateReadbackAfterArm
+            ? "1"
+            : "0",
+          WIZARD_FAIL_WORKFLOW_DISPATCH: options?.failWorkflowDispatch ? "1" : "0",
+          WIZARD_FAIL_DISARM_READBACK: options?.failDisarmReadback ? "1" : "0",
           WIZARD_GATE_STATE_FILE: join(directory, "gate-state"),
+          WIZARD_GATE_ARMED_MARKER: join(directory, "gate-armed"),
           CONDUCTOR_WORKSPACE_NAME: options?.conductorSession ? "vientiane" : "",
           CLAUDE_AGENT_SDK_VERSION: "",
         },
@@ -187,6 +216,9 @@ printf 'node validate-openai-key bytes=%s\\n' "\${#secret}" >> "$WIZARD_CALL_LOG
   return {
     ...result,
     calls: await readFile(logPath, "utf8"),
+    gateState: await readFile(join(directory, "gate-state"), "utf8").catch(
+      () => "missing",
+    ),
   };
 }
 
@@ -278,9 +310,11 @@ describe("main preview setup wizard", () => {
     );
   });
 
-  it("binds a merged main checkout to its successful push run before activating it", async () => {
+  it("downloads and displays the successful main artifact digest before dispatching its bound first deployment", async () => {
     const sha = "0123456789abcdef0123456789abcdef01234567";
-    const { calls } = await runWizard(
+    const digest =
+      "1378156dd3da8d1386d8301b469d552c1177fd8219d2c316e688ec9a78ef6c63";
+    const { calls, stdout } = await runWizard(
       [
         "",
         "draft-password-123456789",
@@ -304,13 +338,35 @@ describe("main preview setup wizard", () => {
     expect(calls).toContain(
       `gh run list --workflow ci.yml --branch main --commit ${sha} --event push --status success --json databaseId --jq .[0].databaseId`,
     );
+    expect(calls).toMatch(
+      new RegExp(
+        "gh run download 123456789 --repo braininavatgroup/portfolio --name portfolio-main-preview-" +
+          sha +
+          " --dir .+/dist",
+      ),
+    );
+    expect(stdout).toContain(sha);
+    expect(stdout).toContain(digest);
     expect(calls).toContain(
       "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
     );
-    expect(calls).toContain("gh run rerun 123456789");
+    expect(calls).toContain(
+      "gh workflow run deploy-main-preview.yml --repo braininavatgroup/portfolio --ref main --field source_run_id=123456789 --field source_sha=" +
+        sha +
+        " --field expected_dist_digest=" +
+        digest,
+    );
+    expect(calls).not.toContain("gh run rerun");
+    expect(
+      calls.indexOf("gh run download 123456789"),
+    ).toBeLessThan(
+      calls.indexOf(
+        "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      ),
+    );
     expect(
       calls.indexOf("gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true"),
-    ).toBeLessThan(calls.indexOf("gh run rerun 123456789"));
+    ).toBeLessThan(calls.indexOf("gh workflow run deploy-main-preview.yml"));
   });
 
   it("rejects a dirty merged-main checkout before handling credentials or secrets", async () => {
@@ -328,7 +384,7 @@ describe("main preview setup wizard", () => {
     expect(calls).not.toContain("gh secret set");
   });
 
-  it("fails closed without rerunning CI when deployment-gate arming fails", async () => {
+  it("fails closed without dispatching when deployment-gate arming fails", async () => {
     const { calls, stderr, exitCode } = await runWizard(
       [
         "",
@@ -349,8 +405,100 @@ describe("main preview setup wizard", () => {
     expect(calls).toContain(
       "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
     );
-    expect(calls).not.toContain("gh run rerun 123456789");
+    expect(calls).not.toContain("gh workflow run deploy-main-preview.yml");
     expect(stderr).toContain("could not be armed");
+  });
+
+  it("compensates to verified false when the successful true write cannot be read back", async () => {
+    const { calls, gateState, stdout, stderr, exitCode } = await runWizard(
+      [
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "ACTIVATE",
+      ].join("\n"),
+      {
+        postMergeMain: true,
+        failGateReadbackAfterArm: true,
+        allowFailure: true,
+      },
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(calls).toContain(
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+    );
+    expect(calls).toContain(
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+    );
+    expect(gateState).toBe("false");
+    expect(calls).not.toContain("gh workflow run deploy-main-preview.yml");
+    expect(stdout + "\n" + stderr).not.toContain("Deployment is armed");
+  });
+
+  it("compensates to verified false when the manual first-deployment dispatch fails", async () => {
+    const { calls, gateState, stdout, stderr, exitCode } = await runWizard(
+      [
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "ACTIVATE",
+      ].join("\n"),
+      {
+        postMergeMain: true,
+        failWorkflowDispatch: true,
+        allowFailure: true,
+      },
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(calls).toContain("gh workflow run deploy-main-preview.yml");
+    expect(calls).toContain(
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+    );
+    expect(gateState).toBe("false");
+    expect(stdout + "\n" + stderr).not.toContain("Deployment is armed");
+    expect(stderr).toContain("dispatch failed");
+  });
+
+  it("prints a high-signal fail-closed warning when compensating disarm cannot be verified", async () => {
+    const { stderr, exitCode } = await runWizard(
+      [
+        "",
+        "draft-password-123456789",
+        "draft-password-123456789",
+        "sk-production-secret-value",
+        "y",
+        "0123456789abcdef0123456789abcdef",
+        "cloudflare-token-secret-value",
+        "y",
+        "",
+        "ACTIVATE",
+      ].join("\n"),
+      {
+        postMergeMain: true,
+        failGateReadbackAfterArm: true,
+        failDisarmReadback: true,
+        allowFailure: true,
+      },
+    );
+
+    expect(exitCode).not.toBe(0);
+    expect(stderr).toContain("FAIL-CLOSED WARNING");
+    expect(stderr).toContain("PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED");
+    expect(stderr).toContain("could not verify false");
   });
 
   it("does not broaden the App when a personal credential rejects the push", async () => {

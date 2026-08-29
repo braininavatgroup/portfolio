@@ -123,6 +123,9 @@ describe("main preview password boundary", () => {
     );
     expect(body).toContain('type="password"');
     expect(body).toContain('name="password"');
+    expect(body).toContain(
+      '<meta name="robots" content="noindex,nofollow,noarchive">',
+    );
     expect(body).toContain("Bradley Berkman");
     expect(body).not.toMatch(/<(?:script|link)\b/i);
   });

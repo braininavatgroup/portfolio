@@ -33,7 +33,6 @@ jobs:
           path: dist
           if-no-files-found: error
           retention-days: 7
-          overwrite: true
 
   deploy_main_preview:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED == 'true'
