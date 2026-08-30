@@ -59,51 +59,31 @@ test("the flat index lists threads and every node with its canonical page", asyn
     "stacked editorial index renders three threads and thirteen nodes",
   );
 
-  const nodeLinks = new Map();
-  for (const [, attributes, content] of html.matchAll(
-    /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
-  )) {
-    const route = attributes.match(/\bhref=["'](\/index\/[^"'#?]+)["']/i)?.[1];
-    if (!route) continue;
-
-    const title = content.match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i)?.[1];
-    assert.ok(title, `${route} index link contains its node label`);
-    nodeLinks.set(route, title.trim());
+  // The standalone per-record pages were retired (2026-08-30): the flat index
+  // links straight into the map reader, and old /index/<id> URLs redirect there.
+  const nodeIds = new Set();
+  for (const [, attributes] of html.matchAll(/<a\b([^>]*)>/gi)) {
+    const nodeId = attributes.match(
+      /\bhref=["']\/\?view=graph#(?!thread\/)([\w-]+)["']/i,
+    )?.[1];
+    if (nodeId) nodeIds.add(nodeId);
   }
-  assert.equal(nodeLinks.size, 13, "every node links to a canonical page");
+  assert.equal(nodeIds.size, 13, "every node links into the map reader");
 
-  for (const [route, expectedTitle] of nodeLinks) {
-    const response = await render(route);
-    assert.equal(response.status, 200);
-    const nodeHtml = await response.text();
-    assert.match(nodeHtml, /<main[^>]*data-theme=["']light["']/i);
-    assert.match(nodeHtml, /class=["'][^"']*portfolio-header[^"']*["']/i);
-    const nodeTitle = nodeHtml.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
-    assert.ok(nodeTitle, `${route} renders a node title`);
-    assert.equal(
-      nodeTitle.trim(),
-      expectedTitle,
-      `${route} renders its linked node`,
+  for (const nodeId of nodeIds) {
+    const response = await render(`/index/${nodeId}`);
+    assert.ok(
+      [301, 302, 307, 308].includes(response.status),
+      `/index/${nodeId} redirects into the map`,
     );
-    for (const retiredLabel of ["Instinct", "Approach", "Output"]) {
-      assert.doesNotMatch(nodeHtml, new RegExp(`>${retiredLabel}<`));
-    }
-    assert.doesNotMatch(nodeHtml, /case stud/i);
-    assert.match(nodeHtml, /View on the map/i);
+    const location = new URL(
+      response.headers.get("location"),
+      "http://localhost",
+    );
+    assert.equal(location.pathname, "/");
+    assert.equal(location.search, "?view=graph");
+    assert.equal(location.hash, `#${nodeId}`);
   }
-
-  const bradleyResponse = await render("/index/bradley");
-  const bradleyHtml = await bradleyResponse.text();
-  assert.match(bradleyHtml, /mailto:bradley@braininavat\.dance/i);
-  assert.match(bradleyHtml, /bradley-berkman-cv\.pdf/i);
-  for (const social of ["LinkedIn", "GitHub", "Instagram"]) {
-    assert.match(bradleyHtml, new RegExp(`>${social}<`));
-  }
-
-  const pitchingResponse = await render("/index/pitching");
-  const pitchingHtml = await pitchingResponse.text();
-  assert.doesNotMatch(pitchingHtml, /Evidence (available|partial|needed)/i);
-  assert.match(pitchingHtml, /Taste is encodable\. The approval step stays human\./i);
 });
 
 test("legacy work and case-study routes redirect to the canonical pages", async () => {
@@ -131,11 +111,13 @@ test("legacy work and case-study routes redirect to the canonical pages", async 
       [301, 302, 307, 308].includes(response.status),
       `/index/${legacySlug} redirects`,
     );
-    assert.equal(
-      new URL(response.headers.get("location"), "http://localhost").pathname,
-      `/index/${target}`,
-      `/index/${legacySlug} → /index/${target}`,
+    const location = new URL(
+      response.headers.get("location"),
+      "http://localhost",
     );
+    assert.equal(location.pathname, "/", `/index/${legacySlug} → map`);
+    assert.equal(location.search, "?view=graph");
+    assert.equal(location.hash, `#${target}`, `/index/${legacySlug} → #${target}`);
   }
 });
 
