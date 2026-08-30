@@ -2415,7 +2415,6 @@ body:has(.portfolio-composition) {
   letter-spacing: -0.015em;
   line-height: 1.43;
   margin: 0 0 28px;
-  max-width: 31ch;
 }
 
 .reader-index-content > .reader-summary {
@@ -2958,7 +2957,6 @@ body:has(.portfolio-composition) {
 
   .reader-summary {
     font-size: 16px;
-    max-width: none;
   }
 }
 

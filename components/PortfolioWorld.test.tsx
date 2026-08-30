@@ -107,7 +107,6 @@ describe("PortfolioWorld", () => {
       "thread-finding-myself-in-software": [165.5, 421.5],
       dubs: [241, 331.5],
       writ: [263.5, 431.5],
-      alarm: [464.5, 381.5],
       "personal-os": [345, 469.5],
       yoohoo: [474, 513.5],
       kickoff: [677, 341.5],

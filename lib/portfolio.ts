@@ -240,28 +240,27 @@ export const artifacts: ArtifactRecord[] = [
   },
   {
     slug: "three-maturity-bundle",
-    title: "Three stages of becoming real",
+    title: "Products at different stages",
     domain: "development",
     token: "maturity",
     summary:
-      "Writ shipped, Yoohoo was specified, and Good Morning was sketched as one comparison across maturity.",
+      "Writ is in daily personal use, and Yoohoo is specified, as two products at different stages.",
     principle: "A good idea becomes legible before it becomes complete.",
     decision:
-      "Show three honest maturity states together instead of presenting every concept as equally finished.",
+      "Show two honest maturity states together instead of presenting every concept as equally finished.",
     reason:
       "The contrast exposes what specification, implementation, and release each add to an idea.",
     chain: chain(
-      ["Name the maturity honestly", "Separate what shipped from what is specified and what remains exploratory."],
-      ["Yoohoo and Good Morning concepts", "Specify Yoohoo and sketch permissioned, parameterized alarm automation."],
-      ["Writ build and app concepts", "Connect each idea to the system appropriate for its current stage."],
-      ["Writ, Yoohoo, Good Morning", "One shipped menu-bar audio manager, one specified app, and one sketch."],
-      ["Evidence by maturity", "The Writ build and materials for all three stages are not yet published."],
+      ["Name the maturity honestly", "Separate what is in daily personal use from what is specified."],
+      ["Yoohoo product concept", "Specify notifications that hold state and resolve once."],
+      ["Writ build and Yoohoo concept", "Connect each idea to the system appropriate for its current stage."],
+      ["Writ and Yoohoo", "One signed and notarized menu-bar audio manager in daily personal use, and one specified app."],
+      ["Evidence by maturity", "The Writ build and Yoohoo materials are not yet published."],
     ),
     evidenceStatus: "needed",
     evidence: [
-      { label: "Writ release or build", status: "needed", note: "Runnable or release evidence is not yet published." },
+      { label: "Writ build", status: "needed", note: "Runnable build evidence is not yet published." },
       { label: "Yoohoo spec", status: "needed", note: "The specification and interface work are not yet published." },
-      { label: "Good Morning sketch", status: "needed", note: "The sketch is not yet published. This project has not shipped." },
     ],
   },
   {

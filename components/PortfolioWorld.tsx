@@ -146,7 +146,6 @@ export const portfolioOverviewLayout: Record<
   reporting: [70.78, 60.84, 902.14],
   "personal-os": [34.29, 60.66, 797.65],
   yoohoo: [52.43, 67.85, 881.72],
-  alarm: [51.08, 48.41, 963.15],
   infamous: [9.34, 71.43, 762.31],
   "music-practice": [25.41, 79.45, 822.3],
   "systems-consulting": [47.11, 81.46, 882.3],
@@ -166,7 +165,6 @@ const storyLayouts: Record<
       dubs: { x: -320, y: 120, z: 820 },
       writ: { x: -340, y: -90, z: 820 },
       yoohoo: { x: -120, y: -220, z: 820 },
-      alarm: { x: 120, y: -150, z: 820 },
     },
   },
   "choosing-what-not-to-automate": {
@@ -196,7 +194,6 @@ const storyLayouts: Record<
       dubs: { x: 210, y: -270, z: 850 },
       writ: { x: 390, y: -150, z: 850 },
       yoohoo: { x: 450, y: 40, z: 850 },
-      alarm: { x: 390, y: 210, z: 850 },
     },
   },
 };

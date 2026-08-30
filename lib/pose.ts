@@ -1,4 +1,10 @@
-import type { PoseState } from "../components/scene/BodyScene";
+export type PoseState =
+  | "idle"
+  | "listening"
+  | "music"
+  | "systems"
+  | "building"
+  | "thinking";
 
 export type PoseReply = {
   text: string;
@@ -46,7 +52,7 @@ const replies: Record<Exclude<PoseState, "idle">, PoseReply> = {
     linkLabel: "Open the deal tracker",
   },
   building: {
-    text: "Writ, Yoohoo, and Good Morning separate what shipped, what was specified, and what remains a sketch.",
+    text: "Writ and Yoohoo show two different stages: one signed and notarized for daily personal use, the other specified but unbuilt.",
     href: "/index/writ",
     linkLabel: "Open In Production",
   },

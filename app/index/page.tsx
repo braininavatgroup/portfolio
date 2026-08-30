@@ -77,7 +77,7 @@ export default function ProjectIndex() {
                     <li className="artifact-index-entry" key={node.id}>
                       <Link
                         className="artifact-main-link"
-                        href={`/index/${node.id}`}
+                        href={`/?view=graph#${node.id}`}
                       >
                         <span className="artifact-index-copy">
                           <strong>{node.label}</strong>

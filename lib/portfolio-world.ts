@@ -58,7 +58,7 @@ export type PortfolioWorldLink = {
 };
 
 export const portfolioThroughline =
-  "Give small operators larger-operator leverage, and make complexity legible enough to act on.";
+  "Make complexity legible enough to act on.";
 
 export const portfolioContact = {
   email: "bradley@braininavat.dance",
@@ -79,11 +79,11 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "identity",
     group: "about",
     position: { x: 50, y: 12 },
-    summary: "I build the systems my own businesses run on: a music-promotion agency, a consulting practice, and the software under both.",
+    summary: "I run Brain in a Vat Group: a music-promotions agency for electronic musicians and record labels, a systems-and-AI consulting practice, and a product studio where the software under both gets developed.",
     body: [
-      "I'm Bradley Berkman, a founder based in Brooklyn. I run Brain in a Vat, a music-promotion agency for electronic musicians and record labels, and a systems-and-AI consulting practice built on the way that agency operates. Before going independent, I launched and led the music-promotion division at INFAMOUS PR.",
-      "Debate and a Philosophy, Politics, and Law degree left me with one standard. An argument has to survive contact with another mind, and I still hold the work to it.",
-      "Away from the desk: raving, the philosophy of consciousness, Catan, and the ongoing search for the best burger in New York.",
+      "I'm Bradley Berkman, based in Brooklyn. Those three businesses are really one habit applied three ways: find the judgment buried inside an operation, write it down until it's legible, and build a system around everything else. Dance music is where I learned the habit, and it's still my favorite place to practice it.",
+      "The habit is older than the businesses. Years of competitive debate and a Philosophy, Politics, and Law degree left me with a standard that has never relaxed: the work has to survive contact with another mind. It's why everything on this site is written down. An operation I can't explain is an operation I don't understand yet.",
+      "Off the desk: at a rave, arguing about consciousness, trading sheep for brick over a Catan board, or working through New York one burger at a time.",
     ],
   },
   {
@@ -94,11 +94,11 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "warm",
     group: "operations",
     position: { x: 15, y: 77 },
-    summary: "A fourth department, built from nothing inside an established electronic-music PR agency and run like a startup within the company.",
+    summary: "Where the practice began: a music-promotions department built from scratch at one of electronic music's leading PR agencies.",
     body: [
-      "INFAMOUS had spent fifteen years becoming the PR agency dance music calls first. But its retainers were built for albums, tours, and long narratives, and dance music runs on singles and EPs. Work the agency couldn't serve came in every week and got turned away. In 2021 they brought me in, on a trial basis, to capture it.",
-      "I developed the service suite: DSP playlist promotion first, always the differentiator, then radio, DJ promotion, YouTube distribution, and social seeding. I iterated it against client feedback, and strategy and buildout were mine end to end. My first hire, my first automations, and my first real operations work all happened here.",
-      "INFAMOUS's name and connections made the department viable before I had a reputation of my own. By 2024 the co-sign had done its work. The roster, the relationships, and the systems were mine, and I left to run them myself.",
+      "By 2021, INFAMOUS PR had spent fifteen years at the top of electronic-music publicity. Its craft is the long campaign — albums, tours, narratives — while dance music's release cycle runs on singles and EPs. That gap is where they hired me: a fourth department, built for exactly that kind of release.",
+      "The department grew into a suite of services shaped release by release with client feedback — DSP playlist promotion first, always the differentiator, then radio, DJ promotion, YouTube distribution, and social seeding. It is also where I learned the lesson the rest of this site keeps applying: the shape of the work is itself something you can change.",
+      "INFAMOUS's name opened doors a new department needed. Three years later, the work continued as Brain in a Vat.",
     ],
   },
   {
@@ -109,11 +109,11 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "warm",
     group: "operations",
     position: { x: 31, y: 85 },
-    summary: "An independent music-promotion practice where campaign strategy, client work, and the systems around them developed together.",
+    summary: "The practice where everything on this site gets proven: 250+ campaigns run through systems built alongside the work.",
     body: [
-      "Brain in a Vat is what the INFAMOUS department became once the work was fully mine. Going independent removed the last friction. There was nobody to ask before trying new software and no inherited workflow to accommodate, so automation moved fast.",
-      "Two years in, that has added up to 253 campaigns across four service lines: DSP promotion, radio, social seeding, and press. The roster includes WhoMadeWho, Adriatique, SIDEPIECE, Warner Records, The Orchard Distribution, and Algorhythms Music Group.",
-      "Every campaign runs through the same three systems: kickoff, pitching, and reporting. Each one has its own page here.",
+      "Brain in a Vat is the practice I founded in 2024 to run this work independently. It is also the proving ground for everything else here: every system on this site either runs this practice or came out of it.",
+      "Two years in, that's over 250 campaigns across four service lines — DSP promotion, radio, social seeding, and press. The full roster and rates live at braininavat.dance.",
+      "Every campaign crosses the same three systems, each with its own page here: kickoff, which starts the work in about a minute; pitching, which decides who hears what; and reporting, which proves what happened.",
     ],
   },
   {
@@ -124,12 +124,12 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "warm",
     group: "operations",
     position: { x: 50, y: 87 },
-    summary: "A consulting practice focused on operational software, internal systems, and applied AI.",
+    summary: "The same method, offered to other teams: audit the operation, build inside the tools that exist, keep it running.",
     principle: "Foundation first.",
     body: [
-      "Clients hire me for three things: systems optimization, custom software, and applied AI. What they buy is simpler. Less manual work, fewer tools that don't talk to each other, and AI that runs reliably because it was built around the operation they already have.",
-      "In practice that has meant mapping a brokerage team's deal lifecycle into explicit states and owners, and rebuilding a tour manager's advancing workflow inside the tools they already used. An engagement starts with an audit that maps the operation and prices a prioritized plan. Then I build the working systems, and then I stay on retainer to monitor and tune them.",
-      "Dependable AI sits on a structured, machine-readable account of the business, which is why the audit always comes first. The proof is my own agency. It runs operations today that were impossible before that foundation existed.",
+      "Consulting is the practice's method offered to other teams: systems optimization, custom software, and applied AI. What clients buy is simpler — less manual work, fewer tools that don't talk to each other, and AI that runs reliably because it was built around the operation they already have.",
+      "Every engagement starts with an audit, because dependable systems sit on a legible account of the business. The audit maps the operation and produces a priced, prioritized plan; then I build the working systems, and a retainer keeps them monitored and tuned.",
+      "Two engagements are documented here as case records: a real-estate deal tracker and a tour advance system. The practice lives at braininavat.systems.",
     ],
   },
   {
@@ -143,9 +143,9 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     summary: "The intake sequence that turns a signed confirmation into records, an invoice, a campaign folder, and a drafted kickoff email in about a minute.",
     principle: "Design the loop rather than do the task.",
     body: [
-      "A signed confirmation is the moment a client is ready to pay, and the worst possible moment to disappear into administrative work. Kickoff compresses that work into one keyboard shortcut. It creates the client and deal records, the invoice, and the campaign folder, then drafts a kickoff email carrying a payment link and one asset-request form per campaign. Roughly thirty minutes across four apps became about one, and invoicing stopped being a chase.",
-      "The automation assembles; it never commits. Every step is a prefilled dialog I can cancel, and the email stays a draft until I send it. Assets we already hold get attached on the way out, so clients never re-enter what we already have.",
-      "The asset workflow replaced the old email threads, where files got lost and re-versioned across a dozen messages. Every asset lives on our side rather than as a link into the client's storage, because client-hosted files change and permissions vanish mid-campaign. Speed is only part of the payoff. The rest is service. Nothing gets lost, nothing goes stale, and the campaign starts while the client is still excited.",
+      "Every campaign starts at the same dangerous moment. A signed confirmation means a client is ready to pay, and it is the worst possible time to disappear into administrative work. Kickoff compresses that work into one keyboard shortcut: client and deal records, the invoice, the campaign folder, and a drafted kickoff email carrying a payment link and one asset-request form per campaign. Roughly thirty minutes across four apps became about one, and invoicing stopped being a chase.",
+      "The design argument is restraint. The automation assembles; it never commits. Every step is a prefilled dialog I can cancel, and the email stays a draft until I send it. Assets we already hold get attached on the way out, so clients never re-enter what we already have.",
+      "The same restraint runs the asset workflow, which replaced email threads where files got lost and re-versioned across a dozen messages. Every asset lives on our side rather than as a link into the client's storage, because client-hosted files change and permissions vanish mid-campaign. Speed is only half the payoff. The other half is service: nothing gets lost, nothing goes stale, and the campaign starts while the client is still excited.",
     ],
     projectSlug: "kickoff-intake",
   },
@@ -157,10 +157,10 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "bridge",
     group: "campaign",
     position: { x: 88, y: 53 },
-    summary: "Research, curator selection, matching, and outreach arranged around a human approval step.",
+    summary: "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
     principle: "Taste is encodable. The approval step stays human.",
     body: [
-      "The system is built on one idea: taste can be recorded, and recorded taste can drive targeting. It started as a spreadsheet where I logged every curator's adds, passes, and feedback, and it grew from there into real infrastructure.",
+      "Pitching is where the practice's judgment lives, and the system is built on one idea: taste can be recorded, and recorded taste can drive targeting. It started small and painful. A spreadsheet logged every curator's adds, passes, and feedback, and midnights went to copying hundreds of personalized pitch emails by hand until mail merge made real segments possible. From there it grew into real infrastructure.",
       "Two databases carry it now, one record per curator with their playlists rolling up underneath. A curator gets at most one pitch a week, no matter how many campaigns are live. Campaigns and playlists share a genre ontology. Each week the system matches them, dedupes against every prior pitch, and produces a draft pitch list with the reasoning already worked out. My review adds the one thing the ontology deliberately leaves out, whether a track reads commercial or underground. That single call sends two same-genre tracks to different playlists.",
       "Pitching people music they don't want is how they stop opening your emails, and staying valuable to curators is the whole business. Two backstops recover what the restraint gives up. Reporting runs feed missing genre tags back into the database whenever a playlist turns out to play something it wasn't mapped for, and every pitch links a playlist of all current campaigns, so a curator can always find the track I didn't send.",
     ],
@@ -174,13 +174,13 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "bridge",
     group: "campaign",
     position: { x: 76, y: 66 },
-    summary: "A reporting chain that finds wins, stages evidence, and turns it into client-facing reports.",
+    summary: "A daily pipeline that finds wins, verifies the evidence, and drafts every client report.",
     principle: "Judgment does not scale until it is specified.",
     body: [
-      "Reporting once ate close to three days of every week. The time went to collecting evidence of work already done and assembling it into spreadsheets, at the direct expense of the work itself.",
+      "Reporting is where the practice proves itself, and it nearly drowned the practice instead. It once ate close to three days of every week, all of it spent collecting evidence of work already done and assembling it into spreadsheets, at the direct expense of the work itself.",
       "I invented the process, refined it by hand for years, and automated fragments with macros. The turning point was delegation. Handing it to an assistant with no background in music forced me to write down judgment I had been carrying in my head, and teaching turned into managing, improving the system from outside the weeds. Full automation is the same discipline with a faster executor. It needs a precise spec, written for someone with no context.",
       "That judgment now lives in a versioned rules document the model reads on every run, with commitments like silence is not a pass, never invent, and never downgrade an outcome. Code re-checks every conclusion the model draws. The one decision with consequences beyond the report, whether a curator becomes auto-pitchable, sits outside the model entirely in a small deterministic gate.",
-      "Today the pipeline runs daily, dashboards refresh through the day, and client emails arrive as drafts for a personal pass. The work went from roughly twenty-four hours a week to about one, with fewer errors, not more.",
+      "Today the pipeline runs daily, dashboards refresh through the day, and client emails arrive as drafts for a personal pass. What was roughly sixteen hours of reporting per campaign, spread across eight report updates in the month after a release, now takes about an hour of my week in total, with fewer errors, not more.",
     ],
     projectSlug: "reporting",
   },
@@ -192,12 +192,12 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     register: "bridge",
     group: "client",
     position: { x: 68, y: 82 },
-    summary: "A brokerage team's deal process made explicit as six stages with named owners, wired into the spreadsheets they already worked in.",
+    summary: "A brokerage team's deal operation mapped end to end, with explicit stages and named owners, and an MVP dashboard sketched inside the Google tools they already use.",
     principle: "The bottleneck is ambiguity, not capability.",
     body: [
       "For one residential brokerage team, a single deal crossed six tools between pitch and close, and the only thing connecting them was the coordinator's attention. Agents tracked deals in notebooks and verbal updates, so the operational record ran a step behind reality. The rules existed and the data existed. A person was carrying information between them by hand.",
-      "I made the process explicit as a six-stage deal lifecycle. Every stage has a named condition for advancing, and every hop between tools has a named owner. Once the states were on paper, the machine's share of the work was obvious.",
-      "The build honored one constraint: no new tools. Teams keep the software they already pay for and like. So the delivery was a derived-data layer beneath the team's own spreadsheets, built entirely inside Google. It tolerates messy hand-entered data and says exactly which rows it skipped. An operation that lived in one person's head became something the whole team can see.",
+      "The first deliverable was an operations map. The deal lifecycle became explicit stages, each with a named condition for advancing and a named owner for every hop between tools. The map also surfaced the engagement's hard constraint. The team's mandated brokerage platform has no API, so anything automated has to work around it, inside Google, where the team already lives.",
+      "The build honored one more constraint: no new tools. Teams keep the software they already pay for and like. From the map I sketched an MVP of the clearest low-hanging fruit, a quarterly dashboard derived from the team's own spreadsheets, built entirely inside Google. Once the states were on paper, the machine's share of the work was obvious.",
     ],
     projectSlug: "real-estate-deal-tracker",
   },
@@ -229,7 +229,7 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     summary: "The desk, the capture discipline, and the delegation specs I run my own work through.",
     principle: "Capture now, process later.",
     body: [
-      "The desk is set up like an instrument. Every action I take more than a few times a day has a physical trigger under a finger, on a Stream Deck key, a remapped keypad, or a gesture, and the tuning is never finished. The rule matters more than the gear.",
+      "The businesses run on discipline that starts at the desk, and the desk is set up like an instrument. Every action I take more than a few times a day has a physical trigger under a finger, on a Stream Deck key, a remapped keypad, or a gesture, and the tuning is never finished. The rule matters more than the gear.",
       "All of it protects attention. Whatever comes to mind gets captured instantly into an inbox I trust, then processed later, so nothing interrupts the current thread of work. Text goes to Drafts, tasks to OmniFocus, and durable notes to Obsidian. Even the audible part of the day is instrumented; long reading and agent updates reach me through Dubs while I walk.",
       "Agent work runs on the same discipline. I delegate builds against written specs with falsifiable done-conditions, because a worker who guesses produces work that has to be audited. The test for whether a task is ready to hand off is a single rule. Another session, human or agent, could pick it up and move it today.",
     ],
@@ -248,7 +248,7 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     body: [
       "The useful reaction to something you're hearing tends to arrive while you're walking, driving, or mid-task, before any workflow is ready for it. By the time you unlock a phone and find the right app, the thought has faded. So people save material in one place, listen to it somewhere else, and brief their agents from memory.",
       "Dubs closes the loop. Documents flow from their original sources into one inbox. You move between reading and listening, capture reactions inline by voice or text without losing your place, and pick up at the same spot on any device. What accumulates is a linked library of documents, annotations, and notes, raw material for your own thinking and exactly the context an agent needs.",
-      "Status: alpha TestFlight testing, finding product-market fit. The proof will be repeated use of the listen, capture, and hand-to-agent loop. The core bet is falsifiable by design, since audio-first could turn out to be the wrong balance rather than the wrong direction.",
+      "Status: alpha, with a small TestFlight group, finding product-market fit. The proof will be repeated use of the listen, capture, and hand-to-agent loop. The core bet is falsifiable by design, since audio-first could turn out to be the wrong balance rather than the wrong direction.",
     ],
     projectSlug: "dubs",
   },
@@ -288,24 +288,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     projectSlug: "three-maturity-bundle",
   },
   {
-    id: "alarm",
-    label: "Good Morning",
-    kind: "In Production",
-    family: "product",
-    register: "cool",
-    group: "products",
-    position: { x: 61, y: 56 },
-    summary: "A concept for conditional alarms: an anchor wake time plus rules that let people and data move it while you sleep.",
-    principle: "A good idea becomes legible before it becomes complete.",
-    body: [
-      "Good Morning began as a delegated alarm. The person who is already awake, and knows the circumstances that would let you sleep in, gets permission to move your alarm while you sleep.",
-      "Thinking it through widened the idea. Rules become deltas from your normal time. Snow, minus twenty minutes. First meeting cancelled, plus forty-five. Everything stays inside a window you set, and a person turns out to be just one condition alongside weather, flights, and the calendar.",
-      "The design earns trust with specifics. The sleeper is always told why the time moved, holds a pre-set veto for every condition, and decides what silence means.",
-      "Status: an idea, worked out in conversation and written down. Nothing is built.",
-    ],
-    projectSlug: "three-maturity-bundle",
-  },
-  {
     id: "thread-making-work-playable",
     threadId: "making-work-playable",
     label: "Making work playable",
@@ -316,7 +298,7 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] = [
     position: { x: 36, y: 29 },
     summary: "A thread about responsive tools that become fluent enough to think and work through.",
     body: [
-      "The personal operating system, Dubs, Writ, Yoohoo, and Good Morning compose this reading.",
+      "The personal operating system, Dubs, Writ, and Yoohoo compose this reading.",
     ],
   },
   {
@@ -357,10 +339,10 @@ export const portfolioThreads: readonly PortfolioThread[] = [
     body: [
       "A script on my machine watches the dictation engine's log so the confirming keystroke lands the instant the transcript finishes pasting. That is an unreasonable amount of engineering to save a quarter of a second, and it is the whole thesis. A tool you have to think about is a tool you are not thinking through.",
       "Fluency changes what a day is. When capture is instant and trusted, a stray idea stops being an interruption. When the frequent actions cost nothing, the right move and the easy move become the same move. Work stops being administration punctuated by thought and starts to reward repetition, the way an instrument does.",
-      "Each product holds that standard somewhere different. Dubs is the fullest test, a thought captured mid-stride without breaking it. Writ passes by disappearing, audio that stays where you put it from a tool you never open. Yoohoo and Good Morning push the question past the desk and ask whether attention, and even sleep, can be handled with the same care.",
+      "Each product holds that standard somewhere different. Dubs is the fullest test, a thought captured mid-stride without breaking it. Writ passes by disappearing, audio that stays where you put it from a tool you never open. Yoohoo pushes the question past the desk and asks whether notifications can hold state without creating more noise.",
     ],
     nodeId: "thread-making-work-playable",
-    members: ["personal-os", "dubs", "writ", "yoohoo", "alarm"],
+    members: ["personal-os", "dubs", "writ", "yoohoo"],
   },
   {
     id: "choosing-what-not-to-automate",
@@ -384,8 +366,8 @@ export const portfolioThreads: readonly PortfolioThread[] = [
     body: [
       "The first discipline was argument. Years of debate and a Philosophy, Politics, and Law degree set the standard everything since still answers to. A claim counts only if it survives contact with another mind, and a decision should be legible to the people it affects.",
       "At INFAMOUS, inventing the services meant living their costs. Days of every week went to compiling evidence of finished work, and midnights went to personalizing hundreds of pitch emails by hand. The first instruments were small, text snippets and mail merge, but they proved something larger. The shape of the work was itself something I could change.",
-      "The defining move was teaching. Handing my reporting process to an assistant with no domain background forced me to define it better than I ever had for myself, and directing work from outside the weeds became the skill the rest of the work runs on. By the end of my INFAMOUS years, the low-context executor was as often an AI agent as a person.",
-      "Independence compounded it. At Brain in a Vat there were no approvals to wait on and no inherited systems to accommodate, and the agent-driven automation matured into a real operating advantage, built to my own judgment and taste. The advantage became a second practice. Consulting is doing for other teams what I had done for my own operation, turning fuzzy workflows into explicit states and owners inside the tools people already use.",
+      "The defining move was teaching. Handing my reporting process to an assistant with no domain background forced me to define it better than I ever had for myself, and directing work from outside the weeds became the skill the rest of the work runs on.",
+      "Independence compounded it. At Brain in a Vat there were no approvals to wait on and no inherited systems to accommodate. The low-context executor became as often an AI agent as a person, and the agent-driven automation matured into a real operating advantage, built to my own judgment and taste. The advantage became a second practice. Consulting is doing for other teams what I had done for my own operation, turning fuzzy workflows into explicit states and owners inside the tools people already use.",
       "The products came out of the same habit. Writ exists because my audio kept landing on the wrong device between calls. Dubs exists because I was briefing agents from memory on walks. Neither started as a product. They started as parts of my own day that were worse than they needed to be, and at some point I stopped treating the fixing as a distraction from the work.",
       "The specs I once wrote for a human assistant now go to agents, the same discipline with a faster executor. Software stopped being the tool that supported the work. It became the medium the work happens in.",
     ],
@@ -403,7 +385,6 @@ export const portfolioThreads: readonly PortfolioThread[] = [
       "dubs",
       "writ",
       "yoohoo",
-      "alarm",
     ],
   },
 ] as const;
@@ -423,7 +404,6 @@ export const portfolioWorldLinks: readonly PortfolioWorldLink[] = [
   ["personal-os", "dubs", "lineage"],
   ["personal-os", "writ", "lineage"],
   ["personal-os", "yoohoo", "lineage"],
-  ["personal-os", "alarm", "lineage"],
   ["systems-consulting", "real-estate", "direct"],
   ["systems-consulting", "touring", "direct"],
 ].map(([from, to, type]) => ({ from, to, type, layer: "factual" } as PortfolioWorldLink));
@@ -524,7 +504,7 @@ export const portfolioWorldIndexSections = [
   { id: "campaign", title: "Music promotions systems", type: "nodes", nodeIds: ["kickoff", "pitching", "reporting"] },
   { id: "client", title: "Client systems", type: "nodes", nodeIds: ["real-estate", "touring"] },
   { id: "personal", title: "Personal systems", type: "nodes", nodeIds: ["personal-os"] },
-  { id: "products", title: "In Production", type: "nodes", nodeIds: ["dubs", "writ", "yoohoo", "alarm"] },
+  { id: "products", title: "In Production", type: "nodes", nodeIds: ["dubs", "writ", "yoohoo"] },
 ] as const;
 
 // Legacy case-study slugs → canonical node pages. Keeps old /index/<slug>

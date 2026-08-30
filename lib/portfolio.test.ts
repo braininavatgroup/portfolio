@@ -28,16 +28,15 @@ describe("portfolio content contract", () => {
     }
   });
 
-  it("uses the approved product names in the development bundle", () => {
+  it("keeps the development bundle limited to current portfolio products", () => {
     const bundle = getArtifact("three-maturity-bundle");
 
     expect(bundle?.summary).toBe(
-      "Writ shipped, Yoohoo was specified, and Good Morning was sketched as one comparison across maturity.",
+      "Writ is in daily personal use, and Yoohoo is specified, as two products at different stages.",
     );
     expect(bundle?.evidence.map((item) => item.label)).toEqual([
-      "Writ release or build",
+      "Writ build",
       "Yoohoo spec",
-      "Good Morning sketch",
     ]);
   });
 });

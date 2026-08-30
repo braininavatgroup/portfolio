@@ -14,7 +14,6 @@ import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
-import type { SpatialGraphNode } from "../lib/spatial-graph";
 import type { AvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
 import { PortfolioExperience } from "./PortfolioExperience";
 
@@ -84,57 +83,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
   };
 });
 
-vi.mock("./scene/PortfolioCanvas", () => ({
-  PortfolioCanvas: ({
-    nodes,
-    onEnter,
-    onNodeSelect,
-  }: {
-    nodes: readonly SpatialGraphNode[];
-    onEnter: () => void;
-    onNodeSelect: (node: SpatialGraphNode) => void;
-  }) => (
-    <div data-testid="scene-canvas">
-      <output data-testid="visible-node-roles">
-        {nodes.map(({ role }) => role).join(",")}
-      </output>
-      <button onClick={onEnter} type="button">
-        Select Bradley body
-      </button>
-      <button
-        onClick={() => {
-          const domain = nodes.find(
-            (node) => node.role === "domain" && node.groupId === "music",
-          );
-          if (domain) onNodeSelect(domain);
-        }}
-        type="button"
-      >
-        Select Music domain
-      </button>
-      <button
-        onClick={() =>
-          onNodeSelect({
-            id: "dubs:approach",
-            label: "Product spec and build process",
-            detail: "Connect the product spec to implementation.",
-            role: "approach",
-            position: [0, 0, 0],
-            entityIds: ["dubs:spec", "dubs:system"],
-            projectId: "project:dubs",
-            projectSlug: "dubs",
-            href: "/index/dubs",
-            groupId: "development",
-          })
-        }
-        type="button"
-      >
-        Select Dubs approach
-      </button>
-    </div>
-  ),
-}));
-
 let reducedMotionPreference = false;
 let reducedMotionChange: (() => void) | undefined;
 
@@ -164,12 +112,12 @@ function mockMatchMedia(reducedMotion = false) {
   }));
 }
 
-async function renderExperience(initialPhase: "body" | "graph" = "graph") {
+async function renderExperience() {
   mockMatchMedia();
-  if (initialPhase === "graph" && !window.location.search) {
+  if (!window.location.search) {
     window.history.replaceState({}, "", "/?view=graph");
   }
-  render(<PortfolioExperience initialPhase={initialPhase} />);
+  render(<PortfolioExperience />);
   await act(async () => {});
 }
 
@@ -216,7 +164,7 @@ async function askExperience(question: string) {
 
 describe("spatial self-portrait", () => {
   it("switches the phone composition between Index and Map", async () => {
-    await renderExperience("graph");
+    await renderExperience();
     const experience = document.getElementById("main-content")!;
 
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
@@ -242,7 +190,7 @@ describe("spatial self-portrait", () => {
     const startAmbient = vi.spyOn(AvatarDirector.prototype, "startAmbient");
     const stop = vi.spyOn(AvatarDirector.prototype, "stop");
 
-    await renderExperience("graph");
+    await renderExperience();
 
     expect(startAmbient).not.toHaveBeenCalled();
 
@@ -263,7 +211,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("reveals and minimizes the avatar with the assistant panel", async () => {
-    await renderExperience("graph");
+    await renderExperience();
 
     const avatar = await screen.findByLabelText("Test avatar overlay");
     expect(avatar.getAttribute("data-enabled")).toBe("false");
@@ -289,7 +237,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("renders the accepted one-world composition with its shared reader", async () => {
-    await renderExperience("graph");
+    await renderExperience();
 
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
     expect(
@@ -308,7 +256,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("uses the index and world as two controls for the same thread state", async () => {
-    await renderExperience("graph");
+    await renderExperience();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Making work playable" }),
@@ -357,7 +305,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("does not add duplicate history when reset is already at overview", async () => {
-    await renderExperience("graph");
+    await renderExperience();
     const push = vi.spyOn(window.history, "pushState");
 
     fireEvent.keyDown(window, { key: "Escape" });
@@ -371,7 +319,7 @@ describe("spatial self-portrait", () => {
       "",
       "/?view=graph#story/choosing-what-not-to-automate/pitching",
     );
-    await renderExperience("graph");
+    await renderExperience();
 
     expect(
       screen.getByRole("complementary", { name: "Campaign pitching record" }),
@@ -387,7 +335,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("opens the Avatar Director over the canvas with Shift+A and exposes no mode buttons", async () => {
-    await renderExperience("graph");
+    await renderExperience();
     const before = window.location.href;
 
     expect(screen.queryByRole("button", { name: "Avatar Director" })).toBeNull();
@@ -413,7 +361,7 @@ describe("spatial self-portrait", () => {
       ),
     );
     mockMatchMedia();
-    const { container } = render(<PortfolioExperience initialPhase="graph" />);
+    const { container } = render(<PortfolioExperience />);
     await act(async () => {});
 
     fireEvent.keyDown(document, { key: "A", shiftKey: true });
@@ -434,28 +382,8 @@ describe("spatial self-portrait", () => {
     );
   });
 
-  it("opens on Bradley and enters the map from the figure without exposing graph UI early", async () => {
-    vi.useFakeTimers();
-    await renderExperience("body");
-
-    expect(
-      screen.getByText("Bradley Berkman").getAttribute("aria-current"),
-    ).toBe("page");
-    expect(screen.getByRole("link", { name: "Map" }).getAttribute("href")).toBe(
-      "/?view=graph",
-    );
-    expect(screen.queryByRole("complementary")).toBeNull();
-    expect(screen.queryByLabelText("Keyboard map navigation")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Enter map" })).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Bradley body" }));
-
-    expect(document.querySelector(".experience-entering")).toBeTruthy();
-    expect(window.location.search).toBe("?view=graph");
-
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
+  it("opens straight onto the map with the reader index", async () => {
+    await renderExperience();
 
     expect(document.querySelector(".experience-graph")).toBeTruthy();
     expect(
@@ -486,27 +414,18 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
   });
 
-  it("reverses into the Bradley landing from the header without remounting the scene", async () => {
-    vi.useFakeTimers();
-    await renderExperience("graph");
+  it("opens the About record from the header wordmark instead of leaving the map", async () => {
+    await renderExperience();
 
     expect(document.querySelector(".experience-graph")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("link", { name: "Bradley Berkman" }));
+    await act(async () => {});
 
-    expect(document.querySelector(".experience-returning")).toBeTruthy();
-    expect(window.location.pathname).toBe("/");
-    expect(window.location.search).toBe("");
-
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-
-    expect(document.querySelector(".experience-body")).toBeTruthy();
+    expect(document.querySelector(".experience-graph")).toBeTruthy();
     expect(
-      screen.getByText("Bradley Berkman").getAttribute("aria-current"),
-    ).toBe("page");
-    expect(screen.queryByRole("complementary")).toBeNull();
+      screen.getByRole("complementary", { name: "Bradley Berkman record" }),
+    ).toBeTruthy();
   });
 
   it("renders the locked mark grammar at one optical scale", async () => {
@@ -519,7 +438,7 @@ describe("spatial self-portrait", () => {
     expect(document.querySelectorAll('[data-family="component"]')).toHaveLength(3);
     expect(document.querySelectorAll('[data-family="personal"]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-family="engagement"]')).toHaveLength(2);
-    expect(document.querySelectorAll('[data-family="product"]')).toHaveLength(4);
+    expect(document.querySelectorAll('[data-family="product"]')).toHaveLength(3);
   });
 
   it("opens a project record in the reader and restores the index", async () => {
@@ -723,7 +642,7 @@ describe("spatial self-portrait", () => {
         }),
       ),
     );
-    render(<PortfolioExperience initialPhase="graph" />);
+    render(<PortfolioExperience />);
     await act(async () => {});
 
     await askExperience("Open Dubs gently");
@@ -766,7 +685,7 @@ describe("spatial self-portrait", () => {
     );
     vi.stubGlobal("fetch", fetchImplementation);
     mockMatchMedia();
-    render(<PortfolioExperience initialPhase="graph" />);
+    render(<PortfolioExperience />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -803,7 +722,7 @@ describe("spatial self-portrait", () => {
       ),
     );
     mockMatchMedia();
-    const rendered = render(<PortfolioExperience initialPhase="graph" />);
+    const rendered = render(<PortfolioExperience />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -836,7 +755,7 @@ describe("spatial self-portrait", () => {
   });
 
   it("keeps the resting composition free of avatar and mode control pills", async () => {
-    await renderExperience("graph");
+    await renderExperience();
 
     expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Show assistant" })).toBeNull();
@@ -863,7 +782,7 @@ describe("spatial self-portrait", () => {
 
   it("cancels active travel before applying a reduced-motion policy", async () => {
     mockMatchMedia(false);
-    render(<PortfolioExperience initialPhase="graph" />);
+    render(<PortfolioExperience />);
     await act(async () => {});
     await screen.findByLabelText("Test avatar overlay");
     const director = Reflect.get(
@@ -885,7 +804,7 @@ describe("spatial self-portrait", () => {
 
   it("unregisters stage elements and disposes the director exactly once on unmount", async () => {
     mockMatchMedia();
-    const rendered = render(<PortfolioExperience initialPhase="graph" />);
+    const rendered = render(<PortfolioExperience />);
     await act(async () => {});
     await screen.findByLabelText("Test avatar overlay");
     fireEvent.keyDown(document, { key: "A", shiftKey: true });
@@ -915,12 +834,16 @@ describe("spatial self-portrait", () => {
     shell.id = "app-shell";
     const portal = document.body.appendChild(document.createElement("div"));
     portal.id = "avatar-toybox-root";
-    render(<PortfolioExperience initialPhase="graph" />, { container: shell });
+    render(<PortfolioExperience />, { container: shell });
     await act(async () => {});
 
-    expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
+    expect(
+      await screen.findByLabelText("Test avatar overlay", {}, { timeout: 5000 }),
+    ).toBeTruthy();
     fireEvent.keyDown(document, { key: "g", shiftKey: true });
-    expect((await screen.findByTestId("toybox-status")).textContent).toBe("choosing");
+    expect(
+      (await screen.findByTestId("toybox-status", {}, { timeout: 5000 })).textContent,
+    ).toBe("choosing");
     expect(screen.getByLabelText("Test avatar overlay")).toBeTruthy();
     expect(screen.getByTestId("toybox-roster").textContent?.split(",").every((id) => id.endsWith(":output"))).toBe(true);
 
@@ -940,7 +863,7 @@ describe("spatial self-portrait", () => {
     shell.id = "app-shell";
     const portal = document.body.appendChild(document.createElement("div"));
     portal.id = "avatar-toybox-root";
-    render(<PortfolioExperience initialPhase="graph" />, { container: shell });
+    render(<PortfolioExperience />, { container: shell });
     await act(async () => {});
     await screen.findByLabelText("Test avatar overlay");
 

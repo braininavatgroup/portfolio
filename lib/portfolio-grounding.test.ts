@@ -61,11 +61,11 @@ describe("portfolio chat grounding", () => {
 
     expect(pitching).toMatchObject({
       title: "Campaign pitching",
-      href: "/index/pitching",
+      href: "/?view=graph#pitching",
       projectTitle: "Campaign pitching",
     });
     expect(pitching?.excerpt).toContain(
-      "Research, curator selection, matching, and outreach",
+      "Weekly curator targeting driven by recorded taste",
     );
     expect(pitching?.excerpt).toContain(
       "Taste is encodable. The approval step stays human.",

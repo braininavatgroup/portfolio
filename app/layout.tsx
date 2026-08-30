@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bradley Berkman | Judgment at the center",
-  description: "A spatial portfolio of judgment, systems, and artifacts.",
+  title: "Bradley Berkman | Make complexity legible enough to act on",
+  description: "The systems, operations, and products Bradley Berkman builds and runs.",
   icons: { icon: "/biv-brain-symbol.png" },
 };
 
