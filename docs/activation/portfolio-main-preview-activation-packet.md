@@ -13,7 +13,13 @@ tested `main`. Adding this packet and its workflow does not authorize activation
 - Routes: Workers.dev only. Do not add a custom domain, zone route, or public
   portfolio hostname.
 - Artifact: the exact `dist/` uploaded by the successful `ci` job for a push to
-  `main`. The deployment job downloads that artifact and does not rebuild it.
+  `main`. Neither deployment workflow rebuilds or overwrites that artifact.
+- First deployment: the manual `deploy-main-preview.yml` workflow downloads the
+  SHA-named artifact from the approved successful source run ID, recomputes its
+  sorted `dist/` SHA-256 digest, and deploys only when that digest exactly
+  matches the approved workflow input.
+- Later deployment: while the gate remains armed, each ordinary successful
+  `main` push deploys its own newly tested, immutable artifact through `ci.yml`.
 - Automation gate: the repository variable
   `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` must equal `true`. Missing or any other
   value leaves deployment dormant.
@@ -26,9 +32,18 @@ time, and known-good prior version before changing the gate.
 
 ## Runtime secrets and configuration
 
-Run `npm run setup:main-preview` from the prepared feature branch for the
-repeatable human-driven setup. The wizard keeps deployment false-gated unless
-the operator types `ACTIVATE` explicitly.
+Run `npm run setup:main-preview` from the prepared feature branch for initial
+human-driven setup. After the setup change has merged, run it from a clean
+`main` checkout only when local `HEAD` equals freshly fetched `origin/main`.
+That post-merge path skips feature-branch publication and pull-request creation,
+finds the successful `ci.yml` push run for the exact merged SHA, downloads its
+existing SHA-named artifact, computes and displays the sorted `dist/` SHA-256
+digest, and waits for the operator to record and approve that binding. Only
+after the operator types exact `ACTIVATE` does the wizard set and read back the
+deployment gate as `true`, then dispatch `deploy-main-preview.yml` with the
+source run ID, source SHA, and digest. The manual workflow checks out that exact
+SHA, downloads the artifact from the source run, verifies the digest, and
+deploys without rebuilding. The wizard otherwise keeps deployment false-gated.
 
 Provision these only as encrypted secrets on the dedicated Worker:
 
@@ -44,7 +59,7 @@ GitHub environment separately holds the least-privilege
 
 `wrangler.main-preview.jsonc` requires the password gate, sends every static
 asset through the Worker, and retains the 200-request UTC-day chat budget. A
-A missing password or missing/undersized signing secret fails closed with a
+missing password or missing/undersized signing secret fails closed with a
 redacted 503.
 Successful login creates a seven-day `HttpOnly`, `Secure`, `SameSite=Lax`
 cookie. There is intentionally no logout route or failed-login throttle in this
@@ -69,10 +84,21 @@ Activation requires Bradley's explicit approval of one immutable operation:
 - approval expiry.
 
 After that approval, a separately identified operator may provision only the
-listed Worker secrets and GitHub environment credentials, set the repository
-variable to `true`, and dispatch or observe the exact merged `main` workflow.
-The operator must not add routes, broaden token permissions, substitute an
-artifact, or retain secret values.
+listed Worker secrets and GitHub environment credentials. The post-merge wizard
+must display the exact source run, main SHA, and sorted `dist/` digest before
+the operator types `ACTIVATE`. That confirmation authorizes the wizard to set
+the repository variable to exact `true` and dispatch the protected manual
+workflow with only those three non-secret artifact identity inputs. The
+operator must not add routes, broaden token permissions, substitute an
+artifact, pass secret values as inputs or command arguments, or retain secret
+values.
+
+If exact `true` readback or the manual workflow dispatch fails, the wizard
+performs a compensating write of `false` and requires exact `false` readback
+before exiting nonzero. A `FAIL-CLOSED WARNING` naming
+`PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` means that compensation could not be
+verified; stop and inspect the repository variable before any main push or
+deployment attempt.
 
 ## Live smoke matrix
 
@@ -81,10 +107,10 @@ over cellular rather than home Wi-Fi:
 
 | Check | Expected result |
 | --- | --- |
-| Signed-out root | Redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow` |
+| Signed-out root | Redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow, noarchive` |
 | Wrong password | Generic 401, no session cookie, and no configuration detail |
 | Correct password | Redirects to the requested same-origin path and sets the seven-day secure cookie |
-| Protected asset | Loads only after authentication and retains the `noindex, nofollow` response header |
+| Protected asset | Loads only after authentication and retains the `noindex, nofollow, noarchive` response header |
 | iPhone over cellular | Password form, graph, HTML index, and a case study load outside the home network |
 | Chat | One grounded question reaches `/api/portfolio-chat` after login and remains within the 200/day budget |
 | Session | Reload works; a different unsigned browser remains locked out |

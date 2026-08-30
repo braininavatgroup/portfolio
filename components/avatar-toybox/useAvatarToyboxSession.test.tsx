@@ -39,12 +39,13 @@ beforeEach(() => {
   shell.setAttribute("aria-hidden", "false");
   const opener = document.createElement("button");
   opener.textContent = "Open context";
-  shell.append(opener);
+  shell.appendChild(opener);
   const main = document.createElement("main");
   main.id = "main-content";
   main.tabIndex = -1;
-  shell.append(main);
-  document.body.append(shell, Object.assign(document.createElement("div"), { id: "avatar-toybox-root" }));
+  shell.appendChild(main);
+  document.body.appendChild(shell);
+  document.body.appendChild(Object.assign(document.createElement("div"), { id: "avatar-toybox-root" }));
   opener.focus();
 });
 
@@ -73,8 +74,9 @@ describe("avatar toybox session lease", () => {
     const first = document.createElement("button");
     first.dataset.avatarToyboxInitialFocus = "true";
     const last = document.createElement("button");
-    modal.append(first, last);
-    document.body.append(modal);
+    modal.appendChild(first);
+    modal.appendChild(last);
+    document.body.appendChild(modal);
     act(() => result.current.modalRef(modal));
     expect(document.activeElement).toBe(first);
 
@@ -104,7 +106,7 @@ describe("avatar toybox session lease", () => {
 
     setViewport();
     const input = document.createElement("input");
-    document.body.append(input);
+    document.body.appendChild(input);
     act(() => dispatchShortcut(input));
     expect(result.current.status).toBe("closed");
   });
@@ -119,8 +121,8 @@ describe("avatar toybox session lease", () => {
     const modal = document.createElement("div");
     const first = document.createElement("button");
     first.dataset.avatarToyboxInitialFocus = "true";
-    modal.append(first);
-    document.body.append(modal);
+    modal.appendChild(first);
+    document.body.appendChild(modal);
     act(() => result.current.modalRef(modal));
     opener.disabled = true;
 

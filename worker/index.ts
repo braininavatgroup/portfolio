@@ -11,6 +11,7 @@ export { PortfolioChatBudgetObject } from "./portfolio-chat-budget";
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
   MainPreviewAuthEnv;
+type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
@@ -25,12 +26,17 @@ async function serveApplication(
 ) {
   const url = new URL(request.url);
 
-  if (url.pathname === "/_vinext/image" && env.ASSETS && env.IMAGES) {
+  const assets = env.ASSETS;
+  const images = env.IMAGES;
+  if (url.pathname === "/_vinext/image" && assets && images) {
     const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
     return handleImageOptimization(request, {
-      fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
+      fetchAsset: (path) => assets.fetch(new Request(new URL(path, request.url))),
       transformImage: async (body, { width, format, quality }) => {
-        const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+        const result = await images.input(body).transform(width > 0 ? { width } : {}).output({
+          format: format as ImageOutputFormat,
+          quality,
+        });
         return result.response();
       },
     }, allowedWidths);

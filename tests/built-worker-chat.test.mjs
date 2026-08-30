@@ -219,6 +219,9 @@ test("the built Worker serves bound static assets after password authentication"
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), "protected asset");
-  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(
+    response.headers.get("x-robots-tag"),
+    "noindex, nofollow, noarchive",
+  );
   assert.equal(assetCalls, 1);
 });

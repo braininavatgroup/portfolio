@@ -8,6 +8,7 @@ const LOGIN_PATH = "/_portfolio-preview/login";
 const COOKIE_NAME = "portfolio_main_preview_session";
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const MAX_LOGIN_BODY_BYTES = 4 * 1_024;
+const PROTECTED_ROBOTS_TAG = "noindex, nofollow, noarchive";
 const encoder = new TextEncoder();
 
 type WorkerSubtleCrypto = SubtleCrypto & {
@@ -16,7 +17,7 @@ type WorkerSubtleCrypto = SubtleCrypto & {
 
 function addNoIndex(response: Response) {
   const headers = new Headers(response.headers);
-  headers.set("x-robots-tag", "noindex, nofollow");
+  headers.set("x-robots-tag", PROTECTED_ROBOTS_TAG);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -30,7 +31,7 @@ function privateResponse(
 ) {
   const headers = new Headers(init.headers);
   headers.set("cache-control", "no-store");
-  headers.set("x-robots-tag", "noindex, nofollow");
+  headers.set("x-robots-tag", PROTECTED_ROBOTS_TAG);
   return new Response(body, { ...init, headers });
 }
 
@@ -82,7 +83,7 @@ function loginPage(next: string, hasError = false) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
+  <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Portfolio preview</title>
   <style>
     :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; }
