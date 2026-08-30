@@ -3041,6 +3041,15 @@ body:has(.portfolio-composition) {
 }
 
 @media (max-width: 600px) {
+  .portfolio-composition {
+    --mobile-controls-inline-end: max(14px, env(safe-area-inset-right));
+  }
+
+  .portfolio-composition .portfolio-chat {
+    left: auto !important;
+    right: var(--mobile-controls-inline-end) !important;
+  }
+
   .portfolio-composition.portfolio-mobile-map-open .portfolio-world {
     display: block;
     inset: 0;
@@ -3064,7 +3073,7 @@ body:has(.portfolio-composition) {
     min-width: 40px;
     padding: 0;
     position: fixed;
-    right: calc(max(14px, env(safe-area-inset-right)) + 50px);
+    right: calc(var(--mobile-controls-inline-end) + 50px);
     z-index: 9;
   }
 
