@@ -37,14 +37,14 @@ describe("project index", () => {
     expect(screen.queryByText(/\d+ projects/i)).toBeNull();
   });
 
-  it("links every node row to its canonical page", () => {
+  it("links every node row into the map reader", () => {
     render(<ProjectIndex />);
 
     expect(
       screen
         .getByRole("link", { name: /Campaign pitching/ })
         .getAttribute("href"),
-    ).toBe("/index/pitching");
+    ).toBe("/?view=graph#pitching");
     expect(
       screen
         .getByRole("link", { name: /Making work playable/ })

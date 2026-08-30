@@ -1,5 +1,5 @@
 import { PortfolioExperience } from "../components/PortfolioExperience";
 
-export default function Home() {
-  return <PortfolioExperience initialPhase="graph" />;
+export default function HomePage() {
+  return <PortfolioExperience />;
 }

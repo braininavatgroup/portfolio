@@ -55,8 +55,8 @@ test("the flat index lists threads and every node with its canonical page", asyn
   assert.equal(
     (html.match(/class=["'][^"']*artifact-index-entry[^"']*["']/gi) ?? [])
       .length,
-    17,
-    "stacked editorial index renders three threads and fourteen nodes",
+    16,
+    "stacked editorial index renders three threads and thirteen nodes",
   );
 
   const nodeLinks = new Map();
@@ -70,7 +70,7 @@ test("the flat index lists threads and every node with its canonical page", asyn
     assert.ok(title, `${route} index link contains its node label`);
     nodeLinks.set(route, title.trim());
   }
-  assert.equal(nodeLinks.size, 14, "every node links to a canonical page");
+  assert.equal(nodeLinks.size, 13, "every node links to a canonical page");
 
   for (const [route, expectedTitle] of nodeLinks) {
     const response = await render(route);

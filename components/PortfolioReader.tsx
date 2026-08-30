@@ -163,11 +163,13 @@ function WorldRecord({
       {node.principle ? (
         <p className="reader-principle">{node.principle}</p>
       ) : null}
-      <section className="reader-record-section">
-        {node.body.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-      </section>
+      {node.body.length > 0 ? (
+        <section className="reader-record-section">
+          {node.body.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+        </section>
+      ) : null}
       {node.id === "bradley" ? <ContactSection /> : null}
       {node.id === "bradley" || containingThreads.length > 0 ? (
         <section className="reader-record-section">

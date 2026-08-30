@@ -65,7 +65,7 @@ A **node** is a dot on the map. Opening one reads one of two authored content ty
 
 The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof; a piece that leans on unpublished material says so in its prose or leaves it out. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
 
-Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, Yoohoo and Good Morning interfaces, the personal-tooling map, and one complete spec-to-agent record.
+Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, the Yoohoo interface, the personal-tooling map, and one complete spec-to-agent record.
 
 ## Portfolio chat launch controls
 

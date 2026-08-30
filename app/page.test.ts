@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("portfolio page", () => {
-  it("opens the accepted spatial composition at the root URL", async () => {
+  it("opens the spatial composition at the root URL with no landing phase", async () => {
     const page = await Home();
 
-    expect(page.props.initialPhase).toBe("graph");
+    expect(page.type.name).toBe("PortfolioExperience");
+    expect(page.props).toEqual({});
   });
 
   it("has no alternate Avatar Lab page route", () => {

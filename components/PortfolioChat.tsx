@@ -33,7 +33,7 @@ import type {
   PortfolioChatVisitState,
 } from "../lib/portfolio-chat-protocol";
 import { classifyPose } from "../lib/pose";
-import type { PoseState } from "./scene/BodyScene";
+import type { PoseState } from "../lib/pose";
 
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments

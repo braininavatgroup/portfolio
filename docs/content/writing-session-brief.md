@@ -31,7 +31,7 @@ rendered. The current copy is migrated placeholder — every word is replaceable
 
 ## What to produce
 
-1. **13 records** — every non-About node in `portfolioWorldNodes`: `summary`
+1. **12 records** — every non-About node in `portfolioWorldNodes`: `summary`
    (one sentence), optional `principle` (a pull-quote; keepers like "Taste is
    encodable. The approval step stays human." already exist), and `body`
    paragraphs.
@@ -46,10 +46,10 @@ rendered. The current copy is migrated placeholder — every word is replaceable
      walked end-to-end (kickoff → pitching → reporting); where automation
      stops and taste stays should emerge from the walk.
    - *Making work playable* → the In Production story: what the human's hands are
-     holding (dubs, writ, yoohoo, alarm, personal-os). Complement, not
+     holding (dubs, writ, yoohoo, personal-os). Complement, not
      overlap: one thread is what you keep, the other is how you hold it.
    - *Finding myself in software* → a real chronological arc with curated
-     stops (~6–8 nodes), not all 13.
+     stops (~6–8 nodes), not all 12.
    A useful lens: each thread answers a question a visitor arrives with
    ("how would this person run my operation?" / "can they build?" /
    "who is this?").

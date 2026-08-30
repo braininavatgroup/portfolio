@@ -25,4 +25,12 @@ describe("deterministic portfolio pose events", () => {
     expect(reply.href).toBe("/index/pitching");
     expect(reply.text).not.toMatch(/I am Bradley|I'm Bradley/i);
   });
+
+  it("describes only products that remain in the portfolio", () => {
+    const reply = poseReply("Which app did you build?", "building");
+
+    expect(reply.text).toMatch(/Writ/i);
+    expect(reply.text).toMatch(/Yoohoo/i);
+    expect(reply.text).not.toMatch(/Good Morning/i);
+  });
 });

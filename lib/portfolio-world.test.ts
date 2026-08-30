@@ -26,7 +26,6 @@ describe("accepted portfolio world", () => {
       "dubs",
       "writ",
       "yoohoo",
-      "alarm",
       "thread-making-work-playable",
       "thread-choosing-what-not-to-automate",
       "thread-finding-myself-in-software",
@@ -38,7 +37,7 @@ describe("accepted portfolio world", () => {
     expect(portfolioThreads.map(({ title, members }) => ({ title, members }))).toEqual([
       {
         title: "Making work playable",
-        members: ["personal-os", "dubs", "writ", "yoohoo", "alarm"],
+        members: ["personal-os", "dubs", "writ", "yoohoo"],
       },
       {
         title: "Choosing what not to automate",
@@ -59,26 +58,9 @@ describe("accepted portfolio world", () => {
           "dubs",
           "writ",
           "yoohoo",
-          "alarm",
         ],
       },
     ]);
-  });
-
-  it("does not connect Good Morning to Choosing what not to automate", () => {
-    const links = getVisibleWorldLinks({
-      activeThreadId: "choosing-what-not-to-automate",
-      selectedId: "thread-choosing-what-not-to-automate",
-    });
-
-    expect(
-      links.some(
-        ({ from, to, threadId }) =>
-          from === "thread-choosing-what-not-to-automate" &&
-          to === "alarm" &&
-          threadId === "choosing-what-not-to-automate",
-      ),
-    ).toBe(false);
   });
 
   it("keeps Bradley disconnected at rest and reveals authorship on selection", () => {

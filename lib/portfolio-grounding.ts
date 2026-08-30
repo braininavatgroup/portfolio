@@ -47,14 +47,13 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     id: `node:${node.id}`,
     title: node.label,
     excerpt: lines.join("\n"),
-    href: `/index/${node.id}`,
+    href: `/?view=graph#${node.id}`,
     projectTitle: node.label,
   };
 }
 
 function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
   const portfolioExcerpt = [
-    "I find where judgment matters, then build the system around it.",
     `Throughline: ${portfolioThroughline}`,
     `Audience: ${audienceStatement}`,
     `Contact: ${portfolioContact.email}`,
