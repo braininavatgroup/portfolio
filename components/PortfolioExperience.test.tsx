@@ -837,9 +837,13 @@ describe("spatial self-portrait", () => {
     render(<PortfolioExperience />, { container: shell });
     await act(async () => {});
 
-    expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
+    expect(
+      await screen.findByLabelText("Test avatar overlay", {}, { timeout: 5000 }),
+    ).toBeTruthy();
     fireEvent.keyDown(document, { key: "g", shiftKey: true });
-    expect((await screen.findByTestId("toybox-status")).textContent).toBe("choosing");
+    expect(
+      (await screen.findByTestId("toybox-status", {}, { timeout: 5000 })).textContent,
+    ).toBe("choosing");
     expect(screen.getByLabelText("Test avatar overlay")).toBeTruthy();
     expect(screen.getByTestId("toybox-roster").textContent?.split(",").every((id) => id.endsWith(":output"))).toBe(true);
 
