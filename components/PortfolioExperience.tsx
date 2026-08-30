@@ -17,10 +17,6 @@ import type {
   PortfolioResponseEffects,
   ProjectAvatarTargetId,
 } from "../lib/avatar/contracts";
-import {
-  readAvatarEnabled,
-  writeAvatarEnabled,
-} from "../lib/avatar/preference";
 import { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import { SiteActionExecutor } from "../lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "../lib/avatar/target-registry";
@@ -153,9 +149,10 @@ export function PortfolioExperience({
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const [spotlightTarget, setSpotlightTarget] =
     useState<AvatarTargetId | null>(null);
-  const [avatarEnabled, setAvatarEnabled] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [avatarMounted, setAvatarMounted] = useState(false);
   const [avatarDebug, setAvatarDebug] = useState(
     () =>
@@ -186,6 +183,13 @@ export function PortfolioExperience({
     () => new Map<AvatarObstacleId, HTMLElement>(),
   );
   const registeredAvatarStage = useRef<HTMLElement | null>(null);
+  const assistantOpenRef = useRef(assistantOpen);
+  const reducedMotionRef = useRef(reducedMotion);
+
+  useEffect(() => {
+    assistantOpenRef.current = assistantOpen;
+    reducedMotionRef.current = reducedMotion;
+  }, [assistantOpen, reducedMotion]);
 
   const visibleNodes = visibleGraphNodes(portfolioNodes, {
     selectedDomain,
@@ -231,6 +235,7 @@ export function PortfolioExperience({
 
   const showIndex = useCallback(() => {
     avatarActionState.clearSelection();
+    setMobileMapOpen(false);
     setSelectedDomain(null);
     setSelectedNode(null);
     setSelectedWorldId(null);
@@ -308,6 +313,7 @@ export function PortfolioExperience({
 
   const selectWorldNode = useCallback(
     (node: PortfolioWorldNode) => {
+      setMobileMapOpen(false);
       if (selectedWorldId === node.id) {
         const previous = avatarActionState.getSelectedNode();
         avatarActionState.clearSelection();
@@ -602,7 +608,6 @@ export function PortfolioExperience({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setAvatarEnabled(readAvatarEnabled());
       setAvatarMounted(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -615,9 +620,16 @@ export function PortfolioExperience({
   }, [avatarActionState, avatarDirector, reducedMotion]);
 
   useEffect(() => {
-    if (!document.hidden) avatarDirector.startAmbient();
     return () => avatarDirector.dispose();
   }, [avatarDirector]);
+
+  useEffect(() => {
+    if (assistantOpen && !document.hidden && !reducedMotion) {
+      avatarDirector.startAmbient();
+      return;
+    }
+    avatarDirector.stop();
+  }, [assistantOpen, avatarDirector, reducedMotion]);
 
   useEffect(() => {
     const refreshTarget = () => {
@@ -633,17 +645,26 @@ export function PortfolioExperience({
       }
     };
     const handleVisibility = () => {
-      if (!document.hidden) {
+      if (
+        assistantOpenRef.current &&
+        !document.hidden &&
+        !reducedMotionRef.current
+      ) {
         refreshTarget();
         avatarDirector.startAmbient();
+      } else {
+        avatarDirector.stop();
       }
     };
-    window.addEventListener("scroll", refreshTarget, { passive: true });
-    window.addEventListener("resize", refreshTarget);
+    const refreshVisibleTarget = () => {
+      if (assistantOpenRef.current) refreshTarget();
+    };
+    window.addEventListener("scroll", refreshVisibleTarget, { passive: true });
+    window.addEventListener("resize", refreshVisibleTarget);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.removeEventListener("scroll", refreshTarget);
-      window.removeEventListener("resize", refreshTarget);
+      window.removeEventListener("scroll", refreshVisibleTarget);
+      window.removeEventListener("resize", refreshVisibleTarget);
       document.removeEventListener("visibilitychange", handleVisibility);
       avatarActionState.beginTurn();
       for (const [target, element] of registeredAvatarTargets) {
@@ -669,10 +690,9 @@ export function PortfolioExperience({
     registeredAvatarTargets,
   ]);
 
-  const setAvatarPreference = useCallback((enabled: boolean) => {
-    if (!enabled) avatarDirector.stop();
-    setAvatarEnabled(enabled);
-    writeAvatarEnabled(enabled);
+  const setAssistantVisibility = useCallback((visible: boolean) => {
+    if (!visible) avatarDirector.stop();
+    setAssistantOpen(visible);
   }, [avatarDirector]);
 
   function enterMap() {
@@ -697,8 +717,8 @@ export function PortfolioExperience({
         debug={avatarDebug}
         development={import.meta.env.DEV}
         director={avatarDirector}
-        enabled={avatarEnabled}
-        onEnabledChange={setAvatarPreference}
+        enabled={assistantOpen}
+        onEnabledChange={setAssistantVisibility}
         onExpandedPanelChange={registerDirectorConsoleObstacle}
         reducedMotion={reducedMotion}
         registry={avatarRegistry}
@@ -710,7 +730,9 @@ export function PortfolioExperience({
   const portfolioChat = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
+      onOpenChange={setAssistantVisibility}
       onPoseChange={setPose}
+      open={assistantOpen}
       registerAvatarTarget={registerAvatarTarget}
       spotlightTarget={spotlightTarget}
       turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
@@ -719,7 +741,7 @@ export function PortfolioExperience({
 
   return (
     <main
-      className={`experience experience-${transition.phase}${transition.phase === "graph" ? " portfolio-composition" : ""}`}
+      className={`experience experience-${transition.phase}${transition.phase === "graph" ? " portfolio-composition" : ""}${mobileMapOpen ? " portfolio-mobile-map-open" : ""}`}
       id="main-content"
       tabIndex={-1}
     >
@@ -796,6 +818,35 @@ export function PortfolioExperience({
               selectedId={selectedWorldId}
               spotlightTarget={spotlightTarget}
             />
+            <button
+              aria-label={mobileMapOpen ? "Show portfolio index" : "Show portfolio map"}
+              aria-pressed={mobileMapOpen}
+              className="portfolio-mobile-view-toggle"
+              onClick={() => setMobileMapOpen((open) => !open)}
+              type="button"
+            >
+              {mobileMapOpen ? (
+                <svg
+                  aria-hidden="true"
+                  className="portfolio-mobile-view-icon"
+                  viewBox="0 0 16 16"
+                >
+                  <circle cx="3" cy="4" r="0.75" />
+                  <circle cx="3" cy="8" r="0.75" />
+                  <circle cx="3" cy="12" r="0.75" />
+                  <path d="M6 4h7M6 8h7M6 12h7" />
+                </svg>
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  className="portfolio-mobile-view-icon"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="m2.25 4 3.5-1.75L10.25 4l3.5-1.75v9.5l-3.5 1.75-4.5-1.75-3.5 1.75V4Z" />
+                  <path d="M5.75 2.25v9.5M10.25 4v9.5" />
+                </svg>
+              )}
+            </button>
           </>
         ) : null}
         {portfolioChat}

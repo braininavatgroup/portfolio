@@ -97,6 +97,23 @@ describe("AvatarOverlay", () => {
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
   });
 
+  it("reports controller visibility changes to the shared assistant state", async () => {
+    // Catches an exit command hiding the avatar while the chat panel stays open.
+    const controller = new AvatarController(new AvatarTargetRegistry());
+    const onEnabledChange = vi.fn();
+    render(
+      <AvatarOverlay
+        controller={controller}
+        enabled
+        onEnabledChange={onEnabledChange}
+      />,
+    );
+
+    act(() => controller.setVisible(false));
+
+    await waitFor(() => expect(onEnabledChange).toHaveBeenCalledWith(false));
+  });
+
   it("renders no public avatar visibility or recovery control", () => {
     const controller = new AvatarController(new AvatarTargetRegistry());
     render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);

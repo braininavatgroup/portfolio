@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make all 21 supplied avatar clips exact, named behaviors and have the existing OpenAI portfolio agent select a visible behavior sequence for every successful answer.
+**Goal:** Make all 20 supplied avatar clips exact, named behaviors and have the existing OpenAI portfolio agent select a visible behavior sequence for every successful answer.
 
 **Architecture:** One immutable avatar behavior registry owns IDs, exact GLB clip names, labels, semantic guidance, and sequence hold times. The existing `@openai/agents` agent receives a generated catalog in static instructions and returns one to three registry IDs through its Zod structured output. The server converts those IDs to validated avatar effects only after answer validation, while the controller uses a direct state map and fails the isolated avatar renderer instead of substituting another clip.
 
@@ -15,7 +15,7 @@
 - Ticket identity is `PER-15`; use it in commit subjects.
 - Preserve `assets/avatar-sources/bradley-meshy-rigged.glb` and `public/avatars/bradley-meshy-rigged.glb` byte-for-byte equal.
 - Render only the exact Meshy model scene. Read missing animation clips from `public/avatars/bradley-motion-library.glb`, but never render that file's scene.
-- The behavior catalog contains exactly the 20 Meshy clips in the spec plus `Orange_Justice_CC0`.
+- The behavior catalog contains exactly the 20 Meshy clips in the spec.
 - Every behavior ID maps to exactly one exact clip name. No aliases, fallback lists, raw/manual bucket, or keyword router.
 - Every successful model output contains one through three behaviors. Ordinary answers select exactly one.
 - Every avatar lifecycle state maps directly to one registered behavior.
@@ -76,7 +76,6 @@ expect(avatarBehaviors.map(({ id }) => id)).toEqual([
   "walking",
   "wave_one_hand",
   "swimming_to_edge",
-  "orange_justice_cc0",
 ]);
 
 expect(avatarBehaviors.map(({ clipName }) => clipName)).toEqual([
@@ -100,18 +99,17 @@ expect(avatarBehaviors.map(({ clipName }) => clipName)).toEqual([
   "Walking",
   "Wave_One_Hand",
   "swimming_to_edge",
-  "Orange_Justice_CC0",
 ]);
 ```
 
 Assert IDs and clip names are unique, catalog text includes every ID and guidance string, and:
 
 ```ts
-expect(expandAvatarSequence(["wave_one_hand", "orange_justice_cc0"]))
+expect(expandAvatarSequence(["wave_one_hand", "joyful_dance_with_hand_sway"]))
   .toEqual([
     { action: "play", animation: "wave_one_hand" },
     { action: "wait", durationMs: 1_600 },
-    { action: "play", animation: "orange_justice_cc0" },
+    { action: "play", animation: "joyful_dance_with_hand_sway" },
   ]);
 ```
 
@@ -123,15 +121,15 @@ Expected: FAIL because `lib/avatar/behaviors.ts` does not exist.
 
 - [ ] **Step 3: Implement the registry and direct state map**
 
-Define all entries from the spec. Use 1,600 milliseconds by default, 1,200 for `walking` and `running`, 2,200 for `big_wave_hello` and `formal_bow`, and 2,800 for `joyful_dance_with_hand_sway` and `orange_justice_cc0`.
+Define all entries from the spec. Use 1,600 milliseconds by default, 1,200 for `walking` and `running`, 2,200 for `big_wave_hello` and `formal_bow`, and 2,800 for `joyful_dance_with_hand_sway`.
 
 Replace `config.animations` and `config.stateFallbacks` with `avatarStateBehaviors` using the exact spec table. Derive `AllowedAnimation` from the registry rather than repeating the old nine semantic aliases.
 
 - [ ] **Step 4: Extend the asset reproduction tests and confirm RED**
 
-Name the break: a build could copy a different visible model or omit one of the 21 registry clips.
+Name the break: a build could copy a different visible model or omit one of the 20 registry clips.
 
-Run the build script against controlled temporary output paths. Compare source and rendered model SHA-256 hashes. Inspect both GLBs through the existing parser or `gltf-transform inspect` boundary and assert the union contains the 21 literal clip names. Assert native Meshy clips win over duplicate external clips.
+Run the build script against controlled temporary output paths. Compare source and rendered model SHA-256 hashes. Inspect both GLBs through the existing parser or `gltf-transform inspect` boundary and assert the union contains the 20 literal clip names. Assert native Meshy clips win over duplicate external clips.
 
 Run: `npx vitest run scripts/avatar/build-bradley-avatar.test.ts lib/avatar/config.test.ts`
 
@@ -184,7 +182,7 @@ git commit -m "PER-15: register exact avatar behavior library"
 
 Name the break: an unavailable preferred clip could silently become `idle_3` or another animation.
 
-Assert every state resolves to the literal behavior in the spec. Assert loading a set that omits `orange_justice_cc0` sets `failed: true` without changing the current behavior. Assert executing an unavailable `play` command also sets `failed: true`.
+Assert every state resolves to the literal behavior in the spec. Assert loading a set that omits a registered clip sets `failed: true` without changing the current behavior. Assert executing an unavailable `play` command also sets `failed: true`.
 
 Run: `npx vitest run lib/avatar/state.test.ts lib/avatar/controller.test.ts`
 
@@ -198,7 +196,7 @@ Delete fallback iteration. Keep the last selected animation in the snapshot when
 
 Name the breaks: the adapter could load a clip under the wrong semantic alias, mount the processed scene, or hide supplied clips outside the developer controls.
 
-Assert exact registry lookup from a literal clip-name set, native clip precedence, only `model.scene` passed to the rendered `<primitive>`, and 21 development buttons whose accessible labels include readable behavior names.
+Assert exact registry lookup from a literal clip-name set, native clip precedence, only `model.scene` passed to the rendered `<primitive>`, and 20 development buttons whose accessible labels include readable behavior names.
 
 Run: `npx vitest run components/avatar/AvatarAssetAdapter.test.ts components/avatar/AvatarOverlay.test.tsx`
 
@@ -214,7 +212,7 @@ Update procedural switch cases only as needed to keep its dormant renderer compi
 
 Name the breaks: the protocol could still accept removed aliases such as `dance`, and reduced motion could run a decorative model-selected clip.
 
-Assert `orange_justice_cc0` is accepted, `dance` and unknown IDs are rejected, and `adaptCommandsForReducedMotion` removes `play` and `wait` while preserving direct state and semantic target commands.
+Assert exact registered IDs are accepted, `dance` and unknown IDs are rejected, and `adaptCommandsForReducedMotion` removes `play` and `wait` while preserving direct state and semantic target commands.
 
 Run: `npx vitest run lib/avatar/validation.test.ts lib/avatar/state.test.ts`
 
@@ -254,9 +252,9 @@ git commit -m "PER-15: make every avatar clip first class"
 
 Name the breaks: the model could return no motion, invent a behavior, choose more than three, or make a valid choice that never reaches the effect channel.
 
-Update completed structured fixtures with `avatarSequence: ["agree_gesture"]`. Add assertions that the request JSON Schema contains `avatarSequence`, the enum contains all 21 literal IDs, `minItems` is 1, `maxItems` is 3, and the generated instructions contain each behavior ID with its semantic guidance.
+Update completed structured fixtures with `avatarSequence: ["agree_gesture"]`. Add assertions that the request JSON Schema contains `avatarSequence`, the enum contains all 20 literal IDs, `minItems` is 1, `maxItems` is 3, and the generated instructions contain each behavior ID with its semantic guidance.
 
-Add a test whose fake response selects `wave_one_hand` followed by `orange_justice_cc0`. Consume the answer and assert `onEffects` receives the expanded literal command sequence. Add invalid fake responses with `[]`, four items, and `dance`; assert each reports `invalid_final_output` and emits no effect.
+Add a test whose fake response selects `wave_one_hand` followed by `joyful_dance_with_hand_sway`. Consume the answer and assert `onEffects` receives the expanded literal command sequence. Add invalid fake responses with `[]`, four items, and `dance`; assert each reports `invalid_final_output` and emits no effect.
 
 Run: `npx vitest run lib/server/openai-portfolio-provider.test.ts`
 
@@ -370,16 +368,15 @@ Expected: every command exits zero. The production client-asset test rejects `Av
 
 - [ ] **Step 3: Verify exact asset provenance**
 
-Run SHA-256 over the source and public Meshy GLBs and assert equality. Inspect both public GLBs and record the 20 native names plus Orange Justice. Inspect the built client assets for old alias labels and source-only paths.
+Run SHA-256 over the source and public Meshy GLBs and assert equality. Inspect both public GLBs and record the 20 native names. Inspect the built client assets for old alias labels and source-only paths.
 
 - [ ] **Step 4: Attach to the existing workspace server and capture browser proof**
 
 Use `http://localhost:3315/?avatarDebug=1`. Do not start another server if the current workspace server is healthy. Capture:
 
 - the exact Meshy avatar facing forward on desktop;
-- the complete 21-button developer behavior list;
+- the complete 20-button developer behavior list;
 - a native Meshy behavior;
-- `orange_justice_cc0`;
 - mobile placement;
 - reduced-motion containment.
 

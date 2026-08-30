@@ -55,7 +55,9 @@ export type PortfolioChatAvatarIntegration = {
 export function PortfolioChat({
   avatarIntegration,
   initiallyOpen = false,
+  onOpenChange,
   onPoseChange,
+  open: controlledOpen,
   registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
@@ -64,7 +66,9 @@ export function PortfolioChat({
 }: {
   avatarIntegration?: PortfolioChatAvatarIntegration;
   initiallyOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onPoseChange: (pose: PoseState) => void;
+  open?: boolean;
   registerAvatarTarget?: (
     target: AvatarTargetId,
     element: HTMLElement | null,
@@ -82,7 +86,15 @@ export function PortfolioChat({
   const [pending, setPending] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
-  const [open, setOpen] = useState(initiallyOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(initiallyOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (controlledOpen === undefined) setUncontrolledOpen(nextOpen);
+      onOpenChange?.(nextOpen);
+    },
+    [controlledOpen, onOpenChange],
+  );
   const [transcript, setTranscript] = useState<PortfolioChatMessage[]>([]);
   const [panelPosition, setPanelPosition] = useState<{
     x: number;

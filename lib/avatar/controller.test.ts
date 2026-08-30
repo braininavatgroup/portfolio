@@ -169,7 +169,7 @@ describe("avatar controller", () => {
     const controller = controllerWithOpenStage();
     controller.setAvailableAnimations(new Set(["idle_3"]));
 
-    controller.execute({ action: "play", animation: "orange_justice_cc0" });
+    controller.execute({ action: "play", animation: "joyful_dance_with_hand_sway" });
 
     expect(controller.getSnapshot()).toMatchObject({ animation: "idle_3", failed: true });
   });

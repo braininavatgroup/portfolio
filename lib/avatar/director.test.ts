@@ -244,7 +244,7 @@ describe("AvatarDirector", () => {
     const effects = {
       siteActions: [],
       avatarSequence: [
-        { action: "play" as const, animation: "orange_justice_cc0" as const },
+        { action: "play" as const, animation: "joyful_dance_with_hand_sway" as const },
       ],
       avatarIntent: "ordinary" as const,
       avatarTone: {
@@ -262,7 +262,7 @@ describe("AvatarDirector", () => {
 
     expect(firstCommand).not.toBe(controller.getSnapshot().currentCommand);
     expect(controller.getSnapshot()).toMatchObject({
-      animation: "orange_justice_cc0",
+      animation: "joyful_dance_with_hand_sway",
       tone: effects.avatarTone,
     });
   });
@@ -404,20 +404,20 @@ describe("AvatarDirector", () => {
     director.startAmbient();
     await vi.advanceTimersByTimeAsync(9_999);
     const scene = director.runOperatorSequence([
-      { action: "play", animation: "orange_justice_cc0" },
+      { action: "play", animation: "joyful_dance_with_hand_sway" },
       { action: "wait", durationMs: 1_200 },
       { action: "setState", state: "idle" },
     ]);
 
-    expect(controller.getSnapshot().animation).toBe("orange_justice_cc0");
+    expect(controller.getSnapshot().animation).toBe("joyful_dance_with_hand_sway");
     await vi.advanceTimersByTimeAsync(1);
     expect(controller.getSnapshot()).toMatchObject({
-      animation: "orange_justice_cc0",
+      animation: "joyful_dance_with_hand_sway",
       locomotion: "grounded",
     });
 
     await vi.advanceTimersByTimeAsync(1_198);
-    expect(controller.getSnapshot().animation).toBe("orange_justice_cc0");
+    expect(controller.getSnapshot().animation).toBe("joyful_dance_with_hand_sway");
     await vi.advanceTimersByTimeAsync(1);
     await scene;
     expect(controller.getSnapshot()).toMatchObject({ state: "idle", locomotion: "grounded" });

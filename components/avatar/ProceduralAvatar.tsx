@@ -78,7 +78,6 @@ const authoredPoses: Record<AllowedAnimation, JointPose> = {
   walking: basePoses.walk,
   wave_one_hand: basePoses.point,
   swimming_to_edge: basePoses.present,
-  orange_justice_cc0: basePoses.dance,
 };
 
 function applyPose(joint: THREE.Group | null, pose: [number, number, number]) {

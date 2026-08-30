@@ -102,8 +102,8 @@ describe("GLB avatar configuration", () => {
   it("reports only first-class IDs whose exact clips loaded", () => {
     // Catches the adapter guessing semantic aliases for supplied clip names.
     expect(
-      getAvailableAnimationIds(["Idle_3", "Walking", "Orange_Justice_CC0"]),
-    ).toEqual(new Set(["idle_3", "walking", "orange_justice_cc0"]));
+      getAvailableAnimationIds(["Idle_3", "Walking", "Joyful_Dance_with_Hand_Sway"]),
+    ).toEqual(new Set(["idle_3", "walking", "joyful_dance_with_hand_sway"]));
   });
 
   it("does not invent a model path when the GLB configuration has no URL", () => {
@@ -131,11 +131,11 @@ describe("GLB avatar configuration", () => {
   it("keeps native Meshy clips and adds only missing external motions", () => {
     const nativeIdle = new AnimationClip("Idle_3", 1, []);
     const processedIdle = new AnimationClip("Idle_3", 2, []);
-    const orangeJustice = new AnimationClip("Orange_Justice_CC0", 3, []);
+    const externalWave = new AnimationClip("Wave_One_Hand", 3, []);
 
     expect(
-      combineAnimationClips([nativeIdle], [processedIdle, orangeJustice]),
-    ).toEqual([nativeIdle, orangeJustice]);
+      combineAnimationClips([nativeIdle], [processedIdle, externalWave]),
+    ).toEqual([nativeIdle, externalWave]);
   });
 
   it("keeps the stage scale independent from non-unit GLB normalization", () => {

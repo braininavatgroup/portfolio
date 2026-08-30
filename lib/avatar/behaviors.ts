@@ -84,7 +84,6 @@ export const avatarBehaviors = [
   { id: "walking", clipName: "Walking", label: "Walking", guidance: "A calm entrance, exit, or movement toward something", holdMs: 1_200, ...behaviorStyle(conversationalTone) },
   { id: "wave_one_hand", clipName: "Wave_One_Hand", label: "One-hand wave", guidance: "A casual greeting, acknowledgment, or sign-off", holdMs: standardHoldMs, ...behaviorStyle(conversationalTone) },
   { id: "swimming_to_edge", clipName: "swimming_to_edge", label: "Swimming to edge", guidance: "Reaching the end of a swim or an explicitly aquatic transition", holdMs: standardHoldMs, ...behaviorStyle(energeticTone) },
-  { id: "orange_justice_cc0", clipName: "Orange_Justice_CC0", label: "Orange Justice", guidance: "A deliberately big, game-like dance or an explicit dance request", holdMs: 2_800, ...behaviorStyle(energeticTone) },
 ] as const satisfies readonly AvatarBehaviorDefinition[];
 
 export type AllowedAnimation = (typeof avatarBehaviors)[number]["id"];

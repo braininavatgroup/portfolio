@@ -25,6 +25,37 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("reports controlled open-state changes to its parent", () => {
+    // Catches the dock returning to local state while the paired avatar remains parent-controlled.
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <PortfolioChat
+        open={false}
+        onOpenChange={onOpenChange}
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+
+    rerender(
+      <PortfolioChat
+        open
+        onOpenChange={onOpenChange}
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("starts as the compact conversation control and restores the full assistant", async () => {
     render(
       <PortfolioChat

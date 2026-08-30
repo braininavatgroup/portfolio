@@ -25,7 +25,7 @@ production-integration specification.
   `#201711`. Dark mode uses world `#19140F`, reader `#292625`, and ink
   `#F0E6DC`.
 - Operations use Electric pink `#D0007E` in light mode and Hot pink `#FF84D0`
-  in dark mode. Bridges use violet `#4D1FC5` / `#AAA0FF`; products use cyan
+  in dark mode. Bridges use violet `#4D1FC5` / `#AAA0FF`; In Production work uses cyan
   `#006E91` / `#62C6DF`.
 - `Making work playable` and `Choosing what not to automate` use Lichen
   `#466700` / Acid `#B6DF5B`. `Finding myself in software` uses Hard red
@@ -38,8 +38,8 @@ production-integration specification.
   use an Asterisk.
 - Factual marks share one optical envelope and stroke weight: formative
   influence is an open circle, operation a double circle, component an open
-  triangle, personal system a square, engagement an open diamond, and product
-  a circle with a center.
+  triangle; Personal systems use a square, engagements use an open diamond,
+  and In Production work uses a circle with a center.
 - Labels use one typographic treatment and sit below their marks.
 - Relationships use one Silverpoint treatment: thin, straight, neutral, and
   arrowless. Their internal classifications remain backstage.

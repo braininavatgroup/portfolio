@@ -13,7 +13,6 @@ import { pathToFileURL } from "node:url";
 import { processBradleyGlb } from "./process-bradley-glb";
 
 const sourcePath = "assets/avatar-sources/bradley-meshy-rigged.glb";
-const motionPath = "assets/avatar-sources/orange-justice-cc0.json";
 
 export function buildBradleyAvatar(
   modelOutputPath = "public/avatars/bradley-meshy-rigged.glb",
@@ -34,10 +33,7 @@ export function buildBradleyAvatar(
     copyFileSync(resolve(repositoryRoot, sourcePath), absoluteModelOutputPath);
     writeFileSync(
       coloredPath,
-      processBradleyGlb(
-        readFileSync(resolve(repositoryRoot, sourcePath)),
-        JSON.parse(readFileSync(resolve(repositoryRoot, motionPath), "utf8")),
-      ),
+      processBradleyGlb(readFileSync(resolve(repositoryRoot, sourcePath))),
     );
     execFileSync(gltfTransform, ["weld", coloredPath, weldedPath]);
     execFileSync(gltfTransform, [

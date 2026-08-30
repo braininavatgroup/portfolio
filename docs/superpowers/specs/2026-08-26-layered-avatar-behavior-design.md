@@ -14,7 +14,7 @@ Believability comes from causality and timing. The avatar looks because the visi
 
 ## Scope decisions
 
-- Keep the existing GLB, motion library, safe command vocabulary, target registry, renderer boundary, and persistent hide preference.
+- Keep the existing GLB, motion library, safe command vocabulary, target registry, renderer boundary, and shared assistant visibility contract.
 - Add no runtime dependency and no live capability. This is dormant branch code until the normal review and release path activates it.
 - Preserve the existing rule that avatar work never delays, clears, or invalidates answer text.
 - Use one full-body authored clip at a time. Layer independent stage translation, attention yaw, ambient sway, and tone-driven playback around that clip. The current asset does not contain a facial rig or animation masks, so this phase does not pretend to provide facial performance or true upper-body masking.

@@ -535,7 +535,7 @@ describe("OpenAI portfolio provider", () => {
         completedResponse({
           mode: "social",
           sentences: [{ text: "Here we go.", evidenceIds: [] }],
-          avatarSequence: ["wave_one_hand", "orange_justice_cc0"],
+          avatarSequence: ["wave_one_hand", "joyful_dance_with_hand_sway"],
           avatarIntent: "requested",
           avatarTone: {
             energy: "high",
@@ -562,7 +562,7 @@ describe("OpenAI portfolio provider", () => {
       avatarSequence: [
         { action: "play", animation: "wave_one_hand" },
         { action: "wait", durationMs: 1_600 },
-        { action: "play", animation: "orange_justice_cc0" },
+        { action: "play", animation: "joyful_dance_with_hand_sway" },
         { action: "wait", durationMs: 2_800 },
       ],
       avatarIntent: "requested",

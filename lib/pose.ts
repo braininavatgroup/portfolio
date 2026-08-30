@@ -48,7 +48,7 @@ const replies: Record<Exclude<PoseState, "idle">, PoseReply> = {
   building: {
     text: "Writ, Yoohoo, and Good Morning separate what shipped, what was specified, and what remains a sketch.",
     href: "/index/writ",
-    linkLabel: "Open the products",
+    linkLabel: "Open In Production",
   },
   thinking: {
     text: "The personal operating system shows where product judgment becomes a contract another agent can execute and review.",

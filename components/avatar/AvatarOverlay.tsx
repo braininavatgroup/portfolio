@@ -135,6 +135,11 @@ export function AvatarOverlay({
   }, [controller, enabled]);
 
   useEffect(() => {
+    const controllerVisible = controller.getSnapshot().visible;
+    if (controllerVisible !== enabled) onEnabledChange(controllerVisible);
+  }, [controller, enabled, onEnabledChange, snapshot.visible]);
+
+  useEffect(() => {
     if (documentVisible) return;
     if (director) {
       director.stop();

@@ -97,7 +97,7 @@ Normal chat and structured protocol fixtures cover lifecycle, tool-use, success,
 
 ## Tests and proof
 
-Vitest covers validation, unknown input rejection, wait clamping, state-to-animation fallback, target registration and unmount, live bounds, sequence order and cancellation, reduced-motion command adaptation, site-action callbacks, stream effect sanitization, preserved text on invalid effects, hide preference, and chat lifecycle integration.
+Vitest covers validation, unknown input rejection, wait clamping, state-to-animation fallback, target registration and unmount, live bounds, sequence order and cancellation, reduced-motion command adaptation, site-action callbacks, stream effect sanitization, preserved text on invalid effects, shared assistant visibility, and chat lifecycle integration.
 
 Rendered verification uses the existing Conductor workspace server and the bounded headless verification runner. It checks desktop, mobile, reduced-motion, `avatarDebug=1`, and WebGL smoke scenarios. Software WebGL proves deterministic startup only. Physical-device motion and final feel remain a walk item.
 
@@ -132,7 +132,7 @@ The production GLB should contain a Mixamo-compatible humanoid rig when possible
 7. Trigger every state and animation in the harness, then run command sequences through the protocol fixtures.
 8. Add or attach the low-poly glasses to the head bone.
 9. Optimize the final GLB and its 256 or 512 pixel texture.
-10. Test desktop, iPhone, reduced motion, WebGL failure, and hide preference.
+10. Test desktop, iPhone, reduced motion, WebGL failure, and shared chat/avatar visibility.
 11. Change the production model URL from the Quaternius placeholder to the Bradley GLB.
 12. Keep the Quaternius and procedural configurations as rollback options.
 

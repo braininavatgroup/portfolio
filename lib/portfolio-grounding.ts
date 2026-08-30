@@ -80,7 +80,7 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
       excerpt: [
         `Thread: ${thread.title}`,
         thread.lede,
-        thread.body,
+        ...thread.body,
         `Members: ${thread.members.join(", ")}`,
       ].join("\n"),
       href: `/?view=graph#thread/${thread.id}`,

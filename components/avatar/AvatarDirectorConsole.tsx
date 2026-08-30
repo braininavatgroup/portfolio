@@ -227,7 +227,7 @@ export function AvatarDirectorConsole({
       case "Dance":
         void run([
           { action: "setTone", tone: tonePresets[3]!.tone },
-          { action: "play", animation: "orange_justice_cc0" },
+          { action: "play", animation: "joyful_dance_with_hand_sway" },
           { action: "wait", durationMs: 1_200 },
           { action: "setState", state: "idle" },
         ]);
@@ -370,7 +370,7 @@ export function AvatarDirectorConsole({
               <button type="button" onClick={() => void director.handle({ type: "project_open", target: "project:dubs" })}>Simulate project hosting</button>
               <button type="button" onClick={() => void director.handle({ type: "tab_change", target: "project:dubs" })}>Simulate tab change</button>
               <button type="button" onClick={() => void director.handle({ type: "project_close" })}>Simulate project close</button>
-              <button type="button" onClick={() => void director.perform({ siteActions: [], avatarSequence: [{ action: "play", animation: "wave_one_hand" }, { action: "wait", durationMs: 1_200 }, { action: "play", animation: "orange_justice_cc0" }], avatarIntent: "requested", avatarTone: tonePresets[3]!.tone, issues: [] })}>Run wave dance performance</button>
+              <button type="button" onClick={() => void director.perform({ siteActions: [], avatarSequence: [{ action: "play", animation: "wave_one_hand" }, { action: "wait", durationMs: 1_200 }, { action: "play", animation: "joyful_dance_with_hand_sway" }], avatarIntent: "requested", avatarTone: tonePresets[3]!.tone, issues: [] })}>Run wave dance performance</button>
               <h3>Page and failure</h3>
               {debugTargets.map((target) => <button key={target} type="button" onClick={() => spotlight(target)}>Spotlight {target}</button>)}
               <button type="button" onClick={() => void siteActionExecutor.execute({ type: "clearSpotlight" })}>Clear spotlight</button>

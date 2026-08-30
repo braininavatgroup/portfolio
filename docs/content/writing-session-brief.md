@@ -45,7 +45,7 @@ rendered. The current copy is migrated placeholder — every word is replaceable
    - *Choosing what not to automate* → the operations story: one campaign
      walked end-to-end (kickoff → pitching → reporting); where automation
      stops and taste stays should emerge from the walk.
-   - *Making work playable* → the products story: what the human's hands are
+   - *Making work playable* → the In Production story: what the human's hands are
      holding (dubs, writ, yoohoo, alarm, personal-os). Complement, not
      overlap: one thread is what you keep, the other is how you hold it.
    - *Finding myself in software* → a real chronological arc with curated

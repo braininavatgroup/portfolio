@@ -650,7 +650,11 @@ export function PortfolioWorld({
           width,
           height,
         );
-        node.labelLines = wrapLabel(node.label, measure);
+        node.labelLines = wrapLabel(
+          node.label,
+          measure,
+          width <= 600 ? 96 : LABEL_MAX_WIDTH,
+        );
         const button = buttonRefs.current.get(node.id);
         if (button && node.screen) {
           button.style.left = `${(node.screen.x / width) * 100}%`;
@@ -769,6 +773,9 @@ export function PortfolioWorld({
       <div className="portfolio-world-mast" aria-hidden="true">
         Bradley Berkman
       </div>
+      <p className="portfolio-world-hint" aria-hidden="true">
+        Tap a point to read
+      </p>
       {portfolioWorldNodes.map((node) => (
         <button
           aria-label={`${node.kind} ${node.label}`}
@@ -1057,14 +1064,34 @@ function drawNode(
   }
   context.restore();
 
+  const compact = world.clientWidth <= 600;
+  const showLabel =
+    !compact ||
+    node.family === "story" ||
+    world.dataset.selectedNode === node.id;
+  if (!showLabel) return;
+
   context.save();
   context.globalAlpha = node.alpha;
-  context.font = FONT;
+  context.font = compact
+    ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    : FONT;
   context.fillStyle = ink;
   context.textBaseline = "middle";
-  context.textAlign = "center";
+  const labelLineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
+  const labelX = compact
+    ? point.x + (point.x < world.clientWidth / 2 ? -12 : 12)
+    : point.x;
+  const labelY = compact
+    ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
+    : point.y + 18 + LABEL_LINE_HEIGHT * 0.5;
+  context.textAlign = compact
+    ? point.x < world.clientWidth / 2
+      ? "right"
+      : "left"
+    : "center";
   node.labelLines.forEach((line, index) => {
-    context.fillText(line, point.x, point.y + 18 + LABEL_LINE_HEIGHT * (index + 0.5));
+    context.fillText(line, labelX, labelY + labelLineHeight * index);
   });
   context.restore();
 }

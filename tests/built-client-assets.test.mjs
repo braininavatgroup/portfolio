@@ -52,8 +52,18 @@ test("the production build copies the configured Bradley avatar byte-for-byte", 
 
   const jsonLength = glb.readUInt32LE(12);
   const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
-  assert.ok(
-    json.animations.some(({ name }) => name === "Orange_Justice_CC0"),
-    "built avatar includes the CC0 Orange Justice clip",
+  assert.deepEqual(
+    json.animations.map(({ name }) => name),
+    [
+      "Idle_3",
+      "Walking",
+      "Wake_Up_and_Look_Up",
+      "Agree_Gesture",
+      "Wave_One_Hand",
+      "Big_Wave_Hello",
+      "Cheer_with_Both_Hands_1",
+      "Shrug",
+    ],
+    "built motion library contains only the selected Meshy clips",
   );
 });

@@ -22,7 +22,7 @@ Unknown keys and values are removed by `lib/avatar/validation.ts`. Model output 
 
 Avatar states are `hidden`, `entering`, `idle`, `listening`, `thinking`, `tool_use`, `talking`, `success`, `confused`, `error`, and `exiting`.
 
-The first-class behavior catalog is defined in `lib/avatar/behaviors.ts`. It contains the twenty Meshy clips plus Orange Justice. Every behavior remains available whenever the provider or lab selects it. An ordinary answer selects one behavior; a requested performance or meaningful emotional progression may select two or three. Each selected clip carries its registry-owned visible hold, including the last clip, before turn cleanup returns the actor to idle.
+The first-class behavior catalog is defined in `lib/avatar/behaviors.ts`. It contains the twenty native Meshy clips. Every behavior remains available whenever the provider or lab selects it. An ordinary answer selects one behavior; a requested performance or meaningful emotional progression may select two or three. Each selected clip carries its registry-owned visible hold, including the last clip, before turn cleanup returns the actor to idle.
 
 The model also supplies:
 
@@ -132,10 +132,10 @@ Do not transform or overwrite the recoverable source by hand.
 
 **A sequence continues after ownership changed.** Every new runner call aborts the prior one. Movement completion also verifies that its motion ID still owns the snapshot.
 
-**The hide preference does not stick.** The versioned key is `portfolio-avatar-enabled:v1`; clear it to restore the visible default.
+**Chat and avatar visibility drift apart.** `PortfolioExperience` owns the shared `assistantOpen` state. Check that chat open changes and controller visibility changes both flow through `setAssistantVisibility`; visibility is no longer stored in local storage.
 
 ## Proof boundary
 
-Permanent tests cover the bounded contract, every behavior, no-repeat ambient selection, priority, cancellation, collision-aware geometry, travel duration, renderer mappings, chat lifecycle, direct navigation, provider timing, reduced motion, and lab controls.
+Permanent tests cover the bounded contract, every behavior, no-repeat ambient selection, priority, cancellation, collision-aware geometry, travel duration, renderer mappings, shared chat/avatar visibility, chat lifecycle, direct navigation, provider timing, reduced motion, and lab controls.
 
 Combined browser evidence is written to `.context/verification/full-page-avatar-stage-2026-08-26` when the local verifier is available. It covers desktop and mobile lab scenarios, including reduced motion, target routing, console controls, lifecycle cancellation, renderer isolation, and chat. SwiftShader proves the deterministic WebGL smoke lane only; motion feel, animation blending, physical-device GPU rendering, accessibility, and final likeness remain human walk items.

@@ -27,7 +27,6 @@ const expectedIds = [
   "walking",
   "wave_one_hand",
   "swimming_to_edge",
-  "orange_justice_cc0",
 ] as const;
 
 const expectedClipNames = [
@@ -51,7 +50,6 @@ const expectedClipNames = [
   "Walking",
   "Wave_One_Hand",
   "swimming_to_edge",
-  "Orange_Justice_CC0",
 ] as const;
 
 describe("avatar behavior registry", () => {
@@ -62,8 +60,8 @@ describe("avatar behavior registry", () => {
     expect(avatarBehaviors.map(({ clipName }) => clipName)).toEqual(
       expectedClipNames,
     );
-    expect(new Set(expectedIds).size).toBe(21);
-    expect(new Set(expectedClipNames).size).toBe(21);
+    expect(new Set(expectedIds).size).toBe(20);
+    expect(new Set(expectedClipNames).size).toBe(20);
   });
 
   it("describes every allowed behavior to the portfolio agent", () => {
@@ -91,11 +89,11 @@ describe("avatar behavior registry", () => {
   it("expands a multi-behavior performance with registry-owned timing", () => {
     // Catches any selected clip being replaced before its visible hold completes.
     expect(
-      expandAvatarSequence(["wave_one_hand", "orange_justice_cc0"]),
+      expandAvatarSequence(["wave_one_hand", "joyful_dance_with_hand_sway"]),
     ).toEqual([
       { action: "play", animation: "wave_one_hand" },
       { action: "wait", durationMs: 1_600 },
-      { action: "play", animation: "orange_justice_cc0" },
+      { action: "play", animation: "joyful_dance_with_hand_sway" },
       { action: "wait", durationMs: 2_800 },
     ]);
   });

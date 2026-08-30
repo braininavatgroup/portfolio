@@ -89,16 +89,6 @@ describe("production avatar asset", () => {
       .toBeLessThanOrEqual(1);
   });
 
-  it("keeps Orange Justice in a separate compatible motion library", () => {
-    const glb = readGlbJson(
-      resolve(process.cwd(), "public/avatars/bradley-motion-library.glb"),
-    );
-    const clipNames = new Set<string>(
-      (glb.animations ?? []).map((animation: { name?: string }) => animation.name),
-    );
-    expect(clipNames).toContain("Orange_Justice_CC0");
-  });
-
   it("ships every registered clip across the exact model and motion library", () => {
     // Catches a first-class behavior whose exact animation is absent at runtime.
     const model = readGlbJson(
@@ -114,6 +104,6 @@ describe("production avatar asset", () => {
     );
 
     expect(avatarBehaviors.map(({ clipName }) => shippedNames.has(clipName)))
-      .toEqual(Array.from({ length: 21 }, () => true));
+      .toEqual(Array.from({ length: 20 }, () => true));
   });
 });

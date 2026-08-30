@@ -165,7 +165,7 @@ describe("AvatarDirectorConsole", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Dance" }));
     await act(async () => { await Promise.resolve(); });
-    expect(controller.getSnapshot().animation).toBe("orange_justice_cc0");
+    expect(controller.getSnapshot().animation).toBe("joyful_dance_with_hand_sway");
     await advance(1_200);
     expect(controller.getSnapshot().state).toBe("idle");
   });
@@ -186,7 +186,7 @@ describe("AvatarDirectorConsole", () => {
 
     expect(runOperatorSequence).toHaveBeenNthCalledWith(1, [
       { action: "setTone", tone: { energy: "high", warmth: "warm", confidence: "assured", mischief: "playful" } },
-      { action: "play", animation: "orange_justice_cc0" },
+      { action: "play", animation: "joyful_dance_with_hand_sway" },
       { action: "wait", durationMs: 1_200 },
       { action: "setState", state: "idle" },
     ]);
@@ -265,7 +265,7 @@ describe("AvatarDirectorConsole", () => {
     expect(commands).toEqual([]);
 
     fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
-    fireEvent.click(screen.getByRole("button", { name: "Orange Justice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Joyful hand-sway dance" }));
     fireEvent.click(screen.getByRole("button", { name: "Point at hero" }));
     fireEvent.click(screen.getByRole("button", { name: "State: thinking" }));
     fireEvent.click(screen.getByRole("button", { name: "Spotlight hero" }));

@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { Euler, Quaternion } from "three";
 
 type GlbAccessor = {
   bufferView: number;
@@ -62,37 +61,7 @@ const meshyAnimationNames = [
   "Shrug",
 ] as const;
 
-export const bradleyAnimationNames = [
-  ...meshyAnimationNames,
-  "Orange_Justice_CC0",
-] as const;
-
-type OrangeJusticePart = {
-  pitch?: number;
-  roll?: number;
-  yaw?: number;
-};
-
-export type OrangeJusticeSource = {
-  emote: {
-    endTick: number;
-    moves: Array<{
-      easing?: "EASEINOUTQUAD" | "LINEAR";
-      tick: number;
-      head?: OrangeJusticePart;
-      leftArm?: OrangeJusticePart;
-      leftLeg?: OrangeJusticePart;
-      rightArm?: OrangeJusticePart;
-      rightLeg?: OrangeJusticePart;
-      torso?: OrangeJusticePart;
-    }>;
-  };
-};
-
-type OrangeJusticePartName = Exclude<
-  keyof OrangeJusticeSource["emote"]["moves"][number],
-  "easing" | "tick"
->;
+export const bradleyAnimationNames = meshyAnimationNames;
 
 const palette = {
   hair: [43, 35, 32, 255],
@@ -187,135 +156,11 @@ function accessorReader(json: GlbJson, binary: Buffer, accessorIndex: number) {
   };
 }
 
-function appendAccessor(
-  json: GlbJson,
-  binary: Buffer,
-  data: Buffer,
-  accessor: Omit<GlbAccessor, "bufferView"> & { max?: number[]; min?: number[] },
-) {
-  const byteOffset = align4(binary.length);
-  const expanded = Buffer.alloc(byteOffset + data.length);
-  binary.copy(expanded);
-  data.copy(expanded, byteOffset);
-  const bufferView =
-    json.bufferViews.push({ buffer: 0, byteLength: data.length, byteOffset }) - 1;
-  const accessorIndex = json.accessors.push({ ...accessor, bufferView }) - 1;
-  return { accessorIndex, binary: expanded };
-}
-
-function floatBuffer(values: readonly number[]) {
-  const buffer = Buffer.alloc(values.length * 4);
-  values.forEach((value, index) => buffer.writeFloatLE(value, index * 4));
-  return buffer;
-}
-
-function interpolateProperty(
-  source: OrangeJusticeSource,
-  part: OrangeJusticePartName,
-  property: keyof OrangeJusticePart,
-  tick: number,
-) {
-  const keyframes = [{ easing: "LINEAR" as const, tick: 0, value: 0 }, ...source.emote.moves
-    .flatMap((move) => {
-      const value = move[part]?.[property];
-      return value === undefined
-        ? []
-        : [{ easing: move.easing ?? "LINEAR", tick: move.tick, value }];
-    })
-  ].sort((left, right) => left.tick - right.tick);
-  const previous = [...keyframes].reverse().find((keyframe) => keyframe.tick <= tick);
-  const next = keyframes.find((keyframe) => keyframe.tick >= tick);
-  if (!previous) return 0;
-  if (!next || next.tick === previous.tick) return previous.value;
-  const progress = (tick - previous.tick) / (next.tick - previous.tick);
-  const easedProgress =
-    next.easing === "EASEINOUTQUAD"
-      ? progress < 0.5
-        ? 2 * progress * progress
-        : 1 - ((-2 * progress + 2) ** 2) / 2
-      : progress;
-  return previous.value + (next.value - previous.value) * easedProgress;
-}
-
-export function sampleOrangeJusticeRotation(
-  source: OrangeJusticeSource,
-  part: OrangeJusticePartName,
-  tick: number,
-) {
-  return [
-    interpolateProperty(source, part, "pitch", tick),
-    interpolateProperty(source, part, "yaw", tick),
-    interpolateProperty(source, part, "roll", tick),
-  ] as const;
-}
-
-function appendOrangeJusticeAnimation(
-  json: GlbJson,
-  initialBinary: Buffer,
-  source: OrangeJusticeSource,
-) {
-  const boneTargets = {
-    head: "Head",
-    torso: "Spine01",
-    leftArm: "LeftArm",
-    rightArm: "RightArm",
-    leftLeg: "LeftUpLeg",
-    rightLeg: "RightUpLeg",
-  } as const;
-  const ticks = Array.from({ length: source.emote.endTick + 1 }, (_, tick) => tick);
-  const times = ticks.map((tick) => tick / 20);
-  let binary = initialBinary;
-  const channels = [];
-  const samplers = [];
-
-  for (const [part, boneName] of Object.entries(boneTargets) as Array<
-    [keyof typeof boneTargets, (typeof boneTargets)[keyof typeof boneTargets]]
-  >) {
-    const nodeIndex = json.nodes.findIndex((node) => node.name === boneName);
-    if (nodeIndex < 0) throw new Error(`Missing Orange Justice target bone: ${boneName}`);
-    const baseRotation = new Quaternion(
-      ...(json.nodes[nodeIndex].rotation ?? [0, 0, 0, 1]),
-    );
-    const rotations = ticks.flatMap((tick) => {
-      const [pitch, yaw, roll] = sampleOrangeJusticeRotation(source, part, tick);
-      const delta = new Quaternion().setFromEuler(new Euler(pitch, yaw, roll, "XYZ"));
-      return baseRotation.clone().multiply(delta).normalize().toArray();
-    });
-    const timeResult = appendAccessor(json, binary, floatBuffer(times), {
-      componentType: 5126,
-      count: times.length,
-      max: [times.at(-1) ?? 0],
-      min: [0],
-      type: "SCALAR",
-    });
-    binary = timeResult.binary;
-    const rotationResult = appendAccessor(json, binary, floatBuffer(rotations), {
-      componentType: 5126,
-      count: ticks.length,
-      type: "VEC4",
-    });
-    binary = rotationResult.binary;
-    const sampler = samplers.push({
-      input: timeResult.accessorIndex,
-      interpolation: "LINEAR" as const,
-      output: rotationResult.accessorIndex,
-    }) - 1;
-    channels.push({ sampler, target: { node: nodeIndex, path: "rotation" as const } });
-  }
-
-  json.animations.push({
-    channels,
-    name: "Orange_Justice_CC0",
-    samplers,
-  });
-  return binary;
-}
-
 export function readGlbJson(input: Buffer) {
   return parseGlb(input).json;
 }
 
-export function processBradleyGlb(input: Buffer, orangeJustice: OrangeJusticeSource) {
+export function processBradleyGlb(input: Buffer) {
   const { binary, json } = parseGlb(input);
   const primitive = json.meshes[0]?.primitives[0];
   const skin = json.skins[0];
@@ -380,24 +225,18 @@ export function processBradleyGlb(input: Buffer, orangeJustice: OrangeJusticeSou
     if (!animation) throw new Error(`Missing required Meshy animation: ${name}`);
     return animation;
   });
-  const finalBinary = appendOrangeJusticeAnimation(json, expandedBinary, orangeJustice);
-  json.buffers[0].byteLength = finalBinary.length;
+  json.buffers[0].byteLength = expandedBinary.length;
 
-  return writeGlb({ binary: finalBinary, json });
+  return writeGlb({ binary: expandedBinary, json });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [, , inputPath, motionPath, outputPath] = process.argv;
-  if (!inputPath || !motionPath || !outputPath) {
-    throw new Error(
-      "Usage: tsx process-bradley-glb.ts <input.glb> <orange-justice.json> <output.glb>",
-    );
+  const [, , inputPath, outputPath] = process.argv;
+  if (!inputPath || !outputPath) {
+    throw new Error("Usage: tsx process-bradley-glb.ts <input.glb> <output.glb>");
   }
   writeFileSync(
     outputPath,
-    processBradleyGlb(
-      readFileSync(inputPath),
-      JSON.parse(readFileSync(motionPath, "utf8")),
-    ),
+    processBradleyGlb(readFileSync(inputPath)),
   );
 }

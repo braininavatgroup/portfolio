@@ -86,7 +86,7 @@
 
 1. Add failing integration tests proving the roster always uses the canonical ordered output nodes, normal `KeyboardNavigator` and `AvatarOverlay` are absent only during an active game, controller/runner updates continue, current controller state returns on exit, chooser does not mount a second avatar, and renderer failure restores normal behavior.
 2. Run the focused test and confirm red.
-3. Lazy-load the toybox, project output nodes to immutable ID/label/token-kind values, pass live eligibility from avatar preference/mount/controller snapshot, and conditionally compose normal navigation/avatar rendering.
+3. Lazy-load the toybox, project output nodes to immutable ID/label/token-kind values, pass live eligibility from assistant mount/controller snapshot, and conditionally compose normal navigation/avatar rendering.
 4. Add responsive field, modal, HUD, collectible, hitbox, result, reduced-motion, focus, and forced-exit styling. Do not alter normal graph geometry or normal avatar pointer behavior.
 5. Extend the client asset test to record/limit the lazy chunk rather than silently accepting a material bundle increase.
 6. Run focused tests, lint, and build; commit as `86bbmpmmf: integrate hidden avatar toybox`.

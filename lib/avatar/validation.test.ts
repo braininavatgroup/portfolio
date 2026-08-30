@@ -102,14 +102,14 @@ describe("avatar effects validation", () => {
     expect(
       parsePortfolioResponseEffects({
         avatarSequence: [
-          { action: "play", animation: "orange_justice_cc0" },
+          { action: "play", animation: "joyful_dance_with_hand_sway" },
           { action: "play", animation: "dance" },
         ],
       }),
     ).toEqual({
       siteActions: [],
       avatarSequence: [
-        { action: "play", animation: "orange_justice_cc0" },
+        { action: "play", animation: "joyful_dance_with_hand_sway" },
       ],
       issues: [
         "avatarSequence[1].animation must be an allowed animation",

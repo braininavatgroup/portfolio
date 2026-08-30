@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import {
   portfolioContact,
   portfolioThreads,
   portfolioThreadById,
-  portfolioWorldIndexGroups,
+  portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
   type PortfolioWorldNode,
@@ -36,7 +35,7 @@ function IndexRow({
   return (
     <button aria-label={node.label} className="reader-index-row" onClick={() => onSelect(node)} type="button">
       <span>{node.label}</span>
-      <span aria-hidden="true">↗</span>
+      <span aria-hidden="true">→</span>
       <small>{node.kind}</small>
     </button>
   );
@@ -49,35 +48,38 @@ function ReaderIndex({
   return (
     <div className="reader-content reader-index-content">
       <h1>Index</h1>
-      <p className="reader-summary">Systems, products, and the work around them</p>
-      <section className="reader-index-group reader-thread-index">
-        <h2>Threads</h2>
-        {portfolioThreads.map((thread) => (
-          <button
-            aria-label={thread.title}
-            className="reader-index-row"
-            key={thread.id}
-            onClick={() => onSelectThread(thread.id)}
-            type="button"
-          >
-            <span>{thread.title}</span>
-            <span aria-hidden="true">↗</span>
-            <small>Thread</small>
-          </button>
-        ))}
-      </section>
-      {portfolioWorldIndexGroups.map((group) => (
-        <section className="reader-index-group" key={group.id}>
-          <h2>{group.title}</h2>
-          {group.nodeIds.map((nodeId) => {
-            const node = portfolioWorldNodeById.get(nodeId);
-            return node ? <IndexRow key={node.id} node={node} onSelect={onSelect} /> : null;
-          })}
-        </section>
-      ))}
-      <footer className="reader-footer">
-        <Link href="/index">View as list</Link>
-      </footer>
+      {portfolioWorldIndexSections.map((section) => {
+        if (section.type === "threads") {
+          return (
+            <section className="reader-index-group reader-thread-index" key={section.id}>
+              <h2>{section.title}</h2>
+              {portfolioThreads.map((thread) => (
+                <button
+                  aria-label={thread.title}
+                  className="reader-index-row"
+                  key={thread.id}
+                  onClick={() => onSelectThread(thread.id)}
+                  type="button"
+                >
+                  <span>{thread.title}</span>
+                  <span aria-hidden="true">→</span>
+                  <small>Thread</small>
+                </button>
+              ))}
+            </section>
+          );
+        }
+
+        return (
+          <section className="reader-index-group" key={section.id}>
+            <h2>{section.title}</h2>
+            {section.nodeIds.map((nodeId) => {
+              const node = portfolioWorldNodeById.get(nodeId);
+              return node ? <IndexRow key={node.id} node={node} onSelect={onSelect} /> : null;
+            })}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -91,12 +93,16 @@ function ThreadRecord({
 }) {
   const thread = portfolioThreadById.get(threadId);
   if (!thread) return null;
+  const register =
+    portfolioWorldNodeById.get(thread.nodeId)?.register ?? "story";
   return (
     <div className="reader-content reader-thread-content">
-      <p className="reader-kind" data-thread={thread.id}>Thread</p>
+      <p className="reader-kind" data-register={register}>Thread</p>
       <h1>{thread.title}</h1>
       <p className="reader-summary">{thread.lede}</p>
-      <section className="reader-record-section"><p>{thread.body}</p></section>
+      <section className="reader-record-section">
+        {thread.body.map((paragraph) => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}
+      </section>
       <section className="reader-record-section">
         <h2>Explore this thread</h2>
         {thread.members.map((nodeId) => {
@@ -151,7 +157,7 @@ function WorldRecord({
           <span aria-hidden="true"> / </span>{node.label}
         </p>
       ) : null}
-      <p className="reader-kind">{node.kind}</p>
+      <p className="reader-kind" data-register={node.register}>{node.kind}</p>
       <h1>{node.label}</h1>
       <p className="reader-summary">{node.summary}</p>
       {node.principle ? (
@@ -173,7 +179,7 @@ function WorldRecord({
               onClick={() => onSelectThread(thread.id)}
               type="button"
             >
-              <span>{thread.title}</span><span aria-hidden="true">↗</span><small>Thread</small>
+              <span>{thread.title}</span><span aria-hidden="true">→</span><small>Thread</small>
             </button>
           ))}
         </section>

@@ -20,6 +20,27 @@ const baseProps = {
 };
 
 describe("PortfolioReader", () => {
+  it("presents the portfolio sections in the shared editorial order", () => {
+    const { container } = render(<PortfolioReader {...baseProps} />);
+
+    expect(
+      [...container.querySelectorAll(".reader-index-group h2")].map(
+        (heading) => heading.textContent,
+      ),
+    ).toEqual([
+      "About",
+      "Threads",
+      "Operations",
+      "Music promotions systems",
+      "Client systems",
+      "Personal systems",
+      "In Production",
+    ]);
+    expect(
+      screen.queryByText("Operations, systems, and work in production"),
+    ).toBeNull();
+  });
+
   it("uses the same compact row contract for Threads as the rest of the Index", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
 
@@ -29,9 +50,12 @@ describe("PortfolioReader", () => {
       expect(screen.queryByText(thread.lede)).toBeNull();
     }
     expect(container.querySelector(".reader-thread-row")).toBeNull();
-    expect(
-      screen.getByRole("link", { name: "View as list" }).getAttribute("href"),
-    ).toBe("/index");
+  });
+
+  it("does not add a redundant alternate-index link inside the reader", () => {
+    render(<PortfolioReader {...baseProps} />);
+
+    expect(screen.queryByRole("link", { name: "View as list" })).toBeNull();
   });
 
   it("keeps the editorial copy on the Thread page", () => {
@@ -45,7 +69,9 @@ describe("PortfolioReader", () => {
     );
 
     expect(screen.getByText(thread.lede)).toBeTruthy();
-    expect(screen.getByText(thread.body)).toBeTruthy();
+    for (const paragraph of thread.body) {
+      expect(screen.getByText(paragraph)).toBeTruthy();
+    }
   });
 
   it("renders the complete record", () => {

@@ -8,9 +8,9 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AvatarController } from "../lib/avatar/controller";
-import { avatarEnabledStorageKey } from "../lib/avatar/preference";
+import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
@@ -63,7 +63,10 @@ vi.mock("./avatar/AvatarOverlay", async () => {
         commands.current.push(command);
       }
       return (
-        <section aria-label="Test avatar overlay">
+        <section
+          aria-label="Test avatar overlay"
+          data-enabled={enabled ? "true" : "false"}
+        >
           {debug && development ? (
             <div
               aria-label="Avatar Director console"
@@ -161,17 +164,6 @@ function mockMatchMedia(reducedMotion = false) {
   }));
 }
 
-let portfolioStorageValues: Map<string, string>;
-
-beforeEach(() => {
-  portfolioStorageValues = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    getItem: (key: string) => portfolioStorageValues.get(key) ?? null,
-    setItem: (key: string, value: string) =>
-      portfolioStorageValues.set(key, value),
-  });
-});
-
 async function renderExperience(initialPhase: "body" | "graph" = "graph") {
   mockMatchMedia();
   if (initialPhase === "graph" && !window.location.search) {
@@ -183,6 +175,7 @@ async function renderExperience(initialPhase: "body" | "graph" = "graph") {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   Reflect.deleteProperty(globalThis, "__portfolioTestAvatarRunner");
@@ -222,6 +215,79 @@ async function askExperience(question: string) {
 }
 
 describe("spatial self-portrait", () => {
+  it("switches the phone composition between Index and Map", async () => {
+    await renderExperience("graph");
+    const experience = document.getElementById("main-content")!;
+
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    const mapToggle = screen.getByRole("button", { name: "Show portfolio map" });
+    expect(mapToggle.textContent).toBe("");
+    expect(mapToggle.querySelector("svg[aria-hidden='true']")).toBeTruthy();
+    fireEvent.click(mapToggle);
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Show portfolio index" }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "In Production Dubs" }),
+    );
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+  });
+
+  it("runs ambient avatar motion only while the assistant pair is visible", async () => {
+    const startAmbient = vi.spyOn(AvatarDirector.prototype, "startAmbient");
+    const stop = vi.spyOn(AvatarDirector.prototype, "stop");
+
+    await renderExperience("graph");
+
+    expect(startAmbient).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    await waitFor(() => expect(startAmbient).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+    await waitFor(() => expect(stop).toHaveBeenCalled());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    await waitFor(() => expect(startAmbient).toHaveBeenCalledTimes(2));
+  });
+
+  it("reveals and minimizes the avatar with the assistant panel", async () => {
+    await renderExperience("graph");
+
+    const avatar = await screen.findByLabelText("Test avatar overlay");
+    expect(avatar.getAttribute("data-enabled")).toBe("false");
+    expect(
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    expect(avatar.getAttribute("data-enabled")).toBe("true");
+    expect(
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(false);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+    expect(avatar.getAttribute("data-enabled")).toBe("false");
+    expect(
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(true);
+  });
+
   it("renders the accepted one-world composition with its shared reader", async () => {
     await renderExperience("graph");
 
@@ -236,7 +302,7 @@ describe("spatial self-portrait", () => {
       screen.getByRole("button", { name: "Choosing what not to automate" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Finding myself in software" }),
+      screen.getByRole("button", { name: "From argument to instrument" }),
     ).toBeTruthy();
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
@@ -267,7 +333,7 @@ describe("spatial self-portrait", () => {
       screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Product Dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "In Production Dubs" }));
     expect(window.location.hash).toBe("#thread/making-work-playable");
     expect(
       screen.getByRole("complementary", { name: "Making work playable thread" }),
@@ -464,7 +530,7 @@ describe("spatial self-portrait", () => {
     expect(
       screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
-    expect(screen.getByText(/movement of an idea/)).toBeTruthy();
+    expect(screen.getByText(/human thinking in the age of agents/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
 
@@ -582,7 +648,7 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("button", { name: "Product Dubs" })
+        .getByRole("button", { name: "In Production Dubs" })
         .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(scrollTo).toHaveBeenCalledTimes(1);
@@ -621,15 +687,19 @@ describe("spatial self-portrait", () => {
     await renderExperience();
 
     await askExperience("Spotlight index");
-    expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }).className,
-    ).toContain("avatar-spotlight");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("complementary", { name: "Portfolio index" }).className,
+      ).toContain("avatar-spotlight"),
+    );
 
     await askExperience("Spotlight Dubs");
     const project = await screen.findByRole("complementary", {
       name: "Dubs record",
     });
-    expect(project.className).toContain("avatar-spotlight");
+    await waitFor(() =>
+      expect(project.className).toContain("avatar-spotlight"),
+    );
 
     await askExperience("Clear spotlight");
     await waitFor(() =>
@@ -668,10 +738,12 @@ describe("spatial self-portrait", () => {
         "lookAt",
       ),
     );
-    expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
-      "enter",
-    );
-    expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
+    await waitFor(() => {
+      expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
+        "enter",
+      );
+      expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
+    });
   });
 
   it("does not resume an in-flight effect sequence after a new turn starts", async () => {
@@ -861,10 +933,9 @@ describe("spatial self-portrait", () => {
     expect(await screen.findByLabelText("Test avatar overlay")).toBeTruthy();
   });
 
-  it("lets Shift+G open the game despite the retired avatar visibility preference", async () => {
+  it("lets Shift+G open the game while the assistant pair is minimized", async () => {
     mockMatchMedia();
     Object.defineProperty(document, "hidden", { configurable: true, value: false });
-    portfolioStorageValues.set(avatarEnabledStorageKey, "false");
     const shell = document.body.appendChild(document.createElement("div"));
     shell.id = "app-shell";
     const portal = document.body.appendChild(document.createElement("div"));

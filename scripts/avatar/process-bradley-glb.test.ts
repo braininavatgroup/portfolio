@@ -5,23 +5,15 @@ import {
   bradleyAnimationNames,
   processBradleyGlb,
   readGlbJson,
-  sampleOrangeJusticeRotation,
 } from "./process-bradley-glb";
 
 describe("Bradley Meshy asset processing", () => {
   const source = readFileSync(
     resolve(process.cwd(), "assets/avatar-sources/bradley-meshy-rigged.glb"),
   );
-  const orangeJustice = JSON.parse(
-    readFileSync(
-      resolve(process.cwd(), "assets/avatar-sources/orange-justice-cc0.json"),
-      "utf8",
-    ),
-  );
-
   it("adds a body-region palette while preserving the humanoid skin", () => {
     // Catches a PS1 conversion that produces an unrigged or monochrome actor.
-    const output = processBradleyGlb(source, orangeJustice);
+    const output = processBradleyGlb(source);
     const glb = readGlbJson(output);
     const primitive = glb.meshes[0].primitives[0];
 
@@ -49,56 +41,11 @@ describe("Bradley Meshy asset processing", () => {
 
   it("keeps only the clips used by the portfolio behavior vocabulary", () => {
     // Catches an export that ships 20 costly clips while omitting an actual state clip.
-    const glb = readGlbJson(processBradleyGlb(source, orangeJustice));
+    const glb = readGlbJson(processBradleyGlb(source));
 
     expect(glb.animations.map((animation) => animation.name)).toEqual(
       bradleyAnimationNames,
     );
   });
 
-  it("retargets the CC0 Orange Justice motion onto the Meshy humanoid rig", () => {
-    // Catches a named placeholder that ships without usable body animation tracks.
-    const glb = readGlbJson(processBradleyGlb(source, orangeJustice));
-    const animation = glb.animations.find(
-      (candidate: { name?: string }) => candidate.name === "Orange_Justice_CC0",
-    );
-    if (!animation?.channels || !animation.samplers) {
-      throw new Error("Orange Justice animation is missing its retargeted tracks");
-    }
-    const targetNames = new Set(
-      animation.channels.map(
-        (channel: { target: { node: number } }) => glb.nodes[channel.target.node].name,
-      ),
-    );
-
-    expect(targetNames).toEqual(
-      new Set(["Head", "Spine01", "LeftArm", "RightArm", "LeftUpLeg", "RightUpLeg"]),
-    );
-    expect(animation.channels).toHaveLength(6);
-    expect(animation.samplers).toHaveLength(6);
-
-    const leftArmSamples = Array.from({ length: 141 }, (_, tick) =>
-      sampleOrangeJusticeRotation(orangeJustice, "leftArm", tick),
-    );
-    const pitchRange = Math.max(...leftArmSamples.map(([pitch]) => pitch)) -
-      Math.min(...leftArmSamples.map(([pitch]) => pitch));
-    const rollRange = Math.max(...leftArmSamples.map(([, , roll]) => roll)) -
-      Math.min(...leftArmSamples.map(([, , roll]) => roll));
-    expect(pitchRange).toBeGreaterThan(2.5);
-    expect(rollRange).toBeGreaterThan(5);
-
-    const startYaw = sampleOrangeJusticeRotation(orangeJustice, "head", 5)[1];
-    const nextYaw = sampleOrangeJusticeRotation(orangeJustice, "head", 10)[1];
-    const easedYaw = sampleOrangeJusticeRotation(orangeJustice, "head", 6)[1];
-    expect(easedYaw).toBeCloseTo(startYaw + (nextYaw - startYaw) * 0.08, 6);
-    expect(
-      readFileSync(
-        resolve(
-          process.cwd(),
-          "assets/avatar-sources/orange-justice-CC0-LICENSE.txt",
-        ),
-        "utf8",
-      ),
-    ).toContain("CC0 1.0 Universal");
-  });
 });

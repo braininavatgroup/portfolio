@@ -36,11 +36,11 @@ The grounded floor is a horizontal lane near the bottom safe area. In the avatar
 
 `AvatarOverlay` becomes `position: fixed; inset: 0` with `pointer-events: none`. One transparent React Three Fiber canvas spans the viewport. Interactive DOM stays above the canvas and keeps pointer ownership.
 
-An orthographic camera makes screen-to-world mapping deterministic. The stage actor converts CSS-pixel foot coordinates into orthographic world coordinates and keeps the visible model at the current approximate pixel height across viewport sizes. The model, motion library, animation mixer, tone, reduced-motion mapping, renderer boundary, hide preference, and availability checks remain unchanged.
+An orthographic camera makes screen-to-world mapping deterministic. The stage actor converts CSS-pixel foot coordinates into orthographic world coordinates and keeps the visible model at the current approximate pixel height across viewport sizes. The model, motion library, animation mixer, tone, reduced-motion mapping, renderer boundary, shared assistant visibility, and availability checks remain unchanged.
 
 The renderer samples each path on animation frames. Grounded paths remain horizontal and use the walking or running clip. Swim paths follow all x/y waypoints and use a registered swimming clip. Facing follows the current segment. Pointing and gaze still resolve from the actor's foot position to the target center.
 
-The current separate floating avatar toggle moves into the Director console in lab and debug modes. The public portfolio retains one compact hide/show control positioned outside the actor's travel area.
+The Director console retains development visibility controls. The public portfolio uses the compact chat bubble to reveal or minimize the chat and avatar together.
 
 ## Interface map and routing
 
@@ -80,7 +80,7 @@ The console has four tabs:
 1. **Scenes** presents large one-click routines: Greet, Present project, Answer, Celebrate, Dance, Swim lap, and Come home. Each scene calls the same director, runner, controller, and site-action interfaces used by the live portfolio.
 2. **Target** shows a live miniature of registered stage regions. Selecting a region exposes only the applicable actions, such as Walk, Swim, Look, Point, Present, and Spotlight.
 3. **Movement** provides grounded and swimming entrances, exits, routes, and return-to-dock controls.
-4. **Advanced** contains the complete state list, all twenty-one behavior clips, tone presets, context simulations, page actions, failure controls, and raw diagnostics.
+4. **Advanced** contains the complete state list, all twenty behavior clips, tone presets, context simulations, page actions, failure controls, and raw diagnostics.
 
 Desktop uses a bounded bottom dock. Small screens use a bottom sheet with the same tab order, large touch targets, and no horizontal overflow. Closing or collapsing the console never cancels the avatar.
 

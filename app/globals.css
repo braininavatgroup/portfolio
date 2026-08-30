@@ -372,7 +372,7 @@ body {
 }
 
 .dossier-footer a::after {
-  content: " ↗";
+  content: " ↗︎";
 }
 
 .graph-node-label {
@@ -661,6 +661,7 @@ body {
 }
 
 .avatar-overlay-canvas {
+  animation: assistant-avatar-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   inset: 0;
   pointer-events: none !important;
   position: absolute !important;
@@ -2268,6 +2269,30 @@ input:focus-visible {
   }
 }
 
+/* The document behind the composition must match its paper, or iOS Safari
+   paints the default light body color in toolbar-resize gaps and overscroll. */
+body:has(.portfolio-composition) {
+  background: #c5cbd0;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:has(.portfolio-composition) {
+    background: #19140f;
+  }
+}
+
+@media (max-width: 900px) {
+  body:has(.portfolio-composition) {
+    background: #eff1f1;
+  }
+}
+
+@media (max-width: 900px) and (prefers-color-scheme: dark) {
+  body:has(.portfolio-composition) {
+    background: #292625;
+  }
+}
+
 .portfolio-composition > .portfolio-header,
 .portfolio-composition .scene-copy {
   display: none;
@@ -2299,6 +2324,11 @@ input:focus-visible {
   line-height: 1;
   position: absolute;
   top: 20px;
+}
+
+.portfolio-world-hint,
+.portfolio-mobile-view-toggle {
+  display: none;
 }
 
 .portfolio-world > canvas {
@@ -2359,7 +2389,7 @@ input:focus-visible {
 }
 
 .reader-content {
-  padding: 26px 24px 48px;
+  padding: 22px 24px 48px;
 }
 
 .reader-content h1 {
@@ -2367,7 +2397,7 @@ input:focus-visible {
   font-weight: 400;
   letter-spacing: -0.065em;
   line-height: 0.92;
-  margin: 0 0 22px;
+  margin: 0 0 18px;
   max-width: 8.5em;
 }
 
@@ -2376,7 +2406,7 @@ input:focus-visible {
   font-weight: 500;
   letter-spacing: -0.055em;
   line-height: 0.98;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
 }
 
 .reader-summary {
@@ -2384,14 +2414,14 @@ input:focus-visible {
   font-size: 15px;
   letter-spacing: -0.015em;
   line-height: 1.43;
-  margin: 0 0 42px;
+  margin: 0 0 28px;
   max-width: 31ch;
 }
 
 .reader-index-content > .reader-summary {
   color: var(--reader-muted);
   font-size: 12px;
-  margin-bottom: 38px;
+  margin-bottom: 20px;
 }
 
 .reader-kind,
@@ -2400,19 +2430,28 @@ input:focus-visible {
   font-size: 9px;
   font-weight: 400;
   letter-spacing: 0.025em;
-  margin: 12px 0 17px;
+  margin: 8px 0 14px;
 }
 
-.reader-kind[data-thread] {
-  background: var(--world-story);
+.reader-path + .reader-kind {
+  margin-top: 0;
+}
+
+/* Every record carries its map register color, so the page and its node match. */
+.reader-kind[data-register] {
+  background: var(--register, var(--world-identity));
   color: var(--reader-paper);
   display: inline-block;
+  font-size: 10px;
   padding: 5px 7px 4px;
 }
 
-.reader-kind[data-thread="finding-myself-in-software"] {
-  background: var(--world-finding);
-}
+.reader-kind[data-register="identity"] { --register: var(--world-identity); }
+.reader-kind[data-register="story"] { --register: var(--world-story); }
+.reader-kind[data-register="finding"] { --register: var(--world-finding); }
+.reader-kind[data-register="warm"] { --register: var(--world-warm); }
+.reader-kind[data-register="bridge"] { --register: var(--world-bridge); }
+.reader-kind[data-register="cool"] { --register: var(--world-cool); }
 
 .reader-principle {
   border-left: 2px solid var(--world-story);
@@ -2429,7 +2468,6 @@ input:focus-visible {
 }
 
 .reader-contact a {
-  border-top: 1px solid var(--map-line);
   color: var(--ink);
   display: block;
   font-size: 13px;
@@ -2437,8 +2475,8 @@ input:focus-visible {
   text-decoration: none;
 }
 
-.reader-contact a:last-child {
-  border-bottom: 1px solid var(--map-line);
+.reader-contact a + a {
+  border-top: 1px solid var(--map-line);
 }
 
 .reader-contact a:hover {
@@ -2464,13 +2502,32 @@ input:focus-visible {
 .reader-record-section {
   border-top: 1px solid var(--map-line);
   margin: 0;
-  padding: 17px 0 22px;
+  padding: 16px 0 20px;
 }
 
+/* One label voice for every section: small caps over content, one rule above. */
 .reader-record-section h2 {
-  font-size: 14px;
-  letter-spacing: -0.01em;
-  margin-bottom: 9px;
+  color: var(--reader-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+/* Rows inside a section separate from each other only; the section rule
+   above and the next section's rule below bound the group with single lines. */
+.reader-record-section .reader-index-row {
+  border-top: 0;
+}
+
+.reader-record-section .reader-index-row + .reader-index-row {
+  border-top: 1px solid var(--map-line);
+}
+
+.reader-record-section .reader-index-row:last-child {
+  border-bottom: 0;
 }
 
 .reader-record-section > p {
@@ -2504,7 +2561,10 @@ input:focus-visible {
 }
 
 .reader-index-row > span:nth-child(2) {
+  align-self: center;
   color: var(--reader-muted);
+  font-size: 14px;
+  line-height: 1;
   transition: transform 150ms ease;
 }
 
@@ -2518,22 +2578,59 @@ input:focus-visible {
   font-weight: 400;
   grid-column: 1 / -1;
   line-height: 1.35;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
-.reader-footer {
+.reader-index-content {
+  padding-block: 18px 24px;
+}
+
+.reader-index-content .reader-index-group {
+  margin-bottom: 0;
+  padding-bottom: 10px;
+}
+
+.reader-index-content .reader-index-group + .reader-index-group {
   border-top: 1px solid var(--map-line);
-  margin-top: 20px;
-  padding-top: 18px;
+  padding-top: 10px;
 }
 
-.reader-footer a {
-  color: var(--ink);
-  font-size: 13px;
-  text-underline-offset: 4px;
+.reader-index-content .reader-index-group h2 {
+  color: var(--reader-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  text-transform: uppercase;
 }
 
-.portfolio-composition .portfolio-chat {
+.reader-index-content .reader-index-row {
+  border-top: 0;
+  border-radius: 2px;
+  padding: 5px 0 6px 12px;
+  transition: background-color 120ms ease;
+}
+
+.reader-index-content .reader-index-row:last-child {
+  border-bottom: 0;
+}
+
+.reader-index-content .reader-index-row:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.reader-index-content .reader-index-row > span:nth-child(2) {
+  align-self: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reader-index-content .reader-index-row small {
+  display: none;
+}
+
+.experience .portfolio-chat {
   align-items: flex-end;
   background: transparent;
   border: 0;
@@ -2546,10 +2643,25 @@ input:focus-visible {
   padding: 0;
   pointer-events: none;
   position: fixed;
-  right: calc(var(--reader-width, 0px) + 18px);
+  right: 18px;
   transform: none;
   width: auto;
   z-index: 8;
+}
+
+.experience .portfolio-chat[data-open="true"] {
+  right: min(168px, calc(100vw - 18rem - 14px));
+}
+
+.portfolio-composition .portfolio-chat {
+  right: calc(var(--reader-width, 0px) + 18px);
+}
+
+.portfolio-composition .portfolio-chat[data-open="true"] {
+  right: min(
+    calc(var(--reader-width, 0px) + 168px),
+    calc(100vw - 18rem - 14px)
+  );
 }
 
 .portfolio-chat-anchor {
@@ -2561,6 +2673,7 @@ input:focus-visible {
 }
 
 .portfolio-chat-panel {
+  animation: assistant-panel-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   background: color-mix(in srgb, var(--reader-paper, #eff1f1) 78%, white);
   border: 1px solid var(--map-line-strong, rgb(32 23 17 / 38%));
   border-radius: 15px;
@@ -2568,6 +2681,28 @@ input:focus-visible {
   color: var(--ink, #201711);
   overflow: hidden;
   width: 18rem;
+}
+
+@keyframes assistant-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes assistant-avatar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .portfolio-chat-panel[hidden],
@@ -2781,6 +2916,90 @@ input:focus-visible {
 
 @media (pointer: coarse) {
   .cursor-instrument { display: none; }
+
+  .portfolio-composition:has(.portfolio-chat[data-open="false"]) > .avatar-overlay {
+    display: none;
+  }
+
+  .reader-index-content {
+    padding-block: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-bottom));
+  }
+
+  .reader-index-content h1 {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+
+  .reader-index-content .reader-index-group {
+    padding-bottom: 6px;
+  }
+
+  .reader-index-content .reader-index-group + .reader-index-group {
+    padding-top: 6px;
+  }
+
+  .reader-index-content .reader-index-group h2 {
+    margin-bottom: 2px;
+  }
+
+  .reader-index-content .reader-index-row {
+    min-height: 40px;
+    padding: 6px 0 7px 10px;
+  }
+
+  .reader-index-content .reader-index-row > span:nth-child(2) {
+    display: none;
+  }
+
+  .reader-record-section > p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .reader-summary {
+    font-size: 16px;
+    max-width: none;
+  }
+}
+
+@media (max-height: 820px) and (pointer: fine) {
+  .reader-index-content {
+    padding-block: 12px 14px;
+  }
+
+  .reader-index-content h1 {
+    font-size: 25px;
+    margin-bottom: 2px;
+  }
+
+  .reader-index-content > .reader-summary {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .reader-index-content .reader-index-group {
+    margin-bottom: 0;
+    padding-bottom: 5px;
+  }
+
+  .reader-index-content .reader-index-group + .reader-index-group {
+    padding-top: 5px;
+  }
+
+  .reader-index-content .reader-index-group h2 {
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+
+  .reader-index-content .reader-index-row {
+    padding: 4px 0 4px 10px;
+  }
+
+  .reader-index-content .reader-index-row > span:first-child {
+    font-size: 14px;
+    line-height: 1.15;
+  }
+
 }
 
 @media (max-width: 900px) {
@@ -2795,16 +3014,22 @@ input:focus-visible {
     border-left: 0;
     width: 100%;
   }
-  .portfolio-composition .portfolio-chat {
-    bottom: 14px !important;
-    left: 14px !important;
+  .portfolio-composition .reader-index-content {
+    box-sizing: border-box;
+    margin-inline: auto;
+    max-width: 680px;
+    padding-inline: clamp(18px, 4vw, 32px);
+  }
+  .experience .portfolio-chat {
+    bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    left: max(14px, env(safe-area-inset-left)) !important;
     right: auto !important;
     top: auto !important;
   }
-  .portfolio-composition .portfolio-chat-panel {
+  .experience .portfolio-chat-panel {
     width: min(18rem, calc(100vw - 84px));
   }
-  .portfolio-composition .portfolio-chat-thread {
+  .experience .portfolio-chat-thread {
     max-height: min(52vh, 360px);
   }
   .portfolio-composition .scene-shell:has(.portfolio-chat[data-open="true"]) .portfolio-reader {
@@ -2815,7 +3040,78 @@ input:focus-visible {
   }
 }
 
+@media (max-width: 600px) {
+  .portfolio-composition.portfolio-mobile-map-open .portfolio-world {
+    display: block;
+    inset: 0;
+  }
+
+  .portfolio-composition.portfolio-mobile-map-open .portfolio-reader {
+    display: none;
+  }
+
+  .portfolio-mobile-view-toggle {
+    align-items: center;
+    background: color-mix(in srgb, var(--reader-paper, #eff1f1) 92%, transparent);
+    border: 1px solid var(--map-line-strong, rgb(32 23 17 / 38%));
+    border-radius: 50%;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    box-shadow: 0 10px 25px rgb(23 23 23 / 14%);
+    color: var(--ink, #201711);
+    display: flex;
+    height: 40px;
+    justify-content: center;
+    min-width: 40px;
+    padding: 0;
+    position: fixed;
+    right: calc(max(14px, env(safe-area-inset-right)) + 50px);
+    z-index: 9;
+  }
+
+  .portfolio-mobile-view-icon {
+    fill: none;
+    height: 16px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+    width: 16px;
+  }
+
+  .portfolio-mobile-view-toggle:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  .portfolio-mobile-map-open .portfolio-world-mast {
+    left: max(18px, env(safe-area-inset-left));
+    top: max(18px, env(safe-area-inset-top));
+  }
+
+  .portfolio-mobile-map-open .portfolio-world-hint {
+    bottom: max(22px, env(safe-area-inset-bottom));
+    color: var(--map-muted);
+    display: block;
+    font-size: 11px;
+    left: max(18px, env(safe-area-inset-left));
+    line-height: 1;
+    margin: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+  }
+
+  .portfolio-composition .reader-index-content {
+    padding-bottom: max(78px, env(safe-area-inset-bottom));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .avatar-overlay-canvas,
+  .portfolio-chat-panel {
+    animation-duration: 1ms;
+  }
+
   .cursor-instrument {
     transition-duration: 1ms;
   }

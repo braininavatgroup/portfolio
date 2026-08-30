@@ -22,7 +22,7 @@
 - Reduced motion removes travel and decorative waits while preserving text, project selection, scrolling, highlighting, and final stable state.
 - Avatar, model, target, animation, WebGL, or effect failures must not clear or delay the text answer.
 - The development harness appears only when the build is in development and the URL contains `avatarDebug=1`.
-- Persist the hide setting under `portfolio-avatar-enabled:v1`; default to enabled when no valid value exists or storage is unavailable.
+- Keep chat and avatar visibility in one parent-owned state; the compact chat bubble reveals or minimizes both.
 - Do not activate or deploy production chat, provider, gate, identity, security, or policy configuration.
 
 ---
@@ -169,13 +169,11 @@ git add lib/avatar/contracts.ts lib/avatar/config.ts lib/avatar/validation.ts li
 git commit -m "PER-1: add safe avatar behavior engine"
 ```
 
-### Task 2: Lazy renderer, controller, preference, and development harness
+### Task 2: Lazy renderer, controller, and development harness
 
 **Files:**
 - Create: `lib/avatar/controller.ts`
 - Create: `lib/avatar/controller.test.ts`
-- Create: `lib/avatar/preference.ts`
-- Create: `lib/avatar/preference.test.ts`
 - Create: `components/avatar/AvatarAssetAdapter.tsx`
 - Create: `components/avatar/ProceduralAvatar.tsx`
 - Create: `components/avatar/AvatarOverlay.tsx`
@@ -185,22 +183,22 @@ git commit -m "PER-1: add safe avatar behavior engine"
 
 **Interfaces:**
 - Consumes: Task 1 contracts, configuration, resolver, registry, and runner.
-- Produces: `AvatarController`, `AvatarSnapshot`, `AvatarOverlay`, `AvatarDevHarness`, `readAvatarEnabled`, `writeAvatarEnabled`.
+- Produces: `AvatarController`, `AvatarSnapshot`, `AvatarOverlay`, and `AvatarDevHarness`.
 - `AvatarController.subscribe(listener)` returns an unsubscribe function compatible with `useSyncExternalStore`.
 
-- [ ] **Step 1: Write failing controller and preference tests**
+- [ ] **Step 1: Write failing controller tests**
 
 Name the breaks: stale controller snapshots can rerender incorrectly, target anchors can escape the viewport, and a malformed stored value can hide the avatar forever.
 
-Assert state changes notify once, horizontal anchors clamp to 80 through `viewportWidth - 80`, look and point direction mirror from the target center, reset returns to the initial snapshot, and model failure sets a quiet failure flag. Assert the storage key is exactly `portfolio-avatar-enabled:v1`, only string `"false"` disables the avatar, and read/write failures default to enabled without throwing.
+Assert state changes notify once, horizontal anchors clamp to 80 through `viewportWidth - 80`, look and point direction mirror from the target center, reset returns to the initial snapshot, and model failure sets a quiet failure flag.
 
 - [ ] **Step 2: Run focused tests and observe missing modules**
 
-Run: `npx vitest run lib/avatar/controller.test.ts lib/avatar/preference.test.ts`
+Run: `npx vitest run lib/avatar/controller.test.ts`
 
-Expected: FAIL because the controller and preference modules do not exist.
+Expected: FAIL because the controller module does not exist.
 
-- [ ] **Step 3: Implement the controller and preference boundary**
+- [ ] **Step 3: Implement the controller boundary**
 
 The snapshot must expose only:
 
@@ -220,9 +218,9 @@ export type AvatarSnapshot = {
 
 Do not put Three.js objects or DOM nodes in the snapshot.
 
-- [ ] **Step 4: Run controller and preference tests to green**
+- [ ] **Step 4: Run controller tests to green**
 
-Run: `npx vitest run lib/avatar/controller.test.ts lib/avatar/preference.test.ts`
+Run: `npx vitest run lib/avatar/controller.test.ts`
 
 Expected: PASS.
 
@@ -255,7 +253,7 @@ Expected: all commands exit zero and the build keeps Three.js in a lazy client c
 - [ ] **Step 9: Commit Task 2**
 
 ```bash
-git add lib/avatar/controller.ts lib/avatar/controller.test.ts lib/avatar/preference.ts lib/avatar/preference.test.ts components/avatar/AvatarAssetAdapter.tsx components/avatar/ProceduralAvatar.tsx components/avatar/AvatarOverlay.tsx components/avatar/AvatarOverlay.test.tsx components/avatar/AvatarDevHarness.tsx eslint.config.mjs
+git add lib/avatar/controller.ts lib/avatar/controller.test.ts components/avatar/AvatarAssetAdapter.tsx components/avatar/ProceduralAvatar.tsx components/avatar/AvatarOverlay.tsx components/avatar/AvatarOverlay.test.tsx components/avatar/AvatarDevHarness.tsx eslint.config.mjs
 git commit -m "PER-1: render replaceable avatar overlay"
 ```
 
@@ -274,7 +272,7 @@ git commit -m "PER-1: render replaceable avatar overlay"
 - Modify: `app/globals.css`
 
 **Interfaces:**
-- Consumes: Task 1 parser, registry, runner, executor and Task 2 controller, overlay, preference, harness.
+- Consumes: Task 1 parser, registry, runner, executor and Task 2 controller, overlay, and harness.
 - Produces: an optional `{ type: "effects"; effects: PortfolioResponseEffects }` `PortfolioChatEvent`.
 - `PortfolioChat` receives `avatarIntegration` callbacks for turn start, evidence, first text, safe effects, notice, error, and completion.
 

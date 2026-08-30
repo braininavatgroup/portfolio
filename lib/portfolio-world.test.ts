@@ -45,7 +45,7 @@ describe("accepted portfolio world", () => {
         members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo"],
       },
       {
-        title: "Finding myself in software",
+        title: "From argument to instrument",
         members: [
           "infamous",
           "music-practice",

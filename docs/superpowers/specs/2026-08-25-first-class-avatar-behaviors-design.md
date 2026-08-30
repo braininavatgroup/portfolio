@@ -6,11 +6,11 @@
 
 Make every animation Bradley supplied available as a named portfolio behavior, let the existing portfolio agent choose those behaviors as part of each answer, and remove guessed semantic aliases and missing-clip fallbacks.
 
-The exact Meshy GLB remains the visible model. A separate GLB contributes only the Orange Justice clip. The runtime never replaces the Meshy mesh, materials, clothes, glasses, or geometry.
+The exact Meshy GLB remains the visible model. A separate GLB preserves selected native motion clips without replacing the Meshy mesh, materials, clothes, glasses, or geometry.
 
 ## Product decisions
 
-- All 20 clips embedded in Bradley's Meshy GLB plus the CC0 Orange Justice clip are first-class behaviors.
+- All 20 clips embedded in Bradley's Meshy GLB are first-class behaviors.
 - One registry is the source of truth for the normalized behavior ID, exact GLB clip name, display label, agent guidance, and playback hold time.
 - A behavior has exactly one clip. There are no clip aliases, fallback chains, or guessed substitutions.
 - Every successful agent answer selects between one and three behaviors. A normal answer should choose one. Two or three are for an explicitly requested performance or a response whose progression genuinely benefits from a sequence.
@@ -45,11 +45,10 @@ The exact Meshy GLB remains the visible model. A separate GLB contributes only t
 | `walking` | `Walking` | A calm entrance, exit, or movement toward something |
 | `wave_one_hand` | `Wave_One_Hand` | A casual greeting, acknowledgment, or sign-off |
 | `swimming_to_edge` | `swimming_to_edge` | Reaching the end of a swim or an explicitly aquatic transition |
-| `orange_justice_cc0` | `Orange_Justice_CC0` | A deliberately big, game-like dance or an explicit dance request |
 
 The descriptions guide selection without hiding any behavior. Dramatic distress motions remain available but should appear only when the visitor requests that tone or the answer clearly earns it.
 
-The default hold between sequence entries is 1,600 milliseconds. `walking` and `running` use 1,200 milliseconds. `big_wave_hello` and `formal_bow` use 2,200 milliseconds. `joyful_dance_with_hand_sway` and `orange_justice_cc0` use 2,800 milliseconds. These bounded presentation windows keep a multi-step performance visible without forcing the chat to wait through an entire 13 or 18 second source clip.
+The default hold between sequence entries is 1,600 milliseconds. `walking` and `running` use 1,200 milliseconds. `big_wave_hello` and `formal_bow` use 2,200 milliseconds. `joyful_dance_with_hand_sway` uses 2,800 milliseconds. These bounded presentation windows keep a multi-step performance visible without forcing the chat to wait through an entire source clip.
 
 ## Lifecycle mapping
 
@@ -122,11 +121,11 @@ The avatar build checks the union of clip names in the exact Meshy GLB and the m
 - a state mapping references an unregistered behavior;
 - the exact Meshy source and public Meshy GLB differ.
 
-At runtime, `AvatarAssetAdapter` renders only `model.scene` from the exact Meshy GLB. It reads animations from the motion-library GLB but never mounts `motionLibrary.scene`. Native Meshy clips win when both files contain the same clip name, so the external library contributes only Orange Justice. The adapter reports the registered behaviors whose exact clips loaded. The controller treats any configured-but-unavailable behavior as an avatar failure. Chat and the rest of the portfolio remain available because the avatar has its own error boundary.
+At runtime, `AvatarAssetAdapter` renders only `model.scene` from the exact Meshy GLB. It can read animations from the motion-library GLB but never mounts `motionLibrary.scene`. Native Meshy clips win when both files contain the same clip name. The adapter reports the registered behaviors whose exact clips loaded. The controller treats any configured-but-unavailable behavior as an avatar failure. Chat and the rest of the portfolio remain available because the avatar has its own error boundary.
 
 ## Development controls
 
-The `avatarDebug=1` panel displays all 21 behaviors from the registry. Each button shows a readable label and exposes the normalized ID for inspection. Clicking a button plays that exact clip. The panel does not divide clips into mapped and raw groups because every clip is mapped.
+The `avatarDebug=1` panel displays all 20 behaviors from the registry. Each button shows a readable label and exposes the normalized ID for inspection. Clicking a button plays that exact clip. The panel does not divide clips into mapped and raw groups because every clip is mapped.
 
 Lifecycle state buttons remain available and exercise the exact state map. The current model and motion-library asset URLs remain visible through configuration and do not alter the GLB bytes.
 
@@ -143,11 +142,11 @@ Lifecycle state buttons remain available and exercise the exact state map. The c
 
 Durable tests cover:
 
-- all 21 unique behavior IDs and their exact one-to-one clip names;
+- all 20 unique behavior IDs and their exact one-to-one clip names;
 - build-time presence of every registry clip across the exact model and motion library;
 - exact lifecycle-state lookup with no fallback behavior;
 - rejection of unknown behavior IDs and unavailable configured clips;
-- all 21 buttons in the development controls;
+- all 20 buttons in the development controls;
 - provider structured output with a required one-to-three behavior sequence;
 - provider-to-handler effect delivery after validated answer text and before `done`;
 - no effects after an invalid or empty answer;
@@ -155,7 +154,7 @@ Durable tests cover:
 - exact Meshy source/public hash equality and proof that the external library's scene is never rendered;
 - a production build whose client chunks contain no development-control labels.
 
-Rendered verification uses the existing workspace server. It captures the exact Meshy avatar playing at least one native Meshy behavior and Orange Justice. It also checks the full development behavior list, desktop and mobile placement, reduced motion, and avatar-only renderer containment. Software WebGL is smoke evidence; Bradley's final motion and visual judgment remains the acceptance walk.
+Rendered verification uses the existing workspace server. It captures the exact Meshy avatar playing native Meshy behaviors. It also checks the full development behavior list, desktop and mobile placement, reduced motion, and avatar-only renderer containment. Software WebGL is smoke evidence; Bradley's final motion and visual judgment remains the acceptance walk.
 
 ## Scope
 
@@ -164,6 +163,6 @@ This design changes avatar behavior naming, state mapping, agent output, effect 
 ## Recorded assumptions
 
 - Bradley's statement that the agent should perform motion most of the time means every successful agent answer must select at least one behavior. `idle_3` is the intentionally restrained choice.
-- The 21 current clips are the complete behavior catalog for this ticket. Adding another source clip later means adding one registry entry and satisfying the same asset checks.
+- The 20 current clips are the complete behavior catalog for this ticket. Adding another source clip later means adding one registry entry and satisfying the same asset checks.
 - The normalized IDs above are mechanical snake-case forms of the exact clip names. They are stable application identifiers, not semantic aliases.
 - The exact lifecycle map is a reversible default derived from the clip names and can be judged in the final behavior walk.

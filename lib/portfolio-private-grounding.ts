@@ -13,22 +13,22 @@ export const careerTimeline: readonly {
   detail: string;
 }[] = [
   {
-    period: "Origin / 2016",
-    title: "Electronic music becomes the native domain",
+    period: "2017–2021",
+    title: "University of Southern California",
     detail:
-      "Electronic music became the starting point for the work represented here.",
+      "BA in Philosophy, Politics, and Law with a Music Industry minor, cum laude; interned at Fantastic Voyage Records (A&R, live events, promotion) from 2019.",
   },
   {
-    period: "2021–2024",
+    period: "Dec 2021 – Aug 2024",
     title: "Head of Music Promotion at INFAMOUS PR",
     detail:
-      "Led music-promotion strategy and operations at INFAMOUS PR. Representative campaigns and outcomes are being prepared for publication.",
+      "Hired on a trial basis to build a fourth department — music promotions — inside INFAMOUS PR: DSP playlist promotion (the differentiator), radio plugging, DJ promotion, YouTube distribution, and social seeding.",
   },
   {
-    period: "After 2024",
-    title: "The work branches into consulting, development, and agent systems",
+    period: "Aug 2024 – present",
+    title: "Founder, Brain in a Vat (Brooklyn)",
     detail:
-      "Expanded the same process-modeling work into consulting, product development, and agent systems.",
+      "Independent music-promotion practice plus a systems-and-AI consulting practice; the work expanded into product development and agent systems.",
   },
   {
     period: "Current",
@@ -41,4 +41,7 @@ export const careerTimeline: readonly {
 // Additional chat-only facts (rates posture, deflection rules, names the bot
 // may or may not say, FAQ answers). Authored during the content writing
 // session; each entry becomes one line of private context for the agent.
-export const privateFacts: readonly string[] = [];
+export const privateFacts: readonly string[] = [
+  "When asked about rates, availability, or hiring Bradley, do not quote numbers or commitments; point the visitor to braininavat.dance or braininavat.systems (and the contact email) instead.",
+  "Names and claims policy: the bot may state anything published on Bradley's own sites (braininavat.dance, braininavat.systems), anything in this grounding context, or anything on the portfolio site itself. The published client roster — WhoMadeWho, Adriatique, SIDEPIECE, Warner Records, The Orchard Distribution, Algorhythms Music Group — is safe to name. Do not name other clients or repeat private engagement details.",
+];

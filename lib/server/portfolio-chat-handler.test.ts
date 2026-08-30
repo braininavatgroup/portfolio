@@ -75,7 +75,7 @@ describe("portfolio chat route handler", () => {
           avatarSequence: [
             { action: "play", animation: "wave_one_hand" },
             { action: "wait", durationMs: 1_600 },
-            { action: "play", animation: "orange_justice_cc0" },
+            { action: "play", animation: "joyful_dance_with_hand_sway" },
           ],
           issues: [],
         });
@@ -100,7 +100,7 @@ describe("portfolio chat route handler", () => {
           avatarSequence: [
             { action: "play", animation: "wave_one_hand" },
             { action: "wait", durationMs: 1_600 },
-            { action: "play", animation: "orange_justice_cc0" },
+            { action: "play", animation: "joyful_dance_with_hand_sway" },
           ],
           issues: [],
         },
@@ -120,7 +120,7 @@ describe("portfolio chat route handler", () => {
         onEffects?.({
           siteActions: [],
           avatarSequence: [
-            { action: "play", animation: "orange_justice_cc0" },
+            { action: "play", animation: "joyful_dance_with_hand_sway" },
           ],
           issues: [],
         });

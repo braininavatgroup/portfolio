@@ -558,7 +558,7 @@ Test the console as an operator surface, not by CSS implementation details:
 - status text includes plain-language state, clip, target, locomotion, and renderer failure;
 - Stop calls `director.stop()`, cancels runner ownership, and leaves the actor at its stable destination;
 - Reset restores the initial snapshot and visibility;
-- Hide calls the same preference callback as the public control;
+- Visibility changes call the same shared assistant-state callback as the public chat control;
 - collapse leaves a compact status bar and does not cancel movement;
 - selecting Target renders a live stage miniature, selects a known region, and exposes Walk, Swim, Look, Point, Present, and Spotlight only when applicable;
 - Movement includes grounded enter/exit, swim lap, target swim, and home dock;

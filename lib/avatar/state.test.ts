@@ -22,7 +22,7 @@ describe("avatar animation state", () => {
         { action: "walkTo", target: "hero" },
         { action: "swimTo", target: "portfolio:chat" },
         { action: "swimRoute", route: "lap" },
-        { action: "play", animation: "orange_justice_cc0" },
+        { action: "play", animation: "joyful_dance_with_hand_sway" },
         { action: "wait", durationMs: 1_600 },
         { action: "setState", state: "talking" },
         { action: "lookAt", target: "portfolio:index" },

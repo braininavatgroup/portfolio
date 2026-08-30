@@ -90,7 +90,7 @@ test("the homepage opens directly on the map with its synchronized index", async
   assert.match(html, /Campaign kickoff/i);
   assert.match(html, /Making work playable/i);
   assert.match(html, /Choosing what not to automate/i);
-  assert.match(html, /Finding myself in software/i);
+  assert.match(html, /From argument to instrument/i);
   assert.match(html, /data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']identity["'][^>]*data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']story["'][^>]*data-world-node=["']thread-/i);

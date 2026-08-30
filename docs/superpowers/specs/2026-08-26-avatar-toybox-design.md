@@ -6,11 +6,11 @@
 
 ## Intent
 
-Add a hidden, desktop-only play layer for the portfolio avatar. `Shift+G` opens a modal chooser for two short interactions: Brain Food, a 20-second node-collection game, and Toss Bradley, a whole-body drag-and-throw toy. The feature is a disposable client-side session: it must leave graph selection, routes, chat, avatar preferences, and controller state exactly as it found them.
+Add a hidden, desktop-only play layer for the portfolio avatar. `Shift+G` opens a modal chooser for two short interactions: Brain Food, a 20-second node-collection game, and Toss Bradley, a whole-body drag-and-throw toy. The feature is a disposable client-side session: it must leave graph selection, routes, the shared assistant visibility state, and controller state exactly as it found them.
 
 ## Entry contract
 
-- Only exact `Shift+G` opens the chooser. Reject repeat, composition, default-prevented events, extra modifiers, editable or interactive targets, hidden documents, unsupported viewports, and unavailable/hidden/failed avatars.
+- Only exact `Shift+G` opens the chooser. Reject repeat, composition, default-prevented events, extra modifiers, editable or interactive targets, hidden documents, unsupported viewports, and unavailable or failed avatars.
 - Version one requires at least `900 x 600` CSS pixels and has no visible launcher.
 - The chooser and both modes are modal. `Escape` exits from every state.
 - Opening remembers focus, makes `#app-shell` inert and `aria-hidden`, and traps focus in the portal at `#avatar-toybox-root`. Closing restores the shell's exact prior attributes and restores focus, falling back to `#main-content`.
