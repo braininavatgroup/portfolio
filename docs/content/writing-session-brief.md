@@ -20,18 +20,21 @@ Bradley didn't say or write, stop and ask instead.
 
 A **node** is a dot on the map. Opening one reads one of two content types:
 
-- A **record** — the complete short piece for one thing, readable in the
-  reader panel and at `/index/<id>`.
+- A **record** — the short piece for one thing, readable in the map reader.
 - A **Thread** — a narrated path through the map; the only long-form type.
 
 A record says what a thing is; a Thread says why things belong together.
 Nothing else exists. All authored content lives in `lib/portfolio-world.ts`;
 chat-only facts live in `lib/portfolio-private-grounding.ts` and are never
-rendered. The current copy is migrated placeholder — every word is replaceable.
+rendered. Bodies may interleave authored paragraphs, Bradley-owned copy
+placeholders, and planned visual blocks. These workbench blocks intentionally
+render on `main`; `?review=clean` hides them for a clean reading pass. Agents
+may refine the placeholder brief or ask its questions, but must not silently
+replace a Bradley-owned copy placeholder with invented portfolio prose.
 
 ## What to produce
 
-1. **12 records** — every non-About node in `portfolioWorldNodes`: `summary`
+1. **13 records** — every non-About node in `portfolioWorldNodes`: `summary`
    (one sentence), optional `principle` (a pull-quote; keepers like "Taste is
    encodable. The approval step stays human." already exist), and `body`
    paragraphs.
@@ -53,7 +56,12 @@ rendered. The current copy is migrated placeholder — every word is replaceable
    A useful lens: each thread answers a question a visitor arrives with
    ("how would this person run my operation?" / "can they build?" /
    "who is this?").
-4. **Chat-only grounding** (`lib/portfolio-private-grounding.ts`) — review the
+4. **Visual composition** — keep planned visuals inline with the prose as
+   structured visual blocks. Each placeholder states what the visitor should
+   understand, a likely treatment, and the source status. Visual work can
+   proceed in parallel with copy; remove, move, or revise a block when the
+   argument changes.
+5. **Chat-only grounding** (`lib/portfolio-private-grounding.ts`) — review the
    audience statement and career timeline, then decide what else the bot
    should know that the site shouldn't show: rates/availability posture, names
    it may say aloud, FAQ answers, deflection rules. Add them to `privateFacts`.
