@@ -20,9 +20,6 @@ export function PortfolioAnalytics({
   projectId?: string;
   storage?: AnalyticsStorage;
 } = {}) {
-  const [active, setActive] = useState(false);
-  const [optedOut, setOptedOut] = useState(false);
-
   useEffect(() => {
     const enabled = startPrivacySafeReplay({
       hostname: hostname ?? window.location.hostname,
@@ -38,12 +35,30 @@ export function PortfolioAnalytics({
     }
     const denied = storedPreference === "denied";
     if (denied) setPrivacySafeReplayConsent("denied");
-    const renderControl = window.setTimeout(() => {
-      setOptedOut(denied);
-      setActive(true);
-    }, 0);
-    return () => window.clearTimeout(renderControl);
   }, [hostname, projectId, storage]);
+
+  return null;
+}
+
+export function PortfolioAnalyticsPreference({
+  storage,
+}: {
+  storage?: AnalyticsStorage;
+} = {}) {
+  const [optedOut, setOptedOut] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const readPreference = window.setTimeout(() => {
+      try {
+        setOptedOut(
+          (storage ?? window.localStorage).getItem(CONSENT_KEY) === "denied",
+        );
+      } catch {
+        setOptedOut(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(readPreference);
+  }, [storage]);
 
   const setPreference = (nextOptedOut: boolean) => {
     const preference = nextOptedOut ? "denied" : "granted";
@@ -56,15 +71,9 @@ export function PortfolioAnalytics({
     setOptedOut(nextOptedOut);
   };
 
-  if (!active) return null;
-
-  return (
-    <aside aria-label="Analytics preferences" className="portfolio-analytics-control">
-      <a href="/privacy">Privacy</a>
-      <span aria-hidden="true">·</span>
-      <button onClick={() => setPreference(!optedOut)} type="button">
-        {optedOut ? "Enable anonymous analytics" : "Opt out of analytics"}
-      </button>
-    </aside>
+  return optedOut === null ? null : (
+    <button onClick={() => setPreference(!optedOut)} type="button">
+      {optedOut ? "Enable anonymous analytics" : "Opt out of analytics"}
+    </button>
   );
 }

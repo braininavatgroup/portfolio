@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PortfolioAnalyticsPreference } from "../../components/PortfolioAnalytics";
 import { portfolioContact } from "../../lib/portfolio-world";
 
 export default function PrivacyPage() {
@@ -19,9 +20,15 @@ export default function PrivacyPage() {
         for advertising or intentionally identify visitors by name.
       </p>
       <p>
-        Use the analytics control at the bottom of the site to opt out or back
-        in. Your preference is stored in this browser.
+        You can opt out or back in below. Your preference is stored in this
+        browser.
       </p>
+      <section
+        aria-label="Analytics preferences"
+        className="privacy-analytics-preference"
+      >
+        <PortfolioAnalyticsPreference />
+      </section>
       <p>
         Questions? Email{" "}
         <a href={`mailto:${portfolioContact.email}`}>{portfolioContact.email}</a>.
