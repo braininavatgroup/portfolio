@@ -58,9 +58,13 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
    "who is this?").
 4. **Visual composition** — keep planned visuals inline with the prose as
    structured visual blocks. Each placeholder states what the visitor should
-   understand, a likely treatment, and the source status. Visual work can
-   proceed in parallel with copy; remove, move, or revise a block when the
-   argument changes.
+   understand, a likely treatment, the source status, and one of three media
+   formats: image, video, or gallery. The reader block is the entry point, not
+   the final viewing surface: clicking it opens the visual at useful scale in
+   the map pane (and switches a phone or tablet into the map view). Ready image
+   and gallery assets use `src`/`assets`; a ready video uses `src` and may
+   supply a `poster`. Visual work can proceed in parallel with copy; remove,
+   move, or revise a block when the argument changes.
 5. **Chat-only grounding** (`lib/portfolio-private-grounding.ts`) — review the
    audience statement and career timeline, then decide what else the bot
    should know that the site shouldn't show: rates/availability posture, names
