@@ -36,8 +36,9 @@ test("main-preview deployment consumes the tested artifact behind an explicit fa
   assert.match(deploy.if, /github\.ref\s*==\s*'refs\/heads\/main'/);
   assert.match(
     deploy.if,
-    /vars\.PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED\s*==\s*'true'/,
+    /vars\.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED\s*==\s*'true'/,
   );
+  assert.doesNotMatch(deploy.if, /PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED/);
 
   const upload = stepUsing(ci, "actions/upload-artifact@v4");
   assert.ok(upload, "CI must upload the already-tested dist artifact");
@@ -97,8 +98,9 @@ test("manual first deployment downloads and digest-verifies one successful main-
   assert.equal(deploy.environment, "portfolio-main-preview");
   assert.match(
     deploy.if,
-    /vars\.PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED\s*==\s*'true'/,
+    /vars\.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED\s*==\s*'true'/,
   );
+  assert.doesNotMatch(deploy.if, /PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED/);
 
   const checkout = stepUsing(deploy, "actions/checkout@v6");
   assert.ok(checkout, "the exact approved source commit must be checked out");

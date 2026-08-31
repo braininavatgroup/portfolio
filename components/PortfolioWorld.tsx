@@ -19,6 +19,11 @@ import {
   type PortfolioWorldFamily,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
+import {
+  PORTFOLIO_NODE_MARK_SIZE,
+  portfolioNodeMarkPrimitives,
+  portfolioNodeMarkVertices,
+} from "../lib/portfolio-node-mark";
 
 type Point = { x: number; y: number };
 type Point3 = Point & { z: number };
@@ -52,32 +57,12 @@ type PortfolioWorldProps = {
   registerAvatarStage?: (element: HTMLElement | null) => void;
 };
 
-const MARK_SIZE = 15;
+const MARK_SIZE = PORTFOLIO_NODE_MARK_SIZE;
 const LABEL_MAX_WIDTH = 132;
 const LABEL_LINE_HEIGHT = 15;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
 type ConnectorAnchor = Point & { family: PortfolioWorldFamily };
-
-const closedMarkVertices: Partial<Record<PortfolioWorldFamily, readonly Point[]>> = {
-  component: [
-    { x: 0, y: -MARK_SIZE * 0.52 },
-    { x: MARK_SIZE * 0.51, y: MARK_SIZE * 0.42 },
-    { x: -MARK_SIZE * 0.51, y: MARK_SIZE * 0.42 },
-  ],
-  personal: [
-    { x: -MARK_SIZE * 0.48, y: -MARK_SIZE * 0.48 },
-    { x: MARK_SIZE * 0.48, y: -MARK_SIZE * 0.48 },
-    { x: MARK_SIZE * 0.48, y: MARK_SIZE * 0.48 },
-    { x: -MARK_SIZE * 0.48, y: MARK_SIZE * 0.48 },
-  ],
-  engagement: [
-    { x: 0, y: -MARK_SIZE * 0.54 },
-    { x: MARK_SIZE * 0.54, y: 0 },
-    { x: 0, y: MARK_SIZE * 0.54 },
-    { x: -MARK_SIZE * 0.54, y: 0 },
-  ],
-};
 
 function cross2d(a: Point, b: Point) {
   return a.x * b.y - a.y * b.x;
@@ -103,7 +88,7 @@ function polygonBoundaryInset(vertices: readonly Point[], direction: Point) {
 function markBoundaryInset(family: PortfolioWorldFamily, direction: Point) {
   if (family === "operation") return MARK_SIZE * 0.5;
   if (family === "formative" || family === "product") return MARK_SIZE * 0.49;
-  const vertices = closedMarkVertices[family];
+  const vertices = portfolioNodeMarkVertices(family);
   return vertices ? polygonBoundaryInset(vertices, direction) : 0;
 }
 
@@ -1161,56 +1146,46 @@ function drawNode(
   context.lineWidth = 1.45;
   context.lineJoin = "round";
 
-  if (node.family === "story") {
+  for (const primitive of portfolioNodeMarkPrimitives(node.family, size)) {
+    if (primitive.kind === "brain") {
+      const glyph = tintedBrain(image, color, cache);
+      if (glyph) {
+        context.drawImage(
+          glyph,
+          -size * 0.49,
+          -size * 0.49,
+          size * 0.98,
+          size * 0.98,
+        );
+      }
+      continue;
+    }
+
     context.beginPath();
-    context.moveTo(0, -size * 0.49);
-    context.lineTo(0, size * 0.49);
-    context.moveTo(-size * 0.43, -size * 0.245);
-    context.lineTo(size * 0.43, size * 0.245);
-    context.moveTo(-size * 0.43, size * 0.245);
-    context.lineTo(size * 0.43, -size * 0.245);
-    context.stroke();
-  } else if (node.family === "identity") {
-    const glyph = tintedBrain(image, color, cache);
-    if (glyph) context.drawImage(glyph, -size * 0.49, -size * 0.49, size * 0.98, size * 0.98);
-  } else if (node.family === "formative") {
-    context.beginPath();
-    context.arc(0, 0, size * 0.49, 0, Math.PI * 2);
-    context.stroke();
-  } else if (node.family === "operation") {
-    context.beginPath();
-    context.arc(0, 0, size * 0.5, 0, Math.PI * 2);
-    context.stroke();
-    context.beginPath();
-    context.arc(0, 0, size * 0.28, 0, Math.PI * 2);
-    context.stroke();
-  } else if (node.family === "component") {
-    context.beginPath();
-    context.moveTo(0, -size * 0.52);
-    context.lineTo(size * 0.51, size * 0.42);
-    context.lineTo(-size * 0.51, size * 0.42);
-    context.closePath();
-    context.stroke();
-  } else if (node.family === "personal") {
-    context.strokeRect(-size * 0.48, -size * 0.48, size * 0.96, size * 0.96);
-    context.beginPath();
-    context.arc(0, 0, size * 0.14, 0, Math.PI * 2);
-    context.fill();
-  } else if (node.family === "engagement") {
-    context.beginPath();
-    context.moveTo(0, -size * 0.54);
-    context.lineTo(size * 0.54, 0);
-    context.lineTo(0, size * 0.54);
-    context.lineTo(-size * 0.54, 0);
-    context.closePath();
-    context.stroke();
-  } else if (node.family === "product") {
-    context.beginPath();
-    context.arc(0, 0, size * 0.49, 0, Math.PI * 2);
-    context.stroke();
-    context.beginPath();
-    context.arc(0, 0, size * 0.14, 0, Math.PI * 2);
-    context.fill();
+    if (primitive.kind === "circle") {
+      context.arc(
+        primitive.x,
+        primitive.y,
+        primitive.radius,
+        0,
+        Math.PI * 2,
+      );
+    } else if (primitive.kind === "rect") {
+      context.rect(
+        primitive.x,
+        primitive.y,
+        primitive.width,
+        primitive.height,
+      );
+    } else {
+      primitive.points.forEach(({ x, y }, index) => {
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      if (primitive.close) context.closePath();
+    }
+    if (primitive.fill) context.fill();
+    else context.stroke();
   }
   context.restore();
 

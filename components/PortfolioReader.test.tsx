@@ -50,6 +50,8 @@ describe("PortfolioReader", () => {
       expect(screen.queryByText(thread.lede)).toBeNull();
     }
     expect(container.querySelector(".reader-thread-row")).toBeNull();
+    expect(container.querySelectorAll(".portfolio-node-mark")).toHaveLength(17);
+    expect(container.textContent).not.toContain("→");
   });
 
   it("does not add a redundant alternate-index link inside the reader", () => {
@@ -82,7 +84,15 @@ describe("PortfolioReader", () => {
     );
 
     const node = portfolioWorldNodeById.get("systems-consulting")!;
-    expect(screen.getByText(node.summary)).toBeTruthy();
+    const title = screen.getByRole("heading", { name: node.label });
+    const kind = screen.getByText(node.kind);
+    const summary = screen.getByText(node.summary);
+    expect(
+      title.compareDocumentPosition(kind) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      kind.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(container.querySelectorAll(".reader-summary")).toHaveLength(1);
     expect(container.querySelector(".reader-principle")).toBeNull();
     expect(screen.queryByText(node.principle!)).toBeNull();
@@ -203,6 +213,10 @@ describe("PortfolioReader", () => {
     fireEvent.scroll(reader);
 
     rerender(<PortfolioReader {...baseProps} selectedId="dubs" />);
+    const indexButton = screen.getByRole("button", { name: "Portfolio index" });
+    expect(indexButton.closest("h1")).toBeTruthy();
+    expect(indexButton.querySelector("[data-index-mark]")).toBeNull();
+    expect(indexButton.textContent).toBe("Index");
     reader.scrollTop = 0;
     rerender(<PortfolioReader {...baseProps} />);
 

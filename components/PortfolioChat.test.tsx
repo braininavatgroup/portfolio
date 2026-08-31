@@ -56,6 +56,135 @@ describe("portfolio chat", () => {
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
   });
 
+  it("uses conventional mobile navigation and a multiline composer", async () => {
+    // Catches index navigation being squeezed into the typing and send controls.
+    const onOpenChange = vi.fn();
+    const onLayoutChange = vi.fn();
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "A useful answer." });
+      onEvent({ type: "done" });
+    });
+    render(
+      <PortfolioChat
+        open
+        onLayoutChange={onLayoutChange}
+        onOpenChange={onOpenChange}
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Portfolio assistant navigation",
+    });
+    const back = screen.getByRole("button", {
+      name: "Back to portfolio index",
+    });
+    const composer = document.querySelector(".portfolio-chat-composer")!;
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    expect(navigation.contains(back)).toBe(true);
+    expect(back.querySelector("[data-index-mark]")).toBeNull();
+    expect(back.textContent).toBe("Index");
+    expect(navigation.textContent).toContain("Chat about the portfolio");
+    expect(composer.contains(back)).toBe(false);
+    expect(input.tagName).toBe("TEXTAREA");
+
+    onLayoutChange.mockClear();
+    fireEvent.focus(input);
+    fireEvent.change(input, {
+      target: { value: "A question that\nneeds more than one line" },
+    });
+    expect(onLayoutChange).toHaveBeenCalled();
+    fireEvent.submit(composer);
+
+    await waitFor(() =>
+      expect(askPortfolio).toHaveBeenCalledWith(
+        "A question that\nneeds more than one line",
+        expect.any(Object),
+      ),
+    );
+    expect(document.activeElement).not.toBe(input);
+
+    fireEvent.click(back);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("sends with Enter and keeps Shift+Enter available for a line break", async () => {
+    // Catches the multiline composer requiring a pointer click to send.
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "A useful answer." });
+      onEvent({ type: "done" });
+    });
+    render(
+      <PortfolioChat
+        initiallyOpen
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.change(input, { target: { value: "First line" } });
+    expect(
+      fireEvent.keyDown(input, { key: "Enter", code: "Enter", shiftKey: true }),
+    ).toBe(true);
+    expect(askPortfolio).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "First line\nSecond line" } });
+    expect(
+      fireEvent.keyDown(input, { key: "Enter", code: "Enter" }),
+    ).toBe(false);
+    await waitFor(() =>
+      expect(askPortfolio).toHaveBeenCalledWith(
+        "First line\nSecond line",
+        expect.any(Object),
+      ),
+    );
+  });
+
+  it("does not send the Enter key that commits an IME composition", () => {
+    // Catches Safari submitting CJK text immediately after compositionend.
+    const askPortfolio = vi.fn<AskPortfolio>(async () => {});
+    render(
+      <PortfolioChat
+        initiallyOpen
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "質問" } });
+    fireEvent.compositionEnd(input);
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    expect(askPortfolio).not.toHaveBeenCalled();
+  });
+
+  it("does not start a second turn with Enter while an answer is pending", async () => {
+    // Catches the keyboard path bypassing the disabled send button.
+    const askPortfolio = vi.fn<AskPortfolio>(() => new Promise(() => {}));
+    render(
+      <PortfolioChat
+        initiallyOpen
+        onPoseChange={() => {}}
+        askPortfolio={askPortfolio}
+      />,
+    );
+    const input = screen.getByLabelText("Ask a question about the portfolio");
+
+    fireEvent.change(input, { target: { value: "First question" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(input, { target: { value: "Second question" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    expect(askPortfolio).toHaveBeenCalledTimes(1);
+  });
+
   it("starts as the compact conversation control and restores the full assistant", async () => {
     render(
       <PortfolioChat
@@ -63,6 +192,12 @@ describe("portfolio chat", () => {
         askPortfolio={async () => {}}
       />,
     );
+
+    expect(
+      document
+        .querySelector(".portfolio-chat")
+        ?.getAttribute("data-clarity-mask"),
+    ).toBe("true");
 
     expect(
       screen.getByRole("button", { name: "Open portfolio assistant" }),
@@ -125,6 +260,43 @@ describe("portfolio chat", () => {
       (screen.getByLabelText("Portfolio assistant dock") as HTMLElement).style
         .left,
     ).toBe("");
+  });
+
+  it("returns the minimized desktop bubble to its default map-edge dock", () => {
+    // Catches the open panel bounds being reused as a displaced closed-bubble position.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    render(
+      <PortfolioChat
+        initiallyOpen
+        onPoseChange={() => {}}
+        askPortfolio={async () => {}}
+      />,
+    );
+    const panel = document.querySelector(".portfolio-chat-panel") as HTMLElement;
+    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+      bottom: 830,
+      height: 111,
+      left: 577,
+      right: 865,
+      top: 719,
+      width: 288,
+      x: 577,
+      y: 719,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+
+    const dock = screen.getByLabelText("Portfolio assistant dock");
+    expect(dock.getAttribute("style")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    ).toBeTruthy();
   });
 
   it("reports focus, typing activity, and blur to the avatar director", () => {
@@ -435,63 +607,6 @@ describe("portfolio chat", () => {
 
     await waitFor(() => expect(observedText).toEqual([true]));
     releaseRequest?.();
-  });
-
-  it("aborts the prior turn and ignores its later effects", async () => {
-    // Catches a stale stream changing the avatar after a newer question owns the chat.
-    const requests: Parameters<AskPortfolio>[1][] = [];
-    const askPortfolio: AskPortfolio = async (_question, options) => {
-      requests.push(options);
-      await new Promise<void>(() => {});
-    };
-    const effects: string[] = [];
-    const starts: string[] = [];
-    const avatarIntegration = {
-      onTurnStart: () => {
-        starts.push("start");
-      },
-      onEvidence: () => {},
-      onFirstText: () => {},
-      onEffects: () => {
-        effects.push("effect");
-      },
-      onNotice: () => {},
-      onError: () => {},
-      onComplete: () => {},
-    };
-
-    render(
-      <PortfolioChat
-        initiallyOpen
-        avatarIntegration={avatarIntegration}
-        onPoseChange={() => {}}
-        askPortfolio={askPortfolio}
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    const form = document.getElementById("portfolio-question-form");
-    fireEvent.change(input, { target: { value: "First question" } });
-    fireEvent.submit(form!);
-    await waitFor(() => expect(requests).toHaveLength(1));
-    const firstSignal = requests[0]?.signal;
-
-    fireEvent.change(input, { target: { value: "Second question" } });
-    fireEvent.submit(form!);
-    await waitFor(() => expect(requests).toHaveLength(2));
-
-    requests[0]?.onEvent({
-      type: "effects",
-      effects: {
-        siteActions: [{ type: "openProject", target: "project:dubs" }],
-        avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
-        issues: [],
-      },
-    });
-    await Promise.resolve();
-
-    expect(firstSignal?.aborted).toBe(true);
-    expect(starts).toEqual(["start", "start"]);
-    expect(effects).toEqual([]);
   });
 
   it("does not submit a question until configured Turnstile verification completes", async () => {

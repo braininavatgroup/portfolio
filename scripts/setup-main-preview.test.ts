@@ -274,10 +274,10 @@ describe("main preview setup wizard", () => {
       "gh secret set CLOUDFLARE_ACCOUNT_ID --env portfolio-main-preview",
     );
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body false",
     );
     expect(calls).not.toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
     );
 
     const observableOutput = `${stdout}\n${stderr}\n${calls}`;
@@ -303,10 +303,10 @@ describe("main preview setup wizard", () => {
     );
 
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body false",
     );
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
     );
   });
 
@@ -348,7 +348,7 @@ describe("main preview setup wizard", () => {
     expect(stdout).toContain(sha);
     expect(stdout).toContain(digest);
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
     );
     expect(calls).toContain(
       "gh workflow run deploy-main-preview.yml --repo braininavatgroup/portfolio --ref main --field source_run_id=123456789 --field source_sha=" +
@@ -361,11 +361,11 @@ describe("main preview setup wizard", () => {
       calls.indexOf("gh run download 123456789"),
     ).toBeLessThan(
       calls.indexOf(
-        "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+        "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
       ),
     );
     expect(
-      calls.indexOf("gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true"),
+      calls.indexOf("gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true"),
     ).toBeLessThan(calls.indexOf("gh workflow run deploy-main-preview.yml"));
   });
 
@@ -403,7 +403,7 @@ describe("main preview setup wizard", () => {
 
     expect(exitCode).not.toBe(0);
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
     );
     expect(calls).not.toContain("gh workflow run deploy-main-preview.yml");
     expect(stderr).toContain("could not be armed");
@@ -432,10 +432,10 @@ describe("main preview setup wizard", () => {
 
     expect(exitCode).not.toBe(0);
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body true",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body true",
     );
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body false",
     );
     expect(gateState).toBe("false");
     expect(calls).not.toContain("gh workflow run deploy-main-preview.yml");
@@ -466,7 +466,7 @@ describe("main preview setup wizard", () => {
     expect(exitCode).not.toBe(0);
     expect(calls).toContain("gh workflow run deploy-main-preview.yml");
     expect(calls).toContain(
-      "gh variable set PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED --body false",
+      "gh variable set PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED --body false",
     );
     expect(gateState).toBe("false");
     expect(stdout + "\n" + stderr).not.toContain("Deployment is armed");
@@ -497,7 +497,7 @@ describe("main preview setup wizard", () => {
 
     expect(exitCode).not.toBe(0);
     expect(stderr).toContain("FAIL-CLOSED WARNING");
-    expect(stderr).toContain("PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED");
+    expect(stderr).toContain("PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED");
     expect(stderr).toContain("could not verify false");
   });
 

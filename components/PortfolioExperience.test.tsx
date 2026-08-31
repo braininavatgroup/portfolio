@@ -9,7 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AvatarController } from "../lib/avatar/controller";
+import { AvatarController } from "../lib/avatar/controller";
 import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { SiteActionExecutor } from "../lib/avatar/site-actions";
@@ -163,27 +163,50 @@ async function askExperience(question: string) {
 }
 
 describe("spatial self-portrait", () => {
-  it("switches the phone composition between Index and Map", async () => {
+  it("uses one phone control for the combined map, avatar, and chat view", async () => {
+    vi.stubGlobal("innerWidth", 390);
     await renderExperience();
     const experience = document.getElementById("main-content")!;
+    const avatar = await screen.findByLabelText("Test avatar overlay");
 
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    expect(avatar.getAttribute("data-enabled")).toBe("false");
     const mapToggle = screen.getByRole("button", { name: "Show portfolio map" });
     expect(mapToggle.textContent).toBe("");
     expect(mapToggle.querySelector("svg[aria-hidden='true']")).toBeTruthy();
     fireEvent.click(mapToggle);
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
+    expect(avatar.getAttribute("data-enabled")).toBe("true");
     expect(
-      screen.getByRole("button", { name: "Show portfolio index" }),
-    ).toBeTruthy();
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(false);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "In Production Dubs" }),
-    );
+    const back = screen.getByRole("button", { name: "Back to portfolio index" });
+    await waitFor(() => expect(document.activeElement).toBe(back));
+    fireEvent.click(back);
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    expect(avatar.getAttribute("data-enabled")).toBe("false");
     expect(
-      screen.getByRole("complementary", { name: "Dubs record" }),
-    ).toBeTruthy();
+      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
+    ).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(mapToggle));
+  });
+
+  it("clears the combined phone mode when it closes after crossing the breakpoint", async () => {
+    vi.stubGlobal("innerWidth", 390);
+    await renderExperience();
+    const experience = document.getElementById("main-content")!;
+
+    fireEvent.click(screen.getByRole("button", { name: "Show portfolio map" }));
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
+
+    vi.stubGlobal("innerWidth", 1024);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
+    );
+    vi.stubGlobal("innerWidth", 390);
+
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
   });
 
   it("opens a reader visual in the map surface and returns to the record", async () => {
@@ -279,6 +302,73 @@ describe("spatial self-portrait", () => {
     expect(
       (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
     ).toBe(true);
+  });
+
+  it("docks the desktop avatar to the left of the opened chat panel", async () => {
+    const refreshStage = vi.spyOn(AvatarController.prototype, "refreshStage");
+    await renderExperience();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+
+    await waitFor(() =>
+      expect(refreshStage).toHaveBeenCalledWith(true, {
+        side: "left",
+        target: "portfolio:chat",
+      }),
+    );
+  });
+
+  it("preserves mobile chat attention while the opened pair settles", async () => {
+    const refreshStage = vi.spyOn(AvatarController.prototype, "refreshStage");
+    vi.stubGlobal("innerWidth", 390);
+    await renderExperience();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show portfolio map" }));
+    fireEvent.focus(
+      screen.getByLabelText("Ask a question about the portfolio"),
+    );
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 10));
+    });
+
+    expect(screen.getByTestId("avatar-state").textContent).toBe("listening");
+    expect(refreshStage).toHaveBeenCalledWith(true, {
+      placement: "top",
+      target: "portfolio:chat",
+    });
+  });
+
+  it("re-homes before replaying a non-chat target after the viewport changes", async () => {
+    const refreshStage = vi.spyOn(AvatarController.prototype, "refreshStage");
+    const execute = vi.spyOn(AvatarController.prototype, "execute");
+    await renderExperience();
+    await screen.findByLabelText("Test avatar overlay");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open portfolio assistant" }),
+    );
+    const runner = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarRunner",
+    ) as AvatarSequenceRunner;
+    await runner.run([{ action: "lookAt", target: "portfolio:index" }]);
+    refreshStage.mockClear();
+    execute.mockClear();
+
+    fireEvent(window, new Event("resize"));
+
+    expect(refreshStage).toHaveBeenCalledWith(true, {
+      side: "left",
+      target: "portfolio:chat",
+    });
+    expect(execute).toHaveBeenCalledWith({
+      action: "lookAt",
+      target: "portfolio:index",
+    });
+    expect(refreshStage.mock.invocationCallOrder[0]).toBeLessThan(
+      execute.mock.invocationCallOrder[0],
+    );
   });
 
   it("renders the accepted one-world composition with its shared reader", async () => {
@@ -477,13 +567,13 @@ describe("spatial self-portrait", () => {
     await renderExperience();
 
     expect(document.querySelector(".portfolio-world canvas")).toBeTruthy();
-    expect(document.querySelectorAll('[data-family="identity"]')).toHaveLength(1);
-    expect(document.querySelectorAll('[data-family="story"]')).toHaveLength(3);
-    expect(document.querySelectorAll('[data-family="operation"]')).toHaveLength(4);
-    expect(document.querySelectorAll('[data-family="component"]')).toHaveLength(3);
-    expect(document.querySelectorAll('[data-family="personal"]')).toHaveLength(1);
-    expect(document.querySelectorAll('[data-family="engagement"]')).toHaveLength(2);
-    expect(document.querySelectorAll('[data-family="product"]')).toHaveLength(3);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="identity"]')).toHaveLength(1);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="story"]')).toHaveLength(3);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="operation"]')).toHaveLength(4);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="component"]')).toHaveLength(3);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="personal"]')).toHaveLength(1);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="engagement"]')).toHaveLength(2);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="product"]')).toHaveLength(3);
   });
 
   it("opens a project record in the reader and restores the index", async () => {

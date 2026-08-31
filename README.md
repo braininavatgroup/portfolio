@@ -105,9 +105,19 @@ development key.
 The separate permanent preview of tested `main` is defined by
 `wrangler.main-preview.jsonc`. It uses a normal password form and a signed
 seven-day browser cookie, gates static assets as well as application routes,
-and has no custom domain. Its CI deployment job consumes the exact `dist/`
+and serves `bradleyberkman.com` plus `www.bradleyberkman.com` as Cloudflare
+Custom Domains. Its CI deployment job consumes the exact `dist/`
 artifact already proven by CI and remains dormant unless the repository
-variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` is explicitly set to `true`.
+variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to `true`.
+
+Public-domain builds enable Microsoft Clarity project `yatoiqtrjm` for
+privacy-safe behavioral analytics on every visit to `bradleyberkman.com` and
+`www.bradleyberkman.com`. The public tag ID is committed with the integration;
+it is not a credential. The integration provides a standard opt-out,
+disables advertising storage when a visitor changes their preference, masks
+the entire chat dock before replay data leaves the browser, and stays disabled
+on preview and local hostnames.
+Cloudflare supplies aggregate traffic analytics separately at the edge.
 Run `npm run setup:main-preview` for the repeatable four-stage setup wizard. It
 reuses an existing `gh` login, publishes the feature branch and PR, captures
 secrets through hidden prompts, creates the protected GitHub environment, and
@@ -146,8 +156,9 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This repository does not configure or authorize a production/custom-domain
-release. The bounded single-operator Workers.dev site preview remains tracked in
-BIV-317, while the password-protected permanent main preview remains separately
-false-gated until its activation packet is approved. Chat-specific preview
+This repository configures `bradleyberkman.com` and `www.bradleyberkman.com`
+as password-protected Custom Domains on the permanent main preview. The bounded
+single-operator Workers.dev site preview remains tracked in BIV-317, while the
+custom-domain deployment remains false-gated until its activation packet is
+approved. Chat-specific preview
 access was retired by BIV-321.

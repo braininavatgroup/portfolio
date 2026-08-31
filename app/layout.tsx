@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CursorInstrument } from "../components/CursorInstrument";
+import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,12 @@ export const metadata: Metadata = {
   icons: { icon: "/biv-brain-symbol.png" },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +36,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <PortfolioAnalytics />
         <CursorInstrument />
         <div id="app-shell">
           <a className="skip-link" href="#main-content">

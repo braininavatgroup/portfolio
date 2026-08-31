@@ -18,7 +18,7 @@
 - Password and session secret values exist only as Cloudflare Worker secrets.
 - Sessions last seven days and use `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`.
 - Static assets set `binding: "ASSETS"` and `run_worker_first: true`.
-- Deployment remains false-gated by `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` and is not activated in this plan.
+- Deployment remains false-gated by `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` and is not activated in this plan.
 - The existing `bradley-portfolio-preview` Worker and BIV-317 activation packet remain unchanged.
 - Preserve the unrelated uncommitted `vite.config.ts` Tailscale hostname change and exclude it from commits.
 
@@ -155,7 +155,7 @@ Expected: exit 0.
 - Modify: `README.md`
 
 **Interfaces:**
-- Consumes: exact `dist/` produced by CI, GitHub environment secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and repository variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED`.
+- Consumes: exact `dist/` produced by CI, GitHub environment secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and repository variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED`.
 - Produces: a false-gated deploy job and an exact-artifact activation/rollback contract.
 
 - [ ] **Step 1: Write the failing workflow behavior test**

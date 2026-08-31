@@ -12,7 +12,7 @@ Provide one stable Cloudflare Workers preview of the latest successfully tested 
 
 Create a new Worker named `bradley-portfolio-main-preview`. Do not repurpose the bounded `bradley-portfolio-preview` Worker or change its BIV-317 activation and rollback record. The new Worker uses only its generated Workers.dev hostname, with no custom domain or zone route.
 
-GitHub Actions builds and tests the exact `main` commit. A deploy job consumes that same build output only after CI succeeds. The deploy job stays dormant unless the repository variable `PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED` equals `true`. Enabling that variable, creating the GitHub environment and Cloudflare secrets, and running the first deployment are activation actions outside this implementation.
+GitHub Actions builds and tests the exact `main` commit. A deploy job consumes that same build output only after CI succeeds. The deploy job stays dormant unless the repository variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` equals `true`. Enabling that variable, creating the GitHub environment and Cloudflare secrets, and running the first deployment are activation actions outside this implementation.
 
 ## Password gate
 

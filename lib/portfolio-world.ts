@@ -185,7 +185,7 @@ export const portfolioThroughline =
   "Make complexity legible enough to act on.";
 
 export const portfolioContact = {
-  email: "bradley@braininavat.dance",
+  email: "bradley@bradleyberkman.com",
   cv: { label: "Download CV", href: "/cv/bradley-berkman-cv.pdf" },
   socials: [
     { label: "LinkedIn", href: "https://www.linkedin.com/in/bradleyberkman/" },

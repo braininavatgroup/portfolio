@@ -68,6 +68,83 @@ describe("avatar controller", () => {
     expect(controller.getSnapshot().position).toEqual({ x: 540, y: 776 });
   });
 
+  it("re-homes on the requested side of a live interface target", () => {
+    // Catches the assistant panel and avatar swapping back to the wrong order.
+    const registry = new AvatarTargetRegistry();
+    registry.registerStage(elementAt(0, 0, 620, 800));
+    registry.register("portfolio:chat", elementAt(400, 620, 200, 160));
+    const controller = new AvatarController(registry);
+
+    controller.refreshStage(true, {
+      side: "left",
+      target: "portfolio:chat",
+    });
+
+    expect(controller.getSnapshot().position).toEqual({ x: 312, y: 776 });
+  });
+
+  it("uses the top edge of a mobile shelf as the avatar floor", () => {
+    // Catches the avatar falling behind the keyboard instead of standing on the shelf.
+    const registry = new AvatarTargetRegistry();
+    registry.registerStage(elementAt(0, 0, 390, 460));
+    registry.register("portfolio:chat", elementAt(14, 350, 362, 96));
+    const controller = new AvatarController(registry);
+
+    controller.refreshStage(true, {
+      placement: "top",
+      target: "portfolio:chat",
+    });
+
+    expect(controller.getSnapshot().position).toEqual({ x: 195, y: 350 });
+  });
+
+  it("keeps the map above a mobile shelf available as the avatar playground", () => {
+    const registry = new AvatarTargetRegistry();
+    registry.registerStage(elementAt(0, 0, 390, 460));
+    registry.register("portfolio:chat", elementAt(14, 350, 362, 96));
+    const controller = new AvatarController(registry);
+    controller.refreshStage(true, {
+      placement: "top",
+      target: "portfolio:chat",
+    });
+
+    expect(controller.canSwimLap()).toBe(true);
+    void controller.execute({ action: "swimRoute", route: "lap" });
+    expect(controller.getSnapshot().motion?.points.at(-1)).toEqual({
+      x: 195,
+      y: 350,
+    });
+  });
+
+  it("settles canceled travel into the current semantic state when re-homing", () => {
+    // Catches a resize leaving a travel clip playing after its motion was invalidated.
+    const registry = new AvatarTargetRegistry();
+    registry.registerStage(elementAt(0, 0, 620, 800));
+    registry.register("portfolio:chat", elementAt(400, 620, 200, 160));
+    const controller = new AvatarController(registry);
+
+    controller.execute({ action: "setState", state: "listening" });
+    void controller.execute({ action: "walkTo", target: "portfolio:chat" });
+    expect(controller.getSnapshot()).toMatchObject({
+      state: "listening",
+      animation: "walking",
+      motion: { kind: "walk" },
+    });
+
+    controller.refreshStage(true, {
+      side: "left",
+      target: "portfolio:chat",
+    });
+
+    expect(controller.getSnapshot()).toMatchObject({
+      state: "listening",
+      animation: "alert",
+      position: { x: 312, y: 776 },
+      locomotion: "grounded",
+      motion: null,
+    });
+  });
+
   it("uses an expanded Director console as the grounded floor obstacle", () => {
     // Catches walking behind the live console instead of standing just above it.
     const registry = new AvatarTargetRegistry();

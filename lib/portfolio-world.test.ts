@@ -148,7 +148,7 @@ describe("authored content contract", () => {
 
   it("keeps the public identity content in place", () => {
     expect(portfolioThroughline).not.toBe("");
-    expect(portfolioContact.email).toBe("bradley@braininavat.dance");
+    expect(portfolioContact.email).toBe("bradley@bradleyberkman.com");
     expect(portfolioContact.socials.map(({ label }) => label)).toEqual([
       "LinkedIn",
       "GitHub",

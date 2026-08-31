@@ -58,6 +58,15 @@ test("the flat index lists threads and every node with its canonical page", asyn
     17,
     "stacked editorial index renders three threads and fourteen nodes",
   );
+  assert.equal(
+    (html.match(/class=["'][^"']*portfolio-node-mark[^"']*["']/gi) ?? [])
+      .length,
+    17,
+    "every index row reuses its graph node mark",
+  );
+  assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-family=["']story["']/i);
+  assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-register=["']warm["']/i);
+  assert.doesNotMatch(html, /artifact-index-meta[^>]*>\s*<span[^>]*>→<\/span>/i);
 
   // The standalone per-record pages were retired (2026-08-30): the flat index
   // links straight into the map reader, and old /index/<id> URLs redirect there.
@@ -119,6 +128,19 @@ test("legacy work and case-study routes redirect to the canonical pages", async 
     assert.equal(location.search, "?view=graph");
     assert.equal(location.hash, `#${target}`, `/index/${legacySlug} → #${target}`);
   }
+});
+
+test("the privacy route discloses analytics, replay masking, and opt-out", async () => {
+  const response = await render("/privacy");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /<h1>Privacy<\/h1>/i);
+  assert.match(html, /Cloudflare edge analytics/i);
+  assert.match(html, /Microsoft Clarity/i);
+  assert.match(html, /Form inputs and the portfolio chat are masked/i);
+  assert.match(html, /opt out or back in/i);
+  assert.match(html, /mailto:bradley@bradleyberkman\.com/i);
 });
 
 test("the retired design-system snapshot is no longer shipped", async () => {

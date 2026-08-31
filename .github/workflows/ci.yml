@@ -35,7 +35,7 @@ jobs:
           retention-days: 7
 
   deploy_main_preview:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED == 'true'
     needs: ci
     environment: portfolio-main-preview
     runs-on: ubuntu-latest

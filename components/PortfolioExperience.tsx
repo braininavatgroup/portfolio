@@ -54,6 +54,17 @@ const AvatarToyboxOverlay = lazy(() =>
   })),
 );
 
+const desktopAssistantHomeDock = {
+  side: "left",
+  target: "portfolio:chat",
+} as const;
+
+function getAssistantHomeDock() {
+  return typeof window !== "undefined" && window.innerWidth <= 600
+    ? ({ placement: "top", target: "portfolio:chat" } as const)
+    : desktopAssistantHomeDock;
+}
+
 class PortfolioAvatarActionState {
   #selectedNode: SpatialGraphNode | null = null;
   #reducedMotion = false;
@@ -602,6 +613,14 @@ export function PortfolioExperience() {
   }, [assistantOpen, avatarDirector, reducedMotion]);
 
   useEffect(() => {
+    if (!assistantOpen) return;
+    const timer = window.setTimeout(() => {
+      avatarController.refreshStage(true, getAssistantHomeDock());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [assistantOpen, avatarController]);
+
+  useEffect(() => {
     const refreshTarget = () => {
       const command = avatarController.getSnapshot().currentCommand;
       if (
@@ -609,9 +628,10 @@ export function PortfolioExperience() {
         command?.action === "lookAt" ||
         command?.action === "pointAt"
       ) {
+        avatarController.refreshStage(true, getAssistantHomeDock());
         avatarController.execute(command);
       } else {
-        avatarController.refreshStage(true);
+        avatarController.refreshStage(true, getAssistantHomeDock());
       }
     };
     const handleVisibility = () => {
@@ -660,10 +680,41 @@ export function PortfolioExperience() {
     registeredAvatarTargets,
   ]);
 
-  const setAssistantVisibility = useCallback((visible: boolean) => {
-    if (!visible) avatarDirector.stop();
-    setAssistantOpen(visible);
-  }, [avatarDirector]);
+  const setAssistantVisibility = useCallback(
+    (visible: boolean) => {
+      if (!visible) {
+        avatarDirector.stop();
+        setMobileMapOpen(false);
+        const returningToMobileIndex =
+          typeof window !== "undefined" && window.innerWidth <= 600;
+        if (returningToMobileIndex) {
+          showIndexWithAvatar();
+          window.setTimeout(() => {
+            document
+              .querySelector<HTMLButtonElement>(".portfolio-mobile-view-toggle")
+              ?.focus();
+          }, 0);
+        }
+      }
+      setAssistantOpen(visible);
+    },
+    [avatarDirector, showIndexWithAvatar],
+  );
+
+  const toggleMobileCombinedView = useCallback(() => {
+    if (mobileMapOpen) {
+      if (activeVisual) setActiveVisual(null);
+      setAssistantVisibility(false);
+      return;
+    }
+    setMobileMapOpen(true);
+    setAssistantVisibility(true);
+  }, [activeVisual, mobileMapOpen, setAssistantVisibility]);
+
+  const refreshAssistantHome = useCallback(() => {
+    if (!assistantOpenRef.current) return;
+    avatarController.refreshStage(true, getAssistantHomeDock());
+  }, [avatarController]);
 
   const showBradleyRecord = useCallback(() => {
     const bradleyNode = portfolioWorldNodes.find(({ id }) => id === "bradley");
@@ -690,6 +741,7 @@ export function PortfolioExperience() {
   const portfolioChat = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
+      onLayoutChange={refreshAssistantHome}
       onOpenChange={setAssistantVisibility}
       onPoseChange={() => {}}
       open={assistantOpen}
@@ -752,10 +804,7 @@ export function PortfolioExperience() {
               aria-label={mobileMapOpen ? "Show portfolio index" : "Show portfolio map"}
               aria-pressed={mobileMapOpen}
               className="portfolio-mobile-view-toggle"
-              onClick={() => {
-                if (mobileMapOpen && activeVisual) setActiveVisual(null);
-                setMobileMapOpen((open) => !open);
-              }}
+              onClick={toggleMobileCombinedView}
               type="button"
             >
               {mobileMapOpen ? (

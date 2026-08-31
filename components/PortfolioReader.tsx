@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { PortfolioNodeMark } from "./PortfolioNodeMark";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import {
   portfolioContact,
@@ -12,6 +13,7 @@ import {
   portfolioWorldLinks,
   portfolioWorldNodeById,
   type PortfolioBodyBlock,
+  type PortfolioThread,
   type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
@@ -43,8 +45,32 @@ function IndexRow({
   return (
     <button aria-label={node.label} className="reader-index-row" onClick={() => onSelect(node)} type="button">
       <span>{node.label}</span>
-      <span aria-hidden="true">→</span>
+      <PortfolioNodeMark family={node.family} register={node.register} />
       <small>{node.kind}</small>
+    </button>
+  );
+}
+
+function ThreadIndexRow({
+  onSelect,
+  thread,
+}: {
+  onSelect: (threadId: string) => void;
+  thread: PortfolioThread;
+}) {
+  const node = portfolioWorldNodeById.get(thread.nodeId);
+  if (!node) return null;
+
+  return (
+    <button
+      aria-label={thread.title}
+      className="reader-index-row"
+      onClick={() => onSelect(thread.id)}
+      type="button"
+    >
+      <span>{thread.title}</span>
+      <PortfolioNodeMark family={node.family} register={node.register} />
+      <small>Thread</small>
     </button>
   );
 }
@@ -62,17 +88,11 @@ function ReaderIndex({
             <section className="reader-index-group reader-thread-index" key={section.id}>
               <h2>{section.title}</h2>
               {portfolioThreads.map((thread) => (
-                <button
-                  aria-label={thread.title}
-                  className="reader-index-row"
+                <ThreadIndexRow
                   key={thread.id}
-                  onClick={() => onSelectThread(thread.id)}
-                  type="button"
-                >
-                  <span>{thread.title}</span>
-                  <span aria-hidden="true">→</span>
-                  <small>Thread</small>
-                </button>
+                  onSelect={onSelectThread}
+                  thread={thread}
+                />
               ))}
             </section>
           );
@@ -232,8 +252,8 @@ function ThreadRecord({
     portfolioWorldNodeById.get(thread.nodeId)?.register ?? "story";
   return (
     <div className="reader-content reader-thread-content">
-      <p className="reader-kind" data-register={register}>Thread</p>
       <h1>{thread.title}</h1>
+      <p className="reader-kind" data-register={register}>Thread</p>
       <p className="reader-summary">{thread.lede}</p>
       <PortfolioBody body={thread.body} onOpenVisual={onOpenVisual} />
       <section className="reader-record-section">
@@ -287,6 +307,8 @@ function WorldRecord({
   const threadRows = containingThreads.length > 0 ? containingThreads : portfolioThreads;
   return (
     <div className="reader-content reader-record-content">
+      <h1>{node.label}</h1>
+      <p className="reader-kind" data-register={node.register}>{node.kind}</p>
       {activeThreadId ? (
         <p className="reader-path">
           <button onClick={() => onSelectThread(activeThreadId)} type="button">
@@ -295,8 +317,6 @@ function WorldRecord({
           <span aria-hidden="true"> / </span>{node.label}
         </p>
       ) : null}
-      <p className="reader-kind" data-register={node.register}>{node.kind}</p>
-      <h1>{node.label}</h1>
       <p
         className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
       >
@@ -310,14 +330,11 @@ function WorldRecord({
         <section className="reader-record-section">
           <h2>Threads</h2>
           {threadRows.map((thread) => (
-            <button
-              className="reader-index-row"
+            <ThreadIndexRow
               key={thread.id}
-              onClick={() => onSelectThread(thread.id)}
-              type="button"
-            >
-              <span>{thread.title}</span><span aria-hidden="true">→</span><small>Thread</small>
-            </button>
+              onSelect={onSelectThread}
+              thread={thread}
+            />
           ))}
         </section>
       ) : null}
@@ -386,7 +403,11 @@ export function PortfolioReader({
     >
       {node || thread ? (
         <header className="reader-topbar">
-          <button aria-label="Portfolio index" onClick={onReset} type="button">← Index</button>
+          <h1>
+            <button aria-label="Portfolio index" onClick={onReset} type="button">
+              Index
+            </button>
+          </h1>
         </header>
       ) : null}
       {node && node.family !== "story" ? (
