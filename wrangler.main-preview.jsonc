@@ -8,12 +8,12 @@
   "preview_urls": false,
   "routes": [
     {
-      "pattern": "bradleyberkman.com",
-      "custom_domain": true
+      "pattern": "bradleyberkman.com/*",
+      "zone_name": "bradleyberkman.com"
     },
     {
-      "pattern": "www.bradleyberkman.com",
-      "custom_domain": true
+      "pattern": "www.bradleyberkman.com/*",
+      "zone_name": "bradleyberkman.com"
     }
   ],
   "vars": {

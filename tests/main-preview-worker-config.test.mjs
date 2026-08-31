@@ -10,7 +10,7 @@ async function mainPreviewConfig() {
   return JSON.parse(await readFile(configUrl, "utf8"));
 }
 
-test("the permanent main preview is password-gated on its custom domains", async () => {
+test("the permanent main preview is password-gated on its apex and www routes", async () => {
   const config = await mainPreviewConfig();
 
   assert.equal(config.name, "bradley-portfolio-main-preview");
@@ -21,8 +21,8 @@ test("the permanent main preview is password-gated on its custom domains", async
   assert.equal(config.preview_urls, false);
   assert.equal(config.route, undefined);
   assert.deepEqual(config.routes, [
-    { pattern: "bradleyberkman.com", custom_domain: true },
-    { pattern: "www.bradleyberkman.com", custom_domain: true },
+    { pattern: "bradleyberkman.com/*", zone_name: "bradleyberkman.com" },
+    { pattern: "www.bradleyberkman.com/*", zone_name: "bradleyberkman.com" },
   ]);
   assert.equal(config.domains, undefined);
   assert.equal(config.no_bundle, true);

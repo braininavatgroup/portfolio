@@ -106,7 +106,8 @@ The separate permanent preview of tested `main` is defined by
 `wrangler.main-preview.jsonc`. It uses a normal password form and a signed
 seven-day browser cookie, gates static assets as well as application routes,
 and serves `bradleyberkman.com` plus `www.bradleyberkman.com` as Cloudflare
-Custom Domains. Its CI deployment job consumes the exact `dist/`
+Worker Routes in front of the zone's existing proxied web records. Its CI
+deployment job consumes the exact `dist/`
 artifact already proven by CI and remains dormant unless the repository
 variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to `true`.
 
@@ -157,8 +158,8 @@ npm run test:rendered
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
 This repository configures `bradleyberkman.com` and `www.bradleyberkman.com`
-as password-protected Custom Domains on the permanent main preview. The bounded
+as password-protected Worker Routes on the permanent main preview. The bounded
 single-operator Workers.dev site preview remains tracked in BIV-317, while the
-custom-domain deployment remains false-gated until its activation packet is
+public-domain deployment remains false-gated until its activation packet is
 approved. Chat-specific preview
 access was retired by BIV-321.

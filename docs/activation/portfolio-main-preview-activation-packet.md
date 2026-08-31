@@ -1,8 +1,8 @@
 # Password-protected main preview activation packet
 
-Status: dormant. This packet defines the separate approval, deployment, smoke,
-and rollback procedure for the permanent preview of the latest successfully
-tested `main`. Adding this packet and its workflow does not authorize activation.
+Status: active. This packet defines the approval, deployment, smoke, and
+rollback procedure for the permanent preview of the latest successfully tested
+`main`.
 
 ## Bound release
 
@@ -10,7 +10,7 @@ tested `main`. Adding this packet and its workflow does not authorize activation
 - Access boundary: `bradleyberkman.com`, `www.bradleyberkman.com`, and the
   generated `bradley-portfolio-main-preview.<account-subdomain>.workers.dev`
   hostname, all behind the same shared portfolio-preview password.
-- Routes: Cloudflare Custom Domains for the apex and `www`, plus Workers.dev.
+- Routes: Cloudflare Worker Routes for the apex and `www`, plus Workers.dev.
   No other hostname or zone route is authorized.
 - Artifact: the exact `dist/` uploaded by the successful `ci` job for a push to
   `main`. Neither deployment workflow rebuilds or overwrites that artifact.
@@ -27,11 +27,11 @@ tested `main`. Adding this packet and its workflow does not authorize activation
   deployment.
 
 Before changing the gate, confirm the `bradleyberkman.com` zone is active on
-Cloudflare, GoDaddy delegates to Cloudflare’s assigned nameservers, and neither
-the apex nor `www` has a conflicting CNAME. Record the reviewed merge commit,
-CI run URL, sorted `dist/` SHA-256 digest, Cloudflare Worker version, all three
-hostnames, certificate status, activation approver, activation time, and the
-known-good prior version.
+Cloudflare, GoDaddy delegates to Cloudflare’s assigned nameservers, and the
+apex and `www` each have an existing proxied DNS record for the Worker Route to
+intercept. Record the reviewed merge commit, CI run URL, sorted `dist/` SHA-256
+digest, Cloudflare Worker version, all three hostnames, certificate status,
+activation approver, activation time, and the known-good prior version.
 
 ## Runtime secrets and configuration
 
@@ -94,7 +94,7 @@ must display the exact source run, main SHA, and sorted `dist/` digest before
 the operator types `ACTIVATE`. That confirmation authorizes the wizard to set
 the repository variable to exact `true` and dispatch the protected manual
 workflow with only those three non-secret artifact identity inputs. The
-operator must not add routes beyond the two listed Custom Domains, broaden token
+operator must not add routes beyond the two listed zone routes, broaden token
 permissions beyond the intended account and zone, substitute an
 artifact, pass secret values as inputs or command arguments, or retain secret
 values.
@@ -115,7 +115,7 @@ over cellular rather than home Wi-Fi:
 | --- | --- |
 | Signed-out apex | `https://bradleyberkman.com/` redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow, noarchive` |
 | Signed-out `www` | `https://www.bradleyberkman.com/` reaches the same password boundary |
-| TLS | Both custom hostnames present valid Cloudflare-managed certificates |
+| TLS | Both public hostnames present valid Cloudflare-managed certificates |
 | Wrong password | Generic 401, no session cookie, and no configuration detail |
 | Correct password | Redirects to the requested same-origin path and sets the seven-day secure cookie |
 | Protected asset | Loads only after authentication and retains the `noindex, nofollow, noarchive` response header |
