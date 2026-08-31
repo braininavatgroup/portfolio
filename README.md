@@ -1,6 +1,6 @@
 # Bradley Berkman portfolio
 
-An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns projects into an explorable graph; every project also has a conventional HTML page.
+An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns projects into an explorable graph with a shared reader; the flat HTML index links into that same reading surface.
 
 ## Run it
 
@@ -46,12 +46,12 @@ both preserve the current map, reader, chat, and history state.
 
 - `/` contains the pointer-responsive figure, transition into the graph, graph controls, node records, and portfolio chat.
 - `/index` is the complete HTML index of threads and nodes and works without WebGL.
-- `/index/[slug]` is a node's canonical record page (same content as the reader panel).
+- `/index/[slug]` preserves old record links by redirecting into the corresponding map reader state.
 - Legacy `/work` routes and retired case-study slugs redirect to their canonical `/index` equivalents.
 
 ## Content model
 
-A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the complete short piece for one thing, readable in the reader panel and on its canonical page) or a **thread** (a narrated path through the map; the only long-form type). Authored content lives in `lib/portfolio-world.ts`; chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. `docs/content/writing-session-brief.md` is the brief for writing the real content.
+A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the short piece for one thing in the map reader) or a **thread** (a narrated path through the map; the only long-form type). Authored content lives in `lib/portfolio-world.ts`. Record and Thread bodies interleave prose with structured copy and visual placeholders while the portfolio is being composed; placeholders intentionally render on `main`, and `?review=clean` hides them for a clean reading pass without forking the content. Chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. Grounding labels workbench placeholders as draft context rather than published proof.
 
 ## Portfolio model
 
