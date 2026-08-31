@@ -99,7 +99,7 @@ function VisualBlock({ block }: { block: PortfolioVisualBlock }) {
   return (
     <figure
       aria-label={`Planned visual: ${block.purpose}`}
-      className="reader-draft-placeholder reader-visual-placeholder"
+      className="reader-visual-placeholder"
       data-status={block.status}
     >
       <div className="reader-placeholder-frame" aria-hidden="true">
@@ -133,7 +133,7 @@ function PortfolioBody({
           return (
             <aside
               aria-label={`Copy in progress: ${block.prompt}`}
-              className="reader-copy-placeholder reader-draft-placeholder"
+              className="reader-copy-placeholder reader-text-placeholder"
               key={block.id}
             >
               <span className="reader-placeholder-label">Copy in progress</span>
@@ -228,13 +228,10 @@ function WorldRecord({
       <p className="reader-kind" data-register={node.register}>{node.kind}</p>
       <h1>{node.label}</h1>
       <p
-        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-draft-placeholder" : ""}`}
+        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
       >
         {node.summary}
       </p>
-      {node.principle ? (
-        <p className="reader-principle">{node.principle}</p>
-      ) : null}
       {node.body.length > 0 ? <PortfolioBody body={node.body} /> : null}
       {node.id === "bradley" ? <ContactSection /> : null}
       {node.id === "bradley" || containingThreads.length > 0 ? (

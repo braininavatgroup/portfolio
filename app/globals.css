@@ -2452,16 +2452,6 @@ body:has(.portfolio-composition) {
 .reader-kind[data-register="bridge"] { --register: var(--world-bridge); }
 .reader-kind[data-register="cool"] { --register: var(--world-cool); }
 
-.reader-principle {
-  border-left: 2px solid var(--world-story);
-  color: var(--ink);
-  font-size: 14px;
-  font-style: italic;
-  line-height: 1.4;
-  margin: 0 0 22px;
-  padding-left: 12px;
-}
-
 .reader-record-section > p + p {
   margin-top: 10px;
 }
@@ -2536,16 +2526,9 @@ body:has(.portfolio-composition) {
   margin: 0;
 }
 
-.reader-composed-body > .reader-draft-placeholder {
+.reader-composed-body > .reader-copy-placeholder,
+.reader-composed-body > .reader-visual-placeholder {
   margin: 18px 0;
-}
-
-.reader-draft-placeholder {
-  background:
-    linear-gradient(135deg, transparent 0 48%, var(--map-grid) 48% 52%, transparent 52% 100%),
-    color-mix(in srgb, var(--reader-paper) 88%, var(--map-paper));
-  border: 1px solid var(--map-line-strong);
-  color: var(--reader-body);
 }
 
 .reader-placeholder-label {
@@ -2560,7 +2543,9 @@ body:has(.portfolio-composition) {
 }
 
 .reader-copy-placeholder {
-  padding: 14px;
+  border-left: 1px dotted var(--map-line-strong);
+  color: var(--reader-body);
+  padding: 2px 0 2px 14px;
 }
 
 .reader-copy-placeholder strong,
@@ -2581,6 +2566,11 @@ body:has(.portfolio-composition) {
 }
 
 .reader-visual-placeholder {
+  background:
+    linear-gradient(135deg, transparent 0 48%, var(--map-grid) 48% 52%, transparent 52% 100%),
+    color-mix(in srgb, var(--reader-paper) 88%, var(--map-paper));
+  border: 1px solid var(--map-line-strong);
+  color: var(--reader-body);
   margin-inline: 0;
 }
 
@@ -2653,16 +2643,18 @@ body:has(.portfolio-composition) {
   margin-top: 7px;
 }
 
-.portfolio-reader-clean-review .reader-draft-placeholder {
+.portfolio-reader-clean-review .reader-text-placeholder,
+.portfolio-reader-clean-review .reader-visual-placeholder {
   display: none;
 }
 
 .reader-summary-placeholder {
-  border: 1px solid var(--map-line-strong);
   color: var(--reader-muted);
   font-size: 12px;
+  font-style: italic;
   letter-spacing: 0.02em;
-  padding: 12px;
+  text-decoration: underline dotted var(--map-line-strong);
+  text-underline-offset: 4px;
 }
 
 .reader-index-row {

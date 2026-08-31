@@ -76,11 +76,16 @@ describe("PortfolioReader", () => {
     }
   });
 
-  it("renders the complete record", () => {
-    render(<PortfolioReader {...baseProps} selectedId="pitching" />);
+  it("uses one summary treatment at the start of every record", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="systems-consulting" />,
+    );
 
-    const node = portfolioWorldNodeById.get("pitching")!;
-    expect(screen.getByText(node.principle!)).toBeTruthy();
+    const node = portfolioWorldNodeById.get("systems-consulting")!;
+    expect(screen.getByText(node.summary)).toBeTruthy();
+    expect(container.querySelectorAll(".reader-summary")).toHaveLength(1);
+    expect(container.querySelector(".reader-principle")).toBeNull();
+    expect(screen.queryByText(node.principle!)).toBeNull();
     for (const block of node.body) {
       if (typeof block === "string") {
         expect(screen.getByText(block)).toBeTruthy();
@@ -100,7 +105,20 @@ describe("PortfolioReader", () => {
         /Planned visual: Show how the service offering developed/,
       ),
     ).toBeTruthy();
-    expect(screen.getByText("[Summary in progress]")).toBeTruthy();
+    const summary = screen.getByText("[Summary in progress]");
+    expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
+
+    for (const label of screen.getAllByText("Copy in progress")) {
+      const placeholder = label.closest("aside")!;
+      expect(placeholder.classList.contains("reader-text-placeholder")).toBe(true);
+      expect(placeholder.classList.contains("reader-draft-placeholder")).toBe(false);
+    }
+
+    const visual = screen.getByLabelText(
+      /Planned visual: Show how the service offering developed/,
+    );
+    expect(visual.classList.contains("reader-visual-placeholder")).toBe(true);
+    expect(visual.classList.contains("reader-text-placeholder")).toBe(false);
   });
 
   it("supports a clean review mode without maintaining separate content", () => {
@@ -113,7 +131,11 @@ describe("PortfolioReader", () => {
       name: "Brain in a Vat Music Promotions Agency record",
     });
     expect(reader.classList.contains("portfolio-reader-clean-review")).toBe(true);
-    expect(reader.querySelectorAll(".reader-draft-placeholder")).toHaveLength(4);
+    expect(
+      reader.querySelectorAll(
+        ".reader-text-placeholder, .reader-visual-placeholder",
+      ),
+    ).toHaveLength(4);
     window.history.replaceState({}, "", "/");
   });
 
