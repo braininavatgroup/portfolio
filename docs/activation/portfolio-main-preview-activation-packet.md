@@ -93,8 +93,9 @@ listed Worker secrets and GitHub environment credentials. The post-merge wizard
 must display the exact source run, main SHA, and sorted `dist/` digest before
 the operator types `ACTIVATE`. That confirmation authorizes the wizard to set
 the repository variable to exact `true` and dispatch the protected manual
-workflow with only those three non-secret artifact identity inputs. The operator must not add routes beyond the two listed Custom Domains,
-broaden token permissions beyond the intended account and zone, substitute an
+workflow with only those three non-secret artifact identity inputs. The
+operator must not add routes beyond the two listed Custom Domains, broaden token
+permissions beyond the intended account and zone, substitute an
 artifact, pass secret values as inputs or command arguments, or retain secret
 values.
 
