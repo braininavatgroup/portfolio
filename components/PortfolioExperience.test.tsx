@@ -186,6 +186,40 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
+  it("opens a reader visual in the map surface and returns to the record", async () => {
+    await renderExperience();
+    const experience = document.getElementById("main-content")!;
+
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Open video visual in map: Demonstrate the listen/,
+      }),
+    );
+
+    expect(experience.classList.contains("portfolio-visual-open")).toBe(true);
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
+    expect(
+      screen.getByRole("region", {
+        name: /Visual in map: Demonstrate the listen/,
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close visual in map" }),
+    );
+
+    expect(experience.classList.contains("portfolio-visual-open")).toBe(false);
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+  });
+
   it("runs ambient avatar motion only while the assistant pair is visible", async () => {
     const startAmbient = vi.spyOn(AvatarDirector.prototype, "startAmbient");
     const stop = vi.spyOn(AvatarDirector.prototype, "stop");
