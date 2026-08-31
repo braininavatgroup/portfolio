@@ -41,6 +41,8 @@ export function applyBradleySolidMaterial(
 ) {
   const material = new THREE.MeshStandardMaterial({
     color,
+    emissive: color,
+    emissiveIntensity: 0.55,
     metalness: 0,
     opacity: 1,
     roughness: 1,

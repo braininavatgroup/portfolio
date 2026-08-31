@@ -162,7 +162,7 @@ export function AvatarOverlay({
           <RendererBoundary onFailure={() => controller.markFailed()}>
             <Canvas
               aria-hidden="true"
-              camera={{ position: [0, 0, 10], zoom: 1 }}
+              camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
               className="avatar-overlay-canvas"
               dpr={[1, 1.25]}
               frameloop={documentVisible ? "always" : "never"}
