@@ -317,7 +317,7 @@ if [[ "$POST_MERGE_MAIN" == "false" ]]; then
     PR_URL=$(gh pr create \
       --base main \
       --title "Add password-protected main preview" \
-      --body "Adds a password-protected Workers.dev preview of the latest tested main build. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
+      --body "Adds a password-protected permanent preview of the latest tested main build on the apex, www, and Workers.dev hostnames. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
     say "Created pull request: $PR_URL"
   fi
 fi
