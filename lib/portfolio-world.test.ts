@@ -17,6 +17,7 @@ describe("accepted portfolio world", () => {
       "infamous",
       "music-practice",
       "systems-consulting",
+      "product-studio",
       "kickoff",
       "pitching",
       "reporting",
@@ -99,12 +100,24 @@ describe("accepted portfolio world", () => {
 });
 
 describe("authored content contract", () => {
-  it("gives every node a complete record", () => {
+  it("gives every node a complete working record", () => {
     for (const node of portfolioWorldNodes) {
       expect(node.label).not.toBe("");
       expect(node.summary).not.toBe("");
       expect(node.body.length).toBeGreaterThan(0);
-      expect(node.body.every((paragraph) => paragraph.length > 0)).toBe(true);
+      expect(
+        node.body.every((block) => {
+          if (typeof block === "string") {
+            return block.length > 0;
+          }
+
+          if (block.type === "copy-placeholder") {
+            return block.label.length > 0 && block.prompt.length > 0;
+          }
+
+          return block.title.length > 0 && block.brief.length > 0;
+        }),
+      ).toBe(true);
     }
   });
 
