@@ -60,6 +60,23 @@ describe("PortfolioReader", () => {
     expect(screen.queryByRole("link", { name: "View as list" })).toBeNull();
   });
 
+  it("puts one privacy link after the reader content instead of in a persistent overlay", () => {
+    render(<PortfolioReader {...baseProps} />);
+
+    const reader = screen.getByRole("complementary", {
+      name: "Portfolio index",
+    });
+    const footer = reader.querySelector(".portfolio-reader-footer");
+    const privacy = screen.getByRole("link", { name: "Privacy" });
+
+    expect(footer).toBeTruthy();
+    expect(footer?.contains(privacy)).toBe(true);
+    expect(reader.lastElementChild).toBe(footer);
+    expect(
+      screen.queryByRole("button", { name: "Opt out of analytics" }),
+    ).toBeNull();
+  });
+
   it("keeps the editorial copy on the Thread page", () => {
     const thread = portfolioThreads[0];
     render(

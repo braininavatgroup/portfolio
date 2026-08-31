@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PortfolioAnalytics } from "./PortfolioAnalytics";
+import {
+  PortfolioAnalytics,
+  PortfolioAnalyticsPreference,
+} from "./PortfolioAnalytics";
 
 afterEach(() => {
   cleanup();
@@ -19,7 +28,7 @@ function memoryStorage() {
 }
 
 describe("portfolio analytics consent", () => {
-  it("starts every visit with analytics on and offers an opt-out", async () => {
+  it("starts analytics without rendering a persistent preference overlay", async () => {
     const storage = memoryStorage();
     render(
       <PortfolioAnalytics
@@ -27,6 +36,29 @@ describe("portfolio analytics consent", () => {
         projectId="abc123"
         storage={storage}
       />,
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(screen.queryByLabelText("Analytics preferences")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Opt out of analytics" }),
+    ).toBeNull();
+  });
+
+  it("offers opt-out and re-enable controls on the privacy surface", async () => {
+    const storage = memoryStorage();
+    render(
+      <>
+        <PortfolioAnalytics
+          hostname="bradleyberkman.com"
+          projectId="abc123"
+          storage={storage}
+        />
+        <PortfolioAnalyticsPreference storage={storage} />
+      </>,
     );
 
     const optOut = await screen.findByRole("button", {
@@ -48,11 +80,14 @@ describe("portfolio analytics consent", () => {
     const storage = memoryStorage();
     storage.setItem("portfolio_analytics_consent", "denied");
     render(
-      <PortfolioAnalytics
-        hostname="bradleyberkman.com"
-        projectId="abc123"
-        storage={storage}
-      />,
+      <>
+        <PortfolioAnalytics
+          hostname="bradleyberkman.com"
+          projectId="abc123"
+          storage={storage}
+        />
+        <PortfolioAnalyticsPreference storage={storage} />
+      </>,
     );
 
     await screen.findByRole("button", { name: "Enable anonymous analytics" });

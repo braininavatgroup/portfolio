@@ -427,6 +427,9 @@ export function PortfolioReader({
       ) : (
         <ReaderIndex onSelect={onSelect} onSelectThread={onSelectThread} />
       )}
+      <footer className="portfolio-reader-footer">
+        <a href="/privacy">Privacy</a>
+      </footer>
     </aside>
   );
 }
