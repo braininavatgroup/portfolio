@@ -434,7 +434,7 @@ describe("spatial self-portrait", () => {
     expect(document.querySelector(".portfolio-world canvas")).toBeTruthy();
     expect(document.querySelectorAll('[data-family="identity"]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-family="story"]')).toHaveLength(3);
-    expect(document.querySelectorAll('[data-family="operation"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-family="operation"]')).toHaveLength(4);
     expect(document.querySelectorAll('[data-family="component"]')).toHaveLength(3);
     expect(document.querySelectorAll('[data-family="personal"]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-family="engagement"]')).toHaveLength(2);
