@@ -1,0 +1,55 @@
+name: Open visual map preview PR
+
+on:
+  push:
+    branches:
+      - codex/visual-map-preview-rebased
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  open-pr:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open pull request as GitHub Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.ref_name }}
+          PR_BODY: |
+            ## Summary
+
+            - make every inline visual block open at useful scale in the map pane
+            - switch phone and tablet readers into the map automatically when a visual opens
+            - model and render representative image, video, and multi-frame gallery placeholders
+            - support ready image, video, poster, and gallery asset fields without inventing portfolio evidence
+            - keep Escape and the close control scoped to the visual before leaving the record
+
+            ## Interaction contract
+
+            Reader visual → map preview → close back to the same record.
+
+            Planned media remains explicitly labeled as a workbench placeholder. Ready video plays only in the map preview rather than inline in the prose column.
+
+            ## Verification
+
+            The PR adds reader, map-stage, and end-to-end interaction coverage. Full repository verification runs in required CI.
+
+            ## Linear
+
+            no-issue
+        run: |
+          if gh pr view "$HEAD_BRANCH" --repo "$GH_REPO" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh pr create \
+            --repo "$GH_REPO" \
+            --base main \
+            --head "$HEAD_BRANCH" \
+            --title "Open portfolio visuals in the map view" \
+            --body "$PR_BODY" \
+            --label no-issue
