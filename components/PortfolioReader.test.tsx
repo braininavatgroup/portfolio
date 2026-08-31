@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioContact,
   portfolioThreads,
@@ -96,11 +96,52 @@ describe("PortfolioReader", () => {
 
     expect(screen.getAllByText("Copy in progress")).toHaveLength(2);
     expect(
-      screen.getByLabelText(
-        /Planned visual: Show how the service offering developed/,
-      ),
+      screen.getByRole("button", {
+        name: /Open gallery visual in map: Show how the service offering developed/,
+      }),
     ).toBeTruthy();
     expect(screen.getByText("[Summary in progress]")).toBeTruthy();
+  });
+
+  it("opens image, video, and gallery blocks through the same map control", () => {
+    const onOpenVisual = vi.fn();
+
+    const cases = [
+      {
+        id: "bradley",
+        format: "image",
+        purpose: /Find the right documentary image or artifact/,
+      },
+      {
+        id: "dubs",
+        format: "video",
+        purpose: /Demonstrate the listen, inline voice or text capture/,
+      },
+      {
+        id: "music-practice",
+        format: "gallery",
+        purpose: /Show how the service offering developed/,
+      },
+    ] as const;
+
+    for (const { id, format, purpose } of cases) {
+      const { unmount } = render(
+        <PortfolioReader
+          {...baseProps}
+          onOpenVisual={onOpenVisual}
+          selectedId={id}
+        />,
+      );
+      const trigger = screen.getByRole("button", {
+        name: new RegExp(`Open ${format} visual in map: ${purpose.source}`, "i"),
+      });
+      expect(trigger.getAttribute("data-format")).toBe(format);
+      fireEvent.click(trigger);
+      expect(onOpenVisual).toHaveBeenLastCalledWith(
+        expect.objectContaining({ type: "visual", format }),
+      );
+      unmount();
+    }
   });
 
   it("supports a clean review mode without maintaining separate content", () => {
