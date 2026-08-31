@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   connectorSegment,
   portfolioOverviewLayout,
@@ -41,6 +41,44 @@ describe("PortfolioWorld", () => {
     });
     expect(world.querySelector("canvas")).toBeTruthy();
     expect(world.querySelector(".world-glyph")).toBeNull();
+  });
+
+  it("opens a gallery placeholder over the map and lets it be inspected", () => {
+    const onCloseVisual = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "test-gallery",
+          status: "planned",
+          purpose: "Inspect a representative multi-frame system.",
+          format: "gallery",
+          treatment: "sequence",
+          sourceStatus: "recreate",
+        }}
+        onCloseVisual={onCloseVisual}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    const stage = screen.getByRole("region", {
+      name: "Visual in map: Inspect a representative multi-frame system.",
+    });
+    expect(stage.getAttribute("data-format")).toBe("gallery");
+    expect(screen.getByText("1 / 3")).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Next visual frame" }),
+    );
+    expect(screen.getByText("2 / 3")).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close visual in map" }),
+    );
+    expect(onCloseVisual).toHaveBeenCalledTimes(1);
   });
 
   it("maps a rightward drag to rightward screen movement", () => {
