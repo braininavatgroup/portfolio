@@ -7,11 +7,11 @@ tested `main`. Adding this packet and its workflow does not authorize activation
 ## Bound release
 
 - Target Worker: `bradley-portfolio-main-preview`.
-- Access boundary: the generated
-  `bradley-portfolio-main-preview.<account-subdomain>.workers.dev` hostname plus
-  the shared portfolio-preview password.
-- Routes: Workers.dev only. Do not add a custom domain, zone route, or public
-  portfolio hostname.
+- Access boundary: `bradleyberkman.com`, `www.bradleyberkman.com`, and the
+  generated `bradley-portfolio-main-preview.<account-subdomain>.workers.dev`
+  hostname, all behind the same shared portfolio-preview password.
+- Routes: Cloudflare Custom Domains for the apex and `www`, plus Workers.dev.
+  No other hostname or zone route is authorized.
 - Artifact: the exact `dist/` uploaded by the successful `ci` job for a push to
   `main`. Neither deployment workflow rebuilds or overwrites that artifact.
 - First deployment: the manual `deploy-main-preview.yml` workflow downloads the
@@ -26,9 +26,12 @@ tested `main`. Adding this packet and its workflow does not authorize activation
 - GitHub environment: `portfolio-main-preview` with independent approval before
   deployment.
 
-Record the reviewed merge commit, CI run URL, sorted `dist/` SHA-256 digest,
-Cloudflare Worker version, Workers.dev hostname, activation approver, activation
-time, and known-good prior version before changing the gate.
+Before changing the gate, confirm the `bradleyberkman.com` zone is active on
+Cloudflare, GoDaddy delegates to Cloudflare’s assigned nameservers, and neither
+the apex nor `www` has a conflicting CNAME. Record the reviewed merge commit,
+CI run URL, sorted `dist/` SHA-256 digest, Cloudflare Worker version, all three
+hostnames, certificate status, activation approver, activation time, and the
+known-good prior version.
 
 ## Runtime secrets and configuration
 
@@ -55,7 +58,9 @@ Use a strong shared passphrase for the password and an independently generated
 high-entropy signing secret. Never place either value in GitHub source,
 repository variables, workflow files, command arguments, chat, or logs. The
 GitHub environment separately holds the least-privilege
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` used by Wrangler.
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` used by Wrangler. The token
+must include Account · Workers Scripts · Edit for the intended account and
+Zone · Workers Routes · Edit scoped only to `bradleyberkman.com`.
 
 `wrangler.main-preview.jsonc` requires the password gate, sends every static
 asset through the Worker, and retains the 200-request UTC-day chat budget. A
@@ -88,8 +93,8 @@ listed Worker secrets and GitHub environment credentials. The post-merge wizard
 must display the exact source run, main SHA, and sorted `dist/` digest before
 the operator types `ACTIVATE`. That confirmation authorizes the wizard to set
 the repository variable to exact `true` and dispatch the protected manual
-workflow with only those three non-secret artifact identity inputs. The
-operator must not add routes, broaden token permissions, substitute an
+workflow with only those three non-secret artifact identity inputs. The operator must not add routes beyond the two listed Custom Domains,
+broaden token permissions beyond the intended account and zone, substitute an
 artifact, pass secret values as inputs or command arguments, or retain secret
 values.
 
@@ -107,7 +112,9 @@ over cellular rather than home Wi-Fi:
 
 | Check | Expected result |
 | --- | --- |
-| Signed-out root | Redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow, noarchive` |
+| Signed-out apex | `https://bradleyberkman.com/` redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow, noarchive` |
+| Signed-out `www` | `https://www.bradleyberkman.com/` reaches the same password boundary |
+| TLS | Both custom hostnames present valid Cloudflare-managed certificates |
 | Wrong password | Generic 401, no session cookie, and no configuration detail |
 | Correct password | Redirects to the requested same-origin path and sets the seven-day secure cookie |
 | Protected asset | Loads only after authentication and retains the `noindex, nofollow, noarchive` response header |
