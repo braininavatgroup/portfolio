@@ -2877,6 +2877,7 @@ body:has(.portfolio-composition) {
   border: 0;
   color: inherit;
   display: block;
+  font: inherit;
   margin: 18px 0;
   padding: 0;
   text-align: left;
