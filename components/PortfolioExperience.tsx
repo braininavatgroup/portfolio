@@ -27,6 +27,7 @@ import {
   portfolioThreadById,
   portfolioThroughline,
   portfolioWorldNodes,
+  type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 import {
@@ -125,6 +126,7 @@ export function PortfolioExperience() {
   const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const [spotlightTarget, setSpotlightTarget] =
     useState<AvatarTargetId | null>(null);
@@ -159,6 +161,7 @@ export function PortfolioExperience() {
     () => new Map<AvatarObstacleId, HTMLElement>(),
   );
   const registeredAvatarStage = useRef<HTMLElement | null>(null);
+  const visualTriggerRef = useRef<HTMLButtonElement | null>(null);
   const assistantOpenRef = useRef(assistantOpen);
   const reducedMotionRef = useRef(reducedMotion);
 
@@ -208,9 +211,11 @@ export function PortfolioExperience() {
     setSelectedNode(null);
     setSelectedWorldId(null);
     setActiveThreadId(null);
+    setActiveVisual(null);
   }, [avatarActionState]);
 
   const selectDomain = useCallback((domain: DomainId | null) => {
+    setActiveVisual(null);
     avatarActionState.clearSelection();
     setSelectedDomain(domain);
     setSelectedNode(null);
@@ -218,6 +223,7 @@ export function PortfolioExperience() {
 
   const selectNode = useCallback(
     (node: SpatialGraphNode | null) => {
+      setActiveVisual(null);
       if (!node || node.role === "root") {
         showIndex();
         return;
@@ -279,6 +285,7 @@ export function PortfolioExperience() {
 
   const selectWorldNode = useCallback(
     (node: PortfolioWorldNode) => {
+      setActiveVisual(null);
       setMobileMapOpen(false);
       if (selectedWorldId === node.id) {
         const previous = avatarActionState.getSelectedNode();
@@ -369,6 +376,25 @@ export function PortfolioExperience() {
     if (threadNode) selectWorldNode(threadNode);
   }, [selectWorldNode]);
 
+  const openVisualInMap = useCallback((
+    visual: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => {
+    visualTriggerRef.current = trigger;
+    setActiveVisual(visual);
+    setMobileMapOpen(true);
+  }, []);
+
+  const closeVisualInMap = useCallback(() => {
+    const trigger = visualTriggerRef.current;
+    setActiveVisual(null);
+    setMobileMapOpen(false);
+    window.setTimeout(() => {
+      if (trigger?.isConnected) trigger.focus();
+      if (visualTriggerRef.current === trigger) visualTriggerRef.current = null;
+    }, 0);
+  }, []);
+
   const showIndexWithAvatar = useCallback(() => {
     const hadProject = Boolean(avatarActionState.getSelectedNode());
     const hadComposition = Boolean(selectedWorldId || activeThreadId);
@@ -384,13 +410,16 @@ export function PortfolioExperience() {
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        showIndexWithAvatar();
+      if (event.key !== "Escape") return;
+      if (activeVisual) {
+        closeVisualInMap();
+        return;
       }
+      showIndexWithAvatar();
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [showIndexWithAvatar]);
+  }, [activeVisual, closeVisualInMap, showIndexWithAvatar]);
 
   const registerAvatarTarget = useCallback(
     (target: AvatarTargetId, element: HTMLElement | null) => {
@@ -672,7 +701,7 @@ export function PortfolioExperience() {
 
   return (
     <main
-      className={`experience experience-graph portfolio-composition${mobileMapOpen ? " portfolio-mobile-map-open" : ""}`}
+      className={`experience experience-graph portfolio-composition${mobileMapOpen ? " portfolio-mobile-map-open" : ""}${activeVisual ? " portfolio-visual-open" : ""}`}
       id="main-content"
       tabIndex={-1}
     >
@@ -689,6 +718,8 @@ export function PortfolioExperience() {
       >
         <PortfolioWorld
           activeThreadId={activeThreadId}
+          activeVisual={activeVisual}
+          onCloseVisual={closeVisualInMap}
           onReset={showIndexWithAvatar}
           onSelect={selectWorldNode}
           registerAvatarStage={registerAvatarStage}
@@ -709,6 +740,7 @@ export function PortfolioExperience() {
         <>
           <PortfolioReader
               activeThreadId={activeThreadId}
+              onOpenVisual={openVisualInMap}
               onReset={showIndexWithAvatar}
               onSelect={selectWorldNode}
               onSelectThread={selectThread}
@@ -720,7 +752,10 @@ export function PortfolioExperience() {
               aria-label={mobileMapOpen ? "Show portfolio index" : "Show portfolio map"}
               aria-pressed={mobileMapOpen}
               className="portfolio-mobile-view-toggle"
-              onClick={() => setMobileMapOpen((open) => !open)}
+              onClick={() => {
+                if (mobileMapOpen && activeVisual) setActiveVisual(null);
+                setMobileMapOpen((open) => !open);
+              }}
               type="button"
             >
               {mobileMapOpen ? (

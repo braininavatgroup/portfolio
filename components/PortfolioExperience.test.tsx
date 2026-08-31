@@ -186,6 +186,51 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
+  it("opens a reader visual in the map surface and returns to the record", async () => {
+    await renderExperience();
+    const experience = document.getElementById("main-content")!;
+
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+
+    const visualTrigger = screen.getByRole("button", {
+      name: /Open video visual in map: Demonstrate the listen/,
+    });
+    visualTrigger.focus();
+    fireEvent.click(visualTrigger);
+
+    expect(experience.classList.contains("portfolio-visual-open")).toBe(true);
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
+    expect(
+      screen.getByRole("region", {
+        name: /Visual in map: Demonstrate the listen/,
+      }),
+    ).toBeTruthy();
+
+    const closeButton = screen.getByRole("button", {
+      name: "Close visual in map",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(closeButton));
+
+    const coveredNode = document.querySelector<HTMLButtonElement>(
+      '[data-world-node="dubs"]',
+    )!;
+    expect(coveredNode.disabled).toBe(true);
+    fireEvent.click(coveredNode);
+    expect(experience.classList.contains("portfolio-visual-open")).toBe(true);
+
+    fireEvent.click(closeButton);
+
+    expect(experience.classList.contains("portfolio-visual-open")).toBe(false);
+    expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
+    expect(
+      screen.getByRole("complementary", { name: "Dubs record" }),
+    ).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
+  });
+
   it("runs ambient avatar motion only while the assistant pair is visible", async () => {
     const startAmbient = vi.spyOn(AvatarDirector.prototype, "startAmbient");
     const stop = vi.spyOn(AvatarDirector.prototype, "stop");

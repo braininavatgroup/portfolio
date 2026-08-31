@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getVisibleWorldLinks,
+  isPortfolioVisualReady,
   legacyProjectSlugRedirects,
   portfolioContact,
   portfolioThreads,
@@ -100,6 +101,30 @@ describe("accepted portfolio world", () => {
 });
 
 describe("authored content contract", () => {
+  it("treats captions, not an optional poster, as the video readiness boundary", () => {
+    expect(
+      isPortfolioVisualReady({
+        type: "visual",
+        id: "captioned-video",
+        status: "ready",
+        purpose: "Show the interaction",
+        format: "video",
+        src: "/visuals/demo.mp4",
+        captionsSrc: "/visuals/demo.en.vtt",
+      }),
+    ).toBe(true);
+    expect(
+      isPortfolioVisualReady({
+        type: "visual",
+        id: "uncaptioned-video",
+        status: "ready",
+        purpose: "Show the interaction",
+        format: "video",
+        src: "/visuals/demo.mp4",
+      }),
+    ).toBe(false);
+  });
+
   it("gives every node a complete working record", () => {
     for (const node of portfolioWorldNodes) {
       expect(node.label).not.toBe("");

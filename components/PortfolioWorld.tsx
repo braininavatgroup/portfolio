@@ -5,14 +5,17 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
   portfolioThreadById,
+  portfolioVisualFormat,
   portfolioWorldNodeById,
   portfolioWorldNodes,
+  type PortfolioVisualBlock,
   type PortfolioWorldFamily,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
@@ -41,7 +44,9 @@ type RuntimeNode = PortfolioWorldNode & {
 
 type PortfolioWorldProps = {
   activeThreadId: string | null;
+  activeVisual?: PortfolioVisualBlock | null;
   selectedId: string | null;
+  onCloseVisual?: () => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   registerAvatarStage?: (element: HTMLElement | null) => void;
@@ -322,8 +327,142 @@ function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string
   return style.getPropertyValue(variable).trim() || fallback;
 }
 
+function PortfolioVisualStage({
+  block,
+  onClose,
+}: {
+  block: PortfolioVisualBlock;
+  onClose?: () => void;
+}) {
+  const format = portfolioVisualFormat(block);
+  const assets =
+    block.assets?.length
+      ? block.assets
+      : block.src && format !== "video"
+        ? [{ src: block.src, alt: block.alt ?? "", caption: block.caption }]
+        : [];
+  const frameCount = format === "gallery" ? Math.max(assets.length, 3) : 1;
+  const [activeFrame, setActiveFrame] = useState(0);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const asset = assets[activeFrame];
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  return (
+    <section
+      aria-label={`Visual in map: ${block.purpose}`}
+      className="portfolio-visual-stage"
+      data-format={format}
+      data-status={block.status}
+    >
+      <header className="portfolio-visual-stage-head">
+        <div>
+          <span>Map visual</span>
+          <strong>{format}</strong>
+        </div>
+        <button
+          aria-label="Close visual in map"
+          onClick={onClose}
+          ref={closeButtonRef}
+          type="button"
+        >
+          ×
+        </button>
+      </header>
+
+      <div className="portfolio-visual-stage-frame">
+        {format === "video" && block.src && block.captionsSrc ? (
+          <video
+            aria-label={block.alt ?? block.purpose}
+            controls
+            poster={block.poster}
+            preload="metadata"
+            src={block.src}
+          >
+            <track
+              default
+              kind="captions"
+              src={block.captionsSrc}
+              srcLang="en"
+            />
+          </video>
+        ) : asset ? (
+          <img
+            alt={asset.alt}
+            src={asset.src}
+          />
+        ) : (
+          <div
+            aria-label={`Planned ${format} placeholder`}
+            className="portfolio-visual-stage-placeholder"
+            data-format={format}
+            data-frame={activeFrame + 1}
+          >
+            {format === "video" ? (
+              <>
+                <span className="portfolio-visual-stage-play" />
+                <i className="portfolio-visual-stage-timeline" />
+              </>
+            ) : format === "gallery" ? (
+              <>
+                <span />
+                <span />
+                <span />
+              </>
+            ) : (
+              <>
+                <span />
+                <span />
+                <span />
+                <span />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <footer className="portfolio-visual-stage-copy">
+        <p>{block.status === "ready" ? format : `Planned ${format}`}</p>
+        <h2>{block.purpose}</h2>
+        <span>
+          {[block.treatment, block.sourceStatus]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+        {format === "gallery" ? (
+          <nav aria-label="Visual frames">
+            <button
+              aria-label="Previous visual frame"
+              disabled={activeFrame === 0}
+              onClick={() => setActiveFrame((frame) => Math.max(0, frame - 1))}
+              type="button"
+            >
+              ←
+            </button>
+            <span>{activeFrame + 1} / {frameCount}</span>
+            <button
+              aria-label="Next visual frame"
+              disabled={activeFrame === frameCount - 1}
+              onClick={() =>
+                setActiveFrame((frame) => Math.min(frameCount - 1, frame + 1))
+              }
+              type="button"
+            >
+              →
+            </button>
+          </nav>
+        ) : null}
+      </footer>
+    </section>
+  );
+}
+
 export function PortfolioWorld({
   activeThreadId,
+  activeVisual,
+  onCloseVisual,
   onReset,
   onSelect,
   registerAvatarStage,
@@ -755,9 +894,14 @@ export function PortfolioWorld({
       className="portfolio-world"
       data-active-thread={activeThreadId ?? undefined}
       data-selected-node={selectedId ?? undefined}
+      data-visual-open={activeVisual ? "true" : "false"}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
-        if (event.button !== 0 || !target.hasAttribute("data-world-surface")) return;
+        if (
+          activeVisual ||
+          event.button !== 0 ||
+          !target.hasAttribute("data-world-surface")
+        ) return;
         blankPress.current = {
           pointerId: event.pointerId,
           start: { x: event.clientX, y: event.clientY },
@@ -782,6 +926,7 @@ export function PortfolioWorld({
           data-cursor-color={`--world-${node.register}`}
           data-family={node.family}
           data-world-node={node.id}
+          disabled={Boolean(activeVisual)}
           key={node.id}
           onClick={(event) => {
             if (event.detail === 0) onSelect(node);
@@ -794,6 +939,13 @@ export function PortfolioWorld({
           type="button"
         />
       ))}
+      {activeVisual ? (
+        <PortfolioVisualStage
+          block={activeVisual}
+          key={activeVisual.id}
+          onClose={onCloseVisual}
+        />
+      ) : null}
     </section>
   );
 }
