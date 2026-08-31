@@ -157,6 +157,10 @@ describe("OpenAI portfolio provider", () => {
     expect(body.instructions).not.toContain(
       "Every factual sentence must end with one or more evidence labels",
     );
+    expect(body.instructions).toContain(
+      "editorial workbench notes, not Bradley facts or published proof",
+    );
+    expect(requestBody).toContain("Portfolio context:");
   });
 
   it("cites every sentence when the model groups sentences into one structured item", async () => {
