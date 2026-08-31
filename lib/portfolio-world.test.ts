@@ -112,10 +112,10 @@ describe("authored content contract", () => {
           }
 
           if (block.type === "copy-placeholder") {
-            return block.label.length > 0 && block.prompt.length > 0;
+            return block.id.length > 0 && block.prompt.length > 0;
           }
 
-          return block.title.length > 0 && block.brief.length > 0;
+          return block.id.length > 0 && block.purpose.length > 0;
         }),
       ).toBe(true);
     }
