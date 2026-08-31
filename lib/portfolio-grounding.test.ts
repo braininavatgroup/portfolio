@@ -24,7 +24,7 @@ describe("portfolio chat grounding", () => {
     "What do you do?",
     "What kind of work do you do?",
     "What quantum-computing patents did Bradley file?",
-  ])("loads the complete published portfolio for %s", (question) => {
+  ])("loads the complete working portfolio for %s", (question) => {
     const grounding = groundPortfolioQuestion(question);
 
     expect(grounding.evidence).toHaveLength(
@@ -54,7 +54,7 @@ describe("portfolio chat grounding", () => {
   });
 
   // Owner: portfolio chat grounding. Retire with complete-node context.
-  it("groups every published field for a node into one citable source", () => {
+  it("groups every working field for a node into one citable source", () => {
     const pitching = groundPortfolioQuestion("Any question").evidence.find(
       ({ id }) => id === "node:pitching",
     );
@@ -71,6 +71,18 @@ describe("portfolio chat grounding", () => {
       "Taste is encodable. The approval step stays human.",
     );
     expect(pitching?.excerpt).toContain("Choosing what not to automate");
+  });
+
+  it("marks unfinished copy and planned visuals as editorial notes", () => {
+    const music = groundPortfolioQuestion("Any question").evidence.find(
+      ({ id }) => id === "node:music-practice",
+    );
+    expect(music?.excerpt).toContain(
+      "[DRAFT COPY PLACEHOLDER — not a Bradley fact]",
+    );
+    expect(music?.excerpt).toContain(
+      "[PLANNED VISUAL — not published evidence]",
+    );
   });
 
   it("keeps the chat-only layer out of every rendered surface", () => {

@@ -541,7 +541,7 @@ describe("portfolio chat route handler", () => {
   it("streams the provider's conversational uncertainty as an answer", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ evidence, onMode }) {
-        expect(evidence).toHaveLength(17);
+        expect(evidence).toHaveLength(18);
         onMode?.("portfolio");
         yield "I don't see any quantum-computing patents in Bradley's portfolio.";
       },

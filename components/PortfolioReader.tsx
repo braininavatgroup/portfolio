@@ -9,6 +9,8 @@ import {
   portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
+  type PortfolioBodyBlock,
+  type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 
@@ -84,6 +86,74 @@ function ReaderIndex({
   );
 }
 
+function VisualBlock({ block }: { block: PortfolioVisualBlock }) {
+  if (block.src) {
+    return (
+      <figure className="reader-visual-block" data-status={block.status}>
+        <img alt={block.alt ?? ""} loading="lazy" src={block.src} />
+        {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+      </figure>
+    );
+  }
+
+  return (
+    <figure
+      aria-label={`Planned visual: ${block.purpose}`}
+      className="reader-draft-placeholder reader-visual-placeholder"
+      data-status={block.status}
+    >
+      <div className="reader-placeholder-frame" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+      <figcaption>
+        <span className="reader-placeholder-label">Planned visual</span>
+        <strong>{block.purpose}</strong>
+        <span className="reader-placeholder-meta">
+          {[block.treatment, block.sourceStatus].filter(Boolean).join(" · ")}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
+function PortfolioBody({
+  body,
+}: {
+  body: readonly PortfolioBodyBlock[];
+}) {
+  return (
+    <section className="reader-record-section reader-composed-body">
+      {body.map((block, index) => {
+        if (typeof block === "string") {
+          return <p key={`paragraph-${index}`}>{block}</p>;
+        }
+        if (block.type === "copy-placeholder") {
+          return (
+            <aside
+              aria-label={`Copy in progress: ${block.prompt}`}
+              className="reader-copy-placeholder reader-draft-placeholder"
+              key={block.id}
+            >
+              <span className="reader-placeholder-label">Copy in progress</span>
+              <strong>{block.prompt}</strong>
+              {block.questions?.length ? (
+                <ul>
+                  {block.questions.map((question) => (
+                    <li key={question}>{question}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </aside>
+          );
+        }
+        return <VisualBlock block={block} key={block.id} />;
+      })}
+    </section>
+  );
+}
+
 function ThreadRecord({
   onSelect,
   threadId,
@@ -100,9 +170,7 @@ function ThreadRecord({
       <p className="reader-kind" data-register={register}>Thread</p>
       <h1>{thread.title}</h1>
       <p className="reader-summary">{thread.lede}</p>
-      <section className="reader-record-section">
-        {thread.body.map((paragraph) => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}
-      </section>
+      <PortfolioBody body={thread.body} />
       <section className="reader-record-section">
         <h2>Explore this thread</h2>
         {thread.members.map((nodeId) => {
@@ -159,17 +227,15 @@ function WorldRecord({
       ) : null}
       <p className="reader-kind" data-register={node.register}>{node.kind}</p>
       <h1>{node.label}</h1>
-      <p className="reader-summary">{node.summary}</p>
+      <p
+        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-draft-placeholder" : ""}`}
+      >
+        {node.summary}
+      </p>
       {node.principle ? (
         <p className="reader-principle">{node.principle}</p>
       ) : null}
-      {node.body.length > 0 ? (
-        <section className="reader-record-section">
-          {node.body.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </section>
-      ) : null}
+      {node.body.length > 0 ? <PortfolioBody body={node.body} /> : null}
       {node.id === "bradley" ? <ContactSection /> : null}
       {node.id === "bradley" || containingThreads.length > 0 ? (
         <section className="reader-record-section">
@@ -228,6 +294,9 @@ export function PortfolioReader({
     : thread
       ? `${thread.title} thread`
       : "Portfolio index";
+  const cleanReview =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("review") === "clean";
 
   useLayoutEffect(() => {
     if (mode === "index" && readerRef.current) {
@@ -238,7 +307,7 @@ export function PortfolioReader({
   return (
     <aside
       aria-label={label}
-      className={`portfolio-reader${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
+      className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
       data-reader-mode={mode}
       onScroll={(event) => {
         if (mode === "index") indexScrollTop.current = event.currentTarget.scrollTop;

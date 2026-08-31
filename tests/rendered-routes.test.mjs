@@ -55,8 +55,8 @@ test("the flat index lists threads and every node with its canonical page", asyn
   assert.equal(
     (html.match(/class=["'][^"']*artifact-index-entry[^"']*["']/gi) ?? [])
       .length,
-    16,
-    "stacked editorial index renders three threads and thirteen nodes",
+    17,
+    "stacked editorial index renders three threads and fourteen nodes",
   );
 
   // The standalone per-record pages were retired (2026-08-30): the flat index
@@ -68,7 +68,7 @@ test("the flat index lists threads and every node with its canonical page", asyn
     )?.[1];
     if (nodeId) nodeIds.add(nodeId);
   }
-  assert.equal(nodeIds.size, 13, "every node links into the map reader");
+  assert.equal(nodeIds.size, 14, "every node links into the map reader");
 
   for (const nodeId of nodeIds) {
     const response = await render(`/index/${nodeId}`);

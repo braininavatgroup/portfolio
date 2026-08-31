@@ -69,8 +69,10 @@ describe("PortfolioReader", () => {
     );
 
     expect(screen.getByText(thread.lede)).toBeTruthy();
-    for (const paragraph of thread.body) {
-      expect(screen.getByText(paragraph)).toBeTruthy();
+    for (const block of thread.body) {
+      if (typeof block === "string") {
+        expect(screen.getByText(block)).toBeTruthy();
+      }
     }
   });
 
@@ -79,10 +81,40 @@ describe("PortfolioReader", () => {
 
     const node = portfolioWorldNodeById.get("pitching")!;
     expect(screen.getByText(node.principle!)).toBeTruthy();
-    for (const paragraph of node.body) {
-      expect(screen.getByText(paragraph)).toBeTruthy();
+    for (const block of node.body) {
+      if (typeof block === "string") {
+        expect(screen.getByText(block)).toBeTruthy();
+      }
     }
     expect(screen.queryByText("Read the current case study")).toBeNull();
+  });
+
+  it("renders unfinished copy and planned visuals as part of the working composition", () => {
+    render(
+      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+    );
+
+    expect(screen.getAllByText("Copy in progress")).toHaveLength(2);
+    expect(
+      screen.getByLabelText(
+        /Planned visual: Show how the service offering developed/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("[Summary in progress]")).toBeTruthy();
+  });
+
+  it("supports a clean review mode without maintaining separate content", () => {
+    window.history.replaceState({}, "", "/?view=graph&review=clean#music-practice");
+    render(
+      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+    );
+
+    const reader = screen.getByRole("complementary", {
+      name: "Brain in a Vat Music Promotions Agency record",
+    });
+    expect(reader.classList.contains("portfolio-reader-clean-review")).toBe(true);
+    expect(reader.querySelectorAll(".reader-draft-placeholder")).toHaveLength(4);
+    window.history.replaceState({}, "", "/");
   });
 
   it("shows contact details only on the Bradley record", () => {

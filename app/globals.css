@@ -2536,6 +2536,135 @@ body:has(.portfolio-composition) {
   margin: 0;
 }
 
+.reader-composed-body > .reader-draft-placeholder {
+  margin: 18px 0;
+}
+
+.reader-draft-placeholder {
+  background:
+    linear-gradient(135deg, transparent 0 48%, var(--map-grid) 48% 52%, transparent 52% 100%),
+    color-mix(in srgb, var(--reader-paper) 88%, var(--map-paper));
+  border: 1px solid var(--map-line-strong);
+  color: var(--reader-body);
+}
+
+.reader-placeholder-label {
+  color: var(--reader-muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.reader-copy-placeholder {
+  padding: 14px;
+}
+
+.reader-copy-placeholder strong,
+.reader-visual-placeholder strong {
+  color: var(--ink);
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.38;
+}
+
+.reader-copy-placeholder ul {
+  color: var(--reader-body);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+  padding-left: 17px;
+}
+
+.reader-visual-placeholder {
+  margin-inline: 0;
+}
+
+.reader-placeholder-frame {
+  align-items: center;
+  aspect-ratio: 16 / 9;
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.reader-placeholder-frame::before,
+.reader-placeholder-frame::after {
+  background: var(--map-line);
+  content: "";
+  height: 1px;
+  left: 12%;
+  position: absolute;
+  top: 50%;
+  width: 76%;
+}
+
+.reader-placeholder-frame::before {
+  transform: rotate(24deg);
+}
+
+.reader-placeholder-frame::after {
+  transform: rotate(-24deg);
+}
+
+.reader-placeholder-frame span {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  height: 7px;
+  position: relative;
+  width: 7px;
+  z-index: 1;
+}
+
+.reader-visual-placeholder figcaption {
+  padding: 12px 14px 14px;
+}
+
+.reader-placeholder-meta {
+  color: var(--reader-muted);
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
+.reader-visual-block {
+  margin: 18px 0;
+}
+
+.reader-visual-block img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.reader-visual-block figcaption {
+  color: var(--reader-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  margin-top: 7px;
+}
+
+.portfolio-reader-clean-review .reader-draft-placeholder {
+  display: none;
+}
+
+.reader-summary-placeholder {
+  border: 1px solid var(--map-line-strong);
+  color: var(--reader-muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 12px;
+}
+
 .reader-index-row {
   appearance: none;
   background: transparent;

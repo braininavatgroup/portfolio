@@ -1,4 +1,5 @@
 import {
+  portfolioBodyText,
   portfolioContact,
   portfolioThreads,
   portfolioThroughline,
@@ -38,7 +39,7 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     `Kind: ${node.kind}`,
     `Summary: ${node.summary}`,
     ...(node.principle ? [`Principle: ${node.principle}`] : []),
-    ...node.body,
+    ...portfolioBodyText(node.body),
     ...(threads.length
       ? [`Threads: ${threads.map(({ title }) => title).join("; ")}`]
       : []),
@@ -79,7 +80,7 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
       excerpt: [
         `Thread: ${thread.title}`,
         thread.lede,
-        ...thread.body,
+        ...portfolioBodyText(thread.body),
         `Members: ${thread.members.join(", ")}`,
       ].join("\n"),
       href: `/?view=graph#thread/${thread.id}`,
