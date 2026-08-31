@@ -1,21 +1,29 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { PortfolioNodeMark } from "./PortfolioNodeMark";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import {
   portfolioContact,
   portfolioThreads,
   portfolioThreadById,
+  portfolioVisualFormat,
+  isPortfolioVisualReady,
   portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
   type PortfolioBodyBlock,
+  type PortfolioThread,
   type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 
 type PortfolioReaderProps = {
   activeThreadId: string | null;
+  onOpenVisual?: (
+    block: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
@@ -37,8 +45,32 @@ function IndexRow({
   return (
     <button aria-label={node.label} className="reader-index-row" onClick={() => onSelect(node)} type="button">
       <span>{node.label}</span>
-      <span aria-hidden="true">→</span>
+      <PortfolioNodeMark family={node.family} register={node.register} />
       <small>{node.kind}</small>
+    </button>
+  );
+}
+
+function ThreadIndexRow({
+  onSelect,
+  thread,
+}: {
+  onSelect: (threadId: string) => void;
+  thread: PortfolioThread;
+}) {
+  const node = portfolioWorldNodeById.get(thread.nodeId);
+  if (!node) return null;
+
+  return (
+    <button
+      aria-label={thread.title}
+      className="reader-index-row"
+      onClick={() => onSelect(thread.id)}
+      type="button"
+    >
+      <span>{thread.title}</span>
+      <PortfolioNodeMark family={node.family} register={node.register} />
+      <small>Thread</small>
     </button>
   );
 }
@@ -56,17 +88,11 @@ function ReaderIndex({
             <section className="reader-index-group reader-thread-index" key={section.id}>
               <h2>{section.title}</h2>
               {portfolioThreads.map((thread) => (
-                <button
-                  aria-label={thread.title}
-                  className="reader-index-row"
+                <ThreadIndexRow
                   key={thread.id}
-                  onClick={() => onSelectThread(thread.id)}
-                  type="button"
-                >
-                  <span>{thread.title}</span>
-                  <span aria-hidden="true">→</span>
-                  <small>Thread</small>
-                </button>
+                  onSelect={onSelectThread}
+                  thread={thread}
+                />
               ))}
             </section>
           );
@@ -86,42 +112,90 @@ function ReaderIndex({
   );
 }
 
-function VisualBlock({ block }: { block: PortfolioVisualBlock }) {
-  if (block.src) {
-    return (
-      <figure className="reader-visual-block" data-status={block.status}>
-        <img alt={block.alt ?? ""} loading="lazy" src={block.src} />
-        {block.caption ? <figcaption>{block.caption}</figcaption> : null}
-      </figure>
-    );
-  }
+function VisualBlock({
+  block,
+  onOpen,
+}: {
+  block: PortfolioVisualBlock;
+  onOpen?: (
+    block: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => void;
+}) {
+  const format = portfolioVisualFormat(block);
+  const thumbnailSrc =
+    block.poster ??
+    block.assets?.[0]?.src ??
+    (format === "image" ? block.src : undefined);
+  const thumbnailAlt =
+    block.assets?.[0]?.alt ??
+    block.alt ??
+    "";
+  const ready = isPortfolioVisualReady(block);
 
   return (
-    <figure
-      aria-label={`Planned visual: ${block.purpose}`}
-      className="reader-draft-placeholder reader-visual-placeholder"
+    <button
+      aria-label={`Open ${format} visual in map: ${block.purpose}`}
+      className={`reader-visual-trigger${ready ? "" : " reader-visual-draft"}`}
+      data-format={format}
       data-status={block.status}
+      onClick={(event) => onOpen?.(block, event.currentTarget)}
+      type="button"
     >
-      <div className="reader-placeholder-frame" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <figcaption>
-        <span className="reader-placeholder-label">Planned visual</span>
-        <strong>{block.purpose}</strong>
-        <span className="reader-placeholder-meta">
-          {[block.treatment, block.sourceStatus].filter(Boolean).join(" · ")}
-        </span>
-      </figcaption>
-    </figure>
+      <figure
+        className={ready ? "reader-visual-block" : "reader-visual-placeholder"}
+        data-format={format}
+      >
+        {ready && thumbnailSrc ? (
+          <img alt={thumbnailAlt} loading="lazy" src={thumbnailSrc} />
+        ) : (
+          <div className="reader-placeholder-frame" aria-hidden="true">
+            {format === "video" ? (
+              <>
+                <span className="reader-placeholder-play" />
+                <i className="reader-placeholder-timeline" />
+              </>
+            ) : format === "gallery" ? (
+              <>
+                <span />
+                <span />
+                <span />
+                <i className="reader-placeholder-count">1 / 3</i>
+              </>
+            ) : (
+              <>
+                <span />
+                <span />
+                <span />
+              </>
+            )}
+          </div>
+        )}
+        <figcaption>
+          {!ready ? (
+            <span className="reader-placeholder-label">Planned {format}</span>
+          ) : null}
+          <strong>{block.caption ?? block.purpose}</strong>
+          <span className="reader-placeholder-meta">
+            {[format, block.treatment, block.sourceStatus]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </figcaption>
+      </figure>
+    </button>
   );
 }
 
 function PortfolioBody({
   body,
+  onOpenVisual,
 }: {
   body: readonly PortfolioBodyBlock[];
+  onOpenVisual?: (
+    block: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => void;
 }) {
   return (
     <section className="reader-record-section reader-composed-body">
@@ -133,7 +207,7 @@ function PortfolioBody({
           return (
             <aside
               aria-label={`Copy in progress: ${block.prompt}`}
-              className="reader-copy-placeholder reader-draft-placeholder"
+              className="reader-copy-placeholder reader-text-placeholder"
               key={block.id}
             >
               <span className="reader-placeholder-label">Copy in progress</span>
@@ -148,16 +222,27 @@ function PortfolioBody({
             </aside>
           );
         }
-        return <VisualBlock block={block} key={block.id} />;
+        return (
+          <VisualBlock
+            block={block}
+            key={block.id}
+            onOpen={onOpenVisual}
+          />
+        );
       })}
     </section>
   );
 }
 
 function ThreadRecord({
+  onOpenVisual,
   onSelect,
   threadId,
 }: {
+  onOpenVisual?: (
+    block: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => void;
   onSelect: (node: PortfolioWorldNode) => void;
   threadId: string;
 }) {
@@ -167,10 +252,10 @@ function ThreadRecord({
     portfolioWorldNodeById.get(thread.nodeId)?.register ?? "story";
   return (
     <div className="reader-content reader-thread-content">
-      <p className="reader-kind" data-register={register}>Thread</p>
       <h1>{thread.title}</h1>
+      <p className="reader-kind" data-register={register}>Thread</p>
       <p className="reader-summary">{thread.lede}</p>
-      <PortfolioBody body={thread.body} />
+      <PortfolioBody body={thread.body} onOpenVisual={onOpenVisual} />
       <section className="reader-record-section">
         <h2>Explore this thread</h2>
         {thread.members.map((nodeId) => {
@@ -198,11 +283,16 @@ function ContactSection() {
 function WorldRecord({
   activeThreadId,
   node,
+  onOpenVisual,
   onSelect,
   onSelectThread,
 }: {
   activeThreadId: string | null;
   node: PortfolioWorldNode;
+  onOpenVisual?: (
+    block: PortfolioVisualBlock,
+    trigger: HTMLButtonElement,
+  ) => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
 }) {
@@ -217,6 +307,8 @@ function WorldRecord({
   const threadRows = containingThreads.length > 0 ? containingThreads : portfolioThreads;
   return (
     <div className="reader-content reader-record-content">
+      <h1>{node.label}</h1>
+      <p className="reader-kind" data-register={node.register}>{node.kind}</p>
       {activeThreadId ? (
         <p className="reader-path">
           <button onClick={() => onSelectThread(activeThreadId)} type="button">
@@ -225,30 +317,24 @@ function WorldRecord({
           <span aria-hidden="true"> / </span>{node.label}
         </p>
       ) : null}
-      <p className="reader-kind" data-register={node.register}>{node.kind}</p>
-      <h1>{node.label}</h1>
       <p
-        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-draft-placeholder" : ""}`}
+        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
       >
         {node.summary}
       </p>
-      {node.principle ? (
-        <p className="reader-principle">{node.principle}</p>
+      {node.body.length > 0 ? (
+        <PortfolioBody body={node.body} onOpenVisual={onOpenVisual} />
       ) : null}
-      {node.body.length > 0 ? <PortfolioBody body={node.body} /> : null}
       {node.id === "bradley" ? <ContactSection /> : null}
       {node.id === "bradley" || containingThreads.length > 0 ? (
         <section className="reader-record-section">
           <h2>Threads</h2>
           {threadRows.map((thread) => (
-            <button
-              className="reader-index-row"
+            <ThreadIndexRow
               key={thread.id}
-              onClick={() => onSelectThread(thread.id)}
-              type="button"
-            >
-              <span>{thread.title}</span><span aria-hidden="true">→</span><small>Thread</small>
-            </button>
+              onSelect={onSelectThread}
+              thread={thread}
+            />
           ))}
         </section>
       ) : null}
@@ -267,6 +353,7 @@ function WorldRecord({
 
 export function PortfolioReader({
   activeThreadId,
+  onOpenVisual,
   onReset,
   onSelect,
   onSelectThread,
@@ -316,18 +403,27 @@ export function PortfolioReader({
     >
       {node || thread ? (
         <header className="reader-topbar">
-          <button aria-label="Portfolio index" onClick={onReset} type="button">← Index</button>
+          <h1>
+            <button aria-label="Portfolio index" onClick={onReset} type="button">
+              Index
+            </button>
+          </h1>
         </header>
       ) : null}
       {node && node.family !== "story" ? (
         <WorldRecord
           activeThreadId={activeThreadId}
           node={node}
+          onOpenVisual={onOpenVisual}
           onSelect={onSelect}
           onSelectThread={onSelectThread}
         />
       ) : thread ? (
-        <ThreadRecord onSelect={onSelect} threadId={thread.id} />
+        <ThreadRecord
+          onOpenVisual={onOpenVisual}
+          onSelect={onSelect}
+          threadId={thread.id}
+        />
       ) : (
         <ReaderIndex onSelect={onSelect} onSelectThread={onSelectThread} />
       )}

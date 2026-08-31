@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioContact,
   portfolioThreads,
@@ -50,6 +50,8 @@ describe("PortfolioReader", () => {
       expect(screen.queryByText(thread.lede)).toBeNull();
     }
     expect(container.querySelector(".reader-thread-row")).toBeNull();
+    expect(container.querySelectorAll(".portfolio-node-mark")).toHaveLength(17);
+    expect(container.textContent).not.toContain("→");
   });
 
   it("does not add a redundant alternate-index link inside the reader", () => {
@@ -76,11 +78,24 @@ describe("PortfolioReader", () => {
     }
   });
 
-  it("renders the complete record", () => {
-    render(<PortfolioReader {...baseProps} selectedId="pitching" />);
+  it("uses one summary treatment at the start of every record", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="systems-consulting" />,
+    );
 
-    const node = portfolioWorldNodeById.get("pitching")!;
-    expect(screen.getByText(node.principle!)).toBeTruthy();
+    const node = portfolioWorldNodeById.get("systems-consulting")!;
+    const title = screen.getByRole("heading", { name: node.label });
+    const kind = screen.getByText(node.kind);
+    const summary = screen.getByText(node.summary);
+    expect(
+      title.compareDocumentPosition(kind) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      kind.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelectorAll(".reader-summary")).toHaveLength(1);
+    expect(container.querySelector(".reader-principle")).toBeNull();
+    expect(screen.queryByText(node.principle!)).toBeNull();
     for (const block of node.body) {
       if (typeof block === "string") {
         expect(screen.getByText(block)).toBeTruthy();
@@ -96,11 +111,67 @@ describe("PortfolioReader", () => {
 
     expect(screen.getAllByText("Copy in progress")).toHaveLength(2);
     expect(
-      screen.getByLabelText(
-        /Planned visual: Show how the service offering developed/,
-      ),
+      screen.getByRole("button", {
+        name: /Open gallery visual in map: Show how the service offering developed/,
+      }),
     ).toBeTruthy();
-    expect(screen.getByText("[Summary in progress]")).toBeTruthy();
+    const summary = screen.getByText("[Summary in progress]");
+    expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
+
+    for (const label of screen.getAllByText("Copy in progress")) {
+      const placeholder = label.closest("aside")!;
+      expect(placeholder.classList.contains("reader-text-placeholder")).toBe(true);
+      expect(placeholder.classList.contains("reader-draft-placeholder")).toBe(false);
+    }
+
+    const visual = screen.getByRole("button", {
+      name: /Open gallery visual in map: Show how the service offering developed/,
+    });
+    expect(visual.classList.contains("reader-visual-draft")).toBe(true);
+    expect(visual.classList.contains("reader-text-placeholder")).toBe(false);
+    expect(visual.querySelector(".reader-visual-placeholder")).toBeTruthy();
+  });
+
+  it("opens image, video, and gallery blocks through the same map control", () => {
+    const onOpenVisual = vi.fn();
+
+    const cases = [
+      {
+        id: "bradley",
+        format: "image",
+        purpose: /Find the right documentary image or artifact/,
+      },
+      {
+        id: "dubs",
+        format: "video",
+        purpose: /Demonstrate the listen, inline voice or text capture/,
+      },
+      {
+        id: "music-practice",
+        format: "gallery",
+        purpose: /Show how the service offering developed/,
+      },
+    ] as const;
+
+    for (const { id, format, purpose } of cases) {
+      const { unmount } = render(
+        <PortfolioReader
+          {...baseProps}
+          onOpenVisual={onOpenVisual}
+          selectedId={id}
+        />,
+      );
+      const trigger = screen.getByRole("button", {
+        name: new RegExp(`Open ${format} visual in map: ${purpose.source}`, "i"),
+      });
+      expect(trigger.getAttribute("data-format")).toBe(format);
+      fireEvent.click(trigger);
+      expect(onOpenVisual).toHaveBeenLastCalledWith(
+        expect.objectContaining({ type: "visual", format }),
+        trigger,
+      );
+      unmount();
+    }
   });
 
   it("supports a clean review mode without maintaining separate content", () => {
@@ -113,7 +184,11 @@ describe("PortfolioReader", () => {
       name: "Brain in a Vat Music Promotions Agency record",
     });
     expect(reader.classList.contains("portfolio-reader-clean-review")).toBe(true);
-    expect(reader.querySelectorAll(".reader-draft-placeholder")).toHaveLength(4);
+    expect(
+      reader.querySelectorAll(
+        ".reader-text-placeholder, .reader-visual-draft",
+      ),
+    ).toHaveLength(4);
     window.history.replaceState({}, "", "/");
   });
 
@@ -138,6 +213,10 @@ describe("PortfolioReader", () => {
     fireEvent.scroll(reader);
 
     rerender(<PortfolioReader {...baseProps} selectedId="dubs" />);
+    const indexButton = screen.getByRole("button", { name: "Portfolio index" });
+    expect(indexButton.closest("h1")).toBeTruthy();
+    expect(indexButton.querySelector("[data-index-mark]")).toBeNull();
+    expect(indexButton.textContent).toBe("Index");
     reader.scrollTop = 0;
     rerender(<PortfolioReader {...baseProps} />);
 

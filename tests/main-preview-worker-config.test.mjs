@@ -10,7 +10,7 @@ async function mainPreviewConfig() {
   return JSON.parse(await readFile(configUrl, "utf8"));
 }
 
-test("the permanent main preview is an isolated, password-gated Workers.dev deployment", async () => {
+test("the permanent main preview is password-gated on its custom domains", async () => {
   const config = await mainPreviewConfig();
 
   assert.equal(config.name, "bradley-portfolio-main-preview");
@@ -20,7 +20,10 @@ test("the permanent main preview is an isolated, password-gated Workers.dev depl
   assert.equal(config.workers_dev, true);
   assert.equal(config.preview_urls, false);
   assert.equal(config.route, undefined);
-  assert.equal(config.routes, undefined);
+  assert.deepEqual(config.routes, [
+    { pattern: "bradleyberkman.com", custom_domain: true },
+    { pattern: "www.bradleyberkman.com", custom_domain: true },
+  ]);
   assert.equal(config.domains, undefined);
   assert.equal(config.no_bundle, true);
 

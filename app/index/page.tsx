@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PortfolioHeader } from "../../components/PortfolioHeader";
+import { PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import {
   portfolioThreads,
   portfolioThroughline,
@@ -34,7 +35,10 @@ export default function ProjectIndex() {
               </div>
               <div className="domain-work">
                 <ol className="artifact-index-list">
-                  {portfolioThreads.map((thread) => (
+                  {portfolioThreads.map((thread) => {
+                    const node = portfolioWorldNodeById.get(thread.nodeId);
+                    if (!node) return null;
+                    return (
                     <li className="artifact-index-entry" key={thread.id}>
                       <Link
                         className="artifact-main-link"
@@ -45,11 +49,12 @@ export default function ProjectIndex() {
                           <small>{thread.lede}</small>
                         </span>
                         <span className="artifact-index-meta">
-                          <span aria-hidden="true">→</span>
+                          <PortfolioNodeMark family={node.family} register={node.register} />
                         </span>
                       </Link>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
               </div>
             </section>
@@ -84,7 +89,7 @@ export default function ProjectIndex() {
                           <small>{node.summary}</small>
                         </span>
                         <span className="artifact-index-meta">
-                          <span aria-hidden="true">→</span>
+                          <PortfolioNodeMark family={node.family} register={node.register} />
                         </span>
                       </Link>
                     </li>

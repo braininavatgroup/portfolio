@@ -6,6 +6,16 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "bradleyberkman.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.bradleyberkman.com",
+      "custom_domain": true
+    }
+  ],
   "vars": {
     "PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED": "true",
     "PORTFOLIO_CHAT_TURNSTILE_REQUIRED": "false",

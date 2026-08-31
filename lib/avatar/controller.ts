@@ -43,6 +43,10 @@ export type AvatarSnapshot = {
   failed: boolean;
 };
 
+export type AvatarHomeDock =
+  | { target: AvatarTargetId; side: "left" | "right" }
+  | { target: AvatarTargetId; placement: "top" };
+
 type AvatarListener = () => void;
 
 const homeInset = 80;
@@ -60,6 +64,20 @@ function homeX(viewportWidth: number) {
   const minimum = Math.min(homeInset, viewportWidth / 2);
   const maximum = Math.max(minimum, viewportWidth - homeInset);
   return Math.min(maximum, Math.max(minimum, viewportWidth - homeInset));
+}
+
+function targetDockX(
+  target: AvatarTargetBounds,
+  side: "left" | "right",
+  viewportWidth: number,
+) {
+  const minimum = Math.min(actorHalfWidth, viewportWidth / 2);
+  const maximum = Math.max(minimum, viewportWidth - actorHalfWidth);
+  const x =
+    side === "left"
+      ? target.left - targetGap - actorHalfWidth
+      : target.right + targetGap + actorHalfWidth;
+  return Math.min(maximum, Math.max(minimum, x));
 }
 
 function createInitialSnapshot(viewport: AvatarStageViewport): AvatarSnapshot {
@@ -106,6 +124,7 @@ export class AvatarController {
   #snapshot: AvatarSnapshot;
   #availableAnimations = new Set<AllowedAnimation>(allowedAvatarAnimations);
   #motionId = 0;
+  #homeDock?: AvatarHomeDock;
 
   constructor(registry: AvatarTargetRegistry) {
     this.#registry = registry;
@@ -145,17 +164,47 @@ export class AvatarController {
     this.#replace(createInitialSnapshot(this.#stageViewport(this.#registry.resolveStageMap())));
   }
 
-  refreshStage(rehome = false) {
-    const viewport = this.#stageViewport(this.#registry.resolveStageMap());
+  refreshStage(
+    rehome = false,
+    homeDock?: AvatarHomeDock,
+  ) {
+    if (homeDock) this.#homeDock = homeDock;
+    const stage = this.#registry.resolveStageMap();
+    const viewport = this.#stageViewport(stage);
     const minimum = Math.min(actorHalfWidth, viewport.width / 2);
     const maximum = Math.max(minimum, viewport.width - actorHalfWidth);
+    const activeHomeDock = homeDock ?? this.#homeDock;
+    const dockTarget = activeHomeDock
+      ? this.#target(stage, activeHomeDock.target)
+      : undefined;
     const x = rehome
-      ? homeX(viewport.width)
+      ? dockTarget
+        ? "placement" in activeHomeDock!
+          ? Math.min(maximum, Math.max(minimum, dockTarget.centerX))
+          : targetDockX(dockTarget, activeHomeDock!.side, viewport.width)
+        : homeX(viewport.width)
       : Math.min(maximum, Math.max(minimum, this.#snapshot.position.x));
-    if (rehome || x !== this.#snapshot.position.x) this.#invalidateMotion();
+    const stageChanged = rehome || x !== this.#snapshot.position.x;
+    const canceledMotion = stageChanged && this.#snapshot.motion !== null;
+    const settledState =
+      this.#snapshot.state === "entering" || this.#snapshot.state === "exiting"
+        ? "idle"
+        : this.#snapshot.state;
+    if (stageChanged) this.#invalidateMotion();
     this.#update({
       position: { x, y: viewport.floorY },
-      ...(rehome || x !== this.#snapshot.position.x
+      ...(dockTarget && stageChanged
+        ? {
+            ...(canceledMotion
+              ? {
+                  animation: resolveAvatarAnimation(settledState),
+                  state: settledState,
+                }
+              : {}),
+            motion: null,
+            locomotion: "grounded" as const,
+          }
+        : stageChanged
         ? {
             animation: resolveAvatarAnimation("idle"),
             state: "idle" as const,
@@ -387,10 +436,23 @@ export class AvatarController {
     const consoleTop = stage.obstacles.find(
       ({ obstacle, bounds }) => obstacle === "avatar:director-console" && bounds.inViewport,
     )?.bounds.top;
+    const defaultFloorY = groundedFloorY(
+      height,
+      floorBottomInset,
+      consoleTop,
+      consoleFootGap,
+    );
+    const shelfTarget =
+      this.#homeDock && "placement" in this.#homeDock
+        ? this.#target(stage, this.#homeDock.target)
+        : undefined;
     return {
       width,
       height,
-      floorY: groundedFloorY(height, floorBottomInset, consoleTop, consoleFootGap),
+      floorY:
+        shelfTarget?.inViewport === true
+          ? Math.min(defaultFloorY, Math.max(0, shelfTarget.top))
+          : defaultFloorY,
     };
   }
 
@@ -460,10 +522,24 @@ export class AvatarController {
     stage: AvatarStageMap,
     viewport: AvatarStageViewport,
   ) {
+    const dockTarget = this.#homeDock
+      ? this.#target(stage, this.#homeDock.target)
+      : undefined;
+    const minimum = Math.min(actorHalfWidth, viewport.width / 2);
+    const maximum = Math.max(minimum, viewport.width - actorHalfWidth);
+    const dockX = dockTarget
+      ? "placement" in this.#homeDock!
+        ? Math.min(maximum, Math.max(minimum, dockTarget.centerX))
+        : targetDockX(dockTarget, this.#homeDock!.side, viewport.width)
+      : homeX(viewport.width);
+    const shelfTarget =
+      this.#homeDock && "placement" in this.#homeDock
+        ? this.#homeDock.target
+        : undefined;
     return planSwimLap({
       start: this.#groundedPosition(viewport),
-      dock: { x: homeX(viewport.width), y: viewport.floorY },
-      obstacles: this.#stageObstacles(stage),
+      dock: { x: dockX, y: viewport.floorY },
+      obstacles: this.#stageObstacles(stage, shelfTarget),
       viewport,
       viewportInset: swimViewportInset,
       obstaclePadding: swimObstaclePadding,

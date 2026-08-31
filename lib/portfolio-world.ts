@@ -39,6 +39,14 @@ export type PortfolioVisualTreatment =
   | "comparison"
   | "demo";
 
+export type PortfolioVisualFormat = "image" | "video" | "gallery";
+
+export type PortfolioVisualAsset = {
+  src: string;
+  alt: string;
+  caption?: string;
+};
+
 export type PortfolioVisualSourceStatus =
   | "exists"
   | "capture"
@@ -53,9 +61,13 @@ export type PortfolioVisualBlock = {
   purpose: string;
   treatment?: PortfolioVisualTreatment;
   sourceStatus?: PortfolioVisualSourceStatus;
+  format?: PortfolioVisualFormat;
   src?: string;
   alt?: string;
   caption?: string;
+  captionsSrc?: string;
+  poster?: string;
+  assets?: readonly PortfolioVisualAsset[];
 };
 
 export type PortfolioBodyBlock =
@@ -107,11 +119,36 @@ const draftCopy = (
   ...(questions ? { questions } : {}),
 });
 
+const inferredVisualFormat = (
+  treatment?: PortfolioVisualTreatment,
+): PortfolioVisualFormat => {
+  if (treatment === "demo") return "video";
+  if (treatment === "sequence" || treatment === "comparison") return "gallery";
+  return "image";
+};
+
+export const portfolioVisualFormat = (
+  block: PortfolioVisualBlock,
+): PortfolioVisualFormat =>
+  block.format ?? inferredVisualFormat(block.treatment);
+
+export const isPortfolioVisualReady = (
+  block: PortfolioVisualBlock,
+): boolean => {
+  if (block.status !== "ready") return false;
+
+  const format = portfolioVisualFormat(block);
+  if (format === "video") return Boolean(block.src && block.captionsSrc);
+  if (format === "gallery") return Boolean(block.assets?.length || block.src);
+  return Boolean(block.src || block.assets?.[0]?.src);
+};
+
 const plannedVisual = (
   id: string,
   purpose: string,
   treatment?: PortfolioVisualTreatment,
   sourceStatus: PortfolioVisualSourceStatus = "unknown",
+  format: PortfolioVisualFormat = inferredVisualFormat(treatment),
 ): PortfolioVisualBlock => ({
   type: "visual",
   id,
@@ -119,6 +156,7 @@ const plannedVisual = (
   purpose,
   ...(treatment ? { treatment } : {}),
   sourceStatus,
+  format,
 });
 
 export function portfolioBodyText(
@@ -147,7 +185,7 @@ export const portfolioThroughline =
   "Make complexity legible enough to act on.";
 
 export const portfolioContact = {
-  email: "bradley@braininavat.dance",
+  email: "bradley@bradleyberkman.com",
   cv: { label: "Download CV", href: "/cv/bradley-berkman-cv.pdf" },
   socials: [
     { label: "LinkedIn", href: "https://www.linkedin.com/in/bradleyberkman/" },

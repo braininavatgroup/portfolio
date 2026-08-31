@@ -42,6 +42,10 @@ test("server-renders the accepted composition as the landing state", async () =>
 
   const html = await response.text();
   assert.match(html, /<title>Bradley Berkman \| Make complexity legible enough to act on<\/title>/i);
+  assert.match(
+    html,
+    /<meta[^>]*name=["']viewport["'][^>]*content=["'][^"']*interactive-widget=resizes-content/i,
+  );
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
   assert.match(html, /<div[^>]*id=["']app-shell["']/i);
   assert.match(html, /<div[^>]*id=["']avatar-toybox-root["']/i);

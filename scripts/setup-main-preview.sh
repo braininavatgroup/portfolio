@@ -229,7 +229,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
 CLOUDFLARE_TOKENS_URL="https://dash.cloudflare.com/profile/api-tokens"
 GITHUB_ENVIRONMENT="portfolio-main-preview"
-DEPLOY_GATE="PORTFOLIO_MAIN_PREVIEW_DEPLOY_ENABLED"
+DEPLOY_GATE="PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED"
 PR_URL=""
 DEPLOY_GATE_STATE="unknown"
 POST_MERGE_MAIN=false
@@ -369,6 +369,7 @@ stage "GitHub deployment environment"
 say "Create a least-privilege Cloudflare token that can deploy Workers in the portfolio account."
 open_url "$CLOUDFLARE_TOKENS_URL"
 step "Create a Custom token with Account · Workers Scripts · Edit for the intended account only."
+step "Add Zone · Workers Routes · Edit, scoped only to bradleyberkman.com."
 step "Copy the account ID from the Cloudflare dashboard overview."
 ask CLOUDFLARE_ACCOUNT_ID "Paste the 32-character Cloudflare account ID:"
 ask_secret CLOUDFLARE_API_TOKEN "Paste the Cloudflare API token:"
