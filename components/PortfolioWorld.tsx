@@ -149,6 +149,7 @@ export const portfolioOverviewLayout: Record<
   infamous: [9.34, 71.43, 762.31],
   "music-practice": [25.41, 79.45, 822.3],
   "systems-consulting": [47.11, 81.46, 882.3],
+  "product-studio": [53.6, 58.4, 812.3],
   "real-estate": [76.49, 82.38, 919.84],
   touring: [93.41, 72.24, 990.31],
 };
