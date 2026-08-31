@@ -93,6 +93,10 @@ describe("GLB avatar configuration", () => {
     expect(firstApplied.opacity).toBe(1);
     expect(firstApplied.vertexColors).toBe(false);
     expect(firstApplied.side).toBe(DoubleSide);
+    // Catches camera-facing detail disappearing when the avatar is rendered
+    // over a dark surface or from a canvas with different light placement.
+    expect(firstApplied.emissive.getHexString()).toBe("3a4954");
+    expect(firstApplied.emissiveIntensity).toBeGreaterThanOrEqual(0.5);
 
     restore();
     expect(first.material).toBe(firstOriginal);

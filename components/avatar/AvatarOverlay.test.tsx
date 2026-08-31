@@ -9,6 +9,7 @@ import { AvatarOverlay } from "./AvatarOverlay";
 type CanvasMockProps = {
   children?: React.ReactNode;
   "aria-hidden"?: React.AriaAttributes["aria-hidden"];
+  camera?: { position?: readonly [number, number, number] };
   frameloop?: string;
   gl?: unknown;
   orthographic?: boolean;
@@ -33,13 +34,14 @@ vi.mock("@react-three/fiber", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@react-three/fiber")>();
   return {
     ...actual,
-    Canvas: ({ children, "aria-hidden": ariaHidden, frameloop, gl, orthographic, style }: CanvasMockProps) => {
+    Canvas: ({ children, "aria-hidden": ariaHidden, camera, frameloop, gl, orthographic, style }: CanvasMockProps) => {
       canvasMockState.gl = typeof gl === "function"
         ? gl as (props: unknown) => Promise<unknown>
         : null;
       return (
         <div
           aria-hidden={ariaHidden}
+          data-camera-z={camera?.position?.[2]}
           data-frameloop={String(frameloop)}
           data-orthographic={String(orthographic)}
           data-testid="avatar-canvas"
@@ -81,6 +83,9 @@ describe("AvatarOverlay", () => {
     expect(overlay?.style.left).toBe("");
     expect(overlay?.style.pointerEvents).toBe("none");
     expect(canvas.getAttribute("data-orthographic")).toBe("true");
+    // Some authored clips move hundreds of world units along their root Z track.
+    // Keep the orthographic camera beyond them so those poses cannot cross its plane.
+    expect(Number(canvas.getAttribute("data-camera-z"))).toBeGreaterThan(400);
     expect(canvas.getAttribute("aria-hidden")).toBe("true");
     expect((canvas as HTMLElement).style.pointerEvents).toBe("none");
   });
