@@ -25,6 +25,8 @@ import {
   type PortfolioChatMessage,
 } from "../lib/portfolio-chat-conversation";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
+import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { EditableText, useEditableContent } from "./editor/EditableText";
 import type {
   AvatarTargetId,
   PortfolioResponseEffects,
@@ -81,6 +83,10 @@ export function PortfolioChat({
   spotlightTarget?: AvatarTargetId | null;
   turnstileSiteKey?: string;
 }) {
+  const composerPlaceholder = useEditableContent(
+    "interface.chat.composerPlaceholder",
+    portfolioInterfaceText["chat.composerPlaceholder"],
+  );
   const [input, setInput] = useState("");
   const [lastQuestion, setLastQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -140,7 +146,7 @@ export function PortfolioChat({
   useEffect(() => {
     if (!turnstileSiteKey || !turnstileContainer.current) return;
     let active = true;
-    setChallengeMessage("Preparing verification…");
+    setChallengeMessage(portfolioInterfaceText["chat.verificationPreparing"]);
     void renderTurnstileWidget(turnstileContainer.current, turnstileSiteKey, {
       onToken: (token) => {
         if (!active) return;
@@ -150,12 +156,12 @@ export function PortfolioChat({
       onError: () => {
         if (!active) return;
         setChallengeToken(null);
-        setChallengeMessage("Verification is unavailable. Try again.");
+        setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
       },
       onExpired: () => {
         if (!active) return;
         setChallengeToken(null);
-        setChallengeMessage("Complete verification before asking.");
+        setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
       },
     })
       .then((controller) => {
@@ -167,7 +173,7 @@ export function PortfolioChat({
         setChallengeMessage("");
       })
       .catch(() => {
-        if (active) setChallengeMessage("Verification is unavailable. Try again.");
+        if (active) setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
       });
 
     return () => {
@@ -267,7 +273,7 @@ export function PortfolioChat({
 
   async function runQuestion(question: string) {
     if (turnstileSiteKey && !challengeToken) {
-      setChallengeMessage("Complete verification before asking.");
+      setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
       return;
     }
     const questionChallengeToken = challengeToken ?? undefined;
@@ -417,7 +423,7 @@ export function PortfolioChat({
       setMessage(
         error instanceof PortfolioChatClientError
           ? error.message
-          : "The answer service is temporarily unavailable.",
+          : portfolioInterfaceText["chat.unavailable"],
       );
     } finally {
       if (turnstileSiteKey) {
@@ -546,9 +552,16 @@ export function PortfolioChat({
           ref={mobileBackRef}
           type="button"
         >
-          Index
+          <EditableText
+            path="interface.chat.backButton"
+            value={portfolioInterfaceText["chat.backButton"]}
+          />
         </button>
-        <b>Chat about the portfolio</b>
+        <EditableText
+          as="b"
+          path="interface.chat.title"
+          value={portfolioInterfaceText["chat.title"]}
+        />
         <span aria-hidden="true" />
       </nav>
       <div className="portfolio-chat-anchor">
@@ -559,7 +572,11 @@ export function PortfolioChat({
           ref={setChatPanel}
         >
           <header className="portfolio-chat-head" onPointerDown={beginPanelDrag}>
-            <b>Chat about the portfolio</b>
+            <EditableText
+              as="b"
+              path="interface.chat.title"
+              value={portfolioInterfaceText["chat.title"]}
+            />
             <button
               aria-label="Minimize portfolio assistant"
               onClick={minimize}
@@ -590,7 +607,14 @@ export function PortfolioChat({
               </section>
             ) : null}
             {message ? <p className="chat-message">{message}</p> : null}
-            {pending && !answer ? <p className="chat-message">Reading the portfolio…</p> : null}
+            {pending && !answer ? (
+              <EditableText
+                as="p"
+                className="chat-message"
+                path="interface.chat.pendingStatus"
+                value={portfolioInterfaceText["chat.pendingStatus"]}
+              />
+            ) : null}
             {citedEvidence.length > 0 ? (
               <section aria-labelledby="chat-evidence-heading" className="chat-evidence-pills">
                 <h3 className="sr-only" id="chat-evidence-heading">Supporting portfolio evidence</h3>
@@ -663,7 +687,7 @@ export function PortfolioChat({
                 void avatarIntegration?.onInputFocus?.();
               }}
               onKeyDown={submitOnEnter}
-              placeholder="Ask a follow-up"
+              placeholder={composerPlaceholder}
               ref={inputRef}
               rows={1}
               value={input}

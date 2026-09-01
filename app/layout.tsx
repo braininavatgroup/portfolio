@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CursorInstrument } from "../components/CursorInstrument";
 import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
+import { ContentEditorProvider } from "../components/editor/ContentEditorProvider";
+import { EditableText } from "../components/editor/EditableText";
+import { portfolioInterfaceText } from "../lib/portfolio-world";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,13 +41,19 @@ export default function RootLayout({
       >
         <PortfolioAnalytics />
         <CursorInstrument />
-        <div id="app-shell">
-          <a className="skip-link" href="#main-content">
-            Skip to portfolio content
-          </a>
-          {children}
-        </div>
-        <div id="avatar-toybox-root" />
+        <ContentEditorProvider>
+          <div id="app-shell">
+            <EditableText
+              as="a"
+              className="skip-link"
+              href="#main-content"
+              path="interface.layout.skipLink"
+              value={portfolioInterfaceText["layout.skipLink"]}
+            />
+            {children}
+          </div>
+          <div id="avatar-toybox-root" />
+        </ContentEditorProvider>
       </body>
     </html>
   );

@@ -67,3 +67,33 @@ test("the production build copies the configured Bradley avatar byte-for-byte", 
     "built motion library contains only the selected Meshy clips",
   );
 });
+
+test("the production build contains no editor code or write route", async () => {
+  const { readdir } = await import("node:fs/promises");
+  const roots = ["dist/client", "dist/server"];
+  const markers = [
+    "__portfolio-editor",
+    "data-editable-path",
+    "portfolio-writing",
+    'contentEditable: "plaintext-only"',
+  ];
+
+  for (const root of roots) {
+    const entries = await readdir(new URL(`${root}/`, repositoryRoot), {
+      recursive: true,
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      if (!/\.(js|mjs|cjs|css|html)$/.test(entry.name)) continue;
+      const filePath = `${entry.parentPath}/${entry.name}`;
+      const source = await readFile(filePath, "utf8");
+      for (const marker of markers) {
+        assert.ok(
+          !source.includes(marker),
+          `${filePath} leaks editor marker: ${marker}`,
+        );
+      }
+    }
+  }
+});

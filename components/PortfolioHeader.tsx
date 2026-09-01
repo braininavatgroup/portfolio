@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { EditableText } from "./editor/EditableText";
 
 type PortfolioHeaderProps = {
   activeView?: "bradley" | "map" | "index";
@@ -43,28 +45,43 @@ export function PortfolioHeader({
       ref={obstacleRef}
     >
       {activeView === "bradley" ? (
-        <span aria-current="page" className="wordmark">
-          Bradley Berkman
-        </span>
+        <EditableText
+          aria-current="page"
+          as="span"
+          className="wordmark"
+          path="interface.header.wordmark"
+          value={portfolioInterfaceText["header.wordmark"]}
+        />
       ) : (
-        <Link
+        <EditableText
+          as={Link}
           className="wordmark"
           href="/"
-          onClick={(event) => handleLocalNavigation(event, onBradleySelect)}
-        >
-          Bradley Berkman
-        </Link>
+          onClick={(event: MouseEvent<HTMLAnchorElement>) =>
+            handleLocalNavigation(event, onBradleySelect)
+          }
+          path="interface.header.wordmark"
+          value={portfolioInterfaceText["header.wordmark"]}
+        />
       )}
       <nav aria-label="Portfolio views">
         {activeView === "map" ? (
-          <span aria-current="page">Map</span>
+          <EditableText
+            aria-current="page"
+            as="span"
+            path="interface.header.mapLink"
+            value={portfolioInterfaceText["header.mapLink"]}
+          />
         ) : (
-          <Link
+          <EditableText
+            as={Link}
             href="/?view=graph"
-            onClick={(event) => handleLocalNavigation(event, onMapSelect)}
-          >
-            Map
-          </Link>
+            onClick={(event: MouseEvent<HTMLAnchorElement>) =>
+              handleLocalNavigation(event, onMapSelect)
+            }
+            path="interface.header.mapLink"
+            value={portfolioInterfaceText["header.mapLink"]}
+          />
         )}
       </nav>
     </header>

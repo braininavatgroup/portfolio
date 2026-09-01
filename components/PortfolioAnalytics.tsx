@@ -1,5 +1,7 @@
 "use client";
 
+import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { EditableText } from "./editor/EditableText";
 import { useEffect, useState } from "react";
 import {
   PUBLIC_CLARITY_PROJECT_ID,
@@ -73,7 +75,17 @@ export function PortfolioAnalyticsPreference({
 
   return optedOut === null ? null : (
     <button onClick={() => setPreference(!optedOut)} type="button">
-      {optedOut ? "Enable anonymous analytics" : "Opt out of analytics"}
+      {optedOut ? (
+        <EditableText
+          path="interface.privacy.enableAnalytics"
+          value={portfolioInterfaceText["privacy.enableAnalytics"]}
+        />
+      ) : (
+        <EditableText
+          path="interface.privacy.optOutAnalytics"
+          value={portfolioInterfaceText["privacy.optOutAnalytics"]}
+        />
+      )}
     </button>
   );
 }
