@@ -31,6 +31,7 @@ inventory, and `/design` for the same components rendered in their states.
 | [AvatarAssetAdapter](./avatar/AvatarAssetAdapter.md) | The rigged GLB plus its motion library | `/design#avatar` |
 | [ProceduralAvatar](./avatar/ProceduralAvatar.md) | The primitive-built fallback rig | `/design#avatar` |
 | [AvatarDirectorConsole](./avatar/AvatarDirectorConsole.md) | Development-only control room | `/design#avatar` |
+| [useAvatarStage](./useAvatarStage.md) | Stage services, registrations and viewport effects | `/design#avatar` |
 
 ## Avatar toybox
 

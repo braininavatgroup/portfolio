@@ -31,6 +31,7 @@ import { ProceduralAvatar } from "../../components/avatar/ProceduralAvatar";
 import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToyboxBoundary";
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
+import { useAvatarStage } from "../../components/useAvatarStage";
 import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import {
@@ -336,6 +337,30 @@ export function AvatarToyboxBoundaryExample() {
     <AvatarToyboxBoundary onFailure={() => setFailed(true)}>
       {failed ? null : <p>The toybox renderer.</p>}
     </AvatarToyboxBoundary>
+  );
+}
+// #example-end
+
+// #example:useAvatarStage
+export function UseAvatarStageExample() {
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Owns the stage services and the element registrations. The two inputs are
+  // the only thing it needs to know about the page: whether the assistant is
+  // on screen, and whether the user has asked for reduced motion.
+  const { avatarMounted, registerAvatarStage, registerHero } = useAvatarStage({
+    assistantOpen,
+    reducedMotion: false,
+  });
+
+  return (
+    <section ref={registerAvatarStage}>
+      <h1 ref={registerHero}>Bradley Berkman</h1>
+      <button onClick={() => setAssistantOpen((open) => !open)} type="button">
+        {assistantOpen ? "Hide" : "Show"} the assistant
+      </button>
+      <p>{avatarMounted ? "Stage ready." : "Mounting…"}</p>
+    </section>
   );
 }
 // #example-end
