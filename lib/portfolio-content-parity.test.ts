@@ -1,10 +1,12 @@
-// Migration parity: the merged world/thread/contact exports must reproduce
-// the exact authored copy captured before content moved into
-// content/portfolio-content.json. The fixture is frozen; it is regenerated
-// only when Bradley deliberately edits copy, so the editor can never silently
-// restore older text or rewrite punctuation.
+// Content-adapter fidelity: the merged world/thread/contact exports must
+// reproduce content/portfolio-content.json exactly — every paragraph in
+// authored order under its stable ID, every placeholder and visual text field
+// injected into the right block, every contact label carried through. The
+// one-time migration-parity fixture (BIV-357) proved the migration itself and
+// retired with the frozen fixture; this test guards the adapter as the copy
+// keeps changing through the writing mode.
 import { describe, expect, it } from "vitest";
-import parityFixture from "../tests/fixtures/portfolio-content-parity.json";
+import contentDocument from "../content/portfolio-content.json";
 import {
   portfolioContact,
   portfolioThreads,
@@ -48,8 +50,8 @@ function extractBody(body: readonly PortfolioBodyBlock[]): TextBody {
   return out;
 }
 
-describe("portfolio content migration parity", () => {
-  it("reproduces every record's pre-migration copy", () => {
+describe("portfolio content adapter fidelity", () => {
+  it("reproduces every record's text from the content document", () => {
     const records = Object.fromEntries(
       portfolioWorldNodes.map((node) => [
         node.id,
@@ -62,10 +64,26 @@ describe("portfolio content migration parity", () => {
         },
       ]),
     );
-    expect(records).toEqual(parityFixture.records);
+    const expected = Object.fromEntries(
+      Object.entries(contentDocument.records).map(([id, record]) => [
+        id,
+        {
+          label: record.label,
+          kind: record.kind,
+          summary: record.summary,
+          ...("principle" in record && record.principle
+            ? { principle: record.principle }
+            : {}),
+          paragraphs: record.paragraphs,
+          placeholders: record.placeholders,
+          visuals: record.visuals,
+        },
+      ]),
+    );
+    expect(records).toEqual(expected);
   });
 
-  it("reproduces every thread's pre-migration copy", () => {
+  it("reproduces every thread's text from the content document", () => {
     const threads = Object.fromEntries(
       portfolioThreads.map((thread) => [
         thread.id,
@@ -76,16 +94,28 @@ describe("portfolio content migration parity", () => {
         },
       ]),
     );
-    expect(threads).toEqual(parityFixture.threads);
+    const expected = Object.fromEntries(
+      Object.entries(contentDocument.threads).map(([id, thread]) => [
+        id,
+        {
+          title: thread.title,
+          lede: thread.lede,
+          paragraphs: thread.paragraphs,
+          placeholders: thread.placeholders,
+          visuals: thread.visuals,
+        },
+      ]),
+    );
+    expect(threads).toEqual(expected);
   });
 
-  it("reproduces the pre-migration contact values", () => {
-    expect(portfolioContact.email).toBe(parityFixture.contact.email);
-    expect(portfolioContact.cv.label).toBe(parityFixture.contact.cvLabel);
+  it("reproduces the contact values from the content document", () => {
+    expect(portfolioContact.email).toBe(contentDocument.contact.email);
+    expect(portfolioContact.cv.label).toBe(contentDocument.contact.cvLabel);
     expect(
       Object.fromEntries(
         portfolioContact.socials.map(({ key, label }) => [key, label]),
       ),
-    ).toEqual(parityFixture.contact.socialLabels);
+    ).toEqual(contentDocument.contact.socialLabels);
   });
 });

@@ -138,7 +138,13 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     group: "about",
     position: { x: 50, y: 12 },
     hasPrinciple: false,
-    body: [para("p1"), para("p2"), para("p3"), plannedVisual("about-documentary", "artifact")],
+    body: [
+      para("p1"),
+      para("p2"),
+      para("p3"),
+      para("p4"),
+      plannedVisual("about-documentary", "artifact"),
+    ],
   },
   {
     id: "infamous",
