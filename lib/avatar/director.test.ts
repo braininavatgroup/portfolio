@@ -242,7 +242,6 @@ describe("AvatarDirector", () => {
     // Catches repeated model selections being filtered instead of played.
     const { controller, director } = createDirector();
     const effects = {
-      siteActions: [],
       avatarSequence: [
         { action: "play" as const, animation: "joyful_dance_with_hand_sway" as const },
       ],
@@ -330,7 +329,6 @@ describe("AvatarDirector", () => {
     const run = vi.spyOn(runner, "run");
 
     await director.perform({
-      siteActions: [],
       avatarSequence: [{ action: "play", animation: "swim_forward" }],
       avatarIntent: "ordinary",
       issues: [],
@@ -351,7 +349,6 @@ describe("AvatarDirector", () => {
     expect(controller.getSnapshot().locomotion).toBe("swimming");
 
     await director.perform({
-      siteActions: [],
       avatarSequence: [{ action: "play", animation: "shrug" }],
       avatarIntent: "ordinary",
       issues: [],
@@ -371,7 +368,6 @@ describe("AvatarDirector", () => {
     vi.useFakeTimers();
     const { callbacks, clearTimer, controller, director, setTimer } = createAmbientTimerHarness();
     const effects = {
-      siteActions: [],
       avatarSequence: [{ action: "play" as const, animation: "shrug" as const }],
       avatarIntent: "ordinary" as const,
       issues: [],
@@ -462,7 +458,6 @@ describe("AvatarDirector", () => {
     const director = new AvatarDirector(controller, runner, registry);
 
     await director.perform({
-      siteActions: [],
       avatarSequence: [{ action: "play", animation: "swimming_to_edge" }],
       avatarIntent: "ordinary",
       issues: [],
@@ -479,7 +474,6 @@ describe("AvatarDirector", () => {
     const run = vi.spyOn(runner, "run");
 
     await director.perform({
-      siteActions: [],
       avatarSequence: [
         { action: "play", animation: "swim_forward" },
         { action: "swimTo", target: "portfolio:chat" },
@@ -488,7 +482,6 @@ describe("AvatarDirector", () => {
       issues: [],
     });
     await director.perform({
-      siteActions: [],
       avatarSequence: [
         { action: "play", animation: "swimming_to_edge" },
         { action: "swimRoute", route: "lap" },
@@ -497,7 +490,6 @@ describe("AvatarDirector", () => {
       issues: [],
     });
     await director.perform({
-      siteActions: [],
       avatarSequence: [
         { action: "play", animation: "shrug" },
         { action: "wait", durationMs: 100 },
@@ -527,7 +519,6 @@ describe("AvatarDirector", () => {
     director.setReducedMotion(true);
 
     await director.perform({
-      siteActions: [],
       avatarSequence: [{ action: "play", animation: "swim_forward" }],
       avatarIntent: "ordinary",
       issues: [],

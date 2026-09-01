@@ -16,7 +16,6 @@ import { getOutputToken } from "../../components/scene/output-token-map";
 import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarDirector } from "../../lib/avatar/director";
 import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../../lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import type { AllowedAnimation, AvatarTone } from "../../lib/avatar/contracts";
@@ -191,8 +190,7 @@ export function AvatarOverlayFixture() {
       controller.execute(command, signal),
     );
     const director = new AvatarDirector(controller, runner, registry);
-    const siteActionExecutor = new SiteActionExecutor(registry, {});
-    return { controller, director, registry, runner, siteActionExecutor };
+    return { controller, director, registry, runner };
   });
 
   const registerStage = useCallback(
@@ -240,7 +238,6 @@ export function AvatarOverlayFixture() {
             reducedMotion={false}
             registry={services.registry}
             runner={services.runner}
-            siteActionExecutor={services.siteActionExecutor}
           />
         </div>
       </div>

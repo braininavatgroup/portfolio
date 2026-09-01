@@ -12,7 +12,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AvatarController } from "../lib/avatar/controller";
 import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
-import type { SiteActionExecutor } from "../lib/avatar/site-actions";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import type { AvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
 import { PortfolioExperience } from "./PortfolioExperience";
@@ -39,7 +38,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
       registry?: AvatarTargetRegistry;
       runner?: AvatarSequenceRunner;
-      siteActionExecutor?: SiteActionExecutor;
     }) => {
       React.useEffect(() => controller.setVisible(enabled), [controller, enabled]);
       const snapshot = React.useSyncExternalStore(
@@ -491,7 +489,6 @@ describe("spatial self-portrait", () => {
           avatarSequence: [
             { action: "play", animation: "wave_one_hand" },
           ],
-          siteActions: [],
         }),
       ),
     );
@@ -668,137 +665,8 @@ describe("spatial self-portrait", () => {
     });
   });
 
-  it("runs project open, tab, scroll, and close actions through current spatial selection", async () => {
-    // Catches layout-changing actions leaving later semantic actions on stale dossier targets.
-    const scrollTo = vi.fn();
-    vi.stubGlobal("scrollTo", scrollTo);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { question: string };
-        return body.question === "Close it"
-          ? effectsResponse({
-              siteActions: [
-                { type: "closeProject" },
-                { type: "scrollTo", target: "portfolio:index" },
-              ],
-            })
-          : effectsResponse({
-              siteActions: [
-                { type: "openProject", target: "project:dubs" },
-                { type: "activateTab", tab: "output" },
-                { type: "scrollTo", target: "project:dubs" },
-              ],
-            });
-      }),
-    );
-    await renderExperience();
 
-    await askExperience("Open Dubs output");
-    expect(
-      await screen.findByRole("complementary", {
-        name: "Dubs record",
-      }),
-    ).toBeTruthy();
-    expect(
-      screen
-        .getByRole("button", { name: "In Production Dubs" })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
-    expect(scrollTo).toHaveBeenCalledTimes(1);
 
-    await askExperience("Close it");
-    expect(
-      await screen.findByRole("complementary", { name: "Portfolio index" }),
-    ).toBeTruthy();
-    expect(scrollTo).toHaveBeenCalledTimes(2);
-  });
-
-  it("moves and clears the semantic dossier spotlight", async () => {
-    // Catches spotlight classes sticking to stale dossier content across selection changes.
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-        const { question } = JSON.parse(String(init?.body)) as {
-          question: string;
-        };
-        if (question === "Spotlight index") {
-          return effectsResponse({
-            siteActions: [{ type: "spotlight", target: "portfolio:index" }],
-          });
-        }
-        if (question === "Spotlight Dubs") {
-          return effectsResponse({
-            siteActions: [
-              { type: "openProject", target: "project:dubs" },
-              { type: "spotlight", target: "project:dubs" },
-            ],
-          });
-        }
-        return effectsResponse({ siteActions: [{ type: "clearSpotlight" }] });
-      }),
-    );
-    await renderExperience();
-
-    await askExperience("Spotlight index");
-    await waitFor(() =>
-      expect(
-        screen.getByRole("complementary", { name: "Portfolio index" }).className,
-      ).toContain("avatar-spotlight"),
-    );
-
-    await askExperience("Spotlight Dubs");
-    const project = await screen.findByRole("complementary", {
-      name: "Dubs record",
-    });
-    await waitFor(() =>
-      expect(project.className).toContain("avatar-spotlight"),
-    );
-
-    await askExperience("Clear spotlight");
-    await waitFor(() =>
-      expect(project.className).not.toContain("avatar-spotlight"),
-    );
-  });
-
-  it("adapts avatar travel for reduced motion while preserving project actions", async () => {
-    // Catches reduced motion dropping essential site actions or retaining dramatic travel commands.
-    mockMatchMedia(true);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        effectsResponse({
-          siteActions: [{ type: "openProject", target: "project:dubs" }],
-          avatarSequence: [
-            { action: "enter", from: "left" },
-            { action: "wait", durationMs: 500 },
-            { action: "walkTo", target: "project:dubs" },
-          ],
-        }),
-      ),
-    );
-    render(<PortfolioExperience />);
-    await act(async () => {});
-
-    await askExperience("Open Dubs gently");
-
-    expect(
-      await screen.findByRole("complementary", {
-        name: "Dubs record",
-      }),
-    ).toBeTruthy();
-    await waitFor(() =>
-      expect(screen.getByTestId("avatar-command-log").textContent).toContain(
-        "lookAt",
-      ),
-    );
-    await waitFor(() => {
-      expect(screen.getByTestId("avatar-command-log").textContent).not.toContain(
-        "enter",
-      );
-      expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
-    });
-  });
 
   it("does not resume an in-flight effect sequence after a new turn starts", async () => {
     // Catches an older effect callback starting its sequence after the newer turn already canceled avatar work.
@@ -810,9 +678,6 @@ describe("spatial self-portrait", () => {
         };
         return question === "First question"
           ? effectsResponse({
-              siteActions: [
-                { type: "spotlight", target: "portfolio:index" },
-              ],
               avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
             })
           : effectsResponse({});
@@ -844,50 +709,6 @@ describe("spatial self-portrait", () => {
     );
   });
 
-  it("invalidates delayed avatar effects when the experience unmounts", async () => {
-    // Catches cleanup canceling the current runner while allowing delayed effect work to start it again.
-    vi.useFakeTimers();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        effectsResponse({
-          siteActions: [{ type: "spotlight", target: "portfolio:index" }],
-          avatarSequence: [{ action: "play", animation: "cheer_with_both_hands" }],
-        }),
-      ),
-    );
-    mockMatchMedia();
-    const rendered = render(<PortfolioExperience />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    const runner = Reflect.get(
-      globalThis,
-      "__portfolioTestAvatarRunner",
-    ) as AvatarSequenceRunner;
-    const run = vi.spyOn(runner, "run");
-
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "Question" } });
-    fireEvent.submit(document.getElementById("portfolio-question-form")!);
-    await act(async () => {
-      await vi.advanceTimersToNextTimerAsync();
-    });
-    expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }).className,
-    ).toContain("avatar-spotlight");
-
-    rendered.unmount();
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    expect(
-      run.mock.calls.some(([commands]) =>
-        commands.some((command) => command.action === "play"),
-      ),
-    ).toBe(false);
-  });
 
   it("keeps the resting composition free of avatar and mode control pills", async () => {
     await renderExperience();

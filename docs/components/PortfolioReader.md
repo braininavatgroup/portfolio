@@ -14,7 +14,7 @@ props.
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, `onSelectThread`
-required; `onOpenVisual`, `registerAvatarTarget`, `spotlightTarget` optional.
+required; `onOpenVisual` and `registerAvatarTarget` optional.
 Mode is `record` when `selectedId` names a non-`story` node, else `thread` when
 `activeThreadId` is set, else `index`.
 
@@ -57,8 +57,7 @@ export function PortfolioReaderExample() {
 - **The registered avatar target follows the slug, not the mode.** It is
   `project:<slug>` only when the node has a `projectSlug`; five non-story nodes
   (including `bradley`) have none, so their *records* register
-  `portfolio:index`. `spotlightTarget` must equal whichever one applies or the
-  spotlight never lands.
+  `portfolio:index`.
 - **`?review=clean` changes the rendering**, adding
   `.portfolio-reader-clean-review`. A screenshot taken with it set is not the
   default surface.

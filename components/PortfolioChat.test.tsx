@@ -370,7 +370,6 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          siteActions: [{ type: "openProject", target: "project:dubs" }],
           avatarSequence: [{ action: "play", animation: "big_wave_hello" }],
           issues: [],
         },
@@ -432,7 +431,6 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          siteActions: [{ type: "openProject", target: "project:dubs" }],
           avatarSequence: [],
           issues: [],
         },
@@ -513,7 +511,7 @@ describe("portfolio chat", () => {
       onEvent({ type: "answer_delta", delta: "[E1]" });
       onEvent({
         type: "effects",
-        effects: { siteActions: [], avatarSequence: [], issues: [] },
+        effects: { avatarSequence: [], issues: [] },
       });
       onEvent({
         type: "error",

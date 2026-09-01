@@ -140,7 +140,6 @@ describe("AvatarOverlay", () => {
         onEnabledChange={() => {}}
         registry={new AvatarTargetRegistry()}
         runner={{} as never}
-        siteActionExecutor={{} as never}
       />,
     );
 

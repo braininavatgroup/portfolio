@@ -858,11 +858,6 @@ body {
   pointer-events: none;
 }
 
-.avatar-spotlight {
-  outline: 2px solid var(--prototype-toybox-accent);
-  outline-offset: 0.3rem;
-}
-
 .experience-graph .chat-starters {
   display: none;
 }

@@ -17,7 +17,6 @@ import type {
   ProjectAvatarTargetId,
 } from "../lib/avatar/contracts";
 import { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import type { AvatarObstacleId } from "../lib/avatar/target-registry";
 import { isExactShiftShortcut } from "../lib/dom-keyboard";
@@ -140,8 +139,6 @@ export function PortfolioExperience() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
-  const [spotlightTarget, setSpotlightTarget] =
-    useState<AvatarTargetId | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [avatarMounted, setAvatarMounted] = useState(false);
   const [avatarDebug, setAvatarDebug] = useState(
@@ -488,40 +485,6 @@ export function PortfolioExperience() {
       registerAvatarTarget("hero", element),
     [registerAvatarTarget],
   );
-  const [siteActionExecutor] = useState(
-    () =>
-      new SiteActionExecutor(avatarRegistry, {
-        openProject: (target) => {
-          const slug = target.slice("project:".length);
-          const node =
-            portfolioNodes.find(
-              ({ projectSlug, role }) =>
-                projectSlug === slug && role === "instinct",
-            ) ?? portfolioNodes.find(({ projectSlug }) => projectSlug === slug);
-          if (!node) throw new Error("Unknown project target");
-          selectNode(node);
-        },
-        closeProject: showIndex,
-        activateTab: (tab) => {
-          const projectSlug = avatarActionState.getSelectedNode()?.projectSlug;
-          const node = portfolioNodes.find(
-            ({ projectSlug: candidate, role }) =>
-              candidate === projectSlug && role === tab,
-          );
-          if (!node) throw new Error("No selected project tab");
-          selectNode(node);
-        },
-        scrollTo: (_target, bounds) => {
-          window.scrollTo({
-            behavior: avatarActionState.getReducedMotion() ? "auto" : "smooth",
-            top: window.scrollY + bounds.top,
-          });
-        },
-        spotlight: setSpotlightTarget,
-        clearSpotlight: () => setSpotlightTarget(null),
-      }),
-  );
-
   const avatarIntegration = useMemo(
     () => ({
       onTurnStart: () => {
@@ -536,27 +499,6 @@ export function PortfolioExperience() {
       onEffects: async (effects: PortfolioResponseEffects) => {
         const turn = avatarActionState.getTurn();
         const isCurrentTurn = () => avatarActionState.getTurn() === turn;
-        let dossierRenderPending = false;
-        for (const action of effects.siteActions) {
-          if (!isCurrentTurn()) return;
-          if (dossierRenderPending && action.type === "scrollTo") {
-            await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
-            if (!isCurrentTurn()) return;
-            dossierRenderPending = false;
-          }
-          const result = await siteActionExecutor.execute(action);
-          if (
-            result.ok &&
-            (action.type === "openProject" ||
-              action.type === "closeProject" ||
-              action.type === "activateTab")
-          ) {
-            dossierRenderPending = true;
-          }
-        }
-        if (effects.siteActions.length > 0) {
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 16));
-        }
         if (!isCurrentTurn()) return;
         await avatarDirector.perform(effects);
       },
@@ -566,7 +508,7 @@ export function PortfolioExperience() {
         avatarController.execute({ action: "setState", state: "error" }),
       onComplete: () => avatarDirector.handle({ type: "turn_complete" }),
     }),
-    [avatarActionState, avatarController, avatarDirector, siteActionExecutor],
+    [avatarActionState, avatarController, avatarDirector],
   );
 
   useEffect(() => {
@@ -752,7 +694,6 @@ export function PortfolioExperience() {
         reducedMotion={reducedMotion}
         registry={avatarRegistry}
         runner={avatarRunner}
-        siteActionExecutor={siteActionExecutor}
       />
     </Suspense>
     </AvatarToyboxBoundary>
@@ -765,7 +706,6 @@ export function PortfolioExperience() {
       onPoseChange={() => {}}
       open={assistantOpen}
       registerAvatarTarget={registerAvatarTarget}
-      spotlightTarget={spotlightTarget}
       turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
     />
   );
@@ -799,9 +739,6 @@ export function PortfolioExperience() {
 
         <div className="scene-copy">
           <h1
-            className={
-              spotlightTarget === "hero" ? "avatar-spotlight" : undefined
-            }
             ref={registerHero}
           >
             <EditableText
@@ -820,7 +757,6 @@ export function PortfolioExperience() {
               onSelectThread={selectThread}
               registerAvatarTarget={registerAvatarTarget}
               selectedId={selectedWorldId}
-              spotlightTarget={spotlightTarget}
             />
             <button
               aria-label={mobileMapOpen ? "Show portfolio index" : "Show portfolio map"}

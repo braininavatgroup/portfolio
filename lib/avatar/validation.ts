@@ -2,7 +2,6 @@ import { portfolioData } from "../portfolio-data";
 import {
   allowedAvatarAnimations,
   allowedAvatarStates,
-  allowedTabs,
   avatarRouteIds,
   avatarConfidenceLevels,
   avatarEnergyLevels,
@@ -10,7 +9,6 @@ import {
   avatarPerformanceIntents,
   avatarWarmthLevels,
   type AllowedAnimation,
-  type AllowedTab,
   type AvatarCommand,
   type AvatarRouteId,
   type AvatarPerformanceIntent,
@@ -18,8 +16,6 @@ import {
   type AvatarTargetId,
   type AvatarTone,
   type PortfolioResponseEffects,
-  type ProjectAvatarTargetId,
-  type SiteAction,
 } from "./contracts";
 
 const baseTargets = ["hero", "portfolio:chat", "portfolio:index"] as const;
@@ -31,12 +27,8 @@ export const allowedAvatarTargets = [
 
 const avatarStateSet = new Set<string>(allowedAvatarStates);
 const animationSet = new Set<string>(allowedAvatarAnimations);
-const tabSet = new Set<string>(allowedTabs);
 const targetSet = new Set<string>(allowedAvatarTargets);
 const routeSet = new Set<string>(avatarRouteIds);
-const projectTargetSet = new Set<string>(
-  portfolioData.projects.map(({ slug }) => `project:${slug}`),
-);
 const energySet = new Set<string>(avatarEnergyLevels);
 const warmthSet = new Set<string>(avatarWarmthLevels);
 const confidenceSet = new Set<string>(avatarConfidenceLevels);
@@ -72,20 +64,12 @@ function isAllowedAnimation(value: unknown): value is AllowedAnimation {
   return typeof value === "string" && animationSet.has(value);
 }
 
-function isAllowedTab(value: unknown): value is AllowedTab {
-  return typeof value === "string" && tabSet.has(value);
-}
-
 function isAvatarTarget(value: unknown): value is AvatarTargetId {
   return typeof value === "string" && targetSet.has(value);
 }
 
 function isAvatarRoute(value: unknown): value is AvatarRouteId {
   return typeof value === "string" && routeSet.has(value);
-}
-
-function isProjectTarget(value: unknown): value is ProjectAvatarTargetId {
-  return typeof value === "string" && projectTargetSet.has(value);
 }
 
 function isPerformanceIntent(value: unknown): value is AvatarPerformanceIntent {
@@ -140,78 +124,6 @@ function parseAvatarTone(
 
 function clampWait(value: number) {
   return Math.max(0, Math.min(maxWaitMs, value));
-}
-
-function parseSiteAction(value: unknown, issues: string[], index: number): SiteAction | null {
-  if (!isObject(value)) {
-    issues.push(`siteActions[${index}] must be an object`);
-    return null;
-  }
-
-  if (typeof value.type !== "string") {
-    issues.push(`siteActions[${index}] must include a string type`);
-    return null;
-  }
-
-  switch (value.type) {
-    case "openProject":
-      if (
-        !exactKeys(value, ["type", "target"], `siteActions[${index}]`, issues) ||
-        !isProjectTarget(value.target)
-      ) {
-        if (!isProjectTarget(value.target)) {
-          issues.push(`siteActions[${index}].target must be a known project target`);
-        }
-        return null;
-      }
-      return { type: "openProject", target: value.target };
-    case "closeProject":
-      if (!exactKeys(value, ["type"], `siteActions[${index}]`, issues)) {
-        return null;
-      }
-      return { type: "closeProject" };
-    case "activateTab":
-      if (
-        !exactKeys(value, ["type", "tab"], `siteActions[${index}]`, issues) ||
-        !isAllowedTab(value.tab)
-      ) {
-        if (!isAllowedTab(value.tab)) {
-          issues.push(`siteActions[${index}].tab must be an allowed tab`);
-        }
-        return null;
-      }
-      return { type: "activateTab", tab: value.tab };
-    case "scrollTo":
-      if (
-        !exactKeys(value, ["type", "target"], `siteActions[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        if (!isAvatarTarget(value.target)) {
-          issues.push(`siteActions[${index}].target must be a known target`);
-        }
-        return null;
-      }
-      return { type: "scrollTo", target: value.target };
-    case "spotlight":
-      if (
-        !exactKeys(value, ["type", "target"], `siteActions[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        if (!isAvatarTarget(value.target)) {
-          issues.push(`siteActions[${index}].target must be a known target`);
-        }
-        return null;
-      }
-      return { type: "spotlight", target: value.target };
-    case "clearSpotlight":
-      if (!exactKeys(value, ["type"], `siteActions[${index}]`, issues)) {
-        return null;
-      }
-      return { type: "clearSpotlight" };
-    default:
-      issues.push(`siteActions[${index}].type is not supported`);
-      return null;
-  }
 }
 
 function parseAvatarCommand(
@@ -358,7 +270,6 @@ function parseAvatarCommand(
 export function parsePortfolioResponseEffects(value: unknown): PortfolioResponseEffects {
   const issues: string[] = [];
   const parsed: PortfolioResponseEffects = {
-    siteActions: [],
     avatarSequence: [],
     issues,
   };
@@ -370,7 +281,7 @@ export function parsePortfolioResponseEffects(value: unknown): PortfolioResponse
 
   exactKeys(
     value,
-    ["siteActions", "avatarSequence", "avatarIntent", "avatarTone"],
+    ["avatarSequence", "avatarIntent", "avatarTone"],
     "effects",
     issues,
   );
@@ -388,18 +299,6 @@ export function parsePortfolioResponseEffects(value: unknown): PortfolioResponse
     if (tone) parsed.avatarTone = tone;
   }
 
-  if ("siteActions" in value) {
-    if (Array.isArray(value.siteActions)) {
-      for (const [index, item] of value.siteActions.entries()) {
-        const siteAction = parseSiteAction(item, issues, index);
-        if (siteAction) {
-          parsed.siteActions.push(siteAction);
-        }
-      }
-    } else {
-      issues.push("siteActions must be an array when provided");
-    }
-  }
 
   if ("avatarSequence" in value) {
     if (Array.isArray(value.avatarSequence)) {

@@ -65,7 +65,6 @@ export function PortfolioChat({
   registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
-  spotlightTarget,
   turnstileSiteKey,
 }: {
   avatarIntegration?: PortfolioChatAvatarIntegration;
@@ -80,7 +79,6 @@ export function PortfolioChat({
   ) => void;
   askPortfolio?: AskPortfolio;
   renderTurnstile?: TurnstileRenderer;
-  spotlightTarget?: AvatarTargetId | null;
   turnstileSiteKey?: string;
 }) {
   const composerPlaceholder = useEditableContent(
@@ -533,7 +531,7 @@ export function PortfolioChat({
 
   return (
     <section
-      className={`portfolio-chat${spotlightTarget === "portfolio:chat" ? " avatar-spotlight" : ""}`}
+      className={`portfolio-chat`}
       aria-label="Portfolio assistant dock"
       data-clarity-mask="true"
       data-has-thread={hasThreadContent ? "true" : "false"}

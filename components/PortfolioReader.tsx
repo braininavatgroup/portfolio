@@ -35,7 +35,6 @@ type PortfolioReaderProps = {
     element: HTMLElement | null,
   ) => void;
   selectedId: string | null;
-  spotlightTarget?: AvatarTargetId | null;
 };
 
 function IndexRow({
@@ -481,7 +480,6 @@ export function PortfolioReader({
   onSelectThread,
   registerAvatarTarget,
   selectedId,
-  spotlightTarget,
 }: PortfolioReaderProps) {
   const readerRef = useRef<HTMLElement | null>(null);
   const indexScrollTop = useRef(0);
@@ -522,7 +520,7 @@ export function PortfolioReader({
   return (
     <aside
       aria-label={label}
-      className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
+      className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}`}
       data-reader-mode={mode}
       onScroll={(event) => {
         if (mode === "index") indexScrollTop.current = event.currentTarget.scrollTop;

@@ -71,7 +71,6 @@ describe("portfolio chat route handler", () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onEffects }) {
         onEffects?.({
-          siteActions: [],
           avatarSequence: [
             { action: "play", animation: "wave_one_hand" },
             { action: "wait", durationMs: 1_600 },
@@ -96,7 +95,6 @@ describe("portfolio chat route handler", () => {
       {
         type: "effects",
         effects: {
-          siteActions: [],
           avatarSequence: [
             { action: "play", animation: "wave_one_hand" },
             { action: "wait", durationMs: 1_600 },
@@ -118,7 +116,6 @@ describe("portfolio chat route handler", () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onEffects }) {
         onEffects?.({
-          siteActions: [],
           avatarSequence: [
             { action: "play", animation: "joyful_dance_with_hand_sway" },
           ],

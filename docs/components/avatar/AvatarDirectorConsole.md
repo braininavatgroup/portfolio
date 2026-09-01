@@ -32,7 +32,6 @@ import { AvatarDirectorConsole } from "components/avatar/AvatarDirectorConsole";
 import { AvatarController } from "lib/avatar/controller";
 import { AvatarDirector } from "lib/avatar/director";
 import { AvatarSequenceRunner } from "lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "lib/avatar/target-registry";
 import { useState } from "react";
 
@@ -44,8 +43,7 @@ export function AvatarDirectorConsoleExample() {
       controller.execute(command, signal),
     );
     const director = new AvatarDirector(controller, runner, registry);
-    const siteActionExecutor = new SiteActionExecutor(registry, {});
-    return { controller, director, registry, runner, siteActionExecutor };
+    return { controller, director, registry, runner };
   });
 
   // In the composition this is reached through `AvatarOverlay`'s
@@ -57,7 +55,6 @@ export function AvatarDirectorConsoleExample() {
       onEnabledChange={() => {}}
       registry={services.registry}
       runner={services.runner}
-      siteActionExecutor={services.siteActionExecutor}
     />
   );
 }
