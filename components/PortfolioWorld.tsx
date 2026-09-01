@@ -36,14 +36,20 @@ const CanvasLabelEditor: ComponentType<{
 
 const recordLabelPath = (nodeId: string) => `records.${nodeId}.label`;
 import {
+  clonePoint as clone,
+  projectWorldPoint,
+  translateWorldPointByScreenDelta,
+  type Point3,
+  type ProjectedPoint,
+} from "../lib/portfolio-world-projection";
+import { relaxWorldOverlaps } from "../lib/portfolio-world-layout";
+import {
   PORTFOLIO_NODE_MARK_SIZE,
   portfolioNodeMarkPrimitives,
   portfolioNodeMarkVertices,
 } from "../lib/portfolio-node-mark";
 
 type Point = { x: number; y: number };
-type Point3 = Point & { z: number };
-type ProjectedPoint = Point & { depth: number; scale: number };
 type Camera = {
   position: Point3;
   target: Point3;
@@ -205,83 +211,6 @@ const storyLayouts: Record<
     },
   },
 };
-
-function clone(point: Point3): Point3 {
-  return { x: point.x, y: point.y, z: point.z };
-}
-
-function normalize(point: Point3): Point3 {
-  const length = Math.hypot(point.x, point.y, point.z) || 1;
-  return { x: point.x / length, y: point.y / length, z: point.z / length };
-}
-
-function cross(a: Point3, b: Point3): Point3 {
-  return {
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  };
-}
-
-function dot(a: Point3, b: Point3) {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-function cameraBasis(position: Point3, target: Point3) {
-  const forward = normalize({
-    x: target.x - position.x,
-    y: target.y - position.y,
-    z: target.z - position.z,
-  });
-  const right = normalize(cross(forward, { x: 0, y: 1, z: 0 }));
-  const up = normalize(cross(right, forward));
-  return { forward, right, up };
-}
-
-export function projectWorldPoint(
-  point: Point3,
-  position: Point3,
-  target: Point3,
-  fov: number,
-  width: number,
-  height: number,
-): ProjectedPoint & { right: Point3; up: Point3 } | null {
-  const { forward, right, up } = cameraBasis(position, target);
-  const delta = {
-    x: point.x - position.x,
-    y: point.y - position.y,
-    z: point.z - position.z,
-  };
-  const depth = dot(delta, forward);
-  if (depth < 30) return null;
-  const scale = fov / depth;
-  return {
-    x: width / 2 + dot(delta, right) * scale,
-    y: height / 2 - dot(delta, up) * scale,
-    depth,
-    scale,
-    right,
-    up,
-  };
-}
-
-export function translateWorldPointByScreenDelta(
-  point: Point3,
-  scale: number,
-  dx: number,
-  dy: number,
-  position = overview.position,
-  target = overview.target,
-) {
-  const { right, up } = cameraBasis(position, target);
-  const screenRight = dx / Math.max(0.18, scale);
-  const screenDown = dy / Math.max(0.18, scale);
-  return {
-    x: point.x + right.x * screenRight - up.x * screenDown,
-    y: point.y + right.y * screenRight - up.y * screenDown,
-    z: point.z + right.z * screenRight - up.z * screenDown,
-  };
-}
 
 function createRuntimeNodes(): RuntimeNode[] {
   return portfolioWorldNodes.map((node) => {
@@ -655,108 +584,32 @@ export function PortfolioWorld({
       if (!width || !height) return;
       const nodes = runtime.current;
       const working = new Map(nodes.map((node) => [node.id, clone(node.rawBase)]));
-      const pinned = (node: RuntimeNode) =>
-        node.id === "bradley" || node.family === "story" || node.userPlaced;
-      const projectWorking = () =>
-        new Map(
-          nodes.map((node) => {
-            const point = working.get(node.id)!;
-            const projected = projectWorldPoint(
-              point,
-              overview.position,
-              overview.target,
-              camera.current.fov,
-              width,
-              height,
-            )!;
-            const lines = wrapLabel(node.label, measure);
-            const labelWidth = Math.ceil(Math.max(...lines.map(measure)));
-            const halfWidth = Math.max(13, labelWidth / 2);
-            return [
-              node.id,
-              {
-                ...projected,
-                footprint: {
-                  x: projected.x - halfWidth,
-                  y: projected.y - 13,
-                  width: halfWidth * 2,
-                  height: 31 + lines.length * LABEL_LINE_HEIGHT,
-                },
-              },
-            ] as const;
-          }),
-        );
-      const applyPush = (
-        node: RuntimeNode,
-        dx: number,
-        dy: number,
-        projected: ProjectedPoint & { right: Point3; up: Point3 },
-      ) => {
-        if (pinned(node)) return;
-        const point = working.get(node.id)!;
-        const inverseScale = 1 / Math.max(0.18, projected.scale);
-        point.x += projected.right.x * dx * inverseScale - projected.up.x * dy * inverseScale;
-        point.y += projected.right.y * dx * inverseScale - projected.up.y * dy * inverseScale;
-        point.z += projected.right.z * dx * inverseScale - projected.up.z * dy * inverseScale;
-        point.x = Math.max(-940, Math.min(940, point.x));
-        point.y = Math.max(-540, Math.min(540, point.y));
-        point.z = Math.max(480, Math.min(1120, point.z));
-      };
 
-      for (let iteration = 0; iteration < 120; iteration += 1) {
-        const projected = projectWorking();
-        let moved = false;
-        for (let aIndex = 0; aIndex < nodes.length; aIndex += 1) {
-          for (let bIndex = aIndex + 1; bIndex < nodes.length; bIndex += 1) {
-            const aNode = nodes[aIndex];
-            const bNode = nodes[bIndex];
-            const a = projected.get(aNode.id)!;
-            const b = projected.get(bNode.id)!;
-            const overlapX =
-              Math.min(a.footprint.x + a.footprint.width, b.footprint.x + b.footprint.width) -
-              Math.max(a.footprint.x, b.footprint.x) +
-              5;
-            const overlapY =
-              Math.min(a.footprint.y + a.footprint.height, b.footprint.y + b.footprint.height) -
-              Math.max(a.footprint.y, b.footprint.y) +
-              5;
-            if (overlapX <= 0 || overlapY <= 0) continue;
-            moved = true;
-            const aShare = pinned(aNode) ? 0 : pinned(bNode) ? 1 : 0.5;
-            const bShare = 1 - aShare;
-            if (overlapX < overlapY) {
-              const direction = b.x >= a.x ? 1 : -1;
-              applyPush(aNode, -direction * overlapX * aShare, 0, a);
-              applyPush(bNode, direction * overlapX * bShare, 0, b);
-            } else {
-              const direction = b.y >= a.y ? 1 : -1;
-              applyPush(aNode, 0, -direction * overlapY * aShare, a);
-              applyPush(bNode, 0, direction * overlapY * bShare, b);
-            }
-          }
-        }
-        for (const node of nodes) {
-          const projectedNode = projected.get(node.id)!;
-          const box = projectedNode.footprint;
-          if (box.x < 12) {
-            applyPush(node, 12 - box.x, 0, projectedNode);
-            moved = true;
-          }
-          if (box.x + box.width > width - 12) {
-            applyPush(node, width - 12 - box.x - box.width, 0, projectedNode);
-            moved = true;
-          }
-          if (box.y < 18) {
-            applyPush(node, 0, 18 - box.y, projectedNode);
-            moved = true;
-          }
-          if (box.y + box.height > height - 78) {
-            applyPush(node, 0, height - 78 - box.y - box.height, projectedNode);
-            moved = true;
-          }
-        }
-        if (!moved) break;
-      }
+      relaxWorldOverlaps({
+        positions: working,
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          label: node.label,
+          pinned:
+            node.id === "bradley" || node.family === "story" || node.userPlaced,
+        })),
+        camera: {
+          position: overview.position,
+          target: overview.target,
+          fov: camera.current.fov,
+        },
+        viewport: { width, height },
+        measure,
+        wrap: (label, measureText) => wrapLabel(label, measureText),
+        lineHeight: LABEL_LINE_HEIGHT,
+        iterations: 120,
+        padding: 5,
+        minHalfWidth: 13,
+        footprint: { top: 13, extraHeight: 31 },
+        margins: { left: 12, right: 12, top: 18, bottom: 78 },
+        bounds: { x: 940, y: 540, z: [480, 1120] },
+      });
+
       nodes.forEach((node) => {
         node.base = clone(working.get(node.id)!);
         if (!state.current.selectedId && !state.current.activeThreadId) {
@@ -1124,107 +977,31 @@ function applyStoryGoals(
   if (width && height) {
     const ids = ["bradley", story.nodeId, ...story.members];
     const working = new Map(ids.map((id) => [id, clone(byId.get(id)!.goal)]));
-    const pinned = (id: string) => id === "bradley" || id === story.nodeId;
-    const projected = () =>
-      new Map(
-        ids.map((id) => {
-          const node = byId.get(id)!;
-          const screen = projectWorldPoint(
-            working.get(id)!,
-            storyView.position,
-            storyView.target,
-            camera.fov,
-            width,
-            height,
-          )!;
-          const lines = wrapLabel(node.label, measure);
-          const labelWidth = Math.ceil(Math.max(...lines.map(measure)));
-          const halfWidth = Math.max(15, labelWidth / 2);
-          return [
-            id,
-            {
-              ...screen,
-              footprint: {
-                x: screen.x - halfWidth,
-                y: screen.y - 14,
-                width: halfWidth * 2,
-                height: 34 + lines.length * LABEL_LINE_HEIGHT,
-              },
-            },
-          ] as const;
-        }),
-      );
-    const push = (
-      id: string,
-      dx: number,
-      dy: number,
-      screen: ProjectedPoint & { right: Point3; up: Point3 },
-    ) => {
-      if (pinned(id)) return;
-      const point = working.get(id)!;
-      const inverseScale = 1 / Math.max(0.18, screen.scale);
-      point.x += screen.right.x * dx * inverseScale - screen.up.x * dy * inverseScale;
-      point.y += screen.right.y * dx * inverseScale - screen.up.y * dy * inverseScale;
-      point.z += screen.right.z * dx * inverseScale - screen.up.z * dy * inverseScale;
-      point.x = Math.max(-980, Math.min(980, point.x));
-      point.y = Math.max(-590, Math.min(590, point.y));
-      point.z = Math.max(620, Math.min(1050, point.z));
-    };
-    for (let iteration = 0; iteration < 160; iteration += 1) {
-      const screens = projected();
-      let moved = false;
-      for (let aIndex = 0; aIndex < ids.length; aIndex += 1) {
-        for (let bIndex = aIndex + 1; bIndex < ids.length; bIndex += 1) {
-          const aId = ids[aIndex];
-          const bId = ids[bIndex];
-          const a = screens.get(aId)!;
-          const b = screens.get(bId)!;
-          const overlapX =
-            Math.min(a.footprint.x + a.footprint.width, b.footprint.x + b.footprint.width) -
-            Math.max(a.footprint.x, b.footprint.x) +
-            8;
-          const overlapY =
-            Math.min(a.footprint.y + a.footprint.height, b.footprint.y + b.footprint.height) -
-            Math.max(a.footprint.y, b.footprint.y) +
-            8;
-          if (overlapX <= 0 || overlapY <= 0 || (pinned(aId) && pinned(bId))) continue;
-          moved = true;
-          const aShare = pinned(aId) ? 0 : pinned(bId) ? 1 : 0.5;
-          const bShare = 1 - aShare;
-          if (overlapX < overlapY) {
-            const direction = b.x >= a.x ? 1 : -1;
-            push(aId, -direction * overlapX * aShare, 0, a);
-            push(bId, direction * overlapX * bShare, 0, b);
-          } else {
-            const direction = b.y >= a.y ? 1 : -1;
-            push(aId, 0, -direction * overlapY * aShare, a);
-            push(bId, 0, direction * overlapY * bShare, b);
-          }
-        }
-      }
-      for (const id of ids) {
-        if (pinned(id)) continue;
-        const screen = screens.get(id)!;
-        const box = screen.footprint;
-        if (box.x < 18) {
-          push(id, 18 - box.x, 0, screen);
-          moved = true;
-        }
-        if (box.x + box.width > width - 18) {
-          push(id, width - 18 - box.x - box.width, 0, screen);
-          moved = true;
-        }
-        if (box.y < 18) {
-          push(id, 0, 18 - box.y, screen);
-          moved = true;
-        }
-        if (box.y + box.height > height - 84) {
-          push(id, 0, height - 84 - box.y - box.height, screen);
-          moved = true;
-        }
-      }
-      if (!moved) break;
-    }
+
+    relaxWorldOverlaps({
+      positions: working,
+      nodes: ids.map((id) => ({
+        id,
+        label: byId.get(id)!.label,
+        pinned: id === "bradley" || id === story.nodeId,
+      })),
+      camera: {
+        position: storyView.position,
+        target: storyView.target,
+        fov: camera.fov,
+      },
+      viewport: { width, height },
+      measure,
+      wrap: (label, measureText) => wrapLabel(label, measureText),
+      lineHeight: LABEL_LINE_HEIGHT,
+      iterations: 160,
+      padding: 8,
+      minHalfWidth: 15,
+      footprint: { top: 14, extraHeight: 34 },
+      margins: { left: 18, right: 18, top: 18, bottom: 84 },
+      bounds: { x: 980, y: 590, z: [620, 1050] },
+    });
+
     ids.forEach((id) => {
       byId.get(id)!.goal = clone(working.get(id)!);
     });

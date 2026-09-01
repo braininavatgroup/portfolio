@@ -6,9 +6,11 @@ import {
   connectorSegment,
   portfolioOverviewLayout,
   PortfolioWorld,
+} from "./PortfolioWorld";
+import {
   projectWorldPoint,
   translateWorldPointByScreenDelta,
-} from "./PortfolioWorld";
+} from "../lib/portfolio-world-projection";
 
 afterEach(cleanup);
 
