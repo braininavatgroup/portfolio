@@ -6,9 +6,11 @@ import {
   connectorSegment,
   portfolioOverviewLayout,
   PortfolioWorld,
+} from "./PortfolioWorld";
+import {
   projectWorldPoint,
   translateWorldPointByScreenDelta,
-} from "./PortfolioWorld";
+} from "../lib/portfolio-world-projection";
 
 afterEach(cleanup);
 
@@ -220,5 +222,113 @@ describe("PortfolioWorld", () => {
       expect(projected?.x, `${id} x`).toBeCloseTo(expectedX, 0);
       expect(projected?.y, `${id} y`).toBeCloseTo(expectedY, 0);
     }
+  });
+});
+
+/**
+ * The canvas paint path — `drawLinks` and `drawNode`, ~150 lines — was
+ * unreachable by the suite: jsdom returns null from `getContext`, so the render
+ * loop no-opped and a `throw` at the top of `drawLinks` passed every test. That
+ * is where the relationship-line colour was hard-coded past a discarded
+ * `getComputedStyle`, invisible to `[data-theme]`.
+ *
+ * These install a recording 2D context and a stubbed style resolver, so the
+ * paint runs and the colour it strokes with is observable.
+ */
+describe("PortfolioWorld canvas paint", () => {
+  /**
+   * A no-op-by-default proxy rather than a hand-listed object. The first
+   * version of this stub listed the methods drawLinks calls and stopped there,
+   * so the very first drawNode threw `context.translate is not a function`
+   * inside a requestAnimationFrame callback — which jsdom swallows into an
+   * uncaught exception rather than a test failure. Every assertion still
+   * passed, because links stroke before nodes draw; the file merely exited
+   * non-zero. Defaulting unknown members to no-ops means an under-implemented
+   * stub can no longer masquerade as coverage.
+   */
+  function recordingContext() {
+    const record = {
+      strokeStyles: [] as string[],
+      fillStyles: [] as string[],
+      fillTexts: [] as string[],
+      moveToCalls: 0,
+      translateCalls: 0,
+    };
+    const target: Record<string, unknown> = {
+      measureText: (value: string) => ({ width: value.length * 6.2 }),
+      moveTo: () => {
+        record.moveToCalls += 1;
+      },
+      translate: () => {
+        record.translateCalls += 1;
+      },
+      fillText: (value: string) => {
+        record.fillTexts.push(value);
+      },
+    };
+    const context = new Proxy(target, {
+      get(object, property) {
+        if (property in object) return object[property as string];
+        // Canvas state properties read back as whatever was last written.
+        return typeof property === "string" && property.endsWith("Style")
+          ? ""
+          : () => {};
+      },
+      set(object, property, value) {
+        if (property === "strokeStyle") record.strokeStyles.push(String(value));
+        if (property === "fillStyle") record.fillStyles.push(String(value));
+        object[property as string] = value;
+        return true;
+      },
+    });
+    return { context, record };
+  }
+
+  function paintWithConnector(connector: string) {
+    const { context, record } = recordingContext();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as unknown as CanvasRenderingContext2D,
+    );
+    const realComputedStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+      const style = realComputedStyle(element as Element);
+      return {
+        getPropertyValue: (property: string) =>
+          property === "--map-connector" ? connector : style.getPropertyValue(property),
+      } as CSSStyleDeclaration;
+    });
+
+    render(
+      <div className="portfolio-composition">
+        <PortfolioWorld
+          activeThreadId={null}
+          onReset={() => {}}
+          onSelect={() => {}}
+          selectedId={null}
+        />
+      </div>,
+    );
+
+    return record;
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("actually paints, and strokes connectors with the resolved token", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.moveToCalls, "drawLinks never ran").toBeGreaterThan(0);
+    expect(record.translateCalls, "drawNode never ran").toBeGreaterThan(0);
+    expect(record.fillTexts.length, "no label was painted").toBeGreaterThan(0);
+    expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
+  });
+
+  it("follows the token when the mode changes it", async () => {
+    const record = paintWithConnector("rgb(9, 8, 7)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.strokeStyles).toContain("rgb(9, 8, 7)");
+    expect(record.strokeStyles).not.toContain("#4f585d");
   });
 });

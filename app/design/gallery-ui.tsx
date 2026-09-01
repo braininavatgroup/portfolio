@@ -7,6 +7,7 @@ import {
   Suspense,
   useState,
   type ComponentType,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 
@@ -27,23 +28,40 @@ export type GallerySectionId =
 
 export type StageSize = "auto" | "short" | "medium" | "tall" | "viewport";
 
+/**
+ * A collapsible section. `<details>` rather than a button and a state hook:
+ * the disclosure semantics, the keyboard handling and the expanded state
+ * exposed to assistive technology all come for free, and a collapsed section
+ * keeps its children mounted, so a Three.js fixture someone has already
+ * mounted survives being folded away.
+ *
+ * The note stays inside the `<summary>` so a collapsed section still says what
+ * it holds. It is a `<span>`, not a `<p>` — summary takes phrasing and heading
+ * content only. `source` sits there too, which is why sections that cover one
+ * file no longer need a `Specimen` wrapper just to carry a path.
+ */
 export function Section({
   children,
   id,
   note,
+  source,
   title,
 }: {
   children: ReactNode;
   id: GallerySectionId;
   note?: string;
+  source?: string;
   title: string;
 }) {
   return (
-    <section className="design-section" id={id}>
-      <h2>{title}</h2>
-      {note ? <p className="design-note">{note}</p> : null}
-      {children}
-    </section>
+    <details className="design-section" id={id} open>
+      <summary className="design-section-summary">
+        <h2>{title}</h2>
+        {note ? <span className="design-note">{note}</span> : null}
+        {source ? <code className="design-section-source">{source}</code> : null}
+      </summary>
+      <div className="design-section-body">{children}</div>
+    </details>
   );
 }
 
@@ -51,13 +69,11 @@ export function Specimen({
   children,
   flush = false,
   note,
-  source,
   title,
 }: {
   children: ReactNode;
   flush?: boolean;
   note?: string;
-  source?: string;
   title: string;
 }) {
   return (
@@ -65,9 +81,6 @@ export function Specimen({
       <div className="design-specimen-head">
         <h3>{title}</h3>
         {note ? <p>{note}</p> : null}
-        {source ? (
-          <p className="design-specimen-source">{source}</p>
-        ) : null}
       </div>
       <div className="design-specimen-body" data-flush={flush ? "true" : "false"}>
         {children}
@@ -77,23 +90,70 @@ export function Specimen({
 }
 
 /**
+ * The control strip above a state-matrix specimen. One live component instance
+ * is driven through its states from here, rather than the gallery mounting one
+ * tree per state — which is what used to put five `PortfolioReader`s and four
+ * animating world canvases on the page at once.
+ */
+export function StateStrip<Value extends string>({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: Value) => void;
+  options: readonly { readonly value: Value; readonly label: string }[];
+  value: Value;
+}) {
+  return (
+    <div aria-label={label} className="design-state-strip" role="group">
+      <span className="design-state-strip-label">{label}</span>
+      {options.map((option) => (
+        <button
+          aria-pressed={option.value === value}
+          className="design-gallery-control"
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
  * A stage is a transformed, painted box. Both properties make it the
  * containing block for `position: fixed` descendants, which is what lets the
  * full-viewport composition surfaces render inside a gallery card.
+ *
+ * `bleed` widens it to the full window. Composition widths are viewport-derived
+ * — `--reader-width` is `clamp(460px, 38vw, 560px)` and the sole breakpoint is
+ * a `max-width` media query — so a stage inset by the page gutter renders the
+ * dossier at the right *value* but the wrong *proportion*. Bleeding to 100vw is
+ * what makes the layout the reviewer sees the layout the site ships.
  */
 export function Stage({
+  bleed = false,
   children,
   narrow = false,
   size = "tall",
+  style,
 }: {
+  bleed?: boolean;
   children: ReactNode;
   narrow?: boolean;
   size?: StageSize;
+  style?: CSSProperties;
 }) {
   return (
     <div
       className={`design-stage${narrow ? " design-stage-narrow" : ""}`}
+      data-bleed={bleed ? "true" : "false"}
       data-size={size}
+      style={style}
     >
       {children}
     </div>
@@ -108,11 +168,9 @@ export function Stage({
 export function LazyFixture({
   as: Fixture,
   label,
-  size = "medium",
 }: {
   as: ComponentType;
   label: string;
-  size?: StageSize;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -144,7 +202,7 @@ export function LazyFixture({
       </div>
       <Suspense
         fallback={
-          <Stage size={size}>
+          <Stage size="short">
             <p className="design-lazy">Loading {label}…</p>
           </Stage>
         }

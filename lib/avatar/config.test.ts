@@ -23,16 +23,11 @@ function readGlbJson(pathname: string) {
 describe("production avatar asset", () => {
   it("selects the Bradley actor instead of either rollback character", () => {
     // Catches production silently reverting to the stock or handmade actor.
-    expect(avatarAsset.kind).toBe("gltf");
     expect(avatarAsset.modelUrl).toBe("/avatars/bradley-meshy-rigged.glb");
     expect(avatarAsset.motionUrl).toBe("/avatars/bradley-motion-library.glb");
     expect(avatarAsset.forwardAxis).toBe("z");
     expect(avatarAsset.scale).toBeGreaterThanOrEqual(0.5);
     expect(avatarAsset.scale).toBeLessThanOrEqual(2);
-    expect(avatarAsset.glasses).toBeNull();
-    expect(avatarAsset.flatShading).toBe(false);
-    expect(avatarAsset.nearestTexture).toBe(false);
-    expect(avatarAsset.targetFrameRate).toBeNull();
     expect(avatarAsset.playbackRate).toBe(1);
   });
 

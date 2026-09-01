@@ -7,7 +7,6 @@ import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarDirector } from "../../lib/avatar/director";
 import { allowedAvatarStates, type AvatarCommand } from "../../lib/avatar/contracts";
 import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../../lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
 import { AvatarDirectorConsole } from "./AvatarDirectorConsole";
 
@@ -57,8 +56,6 @@ function renderDirector({
   const director = new AvatarDirector(controller, runner, registry);
   const onEnabledChange = vi.fn();
   const onExpandedPanelChange = vi.fn();
-  const spotlight = vi.fn();
-  const siteActionExecutor = new SiteActionExecutor(registry, { spotlight });
   const result = render(
     <AvatarDirectorConsole
       controller={controller}
@@ -68,11 +65,10 @@ function renderDirector({
       reducedMotion={reducedMotion}
       registry={registry}
       runner={runner}
-      siteActionExecutor={siteActionExecutor}
     />,
   );
 
-  return { ...result, commands, controller, director, onEnabledChange, onExpandedPanelChange, registry, spotlight };
+  return { ...result, commands, controller, director, onEnabledChange, onExpandedPanelChange, registry };
 }
 
 async function advance(duration: number) {
@@ -201,10 +197,10 @@ describe("AvatarDirectorConsole", () => {
     ]);
   });
 
-  it("walks, presents, spotlights, and only then settles a selected live project", async () => {
-    // Catches spotlighting a project before the actor has completed its presentation beat.
+  it("walks, points, and only then settles a selected live project", async () => {
+    // Catches settling the actor before its presentation beat has completed.
     vi.useFakeTimers();
-    const { controller, spotlight } = renderDirector();
+    const { controller } = renderDirector();
     expect(screen.getByRole("button", { name: "Present project" }).hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
@@ -221,9 +217,7 @@ describe("AvatarDirectorConsole", () => {
     const walkDuration = controller.getSnapshot().motion?.durationMs;
     await advance(walkDuration!);
     expect(controller.getSnapshot().currentCommand).toMatchObject({ action: "pointAt", target: "project:dubs" });
-    expect(spotlight).not.toHaveBeenCalled();
     await advance(900);
-    expect(spotlight).toHaveBeenCalledWith("project:dubs");
     expect(controller.getSnapshot().state).toBe("idle");
   });
 
@@ -246,7 +240,7 @@ describe("AvatarDirectorConsole", () => {
 
   it("adapts every console-originated local sequence for reduced motion", async () => {
     // Catches a new console action bypassing the motion-safe command adapter.
-    const { commands, spotlight } = renderDirector({ reducedMotion: true });
+    const { commands } = renderDirector({ reducedMotion: true });
     fireEvent.click(screen.getByRole("button", { name: "Greet" }));
     await act(async () => { await Promise.resolve(); });
     expect(commands.map(({ action }) => action)).toEqual(["lookAt", "setState"]);
@@ -268,10 +262,8 @@ describe("AvatarDirectorConsole", () => {
     fireEvent.click(screen.getByRole("button", { name: "Joyful hand-sway dance" }));
     fireEvent.click(screen.getByRole("button", { name: "Point at hero" }));
     fireEvent.click(screen.getByRole("button", { name: "State: thinking" }));
-    fireEvent.click(screen.getByRole("button", { name: "Spotlight hero" }));
     await act(async () => { await Promise.resolve(); });
     expect(commands.map(({ action }) => action)).toEqual(["pointAt", "setState"]);
-    expect(spotlight).toHaveBeenCalledWith("hero");
   });
 
   it("normalizes target and obstacle rectangles, refreshes live selections, and cleans listeners", () => {

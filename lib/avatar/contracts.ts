@@ -17,8 +17,6 @@ export const allowedAvatarStates = [
   "exiting",
 ] as const;
 
-export const allowedTabs = ["instinct", "approach", "output"] as const;
-
 export const allowedEdgeDirections = ["left", "right"] as const;
 
 export const avatarEnergyLevels = ["low", "medium", "high"] as const;
@@ -36,7 +34,6 @@ export const avatarPerformanceIntents = [
 ] as const;
 
 export type AvatarState = (typeof allowedAvatarStates)[number];
-export type AllowedTab = (typeof allowedTabs)[number];
 export type EdgeDirection = (typeof allowedEdgeDirections)[number];
 export type AvatarPerformanceIntent =
   (typeof avatarPerformanceIntents)[number];
@@ -78,16 +75,7 @@ export type AvatarCommand =
   | { action: "lookAt"; target: AvatarTargetId }
   | { action: "pointAt"; target: AvatarTargetId };
 
-export type SiteAction =
-  | { type: "openProject"; target: ProjectAvatarTargetId }
-  | { type: "closeProject" }
-  | { type: "activateTab"; tab: AllowedTab }
-  | { type: "scrollTo"; target: AvatarTargetId }
-  | { type: "spotlight"; target: AvatarTargetId }
-  | { type: "clearSpotlight" };
-
 export type PortfolioResponseEffects = {
-  siteActions: SiteAction[];
   avatarSequence: AvatarCommand[];
   avatarIntent?: AvatarPerformanceIntent;
   avatarTone?: AvatarTone;

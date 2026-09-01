@@ -15,7 +15,6 @@ import * as THREE from "three";
 import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarDirector } from "../../lib/avatar/director";
 import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../../lib/avatar/site-actions";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
 import { AvatarStageActor } from "./AvatarStageActor";
 
@@ -36,7 +35,6 @@ type AvatarOverlayProps = {
   debug?: boolean;
   runner?: AvatarSequenceRunner;
   registry?: AvatarTargetRegistry;
-  siteActionExecutor?: SiteActionExecutor;
   reducedMotion?: boolean;
   onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
   createRenderer?: AvatarRendererFactory;
@@ -113,7 +111,6 @@ export function AvatarOverlay({
   debug = false,
   runner,
   registry,
-  siteActionExecutor,
   reducedMotion = false,
   onExpandedPanelChange,
   createRenderer = createDefaultRenderer,
@@ -154,9 +151,8 @@ export function AvatarOverlay({
   return (
     <>
       <div
-        className="avatar-overlay pointer-events-none"
+        className="avatar-overlay"
         data-avatar-state={snapshot.state}
-        style={{ pointerEvents: "none" }}
       >
         {renderAvatar ? (
           <RendererBoundary onFailure={() => controller.markFailed()}>
@@ -168,7 +164,6 @@ export function AvatarOverlay({
               frameloop={documentVisible ? "always" : "never"}
               gl={createManagedRenderer}
               orthographic
-              style={{ pointerEvents: "none" }}
             >
               <ambientLight intensity={1.6} />
               <directionalLight intensity={1.7} position={[2, 4, 3]} />
@@ -181,14 +176,13 @@ export function AvatarOverlay({
           </RendererBoundary>
         ) : null}
       </div>
-      {AvatarDirectorConsole && development && debug && director && runner && registry && siteActionExecutor ? (
+      {AvatarDirectorConsole && development && debug && director && runner && registry ? (
         <Suspense fallback={null}>
           <AvatarDirectorConsole
             controller={controller}
             director={director}
             registry={registry}
             runner={runner}
-            siteActionExecutor={siteActionExecutor}
             onEnabledChange={onEnabledChange}
             onExpandedPanelChange={onExpandedPanelChange}
             reducedMotion={reducedMotion}

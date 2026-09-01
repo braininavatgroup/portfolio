@@ -1,0 +1,66 @@
+# AvatarStageActor
+
+Source: [`components/avatar/AvatarStageActor.tsx`](../../../components/avatar/AvatarStageActor.tsx) ·
+Gallery: `/design#avatar` · Tests: `components/avatar/AvatarStageActor.test.tsx`
+
+The bridge between the controller's screen-space model of the stage and the 3D
+scene. It takes an `AvatarSnapshot` — position in CSS pixels, facing,
+animation, motion path — converts the point through `screenPointToOrthographic`
+and places an [`AvatarAssetAdapter`](./AvatarAssetAdapter.md) there at a
+viewport-derived scale (104 desktop, 72 at 768px and below, via the exported
+`selectAvatarStageScale`). While a `motion` path is present it samples the path
+each frame and derives facing from direction of travel.
+
+## Props
+
+`snapshot` and `reducedMotion` required; `onAvailableAnimationsChange`
+optional, normally `controller.setAvailableAnimations`. See
+[`AvatarSnapshot`](../../../lib/avatar/controller.ts) and
+[`lib/avatar/stage.ts`](../../../lib/avatar/stage.ts).
+
+## Requires
+
+An **orthographic** `<Canvas>` at `zoom: 1` — the screen-pixel mapping assumes
+it. Lights and a `<Suspense>` boundary come from the canvas, as for the
+adapter.
+
+## Example
+
+```tsx
+import { Canvas } from "@react-three/fiber";
+import { galleryAvatarSnapshot } from "app/design/fixtures";
+import { AvatarStageActor } from "components/avatar/AvatarStageActor";
+import { Suspense } from "react";
+
+export function AvatarStageActorExample() {
+  // Screen-pixel positioning only works under an orthographic camera at zoom 1.
+  const snapshot = galleryAvatarSnapshot({ position: { x: 210, y: 396 } });
+
+  return (
+    <Canvas
+      camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
+      gl={{ alpha: true }}
+      orthographic
+    >
+      <ambientLight intensity={1.6} />
+      <directionalLight intensity={1.7} position={[2, 4, 3]} />
+      <Suspense fallback={null}>
+        <AvatarStageActor reducedMotion={false} snapshot={snapshot} />
+      </Suspense>
+    </Canvas>
+  );
+}
+```
+
+## Pitfalls
+
+- **A perspective camera silently mis-places it.** Nothing throws; the avatar
+  simply lands elsewhere.
+- **Snapshot positions are stage pixels, not canvas-local units.** A fixture
+  rendering the canvas in a smaller box must supply coordinates in that box's
+  terms — the gallery fixture measures itself with a `ResizeObserver` to do it.
+- **`reducedMotion` jumps the path to its end** (`progress = 1`) rather than
+  animating, so no intermediate position is observable.
+- **Scale changes at 768px.** Screenshots either side are not comparable. The
+  two scale constants are module-private; only `selectAvatarStageScale` is
+  exported.

@@ -23,15 +23,6 @@ export const galleryFamilies: readonly PortfolioWorldFamily[] = [
   "product",
 ];
 
-export const galleryRegisters: readonly PortfolioWorldRegister[] = [
-  "identity",
-  "story",
-  "finding",
-  "warm",
-  "bridge",
-  "cool",
-];
-
 /** The register each family carries in the live content, for the mark grid. */
 export const galleryFamilyRegister: Record<
   PortfolioWorldFamily,
@@ -47,7 +38,7 @@ export const galleryFamilyRegister: Record<
   product: "cool",
 };
 
-export const galleryEvidence: readonly PortfolioGroundingEvidence[] = [
+const galleryEvidence: readonly PortfolioGroundingEvidence[] = [
   {
     id: "gallery-evidence-reporting",
     title: "Campaign reporting",

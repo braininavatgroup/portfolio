@@ -1,10 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { parsePortfolioResponseEffects } from "./validation";
+import { AvatarController } from "./controller";
+import type { AvatarCommand } from "./contracts";
+import { AvatarTargetRegistry } from "./target-registry";
+import { avatarCommandActions, parsePortfolioResponseEffects } from "./validation";
+
+/**
+ * One valid instance of every command in the grammar. The `satisfies` clause
+ * makes a new action in the union a compile error here, so this fixture cannot
+ * silently fall behind the contract it is meant to cover.
+ */
+function stageElement(width: number, height: number) {
+  return {
+    getBoundingClientRect: () => ({
+      left: 0,
+      top: 0,
+      width,
+      height,
+      right: width,
+      bottom: height,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+  } as HTMLElement;
+}
+
+const oneOfEach = {
+  setState: { action: "setState", state: "idle" },
+  setTone: {
+    action: "setTone",
+    tone: { energy: "low", warmth: "warm", confidence: "assured", mischief: "none" },
+  },
+  play: { action: "play", animation: "shrug" },
+  wait: { action: "wait", durationMs: 250 },
+  enter: { action: "enter", from: "left" },
+  exit: { action: "exit", to: "right" },
+  walkTo: { action: "walkTo", target: "hero" },
+  swimTo: { action: "swimTo", target: "portfolio:chat" },
+  swimRoute: { action: "swimRoute", route: "lap" },
+  lookAt: { action: "lookAt", target: "portfolio:index" },
+  pointAt: { action: "pointAt", target: "hero" },
+} as const satisfies Record<AvatarCommand["action"], AvatarCommand>;
 
 describe("avatar effects validation", () => {
   it("accepts only semantic swimming commands", () => {
     const parsed = parsePortfolioResponseEffects({
-      siteActions: [],
       avatarSequence: [
         { action: "swimTo", target: "portfolio:chat" },
         { action: "swimRoute", route: "lap" },
@@ -25,7 +65,6 @@ describe("avatar effects validation", () => {
     { action: "swimRoute", route: "lap", points: [{ x: 1, y: 2 }] },
   ])("rejects unsafe swimming input %#", (command) => {
     const parsed = parsePortfolioResponseEffects({
-      siteActions: [],
       avatarSequence: [command],
     });
     expect(parsed.avatarSequence).toEqual([]);
@@ -36,7 +75,6 @@ describe("avatar effects validation", () => {
     // Catches arbitrary model-authored numbers or renderer values crossing the safe effect boundary.
     expect(
       parsePortfolioResponseEffects({
-        siteActions: [],
         avatarSequence: [],
         avatarIntent: "expressive",
         avatarTone: {
@@ -47,7 +85,6 @@ describe("avatar effects validation", () => {
         },
       }),
     ).toEqual({
-      siteActions: [],
       avatarSequence: [],
       avatarIntent: "expressive",
       avatarTone: {
@@ -90,7 +127,6 @@ describe("avatar effects validation", () => {
         },
       }),
     ).toEqual({
-      siteActions: [],
       avatarSequence: [{ action: "play", animation: "shrug" }],
       avatarIntent: "requested",
       issues: ["avatarTone has unknown key: css"],
@@ -107,7 +143,6 @@ describe("avatar effects validation", () => {
         ],
       }),
     ).toEqual({
-      siteActions: [],
       avatarSequence: [
         { action: "play", animation: "joyful_dance_with_hand_sway" },
       ],
@@ -117,78 +152,85 @@ describe("avatar effects validation", () => {
     });
   });
 
-  it("sanitizes valid effects and clamps waits to the safe ceiling", () => {
-    // Catches a permissive parser that lets model output reach an unknown target, animation, action, selector, URL, bone, or transform.
-    expect(
-      parsePortfolioResponseEffects({
-        siteActions: [{ type: "openProject", target: "project:dubs" }],
-        avatarSequence: [
-          { action: "setState", state: "thinking" },
-          { action: "wait", durationMs: 25_000 },
-        ],
-      }),
-    ).toEqual({
-      siteActions: [{ type: "openProject", target: "project:dubs" }],
-      avatarSequence: [
-        { action: "setState", state: "thinking" },
-        { action: "wait", durationMs: 10_000 },
-      ],
-      issues: [],
-    });
+  /**
+   * Before this, the suite round-tripped three of the eleven commands. The
+   * other eight were parsed by hand-written switch arms nobody exercised, at
+   * the one boundary where the client decides what a model is allowed to make
+   * the avatar do.
+   */
+  it.each(avatarCommandActions)("round-trips a valid %s command", (action) => {
+    const command = oneOfEach[action];
+    const parsed = parsePortfolioResponseEffects({ avatarSequence: [command] });
+
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.avatarSequence).toEqual([command]);
   });
 
-  it("drops unsafe siblings while preserving independently safe array items", () => {
-    // Catches a permissive parser that lets model output reach an unknown target, animation, action, selector, URL, bone, or transform.
+  it.each(avatarCommandActions)("rejects a %s command carrying an extra key", (action) => {
     const parsed = parsePortfolioResponseEffects({
-      siteActions: [
-        { type: "scrollTo", selector: "body", target: "hero" },
-        { type: "spotlight", target: "hero" },
-        { type: "openProject", target: "project:dubs", url: "https://example.com" },
-      ],
-      avatarSequence: [
-        { action: "play", animation: "eval(location.hash)" },
-        { action: "setState", state: "talking" },
-        { action: "lookAt", target: "hero", bone: "spine" },
-      ],
+      avatarSequence: [{ ...oneOfEach[action], smuggled: "rotate(90deg)" }],
     });
 
-    expect(parsed.siteActions).toEqual([{ type: "spotlight", target: "hero" }]);
-    expect(parsed.avatarSequence).toEqual([
-      { action: "setState", state: "talking" },
+    expect(parsed.avatarSequence).toEqual([]);
+    expect(parsed.issues).toEqual(["avatarSequence[0] has unknown key: smuggled"]);
+  });
+
+  it("does not treat inherited Object properties as actions", () => {
+    // Catches a grammar lookup written with `in` rather than Object.hasOwn.
+    const parsed = parsePortfolioResponseEffects({
+      avatarSequence: [{ action: "toString" }, { action: "constructor" }],
+    });
+
+    expect(parsed.avatarSequence).toEqual([]);
+    expect(parsed.issues).toEqual([
+      "avatarSequence[0].action is not supported",
+      "avatarSequence[1].action is not supported",
     ]);
-    expect(parsed.issues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("rejects unknown project slugs and tabs while clamping negative waits", () => {
-    // Catches a permissive parser that lets model output reach an unknown target, animation, action, selector, URL, bone, or transform.
-    const parsed = parsePortfolioResponseEffects({
-      siteActions: [
-        { type: "openProject", target: "project:not-a-project" },
-        { type: "activateTab", tab: "unknown" },
-        { type: "activateTab", tab: "output" },
-      ],
-      avatarSequence: [
-        { action: "wait", durationMs: -250 },
-        { action: "walkTo", target: "project:not-a-project" },
-      ],
-    });
+  /**
+   * The parser and the controller's switch are two independent lists of the
+   * same vocabulary, and TypeScript does not make the controller's exhaustive:
+   * a switch with no default over a widened union still compiles, it just
+   * silently does nothing. So assert it observably acts on every command it
+   * claims to accept.
+   */
+  it.each(avatarCommandActions.filter((action) => action !== "wait"))(
+    "the controller acts on %s",
+    (action) => {
+      // The four target commands resolve through the registry and correctly
+      // no-op on an unknown target, so the targets have to exist for this to
+      // be measuring the switch arm rather than a missing element.
+      const registry = new AvatarTargetRegistry();
+      const bounds = { left: 40, top: 40, width: 200, height: 120 };
+      const element = {
+        getBoundingClientRect: () => ({
+          ...bounds,
+          right: bounds.left + bounds.width,
+          bottom: bounds.top + bounds.height,
+          x: bounds.left,
+          y: bounds.top,
+          toJSON: () => ({}),
+        }),
+      } as HTMLElement;
+      for (const target of ["hero", "portfolio:chat", "portfolio:index"] as const) {
+        registry.register(target, element);
+      }
+      // Swimming plans a route across the stage, so it needs one.
+      registry.registerStage(stageElement(620, 800));
+      const controller = new AvatarController(registry);
+      const before = controller.getSnapshot();
 
-    expect(parsed.siteActions).toEqual([{ type: "activateTab", tab: "output" }]);
-    expect(parsed.avatarSequence).toEqual([{ action: "wait", durationMs: 0 }]);
-    expect(parsed.issues.length).toBeGreaterThanOrEqual(1);
-  });
+      // execute returns void for the synchronous arms and a promise for the
+      // locomotion ones; the snapshot updates before either resolves.
+      void controller.execute(
+        oneOfEach[action] as Exclude<AvatarCommand, { action: "wait" }>,
+      );
 
-  it("drops a non-array sequence without disturbing valid safe actions", () => {
-    // Catches a permissive parser that lets model output reach an unknown target, animation, action, selector, URL, bone, or transform.
-    expect(
-      parsePortfolioResponseEffects({
-        siteActions: [{ type: "clearSpotlight" }],
-        avatarSequence: { action: "setState", state: "thinking" },
-      }),
-    ).toEqual({
-      siteActions: [{ type: "clearSpotlight" }],
-      avatarSequence: [],
-      issues: ["avatarSequence must be an array when provided"],
-    });
-  });
+      expect(
+        controller.getSnapshot(),
+        `${action} left the controller untouched`,
+      ).not.toBe(before);
+    },
+  );
 });

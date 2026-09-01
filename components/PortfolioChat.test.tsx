@@ -32,7 +32,6 @@ describe("portfolio chat", () => {
       <PortfolioChat
         open={false}
         onOpenChange={onOpenChange}
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -46,7 +45,6 @@ describe("portfolio chat", () => {
       <PortfolioChat
         open
         onOpenChange={onOpenChange}
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -69,7 +67,6 @@ describe("portfolio chat", () => {
         open
         onLayoutChange={onLayoutChange}
         onOpenChange={onOpenChange}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -119,7 +116,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -149,7 +145,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -169,7 +164,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -188,7 +182,6 @@ describe("portfolio chat", () => {
   it("starts as the compact conversation control and restores the full assistant", async () => {
     render(
       <PortfolioChat
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -235,7 +228,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -271,7 +263,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -317,7 +308,6 @@ describe("portfolio chat", () => {
           onError: () => {},
           onComplete: () => {},
         }}
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -347,7 +337,6 @@ describe("portfolio chat", () => {
           onError: () => {},
           onComplete: () => {},
         }}
-        onPoseChange={() => {}}
         askPortfolio={async () => {}}
       />,
     );
@@ -370,7 +359,6 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          siteActions: [{ type: "openProject", target: "project:dubs" }],
           avatarSequence: [{ action: "play", animation: "big_wave_hello" }],
           issues: [],
         },
@@ -406,7 +394,6 @@ describe("portfolio chat", () => {
       <PortfolioChat
         initiallyOpen
         avatarIntegration={avatarIntegration}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -432,7 +419,6 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          siteActions: [{ type: "openProject", target: "project:dubs" }],
           avatarSequence: [],
           issues: [],
         },
@@ -456,7 +442,6 @@ describe("portfolio chat", () => {
             effects.push("done");
           },
         }}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -491,7 +476,6 @@ describe("portfolio chat", () => {
           onError: () => {},
           onComplete: () => {},
         }}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -513,7 +497,7 @@ describe("portfolio chat", () => {
       onEvent({ type: "answer_delta", delta: "[E1]" });
       onEvent({
         type: "effects",
-        effects: { siteActions: [], avatarSequence: [], issues: [] },
+        effects: { avatarSequence: [], issues: [] },
       });
       onEvent({
         type: "error",
@@ -550,7 +534,6 @@ describe("portfolio chat", () => {
       <PortfolioChat
         initiallyOpen
         avatarIntegration={avatarIntegration}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -596,7 +579,6 @@ describe("portfolio chat", () => {
       <PortfolioChat
         initiallyOpen
         avatarIntegration={avatarIntegration}
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -619,7 +601,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
         renderTurnstile={renderTurnstile}
         turnstileSiteKey="site-key"
@@ -651,7 +632,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
         renderTurnstile={renderTurnstile}
         turnstileSiteKey="site-key"
@@ -675,7 +655,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching preserve approval?" },
@@ -709,7 +689,7 @@ describe("portfolio chat", () => {
       onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does reporting work?" },
     });
@@ -732,7 +712,7 @@ describe("portfolio chat", () => {
       options.onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
     const input = screen.getByLabelText("Ask a question about the portfolio");
 
     fireEvent.change(input, { target: { value: "Tell me about pitching." } });
@@ -767,7 +747,7 @@ describe("portfolio chat", () => {
       options.onEvent({ type: "done" });
     };
 
-    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
     const input = screen.getByLabelText("Ask a question about the portfolio");
     const ask = async (question: string, expectedRequests: number) => {
       fireEvent.change(input, { target: { value: question } });
@@ -806,7 +786,7 @@ describe("portfolio chat", () => {
       await requestFinished;
     };
 
-    render(<PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />);
+    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "A general question" },
     });
@@ -838,7 +818,6 @@ describe("portfolio chat", () => {
     render(
       <PortfolioChat
         initiallyOpen
-        onPoseChange={() => {}}
         askPortfolio={askPortfolio}
       />,
     );
@@ -868,7 +847,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -896,7 +875,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -918,7 +897,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "How does pitching work?" },
@@ -945,7 +924,7 @@ describe("portfolio chat", () => {
     };
 
     render(
-      <PortfolioChat initiallyOpen onPoseChange={() => {}} askPortfolio={askPortfolio} />,
+      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
     );
     fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
       target: { value: "What patents did Bradley file?" },

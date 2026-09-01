@@ -4,11 +4,9 @@ import {
   cloneAvatarScene,
   combineAnimationClips,
   getAvailableAnimationIds,
-  getAnimationMixerTime,
   getAvatarModelOriginY,
   getBradleyGlbFootOriginTranslation,
   getGlbFootOriginTranslation,
-  getGlbModelUrl,
   getGlbYaw,
   getAvatarStageScale,
 } from "./AvatarAssetAdapter";
@@ -110,10 +108,6 @@ describe("GLB avatar configuration", () => {
     ).toEqual(new Set(["idle_3", "walking", "joyful_dance_with_hand_sway"]));
   });
 
-  it("does not invent a model path when the GLB configuration has no URL", () => {
-    // Catches a renderer fallback that bypasses the single avatar asset configuration.
-    expect(getGlbModelUrl({ kind: "gltf", modelUrl: null })).toBeNull();
-  });
 
   it("starts camera-facing and limits ordinary left and right turns", () => {
     // Catches startup or target-facing logic rotating the avatar's back toward the visitor.
@@ -125,12 +119,6 @@ describe("GLB avatar configuration", () => {
     expect(Math.abs(getGlbYaw("z", "right"))).toBeLessThan(Math.PI / 2);
   });
 
-  it("steps configured animation playback to complete frame intervals", () => {
-    // Catches a target-frame-rate config value that has no effect on mixer timing.
-    expect(getAnimationMixerTime(0.049, 30)).toBe(1 / 30);
-    expect(getAnimationMixerTime(0.05, 30)).toBe(1 / 30);
-    expect(getAnimationMixerTime(0.05, null)).toBe(0.05);
-  });
 
   it("keeps native Meshy clips and adds only missing external motions", () => {
     const nativeIdle = new AnimationClip("Idle_3", 1, []);

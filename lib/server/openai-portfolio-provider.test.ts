@@ -562,7 +562,6 @@ describe("OpenAI portfolio provider", () => {
 
     expect(lifecycle).toEqual(["effects", "answer:Here we go."]);
     expect(onEffects).toHaveBeenCalledWith({
-      siteActions: [],
       avatarSequence: [
         { action: "play", animation: "wave_one_hand" },
         { action: "wait", durationMs: 1_600 },

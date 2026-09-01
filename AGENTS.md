@@ -6,4 +6,9 @@
   standing constraints from the design-system checkpoint. `docs/design-tokens.md`
   is the full token inventory; `docs/portfolio-design-system-checkpoint.md` is
   the accepted visual direction.
+- Before using or modifying a component in `components/`, read its sheet in
+  `docs/components/` — one page each on what it is for, the props that matter,
+  what has to be around it, a runnable example, and what breaks silently.
+  `docs/components/README.md` is the index. `/design` renders the same
+  components in their states.
 - After creating a Git worktree manually, run `bash scripts/bootstrap-worktree.sh` inside it before any package-dependent command. The repository hook normally does this automatically after Conductor has activated it; the command is an idempotent fallback.

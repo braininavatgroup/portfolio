@@ -125,7 +125,6 @@ describe("portfolio chat client", () => {
       {
         type: "effects",
         effects: {
-          siteActions: [],
           avatarSequence: [],
           issues: [
             "avatarSequence[0].animation must be an allowed animation",

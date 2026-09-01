@@ -74,16 +74,23 @@ async function hmac(secret: string, value: string) {
   );
 }
 
-function publicControlsConfigured(
+/** A usable identifier secret is what lets the actor key be handed to the provider. */
+function identifierSecretUsable(config: PortfolioChatRuntimeConfig) {
+  return (config.identifierSecret?.length ?? 0) >= 32;
+}
+
+function challengeConfigured(
   config: PortfolioChatRuntimeConfig,
-  rateLimiter: PortfolioChatRateLimiter | undefined,
   verifyTurnstile: LaunchGuardOptions["verifyTurnstile"],
 ) {
-  return (
-    (config.identifierSecret?.length ?? 0) >= 32 &&
-    Boolean(config.turnstileSecret) &&
-    Boolean(rateLimiter) &&
-    Boolean(verifyTurnstile)
+  return Boolean(config.turnstileSecret) && Boolean(verifyTurnstile);
+}
+
+/** HMAC when a secret is available, plain SHA-256 otherwise. */
+async function digest(secret: string | undefined, value: string) {
+  if (secret && secret.length >= 32) return hmac(secret, value);
+  return new Uint8Array(
+    await crypto.subtle.digest("SHA-256", encoder.encode(value)),
   );
 }
 
@@ -161,19 +168,53 @@ export function createPortfolioChatLaunchGuard({
       return rejection(status, outcome, message);
     };
 
-    if (!config.turnstileRequired) {
+    const connectingIp = request.headers.get("cf-connecting-ip");
+
+    // The Turnstile challenge and the per-IP throttle are independent
+    // controls. This used to return early for the whole guard when
+    // turnstileRequired was false, which skipped the throttle and the
+    // identifier derivation too — so wherever the flag was off, the endpoint
+    // had no per-actor limit at all. The flag now gates only the challenge.
+    if (config.turnstileRequired) {
+      // Public mode still fails closed on any missing control: an exposed
+      // endpoint without a challenge, a limiter, or an identifier secret is a
+      // misconfiguration, not something to serve degraded.
+      if (
+        !challengeConfigured(config, verifyTurnstile) ||
+        !identifierSecretUsable(config) ||
+        !rateLimiter ||
+        !connectingIp
+      ) {
+        return reject(
+          503,
+          "misconfigured",
+          "Ask the portfolio is not configured.",
+        );
+      }
+
+      const challengeToken = input.challengeToken;
+      if (typeof challengeToken !== "string") {
+        return reject(403, "challenge_failed", "Verification failed.");
+      }
+      try {
+        const verified = await verifyTurnstile!({
+          token: challengeToken,
+          secret: config.turnstileSecret!,
+          expectedAction: "portfolio_chat",
+          expectedHostname: new URL(request.url).hostname,
+        });
+        if (!verified) {
+          return reject(403, "challenge_failed", "Verification failed.");
+        }
+      } catch {
+        return reject(403, "challenge_failed", "Verification failed.");
+      }
+    }
+
+    if (!rateLimiter) {
       return { ok: true, requestId };
     }
 
-    if (!publicControlsConfigured(config, rateLimiter, verifyTurnstile)) {
-      return reject(
-        503,
-        "misconfigured",
-        "Ask the portfolio is not configured.",
-      );
-    }
-
-    const connectingIp = request.headers.get("cf-connecting-ip");
     if (!connectingIp) {
       return reject(
         503,
@@ -182,29 +223,14 @@ export function createPortfolioChatLaunchGuard({
       );
     }
 
-    const challengeToken = input.challengeToken;
-    if (typeof challengeToken !== "string") {
-      return reject(403, "challenge_failed", "Verification failed.");
-    }
     try {
-      const verified = await verifyTurnstile!({
-        token: challengeToken,
-        secret: config.turnstileSecret!,
-        expectedAction: "portfolio_chat",
-        expectedHostname: new URL(request.url).hostname,
-      });
-      if (!verified) {
-        return reject(403, "challenge_failed", "Verification failed.");
-      }
-    } catch {
-      return reject(403, "challenge_failed", "Verification failed.");
-    }
-
-    try {
+      // The secret exists so the identifier handed to the provider cannot be
+      // reversed to an IP. The throttle key never leaves this worker, so it
+      // falls back to a plain digest rather than disabling the limiter.
       const actorKey = base64Url(
-        await hmac(config.identifierSecret!, `portfolio-chat:${connectingIp}`),
+        await digest(config.identifierSecret, `portfolio-chat:${connectingIp}`),
       );
-      const limited = await rateLimiter!.limit({
+      const limited = await rateLimiter.limit({
         key: `portfolio-chat:${actorKey}`,
       });
       if (!limited.success) {
@@ -213,7 +239,9 @@ export function createPortfolioChatLaunchGuard({
       return {
         ok: true,
         requestId,
-        safetyIdentifier: `pc_${actorKey}`,
+        ...(identifierSecretUsable(config)
+          ? { safetyIdentifier: `pc_${actorKey}` }
+          : {}),
       };
     } catch {
       return reject(

@@ -45,7 +45,7 @@ export function startPrivacySafeReplay({
     script.async = true;
     script.dataset.portfolioReplay = "";
     script.src = `https://www.clarity.ms/tag/${normalizedProjectId}`;
-    document.head.append(script);
+    document.head.appendChild(script);
   }
 
   return true;

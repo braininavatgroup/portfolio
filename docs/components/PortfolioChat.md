@@ -1,0 +1,71 @@
+# PortfolioChat
+
+Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
+Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
+
+The portfolio assistant, and the only temporary floating surface on the site
+(Rule 6.5). Minimized it is a 40px trigger; open it is an 18rem panel whose
+header can be dragged to re-dock it. It streams an answer from
+[`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts), renders
+evidence pills, keeps a transcript, and reports a `PoseState` on every
+meaningful beat so the avatar can react. State shows as `data-open` and
+`data-input-focused`.
+
+## Props
+
+No prop is required. `open`/`onOpenChange` make it
+controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
+and `renderTurnstile` are injection seams defaulting to the real transport and
+widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`,
+`spotlightTarget`, `onLayoutChange` optional.
+
+## Requires
+
+`.experience` **and** `.portfolio-composition` on an ancestor.
+`.experience .portfolio-chat` is what makes the dock `position: fixed`; under
+`.portfolio-composition` alone the legacy base rule wins and you get the
+centred, absolutely positioned prototype chat.
+
+## Example
+
+```tsx
+import { galleryAskPortfolio, galleryRenderTurnstile } from "app/design/fixtures";
+import { PortfolioChat } from "components/PortfolioChat";
+import { useState } from "react";
+
+export function PortfolioChatExample() {
+  const [open, setOpen] = useState(false);
+
+  // `experience` is load-bearing, not decoration: `.experience .portfolio-chat`
+  // is what makes the dock `position: fixed`. Under `.portfolio-composition`
+  // alone the legacy base rule wins and you get the centred, absolutely
+  // positioned prototype chat instead.
+  return (
+    <div className="experience experience-graph portfolio-composition">
+      <section className="scene-shell">
+        <PortfolioChat
+          // Omit both stubs in production: the defaults are
+          // `streamPortfolioAnswer` and the real Turnstile renderer.
+          askPortfolio={galleryAskPortfolio}
+          onOpenChange={setOpen}
+          open={open}
+          renderTurnstile={galleryRenderTurnstile}
+        />
+      </section>
+    </div>
+  );
+}
+```
+
+## Pitfalls
+
+- **Without `askPortfolio` it hits the chat API**, which needs the worker
+  running (`npm run setup:chat`). Any fixture or test must pass a stub.
+- **`turnstileSiteKey` gates submission.** Supply it without a working
+  `renderTurnstile` and the composer is permanently blocked.
+- **`open` and `onOpenChange` are a pair.** Pass `open` alone and the panel can
+  never be closed from inside — the controlled value never changes.
+- **`avatarIntegration` rejections are swallowed.** Every callback runs through
+  `runAvatarWorkSafely`, which catches; avatar work is explicitly not allowed
+  to interrupt a turn. A failing integration is silent, not a failed turn.
+- **Dragging is refused at ≤900px**, where the dock is laid out differently.

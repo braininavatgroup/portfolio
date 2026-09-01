@@ -8,7 +8,50 @@ async function readStylesheet() {
   return readFile(stylesheetUrl, "utf8");
 }
 
+/**
+ * Custom properties the stylesheet reads but deliberately does not declare,
+ * because JavaScript sets them inline. Each entry names the file that must
+ * still do so — an orphaned reader paints `transparent` in silence otherwise,
+ * which is exactly how three gallery specimens shipped painting nothing.
+ */
+const inlineSetTokens: Readonly<Record<string, string>> = {
+  "--cursor-a": "components/CursorInstrument.tsx",
+  "--cursor-b": "components/CursorInstrument.tsx",
+};
+
 describe("design token contract", () => {
+  it("resolves every custom property the stylesheet reads", async () => {
+    const stylesheet = await readStylesheet();
+    const declared = new Set(
+      [...stylesheet.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map(([, token]) => token),
+    );
+    const used = new Set(
+      [...stylesheet.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)].map(
+        ([, token]) => token,
+      ),
+    );
+
+    expect(used.size).toBeGreaterThan(0);
+    const unresolved = [...used].filter(
+      (token) => !declared.has(token) && !(token in inlineSetTokens),
+    );
+
+    expect(unresolved).toEqual([]);
+  });
+
+  it("keeps every inline-set token's setter alive", async () => {
+    for (const [token, source] of Object.entries(inlineSetTokens)) {
+      const setter = await readFile(
+        new URL(`../${source}`, import.meta.url),
+        "utf8",
+      );
+
+      expect(setter, `${source} no longer sets ${token}`).toContain(
+        `"${token}"`,
+      );
+    }
+  });
+
   it("keeps raw color values inside custom-property definitions", async () => {
     const stylesheet = await readStylesheet();
     const rootDefinitionsRemoved = stylesheet.replace(
@@ -22,76 +65,19 @@ describe("design token contract", () => {
     expect(rawColors).toBeNull();
   });
 
-  it("exposes the accepted composition colors to Tailwind", async () => {
+  /**
+   * Tailwind was removed: it shipped an @import, a 57-declaration @theme inline
+   * block and two packages to serve exactly two utility classes, one of which
+   * (pointer-events-none on .avatar-overlay) violated the composition's own
+   * "no utility classes" rule while duplicating an inline style beside it.
+   * These assertions keep it gone rather than letting it drift back in.
+   */
+  it("keeps Tailwind out of the stylesheet", async () => {
     const stylesheet = await readStylesheet();
-    const theme = stylesheet.match(/@theme inline\s*\{(?<body>[\s\S]*?)\}/)
-      ?.groups?.body;
 
-    expect(theme).toBeDefined();
-    const requiredColorTokens = [
-      "background",
-      "foreground",
-      "ink",
-      "map-muted",
-      "map-paper",
-      "map-paper-near",
-      "map-line",
-      "map-line-strong",
-      "reader-paper",
-      "reader-summary",
-      "reader-body",
-      "reader-muted",
-      "world-identity",
-      "world-story",
-      "world-finding",
-      "world-warm",
-      "world-bridge",
-      "world-cool",
-      "map-silver",
-      "map-paper-dark",
-      "map-paper-near-light",
-      "map-paper-near-dark",
-      "map-muted-light",
-      "map-muted-dark",
-      "map-line-light",
-      "map-line-dark",
-      "map-line-strong-light",
-      "map-line-strong-dark",
-      "map-grid-light",
-      "map-grid-dark",
-      "reader-paper-light",
-      "reader-paper-dark",
-      "reader-ink-light",
-      "reader-ink-dark",
-      "reader-summary-light",
-      "reader-summary-dark",
-      "reader-body-light",
-      "reader-body-dark",
-      "reader-muted-light",
-      "reader-muted-dark",
-      "reader-stage-shadow",
-      "reader-media-shadow",
-      "reader-gallery-shadow",
-      "reader-assistant-shadow",
-      "reader-floating-control-shadow",
-      "world-lichen",
-      "world-acid",
-      "world-hard-red",
-      "world-signal-red",
-      "world-electric-pink",
-      "world-hot-pink",
-      "world-violet",
-      "world-violet-dark",
-      "world-production-cyan",
-      "world-production-cyan-dark",
-    ];
-    const actualMappings = [...(theme ?? "").matchAll(
-      /--color-([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\);/g,
-    )].map((match) => [match[1], match[2]]);
-
-    expect(actualMappings).toEqual(
-      requiredColorTokens.map((token) => [token, token]),
-    );
+    expect(stylesheet).not.toMatch(/@import\s+"tailwindcss"/);
+    expect(stylesheet).not.toMatch(/@theme\b/);
+    expect(stylesheet).not.toMatch(/@apply\b/);
   });
 
   it("routes active font declarations through named font tokens", async () => {
@@ -101,12 +87,10 @@ describe("design token contract", () => {
       ...fontFacesRemoved.matchAll(/(?:^|[;{])\s*font(?:-family)?\s*:\s*([^;]+);/gm),
     ].map((match) => match[1]);
 
-    const approvedFontTokens = [
-      "--font-reader",
-      "--font-prototype-sans",
-      "--font-prototype-sans-short",
-      "--font-prototype-mono",
-    ];
+    // Two, not four. --font-prototype-sans and --font-prototype-sans-short
+    // named Geist and went with it; leaving them approved would have let Geist
+    // back in through a token nothing declares.
+    const approvedFontTokens = ["--font-reader", "--font-prototype-mono"];
     const unapprovedDeclarations = fontDeclarations.filter((value) => {
       const normalized = value.trim();
 
@@ -132,5 +116,36 @@ describe("design token contract", () => {
     );
 
     expect(undocumented).toEqual([]);
+  });
+
+  /**
+   * The inverse, which was missing — and its absence is why the documentation
+   * carried a table row for `--accent` describing a lime green that had no
+   * reader left in the stylesheet, plus font aliases naming a typeface the
+   * site no longer ships. Documentation that outlives its subject is worse
+   * than none: it is confidently wrong.
+   */
+  it("documents no token the stylesheet has retired", async () => {
+    const [stylesheet, documentation] = await Promise.all([
+      readStylesheet(),
+      readFile(tokenDocumentationUrl, "utf8"),
+    ]);
+    const declared = new Set(
+      [...stylesheet.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map(([, token]) => token),
+    );
+    // Only the inventory tables count. Naming a token in prose to record that
+    // it was retired is history, and a doc that cannot say "this is gone" is a
+    // doc that quietly drops the reason instead.
+    const documented = new Set(
+      documentation
+        .split("\n")
+        .filter((line) => line.startsWith("| `--"))
+        .flatMap((line) => [...line.matchAll(/`(--[a-z0-9-]+)`/gi)].map(([, t]) => t)),
+    );
+    const retired = [...documented].filter(
+      (token) => !declared.has(token) && !(token in inlineSetTokens),
+    );
+
+    expect(retired).toEqual([]);
   });
 });

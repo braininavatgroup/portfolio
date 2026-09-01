@@ -12,6 +12,10 @@ Related documents:
   its role, and its light/dark pair.
 - `docs/portfolio-design-system-checkpoint.md` — the accepted visual direction
   and the full node, relationship, and interaction grammar.
+- `docs/components/` — one cheat-sheet per component: purpose, the props that
+  matter, what has to be around it, a runnable example, and the pitfalls.
+  **Read a component's sheet before using or modifying it.** This document
+  says how to style; the sheet says what the thing already is.
 
 Where this document and the stylesheet disagree, the stylesheet is right and
 this document is stale — fix it here.
@@ -31,7 +35,10 @@ Identify the surface first.
    working, not extended.
 
 **Rule 0.1** — New work targets the composition. Do not add new
-`--prototype-*` tokens, new Geist type, or new legacy-page selectors.
+`--prototype-*` tokens or new legacy-page selectors. The inventory only
+shrinks: a `--prototype-*` token with no `var()` reader left is not "frozen",
+it is dead, and it goes. Geist used to be named here too; it has been deleted
+outright, so there is nothing left to add.
 
 **Rule 0.2** — When you must touch a legacy page, use the `--prototype-*`
 tokens already there. Do not "upgrade" it to checkpoint colors as a side
@@ -40,8 +47,10 @@ effect; that is a deliberate migration, not a drive-by.
 ## 1. Never hard-code a color
 
 **Rule 1.1** — `app/globals.css` contains zero raw color literals outside the
-`:root` token block (lines 1–183). No `#rrggbb`, no `rgb()`, no `rgba()`,
-no named colors, anywhere below it. Keep it that way.
+`:root` token block. No `#rrggbb`, no `rgb()`, no `rgba()`, no named colors,
+anywhere below it. Keep it that way — `tests/design-tokens.test.ts` enforces
+it, which is why this no longer quotes a line number that went stale the first
+time a token was removed.
 
 **Rule 1.2** — To style something, reference an existing token with `var()`.
 If genuinely no token fits, add one to the correct family in `:root` and record
@@ -170,9 +179,12 @@ eyebrows, metadata, and map annotation.
 **Rule 3.1** — A new label uses Voice B at an existing size. Do not add a new
 uppercase size.
 
-**Monospace is legacy only.** `--font-prototype-mono` (Geist Mono) appears in
-prototype selectors — the legacy header nav, graph toolbar, editorial index
-meta, node index links. There is no mono in the composition. Do not add one.
+**Monospace is a system stack, for data columns only.**
+`--font-prototype-mono` is `ui-monospace, SFMono-Regular, Menlo, …` — no
+download. It is used by the `/design` gallery's swatch and token tables, where
+hex values need to align, plus the toybox eyebrow, the legacy header nav and
+the editorial index meta. Do not reach for it in the composition's reading or
+notation voices; those are Voice A and Voice B above.
 
 ## 4. Light and dark, exactly
 
@@ -192,14 +204,19 @@ things and only three:
 3. `--thing: var(--thing-dark)` in the `@media (prefers-color-scheme: dark)
    .portfolio-composition` block immediately after it.
 
-Then write `var(--thing)` at the use site. Also add the `--color-thing` mapping
-in `@theme inline` and the row in `docs/design-tokens.md`.
+Then write `var(--thing)` at the use site, add the row in
+`docs/design-tokens.md`, and add the alias to the two `[data-theme]` blocks the
+gallery uses — otherwise `/design` will show it stuck in one mode.
+(`tests/design-tokens.test.ts` fails on an undocumented token, so the doc row
+is enforced, not a courtesy.)
 
-**Rule 4.3** — `[data-theme="light"]` is **not** a composition mechanism. It is
-a legacy prototype opt-in, set on exactly one element (`app/index/page.tsx`) to
-force the light prototype palette on that page. It has no effect inside
-`.portfolio-composition`, and there is no user-facing theme toggle today. Do
-not wire new composition styling to it.
+**Rule 4.3** — `[data-theme]` **is** a composition mechanism, but only the
+gallery drives it. `:where([data-theme="…"]) .portfolio-composition` re-points
+every semantic alias, which is how `/design` shows light and dark on one page.
+There is no user-facing theme toggle: on the live site the mode comes from
+`prefers-color-scheme` alone. `data-theme="light"` is additionally set on
+exactly one legacy element (`app/index/page.tsx`) to force the prototype light
+palette there. Do not wire new composition styling to it — read the aliases.
 
 **Rule 4.4** — Anything painted behind the composition must follow the mode
 too. `body:has(.portfolio-composition)` sets the body background to
@@ -218,10 +235,11 @@ fallbacks elsewhere.
 `.css` files beside components, no styled-components, and no `<style>` blocks.
 Add your rules to the section that already owns the region.
 
-**Rule 5.2** — The composition uses **no Tailwind utility classes**. Every
-composition component carries semantic class names only. The `@theme inline`
-block exists so utilities are available and correct, not because the
-composition uses them — do not start.
+**Rule 5.2** — There is **no Tailwind**. It was removed once it turned out to
+be serving two utility classes across the whole repository, one of which broke
+this rule while duplicating an inline style beside it. Every component carries
+semantic class names only. `tests/design-tokens.test.ts` fails on a
+reintroduced `@import "tailwindcss"`, `@theme`, or `@apply`.
 
 **Rule 5.3** — Inline `style` is reserved for values only JavaScript can know:
 cursor position and colors (`CursorInstrument`) and the dragged assistant dock
@@ -259,15 +277,23 @@ whichever region the avatar is pointing at. Never a `.is-` or `.active` class.
 no CSS nesting is used. Related one-line rules may be written on a single line
 where the file already does so.
 
-**Rule 5.7** — There is one responsive breakpoint in the composition: **900px**
+**Rule 5.7** — The composition's breakpoint is **900px**
 (`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
 sizing), plus a 600px block for phone-scale safe-area insets and a
 `max-height: 820px and (pointer: fine)` block for short desktop windows. The
-760px and 980px breakpoints belong to legacy pages. Do not add a new breakpoint.
+980px breakpoint belongs to legacy pages. 760px is shared: it is a legacy
+breakpoint that also carries a handful of composition header and chat rules,
+predating the checkpoint — read it before touching the header at phone widths,
+and do not add to it. Do not add a new breakpoint.
 
-**Rule 5.8** — Every new interactive element gets a `:focus-visible` rule. The
-house treatment is `outline: 2px solid var(--ink); outline-offset: 2px` (3px
-offset on floating controls); world nodes use a 1px outline. Never remove focus
+**Rule 5.8** — The house focus treatment is
+`outline: 2px solid var(--ink); outline-offset: 2px`, and the composition now
+supplies it by default: a zero-specificity
+`:where(.portfolio-composition) a, button, input, textarea:focus-visible` rule.
+Before that, any control without its own rule fell through to the unscoped
+legacy rules and drew a 3px olive ring — including `.reader-index-row`, the
+dossier's main navigation. Override it only to differ deliberately: floating
+controls use a 3px offset, world nodes a 1px outline. Never remove focus
 without replacing it.
 
 **Rule 5.9** — Anything that animates gets a
@@ -289,14 +315,19 @@ blue."
 label color, no badges other than the existing `.reader-kind[data-register]`.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
-Silverpoint line: thin, straight, neutral, arrowless. Rules and connectors use
+Silverpoint line: thin, straight, neutral, arrowless. CSS rules and borders use
 `var(--map-line)`, or `var(--map-line-strong)` when a boundary must read as an
-edge. Do not encode link type as color, dash, thickness, or arrowhead —
-classifications stay backstage.
+edge; the canvas connectors in `PortfolioWorld` use `var(--map-connector)`,
+which is opaque because that code applies its own per-link alpha. Do not encode
+link type as color, dash, thickness, or arrowhead — classifications stay
+backstage.
 
-**Rule 6.4 — Marks share one envelope.** Register marks are drawn at 18px in a
-18px box with `stroke: currentColor` and `stroke-width: 1.45`, colored only by
-`--world-<register>` via `data-register`. Bradley's symbol
+**Rule 6.4 — Marks share one envelope.** Register marks are authored against
+`PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
+an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor` and
+`stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
+Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
+symbol
 (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png` filled with
 `currentColor` and has no containing shape. A new mark type joins that
 envelope; it does not get its own size or weight.
@@ -385,7 +416,7 @@ color is a semantic alias. Hover changes the rule, not the color (Rule 6.1).
 - [ ] No color literal outside the `:root` block in `app/globals.css`.
 - [ ] Every new color is a semantic alias, not a `-light` / `-dark` leaf.
 - [ ] No new `prefers-color-scheme` block (or, if unavoidable, all three parts
-      of Rule 4.2 plus the `@theme inline` mapping and the tokens doc row).
+      of Rule 4.2 plus the `[data-theme]` blocks and the tokens doc row).
 - [ ] Class names follow `.portfolio-<region>-<part>` or `.reader-<part>`.
 - [ ] State is a `data-` attribute; no `.is-` classes; no Tailwind utilities.
 - [ ] Declarations alphabetized; no new breakpoint.

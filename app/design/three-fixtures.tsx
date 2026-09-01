@@ -5,25 +5,19 @@
 // the /design route never downloads until a reviewer mounts one of them.
 
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
 import { AvatarOverlay } from "../../components/avatar/AvatarOverlay";
-import { AvatarStageActor } from "../../components/avatar/AvatarStageActor";
 import { ProceduralAvatar } from "../../components/avatar/ProceduralAvatar";
 import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToyboxBoundary";
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
 import { getOutputToken } from "../../components/scene/output-token-map";
-import { AvatarController } from "../../lib/avatar/controller";
-import { AvatarDirector } from "../../lib/avatar/director";
-import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../../lib/avatar/site-actions";
-import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
+import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import type { AllowedAnimation, AvatarTone } from "../../lib/avatar/contracts";
 import type { AvatarFacing } from "../../lib/avatar/orientation";
 import { portfolioNodes } from "../../lib/spatial-graph";
-import { galleryAvatarSnapshot } from "./fixtures";
 import { Specimen, Stage } from "./gallery-ui";
 
 const energeticTone: AvatarTone = {
@@ -56,49 +50,76 @@ function PoseCanvas({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Seven poses, one WebGL context. Each used to get its own `<Canvas>`, which
+ * cost seven contexts and seven uncapped 60fps frame loops for figures whose
+ * only ambient motion is a body roll under one degree. Browsers cap contexts
+ * around sixteen and evict the oldest, so the pose grid was the first thing to
+ * go black once a reviewer also mounted the toybox and the composition.
+ *
+ * `pointing` is deliberately `"left"` on the wave: it is read at exactly one
+ * line in ProceduralAvatar, and only for that animation and that direction.
+ * `"right"` renders identically to `null`.
+ */
 const proceduralPoses: readonly {
   animation: AllowedAnimation;
   facing: AvatarFacing;
   label: string;
   pointing: "left" | "right" | null;
-  reducedMotion: boolean;
   tone: AvatarTone;
 }[] = [
-  { animation: "idle_3", facing: "front", label: "Quiet idle", pointing: null, reducedMotion: false, tone: defaultAvatarTone },
-  { animation: "walking", facing: "right", label: "Walking, facing right", pointing: null, reducedMotion: false, tone: defaultAvatarTone },
-  { animation: "wake_up_and_look_up", facing: "left", label: "Thinking, facing left", pointing: null, reducedMotion: false, tone: reservedTone },
-  { animation: "agree_gesture", facing: "front", label: "Talking", pointing: null, reducedMotion: false, tone: defaultAvatarTone },
-  { animation: "wave_one_hand", facing: "front", label: "Pointing right", pointing: "right", reducedMotion: false, tone: energeticTone },
-  { animation: "cheer_with_both_hands", facing: "front", label: "Celebrating, high energy", pointing: null, reducedMotion: false, tone: energeticTone },
-  { animation: "shrug", facing: "front", label: "Shrug, reduced motion", pointing: null, reducedMotion: true, tone: reservedTone },
+  { animation: "idle_3", facing: "front", label: "Quiet idle", pointing: null, tone: defaultAvatarTone },
+  { animation: "walking", facing: "right", label: "Walking, facing right", pointing: null, tone: defaultAvatarTone },
+  { animation: "wake_up_and_look_up", facing: "left", label: "Thinking, facing left", pointing: null, tone: reservedTone },
+  { animation: "agree_gesture", facing: "front", label: "Talking", pointing: null, tone: defaultAvatarTone },
+  { animation: "wave_one_hand", facing: "front", label: "Waving, pointing left", pointing: "left", tone: energeticTone },
+  { animation: "cheer_with_both_hands", facing: "front", label: "Celebrating", pointing: null, tone: energeticTone },
+  { animation: "shrug", facing: "front", label: "Shrug", pointing: null, tone: reservedTone },
 ];
 
+const POSE_SPACING = 1.5;
+
 export function ProceduralAvatarFixture() {
+  const span = (proceduralPoses.length - 1) * POSE_SPACING;
+
   return (
-    <div className="design-mark-grid design-pose-grid">
-      {proceduralPoses.map((pose) => (
-        <div className="design-mark-cell" key={pose.label}>
-          <div style={{ height: "220px", width: "100%" }}>
-            <PoseCanvas>
-              {/* The rig stands on y=0 and is ~1.5 tall after its 0.82 scale.
-                  R3F points the camera at the origin, so the rig is dropped by
-                  half its height to sit on that target; aiming at the feet put
-                  the head above the top of the frame. */}
-              <group position={[0, -0.76, 0]}>
+    <>
+      <div style={{ height: "240px", width: "100%" }}>
+        <Canvas
+          aria-hidden="true"
+          camera={{ fov: 30, position: [0, 0, span * 0.62] }}
+          dpr={[1, 1.25]}
+          gl={{ alpha: true, antialias: true }}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <ambientLight intensity={1.6} />
+          <directionalLight intensity={1.7} position={[2, 4, 3]} />
+          <Suspense fallback={null}>
+            {proceduralPoses.map((pose, index) => (
+              // The rig is ~1.85 units tall with ~1.71 above the origin, so it
+              // is dropped to centre that mass on the camera target.
+              <group
+                key={pose.label}
+                position={[index * POSE_SPACING - span / 2, -0.76, 0]}
+              >
                 <ProceduralAvatar
                   animation={pose.animation}
                   facing={pose.facing}
                   pointing={pose.pointing}
-                  reducedMotion={pose.reducedMotion}
+                  reducedMotion={false}
                   tone={pose.tone}
                 />
               </group>
-            </PoseCanvas>
-          </div>
-          <small>{pose.label}</small>
-        </div>
-      ))}
-    </div>
+            ))}
+          </Suspense>
+        </Canvas>
+      </div>
+      <div className="design-pose-labels">
+        {proceduralPoses.map((pose) => (
+          <small key={pose.label}>{pose.label}</small>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -151,56 +172,6 @@ export function AvatarAssetAdapterFixture() {
 }
 
 /**
- * The stage actor positions itself in screen pixels inside an orthographic
- * canvas, so the fixture measures its own box and centres the snapshot in it.
- */
-export function AvatarStageActorFixture() {
-  const [size, setSize] = useState({ height: 420, width: 420 });
-  const box = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const element = box.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const measure = () => {
-      const bounds = element.getBoundingClientRect();
-      if (bounds.width > 0 && bounds.height > 0) {
-        setSize({ height: bounds.height, width: bounds.width });
-      }
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  const snapshot = galleryAvatarSnapshot({
-    animation: "idle_3",
-    position: { x: size.width / 2, y: size.height - 24 },
-  });
-
-  return (
-    <Stage size="medium">
-      <div ref={box} style={{ height: "100%", width: "100%" }}>
-        <Canvas
-          aria-hidden="true"
-          camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
-          dpr={[1, 1.25]}
-          gl={{ alpha: true, antialias: true }}
-          orthographic
-          style={{ height: "100%", width: "100%" }}
-        >
-          <ambientLight intensity={1.6} />
-          <directionalLight intensity={1.7} position={[2, 4, 3]} />
-          <Suspense fallback={null}>
-            <AvatarStageActor reducedMotion={false} snapshot={snapshot} />
-          </Suspense>
-        </Canvas>
-      </div>
-    </Stage>
-  );
-}
-
-/**
  * The overlay as the composition wires it: a registry, a controller, a
  * director, a sequence runner and a site-action executor. The controller
  * measures the browser window rather than the stage, so this fixture uses a
@@ -210,14 +181,7 @@ export function AvatarOverlayFixture() {
   const [enabled, setEnabled] = useState(true);
   const [debug, setDebug] = useState(false);
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    const siteActionExecutor = new SiteActionExecutor(registry, {});
-    return { controller, director, registry, runner, siteActionExecutor };
+    return createAvatarStageServices();
   });
 
   const registerStage = useCallback(
@@ -242,18 +206,16 @@ export function AvatarOverlayFixture() {
         >
           {enabled ? "Visible" : "Hidden"}
         </button>
-        <button
-          aria-pressed={debug}
-          className="design-gallery-control"
-          onClick={() => setDebug((current) => !current)}
-          type="button"
-        >
-          Director console
-        </button>
-        <span>
-          The Director console is compiled into development builds only, so the
-          toggle does nothing in a production build.
-        </span>
+        {import.meta.env.DEV ? (
+          <button
+            aria-pressed={debug}
+            className="design-gallery-control"
+            onClick={() => setDebug((current) => !current)}
+            type="button"
+          >
+            Director console
+          </button>
+        ) : null}
       </div>
       <div className="design-stage" data-size="viewport" ref={registerStage}>
         <div className="experience experience-graph portfolio-composition">
@@ -267,7 +229,6 @@ export function AvatarOverlayFixture() {
             reducedMotion={false}
             registry={services.registry}
             runner={services.runner}
-            siteActionExecutor={services.siteActionExecutor}
           />
         </div>
       </div>
@@ -319,35 +280,23 @@ export function AvatarFixtures() {
   return (
     <>
       <Specimen
-        note="The fallback rig. It renders without any downloaded model."
-        source="components/avatar/ProceduralAvatar.tsx"
-        title="Procedural avatar — poses, facings and tones"
+        note="ProceduralAvatar.tsx — the fallback rig, seven poses in one canvas. It renders without any downloaded model."
+        title="Procedural avatar"
       >
         <ProceduralAvatarFixture />
       </Specimen>
 
       <Specimen
-        note="The shipped configuration: a rigged GLB plus a motion library, with the procedural rig as the fallback."
-        source="components/avatar/AvatarAssetAdapter.tsx"
-        title="Asset adapter — animation and facing"
+        note="AvatarAssetAdapter.tsx — the shipped configuration: a rigged GLB plus a motion library, with the procedural rig as the fallback."
+        title="Asset adapter"
       >
         <AvatarAssetAdapterFixture />
       </Specimen>
 
       <Specimen
         flush
-        note="Positions the avatar in screen pixels inside an orthographic canvas."
-        source="components/avatar/AvatarStageActor.tsx"
-        title="Stage actor"
-      >
-        <AvatarStageActorFixture />
-      </Specimen>
-
-      <Specimen
-        flush
-        note="The full overlay, wired to a live controller and director."
-        source="components/avatar/AvatarOverlay.tsx"
-        title="Avatar overlay and Director console"
+        note="AvatarOverlay.tsx — the full overlay, wired to a live controller and director. AvatarStageActor renders inside it; it has no separate specimen because a standalone one was this canvas with the controller removed."
+        title="Avatar overlay"
       >
         <AvatarOverlayFixture />
       </Specimen>

@@ -35,8 +35,6 @@ import type {
   PortfolioChatTurnMode,
   PortfolioChatVisitState,
 } from "../lib/portfolio-chat-protocol";
-import { classifyPose } from "../lib/pose";
-import type { PoseState } from "../lib/pose";
 
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments
@@ -60,19 +58,16 @@ export function PortfolioChat({
   initiallyOpen = false,
   onLayoutChange,
   onOpenChange,
-  onPoseChange,
   open: controlledOpen,
   registerAvatarTarget,
   askPortfolio = streamPortfolioAnswer,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
-  spotlightTarget,
   turnstileSiteKey,
 }: {
   avatarIntegration?: PortfolioChatAvatarIntegration;
   initiallyOpen?: boolean;
   onLayoutChange?: () => void;
   onOpenChange?: (open: boolean) => void;
-  onPoseChange: (pose: PoseState) => void;
   open?: boolean;
   registerAvatarTarget?: (
     target: AvatarTargetId,
@@ -80,7 +75,6 @@ export function PortfolioChat({
   ) => void;
   askPortfolio?: AskPortfolio;
   renderTurnstile?: TurnstileRenderer;
-  spotlightTarget?: AvatarTargetId | null;
   turnstileSiteKey?: string;
 }) {
   const composerPlaceholder = useEditableContent(
@@ -117,7 +111,6 @@ export function PortfolioChat({
     generalTurns: 0,
     portfolioNudgeShown: false,
   });
-  const idleTimer = useRef<number | null>(null);
   const inputActivityTimer = useRef<number | null>(null);
   const compositionEndTimer = useRef<number | null>(null);
   const composing = useRef(false);
@@ -185,7 +178,6 @@ export function PortfolioChat({
 
   useEffect(() => {
     return () => {
-      if (idleTimer.current) window.clearTimeout(idleTimer.current);
       if (inputActivityTimer.current !== null) {
         window.clearTimeout(inputActivityTimer.current);
       }
@@ -263,14 +255,6 @@ export function PortfolioChat({
     };
   }, []);
 
-  function setPoseForQuestion(question: string) {
-    const pose = classifyPose(question);
-    if (pose === "idle") return;
-    onPoseChange(pose);
-    if (idleTimer.current) window.clearTimeout(idleTimer.current);
-    idleTimer.current = window.setTimeout(() => onPoseChange("idle"), 4800);
-  }
-
   async function runQuestion(question: string) {
     if (turnstileSiteKey && !challengeToken) {
       setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
@@ -310,15 +294,17 @@ export function PortfolioChat({
       scheduleAvatarWork(
         () =>
           new Promise<void>((resolve) => {
-            window.setTimeout(async () => {
-              if (isCurrentTurn()) {
-                try {
-                  await work();
-                } catch {
-                  // Avatar work is optional and must never interrupt text.
+            window.setTimeout(() => {
+              void (async () => {
+                if (isCurrentTurn()) {
+                  try {
+                    await work();
+                  } catch {
+                    // Avatar work is optional and must never interrupt text.
+                  }
                 }
-              }
-              resolve();
+                resolve();
+              })();
             }, 0);
           }),
       );
@@ -454,7 +440,6 @@ export function PortfolioChat({
     if (inputRef.current) inputRef.current.style.height = "auto";
     inputHeight.current = -1;
     inputRef.current?.blur();
-    setPoseForQuestion(question);
     void runQuestion(question);
   }
 
@@ -533,7 +518,7 @@ export function PortfolioChat({
 
   return (
     <section
-      className={`portfolio-chat${spotlightTarget === "portfolio:chat" ? " avatar-spotlight" : ""}`}
+      className={`portfolio-chat`}
       aria-label="Portfolio assistant dock"
       data-clarity-mask="true"
       data-has-thread={hasThreadContent ? "true" : "false"}

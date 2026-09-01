@@ -259,7 +259,6 @@ export function createOpenAIPortfolioProvider({
         if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");
         input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
         input.onEffects?.({
-          siteActions: [],
           avatarSequence: expandAvatarSequence(result.finalOutput.avatarSequence),
           avatarIntent: result.finalOutput.avatarIntent,
           avatarTone: result.finalOutput.avatarTone,

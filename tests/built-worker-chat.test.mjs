@@ -146,7 +146,12 @@ test("the built Worker does not register the retired preview endpoint", async ()
 
   assert.equal(response.status, 404);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-  assert.match(await response.text(), />404<\/h1>/i);
+  // The status is what proves the route is gone. This second assertion proves
+  // it is the app's own not-found page rather than an error page, which shares
+  // the same `recovery-page` shell — so match the heading, not the class. It
+  // used to look for `>404</h1>`, the framework's default page, which this
+  // branch replaced with a real not-found route.
+  assert.match(await response.text(), />No page here\.<\/h1>/i);
 });
 
 test("the built Worker preserves local development without an asset binding", async () => {

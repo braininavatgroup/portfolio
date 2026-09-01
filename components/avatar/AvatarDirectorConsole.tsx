@@ -1,5 +1,7 @@
 "use client";
 
+import "./avatar-director-console.css";
+
 import {
   useCallback,
   useEffect,
@@ -18,7 +20,6 @@ import {
   type AvatarTone,
 } from "../../lib/avatar/contracts";
 import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { SiteActionExecutor } from "../../lib/avatar/site-actions";
 import { adaptCommandsForReducedMotion } from "../../lib/avatar/state";
 import {
   AvatarTargetRegistry,
@@ -32,7 +33,6 @@ type AvatarDirectorConsoleProps = {
   director: AvatarDirector;
   registry: AvatarTargetRegistry;
   runner: AvatarSequenceRunner;
-  siteActionExecutor: SiteActionExecutor;
   onEnabledChange: (enabled: boolean) => void;
   onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
   reducedMotion?: boolean;
@@ -90,7 +90,6 @@ export function AvatarDirectorConsole({
   controller,
   director,
   registry,
-  siteActionExecutor,
   onEnabledChange,
   onExpandedPanelChange,
   reducedMotion = false,
@@ -140,7 +139,7 @@ export function AvatarDirectorConsole({
   [director, reducedMotion]);
   const runTarget = useCallback((action: "walkTo" | "swimTo" | "lookAt" | "pointAt") => {
     if (!selectedTarget) return;
-    run([{ action, target: selectedTarget }]);
+    void run([{ action, target: selectedTarget }]);
   }, [run, selectedTarget]);
   const selectTarget = useCallback((target: AvatarTargetId) => {
     setSelectedTarget(target);
@@ -156,9 +155,6 @@ export function AvatarDirectorConsole({
     controller.setVisible(visible);
     onEnabledChange(visible);
   }, [controller, onEnabledChange, snapshot.visible]);
-  const spotlight = useCallback((target: AvatarTargetId) => {
-    void siteActionExecutor.execute({ type: "spotlight", target });
-  }, [siteActionExecutor]);
   const visibleTargets = stageMap.targets.filter(({ bounds }) => bounds.inViewport);
   const presentProject = useCallback(async () => {
     if (!isProjectTarget(selectedTarget)) return;
@@ -167,9 +163,8 @@ export function AvatarDirectorConsole({
       { action: "pointAt", target: selectedTarget },
       { action: "wait", durationMs: 900 },
     ]);
-    await siteActionExecutor.execute({ type: "spotlight", target: selectedTarget });
     await run([{ action: "setState", state: "idle" }]);
-  }, [run, selectedTarget, siteActionExecutor]);
+  }, [run, selectedTarget]);
   const activateTab = useCallback((nextTab: DirectorTab) => {
     if (nextTab === "Target") refreshStageMap();
     setTab(nextTab);
@@ -328,7 +323,6 @@ export function AvatarDirectorConsole({
               <button disabled={!selectedTarget} type="button" onClick={() => runTarget("lookAt")}>Look at {selectedTarget ?? "selected target"}</button>
               <button disabled={!selectedTarget} type="button" onClick={() => runTarget("pointAt")}>Point at {selectedTarget ?? "selected target"}</button>
               <button disabled={!isProjectTarget(selectedTarget)} type="button" onClick={() => void presentProject()}>Present {selectedTarget ?? "selected project"}</button>
-              <button disabled={!selectedTarget} type="button" onClick={() => selectedTarget && spotlight(selectedTarget)}>Spotlight {selectedTarget ?? "selected target"}</button>
               <p>{visibleTargets.length} live semantic targets</p>
             </div>
           ) : null}
@@ -348,17 +342,17 @@ export function AvatarDirectorConsole({
               <p>position={Math.round(snapshot.position.x)},{Math.round(snapshot.position.y)} · locomotion={snapshot.locomotion} · path={snapshot.motion?.kind ?? "none"} · facing={snapshot.facing} · target={snapshot.target ?? "none"} · point={snapshot.pointing ?? "none"}</p>
               <p>tone={snapshot.tone.energy}/{snapshot.tone.warmth}/{snapshot.tone.confidence}/{snapshot.tone.mischief}</p>
               <h3>State</h3>
-              {allowedAvatarStates.map((state) => <button key={state} type="button" onClick={() => run([{ action: "setState", state }])}>State: {state}</button>)}
+              {allowedAvatarStates.map((state) => <button key={state} type="button" onClick={() => void run([{ action: "setState", state }])}>State: {state}</button>)}
               <h3>Tone</h3>
-              {tonePresets.map(({ label, tone }) => <button key={label} type="button" onClick={() => run([{ action: "setTone", tone }])}>{label}</button>)}
+              {tonePresets.map(({ label, tone }) => <button key={label} type="button" onClick={() => void run([{ action: "setTone", tone }])}>{label}</button>)}
               <h3>Behaviors</h3>
-              {avatarBehaviors.map(({ id, label }) => <button key={id} type="button" onClick={() => run([{ action: "play", animation: id }])}>{label}</button>)}
+              {avatarBehaviors.map(({ id, label }) => <button key={id} type="button" onClick={() => void run([{ action: "play", animation: id }])}>{label}</button>)}
               <h3>Stage</h3>
-              <button type="button" onClick={() => run([{ action: "enter", from: "left" }])}>Enter left</button>
-              <button type="button" onClick={() => run([{ action: "enter", from: "right" }])}>Enter right</button>
-              <button type="button" onClick={() => run([{ action: "exit", to: "left" }])}>Exit left</button>
-              <button type="button" onClick={() => run([{ action: "exit", to: "right" }])}>Exit right</button>
-              {debugTargets.map((target) => <span key={target}><button type="button" onClick={() => run([{ action: "walkTo", target }])}>Walk to {target}</button><button type="button" onClick={() => run([{ action: "lookAt", target }])}>Look at {target}</button><button type="button" onClick={() => run([{ action: "pointAt", target }])}>Point at {target}</button></span>)}
+              <button type="button" onClick={() => void run([{ action: "enter", from: "left" }])}>Enter left</button>
+              <button type="button" onClick={() => void run([{ action: "enter", from: "right" }])}>Enter right</button>
+              <button type="button" onClick={() => void run([{ action: "exit", to: "left" }])}>Exit left</button>
+              <button type="button" onClick={() => void run([{ action: "exit", to: "right" }])}>Exit right</button>
+              {debugTargets.map((target) => <span key={target}><button type="button" onClick={() => void run([{ action: "walkTo", target }])}>Walk to {target}</button><button type="button" onClick={() => void run([{ action: "lookAt", target }])}>Look at {target}</button><button type="button" onClick={() => void run([{ action: "pointAt", target }])}>Point at {target}</button></span>)}
               <h3>Context</h3>
               <button type="button" onClick={() => void director.handle({ type: "input_focus" })}>Simulate listening</button>
               <button type="button" onClick={() => void director.handle({ type: "input_activity" })}>Simulate typing</button>
@@ -370,10 +364,8 @@ export function AvatarDirectorConsole({
               <button type="button" onClick={() => void director.handle({ type: "project_open", target: "project:dubs" })}>Simulate project hosting</button>
               <button type="button" onClick={() => void director.handle({ type: "tab_change", target: "project:dubs" })}>Simulate tab change</button>
               <button type="button" onClick={() => void director.handle({ type: "project_close" })}>Simulate project close</button>
-              <button type="button" onClick={() => void director.perform({ siteActions: [], avatarSequence: [{ action: "play", animation: "wave_one_hand" }, { action: "wait", durationMs: 1_200 }, { action: "play", animation: "joyful_dance_with_hand_sway" }], avatarIntent: "requested", avatarTone: tonePresets[3]!.tone, issues: [] })}>Run wave dance performance</button>
+              <button type="button" onClick={() => void director.perform({ avatarSequence: [{ action: "play", animation: "wave_one_hand" }, { action: "wait", durationMs: 1_200 }, { action: "play", animation: "joyful_dance_with_hand_sway" }], avatarIntent: "requested", avatarTone: tonePresets[3]!.tone, issues: [] })}>Run wave dance performance</button>
               <h3>Page and failure</h3>
-              {debugTargets.map((target) => <button key={target} type="button" onClick={() => spotlight(target)}>Spotlight {target}</button>)}
-              <button type="button" onClick={() => void siteActionExecutor.execute({ type: "clearSpotlight" })}>Clear spotlight</button>
               <button type="button" onClick={() => controller.markFailed()}>Simulate failure</button>
               <button type="button" onClick={reset}>Reset avatar</button>
             </div>

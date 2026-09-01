@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { PortfolioNodeMark } from "./PortfolioNodeMark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
@@ -35,7 +35,6 @@ type PortfolioReaderProps = {
     element: HTMLElement | null,
   ) => void;
   selectedId: string | null;
-  spotlightTarget?: AvatarTargetId | null;
 };
 
 function IndexRow({
@@ -481,7 +480,6 @@ export function PortfolioReader({
   onSelectThread,
   registerAvatarTarget,
   selectedId,
-  spotlightTarget,
 }: PortfolioReaderProps) {
   const readerRef = useRef<HTMLElement | null>(null);
   const indexScrollTop = useRef(0);
@@ -503,9 +501,15 @@ export function PortfolioReader({
     : thread
       ? `${thread.title} thread`
       : "Portfolio index";
-  const cleanReview =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("review") === "clean";
+  // Not read during render: the server yields false and a client with
+  // ?review=clean yields true, so reading it inline changed the className
+  // between the server HTML and the first client render. The subscribe
+  // callback is a no-op because the flag cannot change without a navigation.
+  const cleanReview = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("review") === "clean",
+    () => false,
+  );
 
   useLayoutEffect(() => {
     if (mode === "index" && readerRef.current) {
@@ -516,7 +520,7 @@ export function PortfolioReader({
   return (
     <aside
       aria-label={label}
-      className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}${spotlightTarget === avatarTarget ? " avatar-spotlight" : ""}`}
+      className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}`}
       data-reader-mode={mode}
       onScroll={(event) => {
         if (mode === "index") indexScrollTop.current = event.currentTarget.scrollTop;
