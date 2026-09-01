@@ -264,7 +264,7 @@ export function TokenGallery() {
 
       <Section
         id="tokens-type"
-        note="Neue Haas Grotesk is the shared voice of the accepted composition; Geist remains live on the pre-checkpoint pages. Both stacks are shown."
+        note="Neue Haas Grotesk is the whole site's voice — composition and pre-checkpoint pages alike. The only other stack is a system monospace, used for the gallery's own data columns."
         title="Type"
       >
         <Specimen source="app/globals.css" title="Font stacks">

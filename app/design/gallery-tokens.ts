@@ -176,10 +176,8 @@ export const dimensionTokens: readonly { token: string; role: string }[] = [
 ];
 
 export const fontTokens: readonly { token: string; role: string }[] = [
-  { token: "--font-reader", role: "Accepted world and reader type stack" },
-  { token: "--font-prototype-sans", role: "Prototype sans stack" },
-  { token: "--font-prototype-sans-short", role: "Prototype sans stack, short fallback" },
-  { token: "--font-prototype-mono", role: "Prototype mono stack" },
+  { token: "--font-reader", role: "The site's type stack — Neue Haas Grotesk everywhere" },
+  { token: "--font-prototype-mono", role: "System monospace, for this gallery's data columns only" },
 ];
 
 /**

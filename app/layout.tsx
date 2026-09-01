@@ -1,21 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { CursorInstrument } from "../components/CursorInstrument";
 import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
 import { ContentEditorProvider } from "../components/editor/ContentEditorProvider";
 import { EditableText } from "../components/editor/EditableText";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Bradley Berkman | Make complexity legible enough to act on",
@@ -36,9 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable}`}
-      >
+      <body>
         <PortfolioAnalytics />
         <CursorInstrument />
         <ContentEditorProvider>

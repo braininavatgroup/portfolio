@@ -182,12 +182,10 @@
 
 body {
   -webkit-font-smoothing: antialiased;
-  --font-prototype-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  --font-prototype-sans-short: var(--font-geist-sans), sans-serif;
-  --font-prototype-mono: var(--font-geist-mono), monospace;
+  --font-prototype-mono: ui-monospace, SFMono-Regular, Menlo, "Liberation Mono", monospace;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-prototype-sans);
+  font-family: var(--font-reader);
   margin: 0;
 }
 
@@ -268,7 +266,7 @@ body {
 
 .portfolio-header .wordmark {
   color: var(--foreground);
-  font-family: var(--font-prototype-sans);
+  font-family: var(--font-reader);
   font-size: 0.82rem;
   font-weight: 650;
   letter-spacing: 0;
@@ -364,7 +362,7 @@ body {
   bottom: 0;
   color: var(--foreground);
   cursor: default;
-  font-family: var(--font-prototype-sans-short);
+  font-family: var(--font-reader);
   left: 0;
   overflow: hidden;
   position: fixed;
