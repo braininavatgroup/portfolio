@@ -4076,3 +4076,395 @@ body:has(.portfolio-composition) {
     transition-duration: 1ms;
   }
 }
+
+/* Design gallery (work package 3): the public /design showroom. The gallery
+   drives the accepted composition tokens from [data-theme] so one page can
+   show both modes. The descendant selectors are wrapped in :where() so a
+   fixture that carries its own [data-theme] still wins over the gallery root. */
+.design-gallery,
+:where([data-theme="light"]) .portfolio-composition,
+.portfolio-composition[data-theme="light"],
+.design-gallery[data-theme="light"] {
+  --ink: var(--reader-ink-light);
+  --map-muted: var(--map-muted-light);
+  --map-paper: var(--map-silver);
+  --map-paper-near: var(--map-paper-near-light);
+  --reader-paper: var(--reader-paper-light);
+  --reader-summary: var(--reader-summary-light);
+  --reader-body: var(--reader-body-light);
+  --reader-muted: var(--reader-muted-light);
+  --map-line: var(--map-line-light);
+  --map-line-strong: var(--map-line-strong-light);
+  --map-grid: var(--map-grid-light);
+  --world-identity: var(--reader-ink-light);
+  --world-story: var(--world-lichen);
+  --world-finding: var(--world-hard-red);
+  --world-warm: var(--world-electric-pink);
+  --world-bridge: var(--world-violet);
+  --world-cool: var(--world-production-cyan);
+  color-scheme: light;
+}
+
+:where([data-theme="dark"]) .portfolio-composition,
+.portfolio-composition[data-theme="dark"],
+.design-gallery[data-theme="dark"] {
+  --ink: var(--reader-ink-dark);
+  --map-muted: var(--map-muted-dark);
+  --map-paper: var(--map-paper-dark);
+  --map-paper-near: var(--map-paper-near-dark);
+  --reader-paper: var(--reader-paper-dark);
+  --reader-summary: var(--reader-summary-dark);
+  --reader-body: var(--reader-body-dark);
+  --reader-muted: var(--reader-muted-dark);
+  --map-line: var(--map-line-dark);
+  --map-line-strong: var(--map-line-strong-dark);
+  --map-grid: var(--map-grid-dark);
+  --world-identity: var(--reader-ink-dark);
+  --world-story: var(--world-acid);
+  --world-finding: var(--world-signal-red);
+  --world-warm: var(--world-hot-pink);
+  --world-bridge: var(--world-violet-dark);
+  --world-cool: var(--world-production-cyan-dark);
+  color-scheme: dark;
+}
+
+/* The toybox portals outside the gallery root, so the gallery mirrors its
+   theme onto the portal host rather than leaving it on the OS preference. */
+[data-theme="light"] .avatar-toybox { background: var(--prototype-toybox-scrim-light); }
+[data-theme="dark"] .avatar-toybox { background: var(--prototype-toybox-scrim-dark); }
+
+body:has(.design-gallery[data-theme="light"]) { background: var(--map-silver); }
+body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark); }
+
+.design-gallery {
+  background: var(--map-paper);
+  color: var(--ink);
+  font-family: var(--font-reader);
+  min-height: 100vh;
+  padding-bottom: 6rem;
+}
+
+.design-gallery-bar {
+  align-items: baseline;
+  background: var(--map-paper);
+  border-bottom: 1px solid var(--map-line-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 18px var(--reader-gutter);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.design-gallery-bar h1 {
+  font-size: var(--portfolio-display-title-size, var(--reader-section-title-size));
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.design-gallery-bar p {
+  color: var(--map-muted);
+  font-size: var(--reader-copy-size);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.design-gallery-modes {
+  display: flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+/* Scoped to an explicit class: a descendant `button` rule here would restyle
+   the buttons inside every fixture component on the page. */
+.design-gallery-control {
+  background: transparent;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-reader);
+  font-size: var(--reader-label-size);
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.design-gallery-control[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--map-paper);
+}
+
+.design-gallery-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px var(--reader-gutter);
+}
+
+.design-section {
+  border-top: 1px solid var(--map-line);
+  padding: 28px var(--reader-gutter);
+  scroll-margin-top: 96px;
+}
+
+.design-section > h2 {
+  font-size: var(--reader-section-title-size);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.design-note {
+  color: var(--map-muted);
+  font-size: var(--reader-copy-size);
+  margin: 0 0 18px;
+  max-width: 72ch;
+}
+
+.design-specimen {
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.design-specimen-head {
+  align-items: baseline;
+  background: var(--map-paper-near);
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 10px 14px;
+}
+
+.design-specimen-head h3 {
+  font-size: var(--reader-row-size);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.design-specimen-head p {
+  color: var(--map-muted);
+  font-size: var(--reader-copy-size);
+  margin: 0;
+}
+
+.design-specimen-head .design-specimen-source {
+  font-family: var(--font-prototype-mono);
+  font-size: var(--reader-label-size);
+  margin-inline-start: auto;
+}
+
+.design-specimen-body {
+  padding: 14px;
+}
+
+.design-specimen-body[data-flush="true"] {
+  padding: 0;
+}
+
+/* A transform makes each stage the containing block for the fixed-position
+   composition surfaces, so a full-viewport component stays inside its box. */
+.design-stage {
+  background: var(--map-paper);
+  contain: layout paint;
+  overflow: hidden;
+  position: relative;
+  transform: translateZ(0);
+}
+
+.design-stage[data-size="tall"] { height: 640px; }
+.design-stage[data-size="medium"] { height: 420px; }
+.design-stage[data-size="short"] { height: 260px; }
+.design-stage[data-size="viewport"] { height: 100dvh; }
+
+.design-stage-narrow {
+  margin: 0 auto;
+  max-width: 420px;
+}
+
+.design-lazy {
+  align-items: center;
+  color: var(--map-muted);
+  display: flex;
+  font-size: var(--reader-copy-size);
+  gap: 12px;
+  justify-content: center;
+  padding: 24px 14px;
+  text-align: center;
+}
+
+.design-swatch-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.design-swatch {
+  border: 1px solid var(--map-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.design-swatch-chips {
+  display: flex;
+  height: 52px;
+}
+
+.design-swatch-chip {
+  align-items: flex-end;
+  border-inline-end: 1px solid var(--map-line);
+  display: flex;
+  flex: 1;
+  font-size: var(--reader-label-size);
+  justify-content: center;
+  padding-bottom: 3px;
+}
+
+.design-swatch-chip:last-child { border-inline-end: 0; }
+
+.design-swatch-chip span {
+  background: var(--map-paper-near);
+  border-radius: 2px;
+  color: var(--ink);
+  font-family: var(--font-prototype-mono);
+  padding: 0 3px;
+}
+
+.design-swatch-meta {
+  border-top: 1px solid var(--map-line);
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.design-swatch-meta strong {
+  font-size: var(--reader-copy-size);
+  font-weight: 500;
+}
+
+.design-swatch-meta code,
+.design-token-row code {
+  color: var(--map-muted);
+  font-family: var(--font-prototype-mono);
+  font-size: var(--reader-label-size);
+  word-break: break-all;
+}
+
+.design-swatch-meta small {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+}
+
+.design-token-table {
+  border-collapse: collapse;
+  font-size: var(--reader-copy-size);
+  width: 100%;
+}
+
+.design-token-table th,
+.design-token-table td {
+  border-bottom: 1px solid var(--map-line);
+  padding: 6px 10px 6px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.design-token-table th {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.design-token-swatch {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 3px;
+  display: inline-block;
+  height: 14px;
+  vertical-align: -2px;
+  width: 14px;
+}
+
+.design-type-specimen {
+  border-bottom: 1px solid var(--map-line);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.design-type-specimen:last-child { border-bottom: 0; }
+
+.design-type-specimen p { margin: 0; }
+
+.design-spacing-row {
+  align-items: center;
+  border-bottom: 1px solid var(--map-line);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 220px 1fr;
+  padding: 8px 0;
+}
+
+.design-spacing-row:last-child { border-bottom: 0; }
+
+.design-spacing-bar {
+  background: var(--world-warm);
+  height: 10px;
+  max-width: 100%;
+}
+
+.design-mark-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.design-mark-cell {
+  align-items: center;
+  border: 1px solid var(--map-line);
+  border-radius: 4px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px 8px;
+}
+
+.design-mark-cell small {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  text-align: center;
+}
+
+.design-token-probe {
+  block-size: 0;
+  inline-size: 0;
+  overflow: hidden;
+  position: absolute;
+  visibility: hidden;
+}
+
+@media (max-width: 900px) {
+  .design-stage[data-size="tall"] { height: 560px; }
+  .design-spacing-row { grid-template-columns: 1fr; }
+}
+
+/* Gallery stages are shorter than a viewport. The composition surfaces size
+   themselves in viewport units, so inside a stage they take the stage box. */
+.design-stage .experience,
+.design-stage .scene-shell {
+  min-height: 100%;
+}
+
+.design-stage .portfolio-reader {
+  height: 100%;
+}
+
+.design-stage .avatar-overlay {
+  height: 100%;
+  width: 100%;
+}
