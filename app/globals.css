@@ -914,7 +914,6 @@ body {
 }
 
 .chat-note,
-.chat-reply p,
 .chat-message {
   color: var(--prototype-muted-ink);
   font-size: 0.72rem;
@@ -924,8 +923,7 @@ body {
 
 @media (max-width: 980px) {
   .portfolio-chat { bottom: 0.75rem; }
-  .graph-toolbar > p:not(.eyebrow),
-  .node-legend { display: none; }
+  .graph-toolbar > p:not(.eyebrow) { display: none; }
 }
 
 .scene-copy {
@@ -958,7 +956,6 @@ body {
   max-width: 34rem;
 }
 
-.experience-entering .room-grid,
 .experience-graph .room-grid { opacity: 0; }
 
 .experience-entering .scene-copy,
@@ -1098,8 +1095,7 @@ input:focus-visible {
   line-height: 1.55;
 }
 
-.flat-index,
-.artifact-page {
+.flat-index {
   margin: 0 auto;
   max-width: 78rem;
   padding: 1.25rem clamp(1.25rem, 4vw, 3rem) 1.5rem;
@@ -1129,8 +1125,7 @@ input:focus-visible {
   padding-bottom: 0.5rem;
 }
 
-.index-header h1,
-.chain-header h1 {
+.index-header h1 {
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: 560;
   letter-spacing: -0.035em;
@@ -1299,33 +1294,23 @@ input:focus-visible {
 [data-theme="light"] .portfolio-header nav a[aria-current="page"],
 [data-theme="light"] .portfolio-header span[aria-current="page"],
 [data-theme="light"] .eyebrow,
-[data-theme="light"] .chain-layer,
-[data-theme="light"] .artifact-main-link > span,
-[data-theme="light"] .adjacent-nav span {
+[data-theme="light"] .artifact-main-link > span {
   color: var(--prototype-label-ink-light-muted);
 }
 
-[data-theme="light"] .node-drawer,
-[data-theme="light"] .graph-toolbar,
 [data-theme="light"] .portfolio-chat {
   background: var(--prototype-surface-panel);
   border-color: var(--line);
   box-shadow: 0 1rem 3rem var(--prototype-panel-shadow-light);
 }
 
-[data-theme="light"] .node-drawer-content > p,
-[data-theme="light"] .node-position,
 [data-theme="light"] .graph-toolbar > p:not(.eyebrow),
 [data-theme="light"] .scene-copy > p:not(.eyebrow),
 [data-theme="light"] .lede,
-[data-theme="light"] .domain-heading p:last-child,
-[data-theme="light"] .chain-step > div > p:not(.chain-layer),
-[data-theme="light"] .step-entity p:not(.entity-relation):not(.entity-status),
-[data-theme="light"] .entity-evidence p {
+[data-theme="light"] .domain-heading p:last-child {
   color: var(--muted);
 }
 
-[data-theme="light"] .domain-controls button[aria-pressed="true"],
 [data-theme="light"] .portfolio-chat form button {
   background: var(--accent);
   border-color: var(--accent);
@@ -1334,10 +1319,6 @@ input:focus-visible {
 
 [data-theme="light"] .scene-shell-domain-focus .graph-node-label[data-dimmed="true"] {
   opacity: 0;
-}
-
-[data-theme="light"] .chat-inspect {
-  border-color: var(--line);
 }
 
 [data-theme="light"] .chat-answer h3 {
@@ -1360,22 +1341,17 @@ input:focus-visible {
   color: var(--accent-ink);
 }
 
-[data-theme="light"].flat-index,
-[data-theme="light"].artifact-page {
+[data-theme="light"].flat-index {
   background: var(--background);
 }
 
 [data-theme="light"] .index-header,
 [data-theme="light"] .domain-section,
-[data-theme="light"] .artifact-index-entry,
-[data-theme="light"] .chain-step,
-[data-theme="light"] .adjacent-nav,
-[data-theme="light"] .entity-evidence {
+[data-theme="light"] .artifact-index-entry {
   border-color: var(--line);
 }
 
-[data-theme="light"] .artifact-main-link,
-[data-theme="light"] .step-entity {
+[data-theme="light"] .artifact-main-link {
   background: transparent;
   border-color: transparent;
   color: var(--foreground);
@@ -1388,8 +1364,7 @@ input:focus-visible {
   color: var(--muted);
 }
 
-[data-theme="light"] .artifact-main-link:hover strong,
-[data-theme="light"] .node-index-links a:hover {
+[data-theme="light"] .artifact-main-link:hover strong {
   color: var(--prototype-link-hover);
 }
 
@@ -3414,10 +3389,6 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 /* Hosts the overlay header one level below .portfolio-composition, so the
    production rule that hides a direct-child header does not apply and the
    variant stays reviewable. See the note on that specimen. */
-.design-overlay-host {
-  inset: 0;
-  position: absolute;
-}
 
 /* Pose cells hold a figure rather than a mark, so they need width to frame it. */
 

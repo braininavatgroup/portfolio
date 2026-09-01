@@ -4,7 +4,6 @@ export type AvatarAssetConfig = {
   kind: "procedural" | "gltf";
   modelUrl: string | null;
   motionUrl: string | null;
-  skeletonProfile: "procedural" | "humanoid" | "mixamo";
   scale: number;
   forwardAxis: "z" | "-z";
   groundOffset: number;
@@ -38,7 +37,6 @@ export const avatarAsset: AvatarAssetConfig = {
   kind: "gltf",
   modelUrl: "/avatars/bradley-meshy-rigged.glb",
   motionUrl: "/avatars/bradley-motion-library.glb",
-  skeletonProfile: "humanoid",
   scale: 1,
   forwardAxis: "z",
   groundOffset: -0.9,

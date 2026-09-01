@@ -33,15 +33,6 @@ type GroundedDockInput = {
   inset?: number;
 };
 
-type StageAnchorInput = {
-  currentX: number;
-  viewportWidth: number;
-  avatarWidth: number;
-  gap: number;
-  target: AvatarTargetBounds;
-  obstacles: readonly AvatarTargetBounds[];
-};
-
 type SwimmingDocksInput = {
   target: StageBounds;
   viewport: Pick<AvatarStageViewport, "width" | "height">;
@@ -131,40 +122,6 @@ export function selectGroundedDock(input: GroundedDockInput): AvatarStagePoint |
         left.distance - right.distance ||
         left.point.x - right.point.x,
     )[0]?.point ?? null;
-}
-
-/** @deprecated The controller migrates to selectGroundedDock with its next path update. */
-export function selectStageAnchor(input: StageAnchorInput) {
-  const halfWidth = input.avatarWidth / 2;
-  const inset = halfWidth + 8;
-  const candidates = [
-    input.target.left - input.gap - halfWidth,
-    input.target.right + input.gap + halfWidth,
-  ].map((center) => clampViewportPoint(center, input.viewportWidth, inset));
-
-  return candidates
-    .map((center) => {
-      const overlaps = [input.target, ...input.obstacles]
-        .filter((obstacle) => obstacle.inViewport)
-        .map((obstacle) => Math.max(
-          0,
-          Math.min(center + halfWidth, obstacle.right) - Math.max(center - halfWidth, obstacle.left),
-        ))
-        .filter((width) => width > 0);
-      return {
-        center,
-        overlapCount: overlaps.length,
-        overlapWidth: overlaps.reduce((total, width) => total + width, 0),
-        distance: Math.abs(center - input.currentX),
-      };
-    })
-    .sort(
-      (left, right) =>
-        left.overlapCount - right.overlapCount ||
-        left.overlapWidth - right.overlapWidth ||
-        left.distance - right.distance ||
-        left.center - right.center,
-    )[0]!.center;
 }
 
 export function targetSwimmingDocks(input: SwimmingDocksInput): AvatarStagePoint[] {

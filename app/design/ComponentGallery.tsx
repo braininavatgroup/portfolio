@@ -240,7 +240,6 @@ function ChatStates() {
             <PortfolioChat
               askPortfolio={galleryAskPortfolio}
               onOpenChange={setOpen}
-              onPoseChange={noop}
               open={open}
               renderTurnstile={galleryRenderTurnstile}
             />

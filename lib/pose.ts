@@ -6,12 +6,6 @@ export type PoseState =
   | "building"
   | "thinking";
 
-export type PoseReply = {
-  text: string;
-  href: string;
-  linkLabel: string;
-};
-
 const keywordGroups: Array<{ pose: PoseState; words: string[] }> = [
   {
     pose: "music",
@@ -40,35 +34,3 @@ export function classifyPose(input: string): PoseState {
   return "listening";
 }
 
-const replies: Record<Exclude<PoseState, "idle">, PoseReply> = {
-  music: {
-    text: "The pitching chain is the clearest place to see taste modeled without removing the human approval step.",
-    href: "/index/pitching",
-    linkLabel: "Open the pitching chain",
-  },
-  systems: {
-    text: "The real-estate deal tracker shows an ambiguous process translated into a schema inside familiar tools.",
-    href: "/index/real-estate",
-    linkLabel: "Open the deal tracker",
-  },
-  building: {
-    text: "Writ and Yoohoo show two different stages: one signed and notarized for daily personal use, the other specified but unbuilt.",
-    href: "/index/writ",
-    linkLabel: "Open In Production",
-  },
-  thinking: {
-    text: "The personal operating system shows where product judgment becomes a contract another agent can execute and review.",
-    href: "/index/personal-os",
-    linkLabel: "Open the personal operating system",
-  },
-  listening: {
-    text: "The index is the fastest overview of the threads and everything on the map.",
-    href: "/index",
-    linkLabel: "Browse the index",
-  },
-};
-
-export function poseReply(input: string, pose = classifyPose(input)): PoseReply {
-  if (pose === "idle") return replies.listening;
-  return replies[pose];
-}

@@ -13,7 +13,7 @@ meaningful beat so the avatar can react. State shows as `data-open` and
 
 ## Props
 
-`onPoseChange` is the only required prop. `open`/`onOpenChange` make it
+No prop is required. `open`/`onOpenChange` make it
 controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
 and `renderTurnstile` are injection seams defaulting to the real transport and
 widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`,
@@ -48,7 +48,6 @@ export function PortfolioChatExample() {
           // `streamPortfolioAnswer` and the real Turnstile renderer.
           askPortfolio={galleryAskPortfolio}
           onOpenChange={setOpen}
-          onPoseChange={() => {}}
           open={open}
           renderTurnstile={galleryRenderTurnstile}
         />

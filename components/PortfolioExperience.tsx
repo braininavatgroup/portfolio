@@ -703,7 +703,6 @@ export function PortfolioExperience() {
       avatarIntegration={avatarIntegration}
       onLayoutChange={refreshAssistantHome}
       onOpenChange={setAssistantVisibility}
-      onPoseChange={() => {}}
       open={assistantOpen}
       registerAvatarTarget={registerAvatarTarget}
       turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}

@@ -154,7 +154,6 @@ export function PortfolioChatExample() {
           // `streamPortfolioAnswer` and the real Turnstile renderer.
           askPortfolio={galleryAskPortfolio}
           onOpenChange={setOpen}
-          onPoseChange={() => {}}
           open={open}
           renderTurnstile={galleryRenderTurnstile}
         />
