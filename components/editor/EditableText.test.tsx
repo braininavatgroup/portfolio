@@ -94,6 +94,24 @@ describe("EditableText", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("sends no save when a field is entered and left unchanged", async () => {
+    await activateWithSession();
+    render(<EditableText path="records.pitching.kind" value="Music promotions systems" />);
+    const editable = await findEditable("records.pitching.kind");
+    vi.useFakeTimers();
+    fireEvent.focus(editable);
+    fireEvent.blur(editable);
+    // Type a change and undo it before the debounce fires: still no save.
+    editable.textContent = "Music promotions systemsX";
+    fireEvent.input(editable);
+    editable.textContent = "Music promotions systems";
+    fireEvent.input(editable);
+    await vi.advanceTimersByTimeAsync(2000);
+    fireEvent.blur(editable);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // the session fetch only
+  });
+
   it("restores the last saved value on Escape", async () => {
     await activateWithSession();
     render(<EditableText path="records.bradley.summary" value="Base summary" />);

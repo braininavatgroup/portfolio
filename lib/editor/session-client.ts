@@ -3,7 +3,11 @@
 // endpoint literals reach a production bundle.
 
 import { normalizeContentValue } from "../portfolio-content-schema";
-import { markEditorValueSaved, setEditorStatus } from "./editor-store";
+import {
+  editorStatus,
+  markEditorValueSaved,
+  setEditorStatus,
+} from "./editor-store";
 
 const ENDPOINT_BASE = "/__portfolio-editor";
 export const SAVE_DEBOUNCE_MS = 900;
@@ -53,6 +57,14 @@ export async function initEditorSession(): Promise<SessionState | null> {
 
 export function markEditing() {
   setEditorStatus({ state: "editing" });
+}
+
+// Leaving a field without a real change returns the status line to idle
+// without disturbing a Saved/Committed report from an earlier edit.
+export function clearEditingStatus() {
+  if (editorStatus().state === "editing") {
+    setEditorStatus({ state: "idle" });
+  }
 }
 
 export function scheduleSave(path: string, value: string) {

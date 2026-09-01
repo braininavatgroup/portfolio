@@ -139,6 +139,19 @@ describe("applyContentEdit", () => {
     expect(doc.records.bradley.summary).not.toBe("A fresh summary.");
   });
 
+  it("treats an identical value as a no-op that keeps the revision", () => {
+    const doc = document();
+    const result = applyContentEdit(doc, {
+      path: "records.bradley.summary",
+      value: doc.records.bradley.summary,
+      revision: doc.revision,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.unchanged).toBe(true);
+    expect(result.document.revision).toBe(doc.revision);
+  });
+
   it("rejects an edit based on an old revision without applying it", () => {
     const doc = document();
     const result = applyContentEdit(doc, {

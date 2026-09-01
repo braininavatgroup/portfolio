@@ -23,6 +23,7 @@ import {
 } from "../../lib/editor/editor-store";
 import {
   cancelScheduledSave,
+  clearEditingStatus,
   markEditing,
   saveNow,
   scheduleSave,
@@ -97,14 +98,27 @@ export default function ActiveEditableText({
     return draft;
   };
 
+  // The last value the server holds for this path. Clicking into text and
+  // leaving it unchanged must not produce a save or a commit.
+  const persistedValue = () => editorSavedValue(path) ?? value;
+
   const handleInput = (event: { currentTarget: EventTarget & HTMLElement }) => {
     markEditing();
     const draft = commitDraft(event.currentTarget);
+    if (draft === persistedValue()) {
+      cancelScheduledSave(path);
+      return;
+    }
     scheduleSave(path, draft);
   };
 
   const handleBlur = (event: FocusEvent<HTMLElement>) => {
     const draft = commitDraft(event.currentTarget);
+    if (draft === persistedValue()) {
+      cancelScheduledSave(path);
+      clearEditingStatus();
+      return;
+    }
     saveNow(path, draft);
   };
 
@@ -121,6 +135,10 @@ export default function ActiveEditableText({
     if (event.key === "Enter" && !multiline) {
       event.preventDefault();
       const draft = commitDraft(event.currentTarget);
+      if (draft === persistedValue()) {
+        cancelScheduledSave(path);
+        return;
+      }
       saveNow(path, draft);
     }
   };

@@ -93,6 +93,30 @@ describe("PortfolioWritingRuntime", () => {
     expect(onDisk.revision).toBe(realContent.revision + 1);
   });
 
+  it("treats an unchanged value as a no-op: no revision bump, no commit", async () => {
+    const repo = createRepo();
+    const runtime = await createRuntime(repo, 20);
+    const before = git(repo, "rev-parse", "HEAD");
+    const result = await runtime.save(
+      {
+        path: "records.bradley.summary",
+        value: realContent.records.bradley.summary,
+        revision: realContent.revision,
+      },
+      requestContext(runtime),
+    );
+    expect(result).toMatchObject({
+      status: 200,
+      body: { revision: realContent.revision, save: "unchanged" },
+    });
+    await runtime.flush();
+    expect(git(repo, "rev-parse", "HEAD")).toBe(before);
+    const onDisk = JSON.parse(
+      readFileSync(path.join(repo, "content/portfolio-content.json"), "utf8"),
+    );
+    expect(onDisk.revision).toBe(realContent.revision);
+  });
+
   it("rejects a stale revision without touching disk", async () => {
     const repo = createRepo();
     const runtime = await createRuntime(repo, 60_000);

@@ -42,6 +42,12 @@ export default function CanvasLabelEditor({
   const save = () => {
     const value = draft.replace(/[\r\n]+/g, " ");
     setEditorOverride(anchor.path, value);
+    // An untouched label is a no-op: close without saving or committing.
+    if (value === (editorSavedValue(anchor.path) ?? anchor.base)) {
+      cancelScheduledSave(anchor.path);
+      close();
+      return;
+    }
     saveNow(anchor.path, value);
     close();
   };

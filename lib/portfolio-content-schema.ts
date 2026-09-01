@@ -574,7 +574,7 @@ export function normalizeContentValue(path: string, value: string): string {
 }
 
 export type ContentEditResult =
-  | { ok: true; document: PortfolioContentDocument }
+  | { ok: true; unchanged?: boolean; document: PortfolioContentDocument }
   | {
       ok: false;
       code: "invalid-path" | "invalid-value" | "stale-revision";
@@ -626,6 +626,12 @@ export function applyContentEdit(
       code: "invalid-value",
       message: "value must not contain control characters",
     };
+  }
+
+  // A value identical to the current one is a no-op: the revision must not
+  // advance and nothing should be written or committed for it.
+  if (resolved.read(document) === value) {
+    return { ok: true, unchanged: true, document };
   }
 
   const next = structuredClone(document);

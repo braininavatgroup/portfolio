@@ -209,6 +209,13 @@ export class PortfolioWritingRuntime {
       };
     }
 
+    if (result.unchanged) {
+      return {
+        status: 200,
+        body: { revision: this.revision, save: "unchanged", commit: "none" },
+      };
+    }
+
     try {
       await this.writeAtomically(result.document);
     } catch (error) {
