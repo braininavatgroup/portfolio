@@ -9,15 +9,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { AvatarController } from "../lib/avatar/controller";
-import { AvatarDirector } from "../lib/avatar/director";
 import type {
   AvatarTargetId,
   PortfolioResponseEffects,
   ProjectAvatarTargetId,
 } from "../lib/avatar/contracts";
-import { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
-import { AvatarTargetRegistry } from "../lib/avatar/target-registry";
+import { createAvatarStageServices } from "../lib/avatar/stage-services";
 import type { AvatarObstacleId } from "../lib/avatar/target-registry";
 import { isExactShiftShortcut } from "../lib/dom-keyboard";
 import { domains, type DomainId } from "../lib/portfolio";
@@ -147,19 +144,12 @@ export function PortfolioExperience() {
       import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get("avatarDebug") === "1",
   );
-  const [avatarRegistry] = useState(() => new AvatarTargetRegistry());
-  const [avatarController] = useState(
-    () => new AvatarController(avatarRegistry),
-  );
-  const [avatarRunner] = useState(
-    () =>
-      new AvatarSequenceRunner((command, signal) =>
-        avatarController.execute(command, signal),
-      ),
-  );
-  const [avatarDirector] = useState(
-    () => new AvatarDirector(avatarController, avatarRunner, avatarRegistry),
-  );
+  const [{
+    controller: avatarController,
+    director: avatarDirector,
+    registry: avatarRegistry,
+    runner: avatarRunner,
+  }] = useState(createAvatarStageServices);
   const [avatarActionState] = useState(
     () => new PortfolioAvatarActionState(),
   );

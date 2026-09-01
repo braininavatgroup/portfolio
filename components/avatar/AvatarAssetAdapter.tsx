@@ -15,8 +15,6 @@ import {
   avatarCrossfadeSeconds,
   avatarPlaybackRate,
 } from "../../lib/avatar/render-motion";
-import { attachBradleyGlasses } from "./bradley-glasses";
-import { ProceduralAvatar } from "./ProceduralAvatar";
 
 type AvatarPoseProps = Pick<
   AvatarSnapshot,
@@ -125,24 +123,11 @@ export function combineAnimationClips(
   ];
 }
 
-export function getGlbModelUrl(asset: Pick<typeof avatarAsset, "kind" | "modelUrl">) {
-  return asset.kind === "gltf" ? asset.modelUrl : null;
-}
-
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
   facing: AvatarSnapshot["facing"],
 ) {
   return getAvatarYaw(forwardAxis, facing);
-}
-
-export function getAnimationMixerTime(
-  elapsedSeconds: number,
-  targetFrameRate: typeof avatarAsset.targetFrameRate,
-) {
-  if (targetFrameRate === null) return elapsedSeconds;
-  const frameDuration = 1 / targetFrameRate;
-  return Math.floor(elapsedSeconds / frameDuration) * frameDuration;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -172,7 +157,7 @@ function GlbAvatar({
     () => combineAnimationClips(model.animations, motionLibrary.animations),
     [model.animations, motionLibrary.animations],
   );
-  const { actions, mixer } = useAnimations(animationClips, root);
+  const { actions } = useAnimations(animationClips, root);
   const playbackRate = avatarPlaybackRate(tone, avatarAsset.playbackRate);
   const ambientAmplitude = avatarAmbientAmplitude(tone, reducedMotion);
   const modelOriginY = getAvatarModelOriginY(
@@ -201,40 +186,10 @@ function GlbAvatar({
         modelOriginY +
         Math.sin(clock.elapsedTime * 1.7) * ambientAmplitude * 0.45;
     }
-    if (avatarAsset.targetFrameRate !== null) {
-      mixer.setTime(
-        getAnimationMixerTime(clock.elapsedTime, avatarAsset.targetFrameRate) *
-          playbackRate,
-      );
-    }
   });
 
   useEffect(() => {
-    return attachBradleyGlasses(scene, avatarAsset.glasses);
-  }, [scene]);
-
-  useEffect(() => {
     return applyBradleySolidMaterial(scene, bradleySolidColor);
-  }, [scene]);
-
-  useEffect(() => {
-    if (!avatarAsset.flatShading && !avatarAsset.nearestTexture) return;
-    scene.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      for (const material of materials) {
-        if (material.map) {
-          material.map.colorSpace = THREE.SRGBColorSpace;
-          if (avatarAsset.nearestTexture) {
-            material.map.magFilter = THREE.NearestFilter;
-            material.map.minFilter = THREE.NearestFilter;
-          }
-          material.map.needsUpdate = true;
-        }
-        material.flatShading = avatarAsset.flatShading;
-        material.needsUpdate = true;
-      }
-    });
   }, [scene]);
 
   useEffect(() => {
@@ -267,20 +222,15 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
     stageScale,
     ...pose
   } = props;
-  const avatar = avatarAsset.kind === "procedural" ? (
-    <ProceduralAvatar {...pose} />
-  ) : (() => {
-    const modelUrl = getGlbModelUrl(avatarAsset);
-    return modelUrl ? (
+  return (
+    <group scale={getAvatarStageScale(stageScale)}>
       <GlbAvatar
         {...pose}
         anchor={anchor}
-        modelUrl={modelUrl}
-        motionUrl={avatarAsset.motionUrl ?? modelUrl}
+        modelUrl={avatarAsset.modelUrl}
+        motionUrl={avatarAsset.motionUrl}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
       />
-    ) : null;
-  })();
-
-  return <group scale={getAvatarStageScale(stageScale)}>{avatar}</group>;
+    </group>
+  );
 }

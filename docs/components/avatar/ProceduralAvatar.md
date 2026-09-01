@@ -3,14 +3,15 @@
 Source: [`components/avatar/ProceduralAvatar.tsx`](../../../components/avatar/ProceduralAvatar.tsx) ·
 Gallery: `/design#avatar`
 
-The fallback rig: a capsule-and-icosahedron figure built from Three.js
+A capsule-and-icosahedron figure built from Three.js
 primitives, with no downloaded model behind it. Each allowed animation id maps
 to one of nine authored joint poses, and `useFrame` lerps the joints toward
 that pose while adding stride, talk and ambient sway derived from the tone via
-[`lib/avatar/render-motion.ts`](../../../lib/avatar/render-motion.ts). It lets
-the avatar appear before — or instead of — the GLB, and is what
-[`AvatarAssetAdapter`](./AvatarAssetAdapter.md) renders when
-`avatarAsset.kind` is `"procedural"`.
+[`lib/avatar/render-motion.ts`](../../../lib/avatar/render-motion.ts). It is **not** a runtime fallback: the swappable-renderer switch it hung from
+was deleted once nothing wired it to a load failure, so this renders only in
+the `/design` gallery and in the cheat-sheet examples. Reinstating it as a
+fallback means wiring it to `controller.markFailed()`, not restoring a config
+flag.
 
 ## Props
 

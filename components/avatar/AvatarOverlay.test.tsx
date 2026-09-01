@@ -79,15 +79,16 @@ describe("AvatarOverlay", () => {
 
     const overlay = container.querySelector<HTMLElement>(".avatar-overlay");
     const canvas = screen.getByTestId("avatar-canvas");
-    expect(overlay?.getAttribute("style")).toContain("pointer-events: none");
+    // pointer-events lives in globals.css now (Rule 5.3: inline style is for
+    // values only JavaScript can know). Assert the class that carries it.
+    expect(overlay?.className).toContain("avatar-overlay");
     expect(overlay?.style.left).toBe("");
-    expect(overlay?.style.pointerEvents).toBe("none");
+    expect(overlay?.className).toContain("avatar-overlay");
     expect(canvas.getAttribute("data-orthographic")).toBe("true");
     // Some authored clips move hundreds of world units along their root Z track.
     // Keep the orthographic camera beyond them so those poses cannot cross its plane.
     expect(Number(canvas.getAttribute("data-camera-z"))).toBeGreaterThan(400);
     expect(canvas.getAttribute("aria-hidden")).toBe("true");
-    expect((canvas as HTMLElement).style.pointerEvents).toBe("none");
   });
 
   it("keeps the canvas mounted when controller travel changes", () => {

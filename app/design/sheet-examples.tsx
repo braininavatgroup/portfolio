@@ -31,10 +31,7 @@ import { ProceduralAvatar } from "../../components/avatar/ProceduralAvatar";
 import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToyboxBoundary";
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
-import { AvatarController } from "../../lib/avatar/controller";
-import { AvatarDirector } from "../../lib/avatar/director";
-import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
+import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import {
   createMemoryStorage,
@@ -240,13 +237,7 @@ export function AvatarStageActorExample() {
 export function AvatarOverlayExample() {
   // The five services, built once, exactly as PortfolioExperience builds them.
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    return { controller, director, registry, runner };
+    return createAvatarStageServices();
   });
   const [enabled, setEnabled] = useState(true);
   const registerStage = useCallback(
@@ -277,13 +268,7 @@ export function AvatarOverlayExample() {
 // #example:AvatarDirectorConsole
 export function AvatarDirectorConsoleExample() {
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    return { controller, director, registry, runner };
+    return createAvatarStageServices();
   });
 
   // In the composition this is reached through `AvatarOverlay`'s

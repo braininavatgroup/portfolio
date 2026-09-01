@@ -8,9 +8,7 @@ The shipped avatar. It reads
 `gltf` configuration, loads `/avatars/bradley-meshy-rigged.glb` plus the
 separate motion library `/avatars/bradley-motion-library.glb`, merges the clip
 sets, and drives them through `useAnimations` with a tone-derived playback rate
-and crossfade. When the config says `procedural` it renders
-[`ProceduralAvatar`](./ProceduralAvatar.md) instead — the seam that keeps the
-fallback real. The module also exports the pure helpers its test pins.
+and crossfade. The module also exports the pure helpers its test pins.
 
 ## Props
 
@@ -67,5 +65,3 @@ export function AvatarAssetAdapterExample() {
   animation is absent — stopping the avatar rendering and blocking the toybox.
 - **The scene is cloned per instance** (`cloneSkeleton`) while `useGLTF` caches
   the source: two adapters share the download, not the skeleton.
-- **`glasses` is `null` in the current config**, so `attachBradleyGlasses` is a
-  no-op today.

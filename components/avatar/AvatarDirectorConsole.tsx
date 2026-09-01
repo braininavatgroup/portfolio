@@ -1,5 +1,7 @@
 "use client";
 
+import "./avatar-director-console.css";
+
 import {
   useCallback,
   useEffect,

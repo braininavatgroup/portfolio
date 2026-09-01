@@ -272,11 +272,14 @@ whichever region the avatar is pointing at. Never a `.is-` or `.active` class.
 no CSS nesting is used. Related one-line rules may be written on a single line
 where the file already does so.
 
-**Rule 5.7** — There is one responsive breakpoint in the composition: **900px**
+**Rule 5.7** — The composition's breakpoint is **900px**
 (`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
 sizing), plus a 600px block for phone-scale safe-area insets and a
 `max-height: 820px and (pointer: fine)` block for short desktop windows. The
-760px and 980px breakpoints belong to legacy pages. Do not add a new breakpoint.
+980px breakpoint belongs to legacy pages. 760px is shared: it is a legacy
+breakpoint that also carries a handful of composition header and chat rules,
+predating the checkpoint — read it before touching the header at phone widths,
+and do not add to it. Do not add a new breakpoint.
 
 **Rule 5.8** — The house focus treatment is
 `outline: 2px solid var(--ink); outline-offset: 2px`, and the composition now

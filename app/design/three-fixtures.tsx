@@ -13,10 +13,7 @@ import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToybo
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
 import { getOutputToken } from "../../components/scene/output-token-map";
-import { AvatarController } from "../../lib/avatar/controller";
-import { AvatarDirector } from "../../lib/avatar/director";
-import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
-import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
+import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import type { AllowedAnimation, AvatarTone } from "../../lib/avatar/contracts";
 import type { AvatarFacing } from "../../lib/avatar/orientation";
@@ -184,13 +181,7 @@ export function AvatarOverlayFixture() {
   const [enabled, setEnabled] = useState(true);
   const [debug, setDebug] = useState(false);
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    return { controller, director, registry, runner };
+    return createAvatarStageServices();
   });
 
   const registerStage = useCallback(

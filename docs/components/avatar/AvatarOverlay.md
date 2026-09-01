@@ -28,22 +28,13 @@ at full width instead of on the intended element.
 
 ```tsx
 import { AvatarOverlay } from "components/avatar/AvatarOverlay";
-import { AvatarController } from "lib/avatar/controller";
-import { AvatarDirector } from "lib/avatar/director";
-import { AvatarSequenceRunner } from "lib/avatar/sequence-runner";
-import { AvatarTargetRegistry } from "lib/avatar/target-registry";
+import { createAvatarStageServices } from "lib/avatar/stage-services";
 import { useCallback, useState } from "react";
 
 export function AvatarOverlayExample() {
   // The five services, built once, exactly as PortfolioExperience builds them.
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    return { controller, director, registry, runner };
+    return createAvatarStageServices();
   });
   const [enabled, setEnabled] = useState(true);
   const registerStage = useCallback(

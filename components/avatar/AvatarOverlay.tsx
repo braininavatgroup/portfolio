@@ -153,7 +153,6 @@ export function AvatarOverlay({
       <div
         className="avatar-overlay"
         data-avatar-state={snapshot.state}
-        style={{ pointerEvents: "none" }}
       >
         {renderAvatar ? (
           <RendererBoundary onFailure={() => controller.markFailed()}>
@@ -165,7 +164,6 @@ export function AvatarOverlay({
               frameloop={documentVisible ? "always" : "never"}
               gl={createManagedRenderer}
               orthographic
-              style={{ pointerEvents: "none" }}
             >
               <ambientLight intensity={1.6} />
               <directionalLight intensity={1.7} position={[2, 4, 3]} />

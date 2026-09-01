@@ -29,21 +29,12 @@ and `PortfolioExperience` flips `debug` from Shift+A or `?avatarDebug=1`.
 
 ```tsx
 import { AvatarDirectorConsole } from "components/avatar/AvatarDirectorConsole";
-import { AvatarController } from "lib/avatar/controller";
-import { AvatarDirector } from "lib/avatar/director";
-import { AvatarSequenceRunner } from "lib/avatar/sequence-runner";
-import { AvatarTargetRegistry } from "lib/avatar/target-registry";
+import { createAvatarStageServices } from "lib/avatar/stage-services";
 import { useState } from "react";
 
 export function AvatarDirectorConsoleExample() {
   const [services] = useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    return { controller, director, registry, runner };
+    return createAvatarStageServices();
   });
 
   // In the composition this is reached through `AvatarOverlay`'s
