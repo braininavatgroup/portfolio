@@ -222,3 +222,99 @@ describe("PortfolioWorld", () => {
     }
   });
 });
+
+/**
+ * The canvas paint path — `drawLinks` and `drawNode`, ~150 lines — was
+ * unreachable by the suite: jsdom returns null from `getContext`, so the render
+ * loop no-opped and a `throw` at the top of `drawLinks` passed every test. That
+ * is where the relationship-line colour was hard-coded past a discarded
+ * `getComputedStyle`, invisible to `[data-theme]`.
+ *
+ * These install a recording 2D context and a stubbed style resolver, so the
+ * paint runs and the colour it strokes with is observable.
+ */
+describe("PortfolioWorld canvas paint", () => {
+  function recordingContext() {
+    const record = {
+      strokeStyles: [] as string[],
+      fillStyles: [] as string[],
+      moveToCalls: 0,
+    };
+    const context = {
+      arc: () => {},
+      beginPath: () => {},
+      clearRect: () => {},
+      closePath: () => {},
+      drawImage: () => {},
+      fill: () => {},
+      fillText: () => {},
+      lineTo: () => {},
+      measureText: (value: string) => ({ width: value.length * 6.2 }),
+      moveTo: () => {
+        record.moveToCalls += 1;
+      },
+      restore: () => {},
+      save: () => {},
+      setTransform: () => {},
+      stroke: () => {},
+      set strokeStyle(value: string) {
+        record.strokeStyles.push(value);
+      },
+      set fillStyle(value: string) {
+        record.fillStyles.push(value);
+      },
+      font: "",
+      globalAlpha: 1,
+      lineWidth: 1,
+      textAlign: "center",
+      textBaseline: "middle",
+    };
+    return { context, record };
+  }
+
+  function paintWithConnector(connector: string) {
+    const { context, record } = recordingContext();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as unknown as CanvasRenderingContext2D,
+    );
+    const realComputedStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+      const style = realComputedStyle(element as Element);
+      return {
+        getPropertyValue: (property: string) =>
+          property === "--map-connector" ? connector : style.getPropertyValue(property),
+      } as CSSStyleDeclaration;
+    });
+
+    render(
+      <div className="portfolio-composition">
+        <PortfolioWorld
+          activeThreadId={null}
+          onReset={() => {}}
+          onSelect={() => {}}
+          selectedId={null}
+        />
+      </div>,
+    );
+
+    return record;
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("actually paints, and strokes connectors with the resolved token", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.moveToCalls).toBeGreaterThan(0);
+    expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
+  });
+
+  it("follows the token when the mode changes it", async () => {
+    const record = paintWithConnector("rgb(9, 8, 7)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.strokeStyles).toContain("rgb(9, 8, 7)");
+    expect(record.strokeStyles).not.toContain("#4f585d");
+  });
+});

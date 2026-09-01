@@ -8,7 +8,50 @@ async function readStylesheet() {
   return readFile(stylesheetUrl, "utf8");
 }
 
+/**
+ * Custom properties the stylesheet reads but deliberately does not declare,
+ * because JavaScript sets them inline. Each entry names the file that must
+ * still do so — an orphaned reader paints `transparent` in silence otherwise,
+ * which is exactly how three gallery specimens shipped painting nothing.
+ */
+const inlineSetTokens: Readonly<Record<string, string>> = {
+  "--cursor-a": "components/CursorInstrument.tsx",
+  "--cursor-b": "components/CursorInstrument.tsx",
+};
+
 describe("design token contract", () => {
+  it("resolves every custom property the stylesheet reads", async () => {
+    const stylesheet = await readStylesheet();
+    const declared = new Set(
+      [...stylesheet.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map(([, token]) => token),
+    );
+    const used = new Set(
+      [...stylesheet.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)].map(
+        ([, token]) => token,
+      ),
+    );
+
+    expect(used.size).toBeGreaterThan(0);
+    const unresolved = [...used].filter(
+      (token) => !declared.has(token) && !(token in inlineSetTokens),
+    );
+
+    expect(unresolved).toEqual([]);
+  });
+
+  it("keeps every inline-set token's setter alive", async () => {
+    for (const [token, source] of Object.entries(inlineSetTokens)) {
+      const setter = await readFile(
+        new URL(`../${source}`, import.meta.url),
+        "utf8",
+      );
+
+      expect(setter, `${source} no longer sets ${token}`).toContain(
+        `"${token}"`,
+      );
+    }
+  });
+
   it("keeps raw color values inside custom-property definitions", async () => {
     const stylesheet = await readStylesheet();
     const rootDefinitionsRemoved = stylesheet.replace(
