@@ -53,16 +53,16 @@ export function PortfolioHeader({
           value={portfolioInterfaceText["header.wordmark"]}
         />
       ) : (
-        <Link
+        <EditableText
+          as={Link}
           className="wordmark"
           href="/"
-          onClick={(event) => handleLocalNavigation(event, onBradleySelect)}
-        >
-          <EditableText
-            path="interface.header.wordmark"
-            value={portfolioInterfaceText["header.wordmark"]}
-          />
-        </Link>
+          onClick={(event: MouseEvent<HTMLAnchorElement>) =>
+            handleLocalNavigation(event, onBradleySelect)
+          }
+          path="interface.header.wordmark"
+          value={portfolioInterfaceText["header.wordmark"]}
+        />
       )}
       <nav aria-label="Portfolio views">
         {activeView === "map" ? (
@@ -73,15 +73,15 @@ export function PortfolioHeader({
             value={portfolioInterfaceText["header.mapLink"]}
           />
         ) : (
-          <Link
+          <EditableText
+            as={Link}
             href="/?view=graph"
-            onClick={(event) => handleLocalNavigation(event, onMapSelect)}
-          >
-            <EditableText
-              path="interface.header.mapLink"
-              value={portfolioInterfaceText["header.mapLink"]}
-            />
-          </Link>
+            onClick={(event: MouseEvent<HTMLAnchorElement>) =>
+              handleLocalNavigation(event, onMapSelect)
+            }
+            path="interface.header.mapLink"
+            value={portfolioInterfaceText["header.mapLink"]}
+          />
         )}
       </nav>
     </header>

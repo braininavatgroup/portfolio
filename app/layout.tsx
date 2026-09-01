@@ -43,12 +43,13 @@ export default function RootLayout({
         <CursorInstrument />
         <ContentEditorProvider>
           <div id="app-shell">
-            <a className="skip-link" href="#main-content">
-              <EditableText
-                path="interface.layout.skipLink"
-                value={portfolioInterfaceText["layout.skipLink"]}
-              />
-            </a>
+            <EditableText
+              as="a"
+              className="skip-link"
+              href="#main-content"
+              path="interface.layout.skipLink"
+              value={portfolioInterfaceText["layout.skipLink"]}
+            />
             {children}
           </div>
           <div id="avatar-toybox-root" />
