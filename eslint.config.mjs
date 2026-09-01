@@ -40,6 +40,7 @@ const eslintConfig = defineConfig([
   },
   {
     files: [
+      "app/design/three-fixtures.tsx",
       "components/scene/**/*.tsx",
       "components/avatar/**/*.tsx",
       "components/avatar-toybox/**/*.tsx",
