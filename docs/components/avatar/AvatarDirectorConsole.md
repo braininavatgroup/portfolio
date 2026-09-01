@@ -4,37 +4,49 @@ Source: [`components/avatar/AvatarDirectorConsole.tsx`](../../../components/avat
 Gallery: `/design#avatar` (behind the overlay's toggle) ·
 Tests: `components/avatar/AvatarDirectorConsole.test.tsx`
 
-A development-only control room for the avatar. Four tabs — Scenes, Target,
-Movement, Advanced — let you replay authored sequences, aim the avatar at any
-registered `AvatarTargetId`, drive it manually, apply tone presets, and run
-site actions through the `SiteActionExecutor`. The Target tab draws a live
-stage map from the registry: every registered target and obstacle, scaled into
-the current viewport, which is the fastest way to see why the avatar walked
-somewhere unexpected. Mounting it makes the avatar visible
-(`onEnabledChange(true)`).
+A development-only control room. Four tabs — Scenes, Target, Movement,
+Advanced — replay authored sequences, aim the avatar at any registered
+`AvatarTargetId`, drive it manually, apply tone presets, and run site actions.
+The Target tab draws a live stage map from the registry: every registered
+target and obstacle scaled into the viewport, which is the fastest way to see
+why the avatar walked somewhere unexpected.
 
 ## Props
 
-`controller`, `director`, `registry`, `runner`, `siteActionExecutor`, and
-`onEnabledChange` are required; `onExpandedPanelChange` and `reducedMotion` are
-optional. See
+`controller`, `director`, `registry`, `runner`, `siteActionExecutor` and
+`onEnabledChange` required; `onExpandedPanelChange` and `reducedMotion`
+optional — see
 [`AvatarDirectorConsoleProps`](../../../components/avatar/AvatarDirectorConsole.tsx).
 
 ## Requires
 
-The same five avatar services the composition builds, with targets actually
-registered — an empty registry makes the stage map and most of the Target tab
-inert. It is not mounted directly in the app: `AvatarOverlay` lazily imports it
-behind `import.meta.env.DEV && development && debug`, and
-`PortfolioExperience` flips `debug` from Shift+A or `?avatarDebug=1`.
+The five avatar services, with targets actually registered — an empty registry
+leaves the stage map and most of the Target tab inert. It is never mounted
+directly in the app: [`AvatarOverlay`](./AvatarOverlay.md) lazily imports it,
+and `PortfolioExperience` flips `debug` from Shift+A or `?avatarDebug=1`.
 
 ## Example
 
-Import: `import { AvatarDirectorConsole } from "./AvatarDirectorConsole";`
-
 ```tsx
+import { AvatarDirectorConsole } from "components/avatar/AvatarDirectorConsole";
+import { AvatarController } from "lib/avatar/controller";
+import { AvatarDirector } from "lib/avatar/director";
+import { AvatarSequenceRunner } from "lib/avatar/sequence-runner";
+import { SiteActionExecutor } from "lib/avatar/site-actions";
+import { AvatarTargetRegistry } from "lib/avatar/target-registry";
+import { useState } from "react";
+
 export function AvatarDirectorConsoleExample() {
-  const services = useAvatarServices();
+  const [services] = useState(() => {
+    const registry = new AvatarTargetRegistry();
+    const controller = new AvatarController(registry);
+    const runner = new AvatarSequenceRunner((command, signal) =>
+      controller.execute(command, signal),
+    );
+    const director = new AvatarDirector(controller, runner, registry);
+    const siteActionExecutor = new SiteActionExecutor(registry, {});
+    return { controller, director, registry, runner, siteActionExecutor };
+  });
 
   // In the composition this is reached through `AvatarOverlay`'s
   // `development` + `debug` props, never mounted directly.
@@ -54,13 +66,13 @@ export function AvatarDirectorConsoleExample() {
 ## Pitfalls
 
 - **It does not exist in a production build.** The import is
-  `import.meta.env.DEV ? lazy(...) : null`, so a production bundle has no
-  console and the toggle does nothing. That is intentional — do not "fix" the
-  toggle.
-- **Mounting it turns the avatar on**, and it keeps `enabled` in step with
-  `snapshot.visible` afterwards. It is not a passive inspector.
-- **`onExpandedPanelChange` exists so the avatar can walk around the panel.**
-  Skip it and the avatar will path straight through the console.
-- **Reduced motion changes the commands it issues** via
-  `adaptCommandsForReducedMotion`, so a sequence replayed under
-  `prefers-reduced-motion` is not the same sequence.
+  `import.meta.env.DEV ? lazy(…) : null`, so the toggle does nothing there.
+  Intentional — do not "fix" the toggle.
+- **Mounting it does not turn the avatar on.** `onEnabledChange` fires only
+  from its own reset and visibility controls; the `enabled`/`snapshot.visible`
+  sync lives in [`AvatarOverlay`](./AvatarOverlay.md), not here.
+- **`onExpandedPanelChange` is how the avatar avoids the panel.** Skip it and
+  the avatar paths straight through the console.
+- **Reduced motion rewrites the commands it issues** via
+  `adaptCommandsForReducedMotion`, so a replayed sequence is not the same
+  sequence.

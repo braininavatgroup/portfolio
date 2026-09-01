@@ -5,33 +5,31 @@ Gallery: `/design#toybox` · Tests: `components/avatar-toybox/useAvatarToyboxSes
 
 All of the toybox's state and physics, with no rendering. It owns the status
 machine (`closed → choosing → collecting | tossing → result`), the Brain Food
-body and its collectible layout, the toss body with drag and throw
-integration, the countdown, the score, the live-region announcement, and the
-modal's focus trap. It installs the Shift+G shortcut itself, gated on the
-`canOpen` predicate. The integration lives in
-[`lib/avatar-toybox/runtime.ts`](../../../lib/avatar-toybox/runtime.ts), which
-is where the pure physics is tested; this hook is the React lifetime around it.
+body and collectible layout, the toss body with drag and throw integration, the
+countdown, the score, the live-region announcement and the modal focus trap,
+and it installs the Shift+G shortcut itself. The pure physics lives in
+[`lib/avatar-toybox/runtime.ts`](../../../lib/avatar-toybox/runtime.ts); this
+hook is the React lifetime around it.
 
 ## Props (hook argument)
 
-`canOpen: () => boolean`, `collectibles: readonly ToyboxCollectible[]`, and
-`reducedMotion` are required; `onOpen` is optional. It returns an
+`canOpen`, `collectibles` and `reducedMotion` required; `onOpen` optional. It
+returns an
 [`AvatarToyboxSession`](../../../components/avatar-toybox/useAvatarToyboxSession.ts)
-— a plain snapshot plus event callbacks, designed to be passed whole to
+— a plain snapshot plus callbacks, designed to be passed whole to
 [`AvatarToyboxOverlay`](./AvatarToyboxOverlay.md).
 
 ## Requires
 
-A browser: it reads `window.innerWidth`/`innerHeight`, measures
-`.portfolio-world` to bound the play field, and puts `#app-shell` under `inert`
-while the modal is open. `#avatar-toybox-root` is needed by the overlay, not by
-the hook.
+`#app-shell` in the document — `openChooser` silently bails without it, because
+it takes an `inert` lease on that element. A viewport of at least **720×600**;
+below that it refuses to open and auto-closes on resize.
 
 ## Example
 
-Import: `import { useAvatarToyboxSession } from "./useAvatarToyboxSession";`
-
 ```tsx
+import { useAvatarToyboxSession } from "components/avatar-toybox/useAvatarToyboxSession";
+
 export function UseAvatarToyboxSessionExample() {
   const session = useAvatarToyboxSession({
     canOpen: () => true,
@@ -50,15 +48,15 @@ export function UseAvatarToyboxSessionExample() {
 
 ## Pitfalls
 
-- **`canOpen` is read at keypress time**, not at mount. In the composition it
-  returns false until the avatar has mounted and not failed — so on a machine
-  without WebGL the toybox is deliberately unreachable.
-- **The session takes over the page while open**: `#app-shell` is made `inert`
-  and `aria-hidden`, and focus is trapped in the dialog. Two sessions at once
-  fight over that lease.
-- **`collectibles` is re-read into a layout.** Passing a fresh array literal
-  every render churns the field; memoize it, as `PortfolioExperience` does.
-- **`reducedMotion` shortens or removes the animated phases** rather than
-  disabling the game.
-- **Shift+G is registered by the hook itself.** Calling the hook twice
-  registers the shortcut twice.
+- **`canOpen` does not gate on WebGL.** In the composition it reads an
+  `avatarMounted` flag set by an unconditional `setTimeout(…, 0)` plus
+  `!snapshot.failed`, and `failed` can only become true once the avatar canvas
+  has mounted — which needs the chat open. On a machine without WebGL the
+  toybox still opens; [`AvatarToyboxBoundary`](./AvatarToyboxBoundary.md) is
+  what catches the result.
+- **It takes over the page while open**: `#app-shell` goes `inert` and
+  `aria-hidden`, focus is trapped. Two sessions fight over that lease.
+- **A fresh `collectibles` array identity re-registers the modal's key
+  listeners**, because it re-creates `startCollecting`. It does not re-lay-out
+  an in-progress field. Memoize it anyway, as `PortfolioExperience` does.
+- **Shift+G is registered by the hook.** Calling it twice binds it twice.

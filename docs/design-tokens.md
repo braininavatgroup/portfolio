@@ -10,9 +10,8 @@ remains the source for the accepted visual direction.
 
 The accepted composition uses the mode-aware `--world-*`, `--reader-*`, and
 `--map-*` properties. Light values are the default. The dark values apply under
-`prefers-color-scheme: dark`. Tailwind exposes the semantic color properties as
-`bg-map-paper`, `text-ink`, `text-world-warm`, and the other `--color-*`
-mappings listed below.
+`prefers-color-scheme: dark`, and under `[data-theme]` on or above a
+`.portfolio-composition` — which is how `/design` shows both modes at once.
 
 The `--prototype-*` properties are an inventory of still-live CSS that predates
 the checkpoint. Their names describe current use only. Do not use them for new
@@ -50,6 +49,7 @@ collapsed into nearby colors.
 | --- | --- | --- |
 | `--map-paper-near-light: #d2d7db` | `--map-paper-near-dark: #211c18` | Near-paper world surfaces |
 | `--map-muted-light: #62676b` | `--map-muted-dark: #a69c92` | Map labels and secondary controls |
+| `--map-connector-light: #4f585d` | `--map-connector-dark: #a5afb5` | Canvas relationship lines. Opaque, because `PortfolioWorld` applies its own per-link alpha; the translucent `--map-line` would compound with it |
 | `--map-line-light: rgb(32 23 17 / 18%)` | `--map-line-dark: rgb(240 230 220 / 17%)` | Silverpoint rules |
 | `--map-line-strong-light: rgb(32 23 17 / 38%)` | `--map-line-strong-dark: rgb(240 230 220 / 34%)` | Strong rules and control outlines |
 | `--map-grid-light: rgb(32 23 17 / 3.5%)` | `--map-grid-dark: rgb(240 230 220 / 3.5%)` | Placeholder grids |
@@ -71,6 +71,7 @@ The live shadow tokens are not mode-switched: `--reader-stage-shadow`
 | `--map-paper` | `--map-silver` | `--map-paper-dark` | World background |
 | `--map-paper-near` | `--map-paper-near-light` | `--map-paper-near-dark` | Near-paper surfaces |
 | `--map-muted` | `--map-muted-light` | `--map-muted-dark` | Map secondary ink |
+| `--map-connector` | `--map-connector-light` | `--map-connector-dark` | Canvas relationship lines, read by `PortfolioWorld` through `getComputedStyle` |
 | `--map-line` | `--map-line-light` | `--map-line-dark` | Neutral relationship/rule treatment |
 | `--map-line-strong` | `--map-line-strong-light` | `--map-line-strong-dark` | Strong rule treatment |
 | `--map-grid` | `--map-grid-light` | `--map-grid-dark` | Placeholder grid |
@@ -106,74 +107,6 @@ The live shadow tokens are not mode-switched: `--reader-stage-shadow`
 | `--world-hit-area` | `34px` | World node button hit area | None |
 | `--cursor-size` | `34px` | Segmented cursor envelope | None |
 | `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile floating-control inset | None |
-
-## Tailwind theme
-
-`@theme inline` preserves the existing `--color-background`,
-`--color-foreground`, `--font-sans`, and `--font-mono` mappings. It also maps
-the semantic composition colors:
-
-| Tailwind token | CSS token |
-| --- | --- |
-| `--color-ink` | `--ink` |
-| `--color-map-muted` | `--map-muted` |
-| `--color-map-paper` | `--map-paper` |
-| `--color-map-paper-near` | `--map-paper-near` |
-| `--color-map-line` | `--map-line` |
-| `--color-map-line-strong` | `--map-line-strong` |
-| `--color-reader-paper` | `--reader-paper` |
-| `--color-reader-summary` | `--reader-summary` |
-| `--color-reader-body` | `--reader-body` |
-| `--color-reader-muted` | `--reader-muted` |
-| `--color-world-identity` | `--world-identity` |
-| `--color-world-story` | `--world-story` |
-| `--color-world-finding` | `--world-finding` |
-| `--color-world-warm` | `--world-warm` |
-| `--color-world-bridge` | `--world-bridge` |
-| `--color-world-cool` | `--world-cool` |
-
-The named palette and every supporting accepted color are available directly
-as utilities too:
-
-| Tailwind token | CSS token |
-| --- | --- |
-| `--color-map-silver` | `--map-silver` |
-| `--color-map-paper-dark` | `--map-paper-dark` |
-| `--color-map-paper-near-light` | `--map-paper-near-light` |
-| `--color-map-paper-near-dark` | `--map-paper-near-dark` |
-| `--color-map-muted-light` | `--map-muted-light` |
-| `--color-map-muted-dark` | `--map-muted-dark` |
-| `--color-map-line-light` | `--map-line-light` |
-| `--color-map-line-dark` | `--map-line-dark` |
-| `--color-map-line-strong-light` | `--map-line-strong-light` |
-| `--color-map-line-strong-dark` | `--map-line-strong-dark` |
-| `--color-map-grid-light` | `--map-grid-light` |
-| `--color-map-grid-dark` | `--map-grid-dark` |
-| `--color-reader-paper-light` | `--reader-paper-light` |
-| `--color-reader-paper-dark` | `--reader-paper-dark` |
-| `--color-reader-ink-light` | `--reader-ink-light` |
-| `--color-reader-ink-dark` | `--reader-ink-dark` |
-| `--color-reader-summary-light` | `--reader-summary-light` |
-| `--color-reader-summary-dark` | `--reader-summary-dark` |
-| `--color-reader-body-light` | `--reader-body-light` |
-| `--color-reader-body-dark` | `--reader-body-dark` |
-| `--color-reader-muted-light` | `--reader-muted-light` |
-| `--color-reader-muted-dark` | `--reader-muted-dark` |
-| `--color-reader-stage-shadow` | `--reader-stage-shadow` |
-| `--color-reader-media-shadow` | `--reader-media-shadow` |
-| `--color-reader-gallery-shadow` | `--reader-gallery-shadow` |
-| `--color-reader-assistant-shadow` | `--reader-assistant-shadow` |
-| `--color-reader-floating-control-shadow` | `--reader-floating-control-shadow` |
-| `--color-world-lichen` | `--world-lichen` |
-| `--color-world-acid` | `--world-acid` |
-| `--color-world-hard-red` | `--world-hard-red` |
-| `--color-world-signal-red` | `--world-signal-red` |
-| `--color-world-electric-pink` | `--world-electric-pink` |
-| `--color-world-hot-pink` | `--world-hot-pink` |
-| `--color-world-violet` | `--world-violet` |
-| `--color-world-violet-dark` | `--world-violet-dark` |
-| `--color-world-production-cyan` | `--world-production-cyan` |
-| `--color-world-production-cyan-dark` | `--world-production-cyan-dark` |
 
 ## Legacy prototype tokens
 
@@ -262,8 +195,11 @@ No light/dark pairing is implied unless both tokens appear in the same row.
 The WP1 scan also found production color literals in rendering code. They are
 not CSS declarations, so this pass records but does not rewrite them:
 
-- `components/PortfolioWorld.tsx` uses `#4F585D` / `#A5AFB5` for canvas label
-  contrast and `#201711` as the CSS-token read fallback.
+- `components/PortfolioWorld.tsx` uses `#201711` and `#4f585d` as CSS-token
+  read fallbacks only. The `#4F585D` / `#A5AFB5` pair this section previously
+  recorded was not label contrast — it was the relationship-line color, chosen
+  from `matchMedia` and so invisible to `[data-theme]`. It is now the
+  `--map-connector` token and is read through `getComputedStyle`.
 - `components/CursorInstrument.tsx` uses `#201711`, `#dfe8ee`, and `#ffffff`
   as color parsing/runtime fallbacks. Its normal colors still come from the
   active `--world-*` and `--ink` values.

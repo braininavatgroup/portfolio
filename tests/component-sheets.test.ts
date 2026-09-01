@@ -2,8 +2,10 @@ import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  composeExample,
   listSheets,
   readExampleRegions,
+  readImportBindings,
   readSheetExample,
 } from "../scripts/sync-component-sheets.mjs";
 
@@ -18,10 +20,13 @@ const componentsRoot = `${repositoryRoot}components`;
 const sheetsRoot = `${repositoryRoot}docs/components`;
 
 /**
- * `components/` holds three things that are not components: the two test
- * suites' fixtures live inline, `bradley-glasses.ts` builds Three.js geometry,
- * and `scene/output-token-map.ts` is a lookup table. Everything that renders
- * or is a public hook gets a sheet.
+ * The two modules under `components/` that are not components:
+ * `bradley-glasses.ts` builds Three.js geometry and `output-token-map.ts` is a
+ * lookup table. Everything that renders, or is a public hook, gets a sheet.
+ *
+ * The list is pinned to its exact contents below, because otherwise it is a
+ * one-line escape hatch: adding a component and adding its name here would
+ * silence the sheet-per-component gate with nothing objecting.
  */
 const unsheetedModules = new Set([
   "avatar/bradley-glasses.ts",
@@ -57,7 +62,19 @@ describe("component cheat-sheets", () => {
       path.replace(/\.tsx?$/, ".md"),
     );
 
+    expect(expected.length).toBeGreaterThan(0);
     expect(await sheetPaths()).toEqual(expected);
+  });
+
+  /**
+   * Pins the exclusion list so it cannot be quietly extended to silence the
+   * gate above. Changing it is then a deliberate edit to this assertion.
+   */
+  it("excludes only the two modules that are not components", () => {
+    expect([...unsheetedModules].sort()).toEqual([
+      "avatar/bradley-glasses.ts",
+      "scene/output-token-map.ts",
+    ]);
   });
 
   it("links a source file that still exists, from every sheet", async () => {
@@ -92,11 +109,16 @@ describe("component cheat-sheets", () => {
   });
 
   it("quotes its example verbatim from the compiled examples module", async () => {
-    const regions = readExampleRegions(
-      await readFile(`${repositoryRoot}app/design/sheet-examples.tsx`, "utf8"),
+    const source = await readFile(
+      `${repositoryRoot}app/design/sheet-examples.tsx`,
+      "utf8",
     );
+    const regions = readExampleRegions(source);
+    const bindings = readImportBindings(source);
+    const sheets = await sheetPaths();
 
-    for (const sheet of await sheetPaths()) {
+    expect(sheets.length).toBeGreaterThan(0);
+    for (const sheet of sheets) {
       const name = sheet.slice(sheet.lastIndexOf("/") + 1, -".md".length);
       const body = await readFile(`${sheetsRoot}/${sheet}`, "utf8");
 
@@ -107,7 +129,52 @@ describe("component cheat-sheets", () => {
       expect(
         readSheetExample(body),
         `${sheet} is out of date — run node scripts/sync-component-sheets.mjs`,
-      ).toBe(regions.get(name));
+      ).toBe(composeExample(regions.get(name), bindings));
+    }
+  });
+
+  /**
+   * The example is quoted with the imports it needs, so a reader can paste it.
+   * Assert that directly: the block must import the component the sheet is
+   * about, and every bare identifier it uses must be declared somewhere in the
+   * block. Before this, each sheet hand-wrote one `Import:` line, and twelve of
+   * sixteen examples referenced something that line never named.
+   */
+  it("gives each example every import it needs to be pasted", async () => {
+    for (const sheet of await sheetPaths()) {
+      const name = sheet.slice(sheet.lastIndexOf("/") + 1, -".md".length);
+      const block = readSheetExample(
+        await readFile(`${sheetsRoot}/${sheet}`, "utf8"),
+      );
+
+      expect(block, `${sheet} has no example`).not.toBeNull();
+      const imported = new Set(
+        [...block.matchAll(/^import\s+{([^}]*)}\s+from/gm)].flatMap(([, names]) =>
+          names.split(",").map((part: string) => part.trim()),
+        ),
+      );
+      const declared = new Set(
+        [...block.matchAll(/\b(?:function|const|let|class)\s+([A-Za-z_$][\w$]*)/g)].map(
+          ([, id]) => id,
+        ),
+      );
+
+      expect(
+        imported.has(name) || name.startsWith("use"),
+        `${sheet} never imports ${name}`,
+      ).toBe(true);
+
+      // Anything used as a JSX tag or a call must come from somewhere.
+      const referenced = [
+        ...block.matchAll(/<([A-Z][\w$]*)/g),
+        ...block.matchAll(/\bnew\s+([A-Z][\w$]*)/g),
+      ].map(([, id]) => id);
+      for (const id of new Set(referenced)) {
+        expect(
+          imported.has(id) || declared.has(id),
+          `${sheet} uses ${id} without importing or declaring it`,
+        ).toBe(true);
+      }
     }
   });
 
@@ -121,11 +188,22 @@ describe("component cheat-sheets", () => {
     }
   });
 
-  it("keeps every sheet under a page", async () => {
+  /**
+   * Caps the prose, not the file. The example block carries its own imports so
+   * it can be pasted, which makes total length a bad proxy for how much there
+   * is to read. What must stay skimmable is the writing around it.
+   */
+  it("keeps every sheet's prose under a page", async () => {
     for (const sheet of await sheetPaths()) {
       const body = await readFile(`${sheetsRoot}/${sheet}`, "utf8");
+      const prose = body
+        .replace(/^```tsx\n[\s\S]*?^```$/m, "")
+        .replace(/\n{2,}/g, "\n\n")
+        .trim();
 
-      expect(body.split("\n").length, `${sheet} is too long`).toBeLessThan(90);
+      expect(prose.split("\n").length, `${sheet} reads too long`).toBeLessThan(
+        46,
+      );
     }
   });
 
@@ -154,21 +232,35 @@ describe("gallery and sheet coverage", () => {
     const sheets = await sheetPaths();
     const galleryDirectory = `${repositoryRoot}app/design`;
     const sources = await Promise.all(
-      ["ComponentGallery.tsx", "DesignGallery.tsx", "three-fixtures.tsx"].map(
-        (file) => readFile(`${galleryDirectory}/${file}`, "utf8"),
-      ),
+      [
+        "ComponentGallery.tsx",
+        "DesignGallery.tsx",
+        "three-fixtures.tsx",
+        "TokenGallery.tsx",
+        "sheet-examples.tsx",
+      ].map((file) => readFile(`${galleryDirectory}/${file}`, "utf8")),
     );
 
+    // Both spellings. The gallery reaches its three heaviest fixtures through
+    // `lazy(() => import("../../components/…"))`, which has no `from` — so a
+    // `from`-only scan missed PortfolioExperience, the component the route goes
+    // to the most trouble to render.
+    const joined = sources.join("\n");
     const rendered = new Set(
-      sources
-        .join("\n")
-        .matchAll(/from "\.\.\/\.\.\/components\/([^"]+)"/g)
-        .map(([, path]) => path),
+      [
+        ...joined.matchAll(/from "\.\.\/\.\.\/components\/([^"]+)"/g),
+        ...joined.matchAll(/import\("\.\.\/\.\.\/components\/([^"]+)"\)/g),
+      ].map(([, path]) => path),
     );
 
     expect(rendered.size).toBeGreaterThan(0);
+    expect(rendered, "the lazy-import spelling is not being scanned").toContain(
+      "PortfolioExperience",
+    );
     for (const path of rendered) {
-      if (unsheetedModules.has(`${path}.ts`)) continue;
+      if ([...unsheetedModules].some((m) => m.replace(/\.tsx?$/, "") === path)) {
+        continue;
+      }
       expect(sheets, `the gallery renders ${path} with no sheet`).toContain(
         `${path}.md`,
       );

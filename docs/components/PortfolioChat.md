@@ -4,44 +4,44 @@ Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
 Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
 The portfolio assistant, and the only temporary floating surface on the site
-(design conventions Rule 6.5). Minimized it is a `--floating-control-size`
-(40px) trigger anchored bottom-right; open it is an `--assistant-panel-width`
-(18rem) panel whose header can be dragged to re-dock it. It streams an answer
-from [`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts),
-renders evidence pills from the grounding events, keeps a transcript through
-[`lib/portfolio-chat-conversation.ts`](../../lib/portfolio-chat-conversation.ts),
-and reports a `PoseState` on every meaningful beat so the avatar can react.
-State is published as `data-open` and `data-input-focused` on the dock.
+(Rule 6.5). Minimized it is a 40px trigger; open it is an 18rem panel whose
+header can be dragged to re-dock it. It streams an answer from
+[`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts), renders
+evidence pills, keeps a transcript, and reports a `PoseState` on every
+meaningful beat so the avatar can react. State shows as `data-open` and
+`data-input-focused`.
 
 ## Props
 
-`onPoseChange` is the only required prop. `open` / `onOpenChange` make it a
-controlled surface (`initiallyOpen` is the uncontrolled alternative);
-`askPortfolio` and `renderTurnstile` are injection seams that default to the
-real transport and the real widget; `turnstileSiteKey`, `avatarIntegration`,
-`registerAvatarTarget`, `spotlightTarget`, and `onLayoutChange` are optional.
-Full signature and
-[`PortfolioChatAvatarIntegration`](../../components/PortfolioChat.tsx) in the
-source.
+`onPoseChange` is the only required prop. `open`/`onOpenChange` make it
+controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
+and `renderTurnstile` are injection seams defaulting to the real transport and
+widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`,
+`spotlightTarget`, `onLayoutChange` optional.
 
 ## Requires
 
-A `.portfolio-composition` ancestor. With no `askPortfolio` override it calls
-the chat API, which needs the worker running and configured
-(`npm run setup:chat`). A `.design-stage`-style transformed, painted box is
-what lets its `position: fixed` dock render inside a card rather than escaping
-to the viewport.
+`.experience` **and** `.portfolio-composition` on an ancestor.
+`.experience .portfolio-chat` is what makes the dock `position: fixed`; under
+`.portfolio-composition` alone the legacy base rule wins and you get the
+centred, absolutely positioned prototype chat.
 
 ## Example
 
-Import: `import { PortfolioChat } from "./PortfolioChat";`
-
 ```tsx
+import { galleryAskPortfolio, galleryRenderTurnstile } from "app/design/fixtures";
+import { PortfolioChat } from "components/PortfolioChat";
+import { useState } from "react";
+
 export function PortfolioChatExample() {
   const [open, setOpen] = useState(false);
 
+  // `experience` is load-bearing, not decoration: `.experience .portfolio-chat`
+  // is what makes the dock `position: fixed`. Under `.portfolio-composition`
+  // alone the legacy base rule wins and you get the centred, absolutely
+  // positioned prototype chat instead.
   return (
-    <div className="portfolio-composition">
+    <div className="experience experience-graph portfolio-composition">
       <section className="scene-shell">
         <PortfolioChat
           // Omit both stubs in production: the defaults are
@@ -60,19 +60,13 @@ export function PortfolioChatExample() {
 
 ## Pitfalls
 
-- **Without `askPortfolio` it hits the network.** Any fixture, story, or test
-  that mounts it must pass a stub, or every question reaches the real chat
-  endpoint.
-- **`turnstileSiteKey` gates submission.** Supply it and no question is sent
-  until the challenge returns a token; supply it without a working
+- **Without `askPortfolio` it hits the chat API**, which needs the worker
+  running (`npm run setup:chat`). Any fixture or test must pass a stub.
+- **`turnstileSiteKey` gates submission.** Supply it without a working
   `renderTurnstile` and the composer is permanently blocked.
-- **`open` and `onOpenChange` are a pair.** Pass `open` without
-  `onOpenChange` and the panel can never be closed from inside — the
-  controlled value never changes.
-- **`onPoseChange` fires often** (focus, typing, first text, evidence,
-  completion). Passing an unstable inline handler that sets parent state
-  re-renders the panel mid-stream.
-- **The dock is `position: fixed`.** Outside a transformed containing block it
-  anchors to the viewport, not to its section.
-- **`avatarIntegration` callbacks may be async** and are awaited by the turn
-  lifecycle; a rejected promise surfaces as a failed turn, not a silent skip.
+- **`open` and `onOpenChange` are a pair.** Pass `open` alone and the panel can
+  never be closed from inside — the controlled value never changes.
+- **`avatarIntegration` rejections are swallowed.** Every callback runs through
+  `runAvatarWorkSafely`, which catches; avatar work is explicitly not allowed
+  to interrupt a turn. A failing integration is silent, not a failed turn.
+- **Dragging is refused at ≤900px**, where the dock is laid out differently.

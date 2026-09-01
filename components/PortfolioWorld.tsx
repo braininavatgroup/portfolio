@@ -1195,8 +1195,11 @@ function drawLinks(
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const style = getComputedStyle(world);
-  const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  const color = dark ? "#A5AFB5" : "#4F585D";
+  // Read from the composition rather than matchMedia: the connector must
+  // follow whatever mode the element is actually in, which is what lets the
+  // gallery's [data-theme] toggle move it. The literal stays only as the
+  // getComputedStyle fallback (design conventions, Rule 1.4).
+  const color = cssColor(style, "--map-connector", "#4f585d");
   const selected = selectedId ? byId.get(selectedId) : undefined;
   const isActive = (link: (typeof links)[number]) => {
     if (!selectedId || !selected) return false;
@@ -1214,7 +1217,6 @@ function drawLinks(
     return link.from === selectedId || link.to === selectedId;
   };
   void activeThreadId;
-  void style;
   for (const link of links) {
     const from = byId.get(link.from);
     const to = byId.get(link.to);

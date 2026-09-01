@@ -3,33 +3,32 @@
 Source: [`components/PortfolioAnalytics.tsx`](../../components/PortfolioAnalytics.tsx) ·
 Gallery: `/design#analytics` · Tests: `components/PortfolioAnalytics.test.tsx`
 
-Two exports for one concern: privacy-safe session replay. `PortfolioAnalytics`
-renders nothing — mounted in `app/layout.tsx`, it starts Microsoft Clarity via
-[`lib/portfolio-analytics.ts`](../../lib/portfolio-analytics.ts) (only on the
-hostnames that module allows), then reads the stored preference and revokes
-consent if it says `denied`. `PortfolioAnalyticsPreference` is the visible
-half: the single opt-out button `/privacy` renders. It writes
-`portfolio_analytics_consent` to storage and calls
+Two exports for one concern: privacy-safe session replay.
+`PortfolioAnalytics` renders nothing — mounted in `app/layout.tsx`, it starts
+Clarity via
+[`lib/portfolio-analytics.ts`](../../lib/portfolio-analytics.ts) on the
+hostnames that module allows, then revokes consent if the stored preference
+says `denied`. `PortfolioAnalyticsPreference` is the visible half: the opt-out
+button `/privacy` renders, which writes `portfolio_analytics_consent` and calls
 `setPrivacySafeReplayConsent` in the same action.
 
 ## Props
 
-Both take an optional `storage` — anything with `getItem`/`setItem`, defaulting
-to `window.localStorage`. `PortfolioAnalytics` also takes `hostname` (defaults
-to `window.location.hostname`) and `projectId` (defaults to
-`PUBLIC_CLARITY_PROJECT_ID`). Types in
-[the source](../../components/PortfolioAnalytics.tsx).
+Both take an optional `storage` (anything with `getItem`/`setItem`, defaulting
+to `window.localStorage`). `PortfolioAnalytics` also takes `hostname` and
+`projectId`.
 
 ## Requires
 
-A browser. Both components do all their work in effects, so they are safe to
-render on the server — they just do nothing there.
+Nothing. Both do all their work in effects, so they are safe to render on the
+server — they just do nothing there.
 
 ## Example
 
-Import: `import { PortfolioAnalytics, PortfolioAnalyticsPreference } from "./PortfolioAnalytics";`
-
 ```tsx
+import { createMemoryStorage } from "app/design/fixtures";
+import { PortfolioAnalytics, PortfolioAnalyticsPreference } from "components/PortfolioAnalytics";
+
 export function PortfolioAnalyticsExample() {
   return (
     <>
@@ -48,13 +47,12 @@ export function PortfolioAnalyticsExample() {
 
 ## Pitfalls
 
-- **`PortfolioAnalyticsPreference` renders `null` on the first paint.** It
-  reads storage in a `setTimeout(…, 0)` to keep hydration clean, so the button
-  appears one tick late. Do not lay out around it as if it were always there.
-- **The consent key is shared** (`portfolio_analytics_consent`). Passing a
-  memory `storage` to one export and not the other splits the preference.
-- **Storage access is wrapped in `try`/`catch`** — private browsing modes
-  throw. The in-memory preference is still applied; persistence is what is
-  lost.
-- **`storage` is an effect dependency.** Passing a fresh object literal every
-  render re-runs the effect each time; hoist it or memoize it.
+- **`PortfolioAnalyticsPreference` renders `null` on first paint.** It reads
+  storage in a `setTimeout(…, 0)` to keep hydration clean, so the button
+  arrives a tick late. Do not lay out around it as if it were always there.
+- **The consent key is shared.** Passing a memory `storage` to one export and
+  not the other splits the preference.
+- **Storage access is wrapped in `try`/`catch`** — private modes throw. The
+  in-memory preference still applies; persistence is what is lost.
+- **`storage` is an effect dependency.** A fresh object literal each render
+  re-runs the effect every time; hoist or memoize it.

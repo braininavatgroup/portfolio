@@ -60,6 +60,18 @@ describe("cheat-sheet examples", () => {
     expect(exampleNames).toHaveLength(16);
   });
 
+  /**
+   * `renderable` is derived by subtracting two hand-maintained arrays, so it
+   * can silently shrink to zero — and vitest reports `it.each([])` as a pass.
+   * Pin the count so deleting a mount is a failure, not a quiet no-op.
+   */
+  it("actually mounts ten examples", () => {
+    expect(renderable).toHaveLength(10);
+    expect(webglExamples.length + separatelyCovered.length + renderable.length).toBe(
+      exampleNames.length,
+    );
+  });
+
   it.each(renderable)("mounts %s", (name) => {
     const Example = (examples as Record<string, () => React.ReactNode>)[name];
 

@@ -44,20 +44,6 @@ import {
   galleryRenderTurnstile,
 } from "./fixtures";
 
-/** The services the avatar surfaces are constructed with, wired as the composition wires them. */
-function useAvatarServices() {
-  return useState(() => {
-    const registry = new AvatarTargetRegistry();
-    const controller = new AvatarController(registry);
-    const runner = new AvatarSequenceRunner((command, signal) =>
-      controller.execute(command, signal),
-    );
-    const director = new AvatarDirector(controller, runner, registry);
-    const siteActionExecutor = new SiteActionExecutor(registry, {});
-    return { controller, director, registry, runner, siteActionExecutor };
-  })[0];
-}
-
 // #example:CursorInstrument
 export function CursorInstrumentExample() {
   // Mounted once, in the root layout, outside the composition. It reads its
@@ -157,8 +143,12 @@ export function PortfolioWorldExample() {
 export function PortfolioChatExample() {
   const [open, setOpen] = useState(false);
 
+  // `experience` is load-bearing, not decoration: `.experience .portfolio-chat`
+  // is what makes the dock `position: fixed`. Under `.portfolio-composition`
+  // alone the legacy base rule wins and you get the centred, absolutely
+  // positioned prototype chat instead.
   return (
-    <div className="portfolio-composition">
+    <div className="experience experience-graph portfolio-composition">
       <section className="scene-shell">
         <PortfolioChat
           // Omit both stubs in production: the defaults are
@@ -190,8 +180,8 @@ export function ProceduralAvatarExample() {
     <Canvas camera={{ fov: 30, position: [0, 0, 4] }} gl={{ alpha: true }}>
       <ambientLight intensity={1.6} />
       <directionalLight intensity={1.7} position={[2, 4, 3]} />
-      {/* The rig stands on y=0 and is about 1.5 units tall, so drop it by half
-          its height to centre it on the camera target. */}
+      {/* The rig is about 1.85 units tall, ~1.71 of it above the origin, so
+          drop it to centre that mass on the camera target. */}
       <group position={[0, -0.76, 0]}>
         <ProceduralAvatar
           animation="idle_3"
@@ -250,7 +240,17 @@ export function AvatarStageActorExample() {
 
 // #example:AvatarOverlay
 export function AvatarOverlayExample() {
-  const services = useAvatarServices();
+  // The five services, built once, exactly as PortfolioExperience builds them.
+  const [services] = useState(() => {
+    const registry = new AvatarTargetRegistry();
+    const controller = new AvatarController(registry);
+    const runner = new AvatarSequenceRunner((command, signal) =>
+      controller.execute(command, signal),
+    );
+    const director = new AvatarDirector(controller, runner, registry);
+    const siteActionExecutor = new SiteActionExecutor(registry, {});
+    return { controller, director, registry, runner, siteActionExecutor };
+  });
   const [enabled, setEnabled] = useState(true);
   const registerStage = useCallback(
     (element: HTMLElement | null) => {
@@ -280,7 +280,16 @@ export function AvatarOverlayExample() {
 
 // #example:AvatarDirectorConsole
 export function AvatarDirectorConsoleExample() {
-  const services = useAvatarServices();
+  const [services] = useState(() => {
+    const registry = new AvatarTargetRegistry();
+    const controller = new AvatarController(registry);
+    const runner = new AvatarSequenceRunner((command, signal) =>
+      controller.execute(command, signal),
+    );
+    const director = new AvatarDirector(controller, runner, registry);
+    const siteActionExecutor = new SiteActionExecutor(registry, {});
+    return { controller, director, registry, runner, siteActionExecutor };
+  });
 
   // In the composition this is reached through `AvatarOverlay`'s
   // `development` + `debug` props, never mounted directly.

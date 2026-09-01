@@ -3,28 +3,28 @@
 Source: [`components/avatar-toybox/AvatarToyboxBoundary.tsx`](../../../components/avatar-toybox/AvatarToyboxBoundary.tsx) ·
 Gallery: `/design#toybox` (wraps the toybox fixture)
 
-A three-line React error boundary, the only class component in `components/`.
-It exists because the toybox mounts a WebGL canvas that can fail to construct
-on a machine or context that cannot give it one, and a throw there would
-otherwise take down the whole composition. On a caught error it renders nothing
-in place of its children, logs in development only, and calls `onFailure` — in
-practice `session.close(reason)`, which returns the page to normal instead of
-leaving a dead modal.
+A small React error boundary. It exists because the toybox mounts a WebGL
+canvas that can fail to construct, and a throw there would otherwise take down
+the composition around it. On a caught error it renders nothing in place of its
+children, logs in development only, and calls `onFailure` — in practice
+`session.close(reason)`, which returns the page to normal rather than leaving a
+dead modal.
 
 ## Props
 
-`children` and `onFailure: () => void`, both required. See
+`children` and `onFailure`, both required. See
 [the source](../../../components/avatar-toybox/AvatarToyboxBoundary.tsx).
 
 ## Requires
 
-Nothing. It is plain React with no context, tokens, or assets.
+Nothing. Plain React, no context, tokens or assets.
 
 ## Example
 
-Import: `import { AvatarToyboxBoundary } from "./AvatarToyboxBoundary";`
-
 ```tsx
+import { AvatarToyboxBoundary } from "components/avatar-toybox/AvatarToyboxBoundary";
+import { useState } from "react";
+
 export function AvatarToyboxBoundaryExample() {
   const [failed, setFailed] = useState(false);
 
@@ -41,14 +41,13 @@ export function AvatarToyboxBoundaryExample() {
 
 ## Pitfalls
 
-- **It only catches render-phase errors.** WebGL context loss, a rejected
-  async load, or an event-handler throw never reaches it —
-  [`AvatarOverlay`](../avatar/AvatarOverlay.md) handles the renderer-factory
-  case separately, through `controller.markFailed()`.
-- **It does not reset.** Once `failed`, the instance renders nothing forever;
-  recovery means remounting it (closing and reopening the session does that).
-- **`onFailure` must be idempotent-safe** — it is called from
-  `componentDidCatch`, which React may invoke while the tree is already
-  unwinding.
-- **It renders no fallback UI.** If a user-visible failure message is wanted,
-  the parent owns it.
+- **Render-phase errors only.** WebGL context loss, a rejected async load or an
+  event-handler throw never reach it. `AvatarOverlay` handles the
+  renderer-factory case separately through `controller.markFailed()`.
+- **It never resets.** Once failed, the instance renders nothing for good;
+  recovery means remounting, which closing and reopening the session does.
+- **It renders no fallback UI.** If a user-visible message is wanted, the
+  parent owns it.
+- **It is not the only error boundary here.** `RendererBoundary`, inside
+  [`AvatarOverlay`](../avatar/AvatarOverlay.md), does the same job for the
+  avatar canvas.

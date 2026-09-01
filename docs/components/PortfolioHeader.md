@@ -6,14 +6,14 @@ Gallery: `/design#header` · Tests: `components/PortfolioHeader.test.tsx`
 The wordmark plus one nav control ("Map"). Whichever view is active renders as
 plain text with `aria-current="page"` instead of a link, so the header never
 links to where you already are. Both links are real `next/link` anchors that
-navigate normally on modifier-click or middle-click; a plain left click is
-intercepted and handed to `onBradleySelect` / `onMapSelect` when those are
-supplied, which is how the composition changes view without a page load.
+navigate normally on modifier- or middle-click; a plain left click is
+intercepted and handed to `onBradleySelect` / `onMapSelect` when supplied,
+which is how the composition changes view without a page load.
 
 ## Props
 
-`activeView` (`"bradley" | "map" | "index"`), `overlay`, `obstacleRef`,
-`onBradleySelect`, `onMapSelect` — all optional. See
+`activeView`, `overlay`, `obstacleRef`, `onBradleySelect`, `onMapSelect` — all
+optional. See
 [`PortfolioHeaderProps`](../../components/PortfolioHeader.tsx).
 
 ## Requires
@@ -24,9 +24,9 @@ walks around it.
 
 ## Example
 
-Import: `import { PortfolioHeader } from "./PortfolioHeader";`
-
 ```tsx
+import { PortfolioHeader } from "components/PortfolioHeader";
+
 export function PortfolioHeaderExample() {
   // Flow layout, as on /index. `overlay` instead gives the absolutely
   // positioned variant the composition uses.
@@ -42,10 +42,10 @@ export function PortfolioHeaderExample() {
 
 - **`.portfolio-composition > .portfolio-header` is `display: none`.**
   `PortfolioExperience` renders the overlay variant and globals.css hides it,
-  so the composition shows no header today. Nesting it one level deeper is what
-  makes the variant reviewable at all — that is why the gallery's header
-  specimen does.
+  so the composition shows no header today. The gallery nests it one level
+  deeper to make the variant reviewable at all.
 - **The flow-layout variant belongs to `/index`**, inside `.flat-index`. It has
   no styling of its own inside the composition.
-- **Omitting `onMapSelect` is not a no-op** — the link then performs a real
-  navigation to `/?view=graph`.
+- **Omitting `onMapSelect` means a real navigation** to `/?view=graph`. In the
+  composition this never fires, because `activeView="map"` renders the Map
+  control as a `<span>`.

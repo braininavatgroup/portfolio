@@ -15,6 +15,8 @@
   --map-paper-near-dark: #211c18;
   --map-muted-light: #62676b;
   --map-muted-dark: #a69c92;
+  --map-connector-light: #4f585d;
+  --map-connector-dark: #a5afb5;
   --map-line-light: rgb(32 23 17 / 18%);
   --map-line-dark: rgb(240 230 220 / 17%);
   --map-line-strong-light: rgb(32 23 17 / 38%);
@@ -1428,6 +1430,7 @@ input:focus-visible {
   --reader-summary: var(--reader-summary-light);
   --reader-body: var(--reader-body-light);
   --reader-muted: var(--reader-muted-light);
+  --map-connector: var(--map-connector-light);
   --map-line: var(--map-line-light);
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
@@ -1463,6 +1466,7 @@ input:focus-visible {
     --reader-summary: var(--reader-summary-dark);
     --reader-body: var(--reader-body-dark);
     --reader-muted: var(--reader-muted-dark);
+    --map-connector: var(--map-connector-dark);
     --map-line: var(--map-line-dark);
     --map-line-strong: var(--map-line-strong-dark);
     --map-grid: var(--map-grid-dark);
@@ -1474,6 +1478,24 @@ input:focus-visible {
     --world-cool: var(--world-production-cyan-dark);
     color-scheme: dark;
   }
+}
+
+/* The composition's default focus ring (design conventions, Rule 5.8). Without
+   this, any composition control lacking its own :focus-visible rule fell
+   through to the unscoped `a, button, input:focus-visible` legacy rules above
+   and drew a 3px --prototype-focus-outline-light ring — an olive that is not
+   in the checkpoint palette — on .reader-index-row and .portfolio-chat-trigger
+   among others, which also broke Rule 6.1 ("selection introduces no new
+   color"). Scoped with :where() so it carries no specificity: it beats those
+   unscoped rules on source order alone, and every composition rule that sets
+   its own treatment — the 1px world node, the 3px-offset floating controls —
+   still wins. */
+:where(.portfolio-composition) a:focus-visible,
+:where(.portfolio-composition) button:focus-visible,
+:where(.portfolio-composition) input:focus-visible,
+:where(.portfolio-composition) textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* The document behind the composition must match its paper, or iOS Safari
@@ -2972,6 +2994,7 @@ body:has(.portfolio-composition) {
   --reader-summary: var(--reader-summary-light);
   --reader-body: var(--reader-body-light);
   --reader-muted: var(--reader-muted-light);
+  --map-connector: var(--map-connector-light);
   --map-line: var(--map-line-light);
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
@@ -2995,6 +3018,7 @@ body:has(.portfolio-composition) {
   --reader-summary: var(--reader-summary-dark);
   --reader-body: var(--reader-body-dark);
   --reader-muted: var(--reader-muted-dark);
+  --map-connector: var(--map-connector-dark);
   --map-line: var(--map-line-dark);
   --map-line-strong: var(--map-line-strong-dark);
   --map-grid: var(--map-grid-dark);

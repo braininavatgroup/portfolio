@@ -3,37 +3,31 @@
 Source: [`components/PortfolioExperience.tsx`](../../components/PortfolioExperience.tsx) ·
 Gallery: `/design#composition` · Tests: `components/PortfolioExperience.test.tsx`
 
-The whole accepted composition in one component: it renders the `<main
-class="experience experience-graph portfolio-composition">` root and owns
-everything under it — header, world, reader, chat, the avatar overlay, and the
-toybox. It also owns all the shared state those pieces read: selection, active
-thread, the open visual, mobile map mode, spotlight target, and the avatar
-services (`AvatarTargetRegistry`, `AvatarController`, `AvatarSequenceRunner`,
-`AvatarDirector`), each constructed once via lazy `useState`. Selection is
-mirrored into the URL (`?view=graph#thread/<id>/<node>`) with `pushState`, and
-`popstate` reads it back.
+The whole accepted composition in one component. It renders the
+`.experience.experience-graph.portfolio-composition` root and owns everything
+under it — header, world, reader, chat, avatar overlay, toybox — plus the state
+those read, and the four avatar services, each built once via lazy `useState`.
+Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
+`pushState`; `popstate` reads it back.
 
 ## Props
 
-None. Everything is internal state. The pieces it composes take their props
-from here — see the individual sheets for
+None. Everything is internal state. See
 [`PortfolioReader`](./PortfolioReader.md),
-[`PortfolioWorld`](./PortfolioWorld.md), [`PortfolioChat`](./PortfolioChat.md),
+[`PortfolioWorld`](./PortfolioWorld.md), [`PortfolioChat`](./PortfolioChat.md)
 and [`AvatarOverlay`](./avatar/AvatarOverlay.md).
 
 ## Requires
 
-`#avatar-toybox-root` in the document — `app/layout.tsx` renders it, and the
-toybox portals into it. `AvatarOverlay` and `AvatarToyboxOverlay` are lazily
-imported, so Three.js is code-split out of the first paint. The class list on
-its root is what defines the composition surface every token in
-`docs/design-conventions.md` is scoped to.
+`#avatar-toybox-root` in the document — `app/layout.tsx` renders it.
+`AvatarOverlay` and `AvatarToyboxOverlay` are lazily imported, so Three.js
+stays out of the first paint.
 
 ## Example
 
-Import: `import { PortfolioExperience } from "./PortfolioExperience";`
-
 ```tsx
+import { PortfolioExperience } from "components/PortfolioExperience";
+
 export function PortfolioExperienceExample() {
   // Takes no props and owns all of its own state. It is the whole route body;
   // the only thing it needs from outside is `#avatar-toybox-root` in the
@@ -44,16 +38,17 @@ export function PortfolioExperienceExample() {
 
 ## Pitfalls
 
-- **It writes to `window.history`.** Mounting it inside another page (the
-  gallery, a test harness) means selecting a node rewrites that page's URL.
-- **Two instances fight.** Both push history and both register avatar targets;
-  render exactly one.
+- **It writes to `window.history`.** Mounting it inside another page — the
+  gallery, a test harness — means selecting a node rewrites that page's URL.
+- **Two instances fight.** Both push history and both register avatar targets.
+  Render exactly one.
 - **Keyboard bindings are global**: Escape returns to overview, Shift+G opens
-  the toybox once the avatar has mounted, and Shift+A toggles the Director
-  console — the last one only in development builds
-  (`import.meta.env.DEV`), so it is inert in production.
-- **`?avatarDebug=1` opens the Director console** on load, again in
-  development only.
-- **The avatar can decline to mount.** `canOpenToybox` requires a mounted,
-  non-failed controller, so the toybox is unreachable when WebGL is
-  unavailable. That is intended, not a bug to route around.
+  the toybox, Shift+A toggles the Director console (development only, as is
+  `?avatarDebug=1`).
+- **`canOpenToybox` is not a WebGL check.** `avatarMounted` comes from an
+  unconditional `setTimeout(…, 0)`, and `snapshot.failed` only becomes true
+  after the avatar canvas has mounted — which needs the chat open. The toybox
+  opens on machines that cannot render it; the boundary handles the fallout.
+- **`controller.dispose()` is never called** — only the director is disposed.
+  Nothing leaks today (the controller registers no window listeners), but the
+  asymmetry is worth knowing rather than copying.
