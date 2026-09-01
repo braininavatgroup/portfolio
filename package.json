@@ -17,6 +17,7 @@
     "setup:chat": "bash scripts/setup-portfolio-chat.sh",
     "setup:main-preview": "bash scripts/setup-main-preview.sh",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",
     "test:worktree-bootstrap": "node --test tests/worktree-bootstrap.test.mjs",
     "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel TURNSTILE_SECRET_KEY=turnstile-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/main-preview-worker-config.test.mjs tests/main-preview-workflow.test.mjs tests/preview-worker-config.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
