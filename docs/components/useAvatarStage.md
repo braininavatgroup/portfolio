@@ -1,7 +1,7 @@
 # useAvatarStage
 
 Source: [`components/useAvatarStage.ts`](../../components/useAvatarStage.ts) ·
-Gallery: `/design#avatar` · Tests: `components/PortfolioExperience.test.tsx`
+Gallery: `/design#composition` (via `PortfolioExperience`) · Tests: `components/PortfolioExperience.test.tsx`
 
 Owns everything the avatar needs in order to stand somewhere sensible: the
 stage services (controller, director, registry, sequence runner), the element

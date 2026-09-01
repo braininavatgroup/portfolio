@@ -163,32 +163,39 @@ async function flushQueue() {
 
 function scheduleCommitPoll() {
   if (commitPoll) clearTimeout(commitPoll);
-  commitPoll = setTimeout(async () => {
+  // setTimeout discards the promise an async callback returns, so a rejection
+  // would surface as an unhandled rejection rather than reaching the catch
+  // below. Kick the async work off explicitly instead.
+  commitPoll = setTimeout(() => {
     commitPoll = null;
-    if (!session) return;
-    try {
-      const response = await fetch(`${ENDPOINT_BASE}/status`, {
-        headers: { "x-portfolio-editor-token": session.token },
-      });
-      if (!response.ok) return;
-      const body = (await response.json()) as {
-        pending?: boolean;
-        lastCommit?: { hash?: string; error?: string } | null;
-      } | null;
-      if (body?.lastCommit?.hash) {
-        setEditorStatus({ state: "committed", commitHash: body.lastCommit.hash });
-      } else if (body?.lastCommit?.error) {
-        // The file save is durable; only the Git commit failed.
-        setEditorStatus({
-          state: "error",
-          detail: `Saved, but Git commit failed: ${body.lastCommit.error}`,
-        });
-      } else if (body?.pending) {
-        scheduleCommitPoll();
-      }
-    } catch {
-      // Status polling is cosmetic; the save already succeeded.
-    }
+    void pollCommitStatus();
   }, COMMIT_POLL_DELAY_MS);
+}
+
+async function pollCommitStatus() {
+  if (!session) return;
+  try {
+    const response = await fetch(`${ENDPOINT_BASE}/status`, {
+      headers: { "x-portfolio-editor-token": session.token },
+    });
+    if (!response.ok) return;
+    const body = (await response.json()) as {
+      pending?: boolean;
+      lastCommit?: { hash?: string; error?: string } | null;
+    } | null;
+    if (body?.lastCommit?.hash) {
+      setEditorStatus({ state: "committed", commitHash: body.lastCommit.hash });
+    } else if (body?.lastCommit?.error) {
+      // The file save is durable; only the Git commit failed.
+      setEditorStatus({
+        state: "error",
+        detail: `Saved, but Git commit failed: ${body.lastCommit.error}`,
+      });
+    } else if (body?.pending) {
+      scheduleCommitPoll();
+    }
+  } catch {
+    // Status polling is cosmetic; the save already succeeded.
+  }
 }
 

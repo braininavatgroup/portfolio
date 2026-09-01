@@ -32,6 +32,12 @@ import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToybo
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
 import { useAvatarStage } from "../../components/useAvatarStage";
+import ActiveEditableText from "../../components/editor/ActiveEditableText";
+import CanvasLabelEditor from "../../components/editor/CanvasLabelEditor";
+import { ContentEditorProvider } from "../../components/editor/ContentEditorProvider";
+import DevEditorGate from "../../components/editor/DevEditorGate";
+import { EditableText, useEditableContent } from "../../components/editor/EditableText";
+import { EditorStatusLine } from "../../components/editor/EditorStatusLine";
 import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import {
@@ -361,6 +367,103 @@ export function UseAvatarStageExample() {
       </button>
       <p>{avatarMounted ? "Stage ready." : "Mounting…"}</p>
     </section>
+  );
+}
+// #example-end
+
+// #example:EditableText
+export function EditableTextExample() {
+  // Outside an activated session this renders exactly `as` with `value` and
+  // nothing else — no wrapper, no attributes. `path` addresses the string in
+  // the content store; it must match the path the writing endpoint knows.
+  const placeholder = useEditableContent("chat.placeholder", "Ask about a project");
+
+  return (
+    <article>
+      <EditableText as="h2" path="records.dubs.label" value="Dubs" />
+      <EditableText
+        as="p"
+        multiline
+        path="records.dubs.body"
+        value="A music promotions system."
+      />
+      <input placeholder={placeholder} readOnly />
+    </article>
+  );
+}
+// #example-end
+
+// #example:ActiveEditableText
+export function ActiveEditableTextExample() {
+  // The interactive half, normally reached only through EditableText's lazy
+  // boundary. Rendering it directly makes the element contentEditable whether
+  // or not a session is active, so this is a gallery affordance, not a usage
+  // pattern.
+  return (
+    <ActiveEditableText as="h2" path="records.dubs.label" value="Dubs" />
+  );
+}
+// #example-end
+
+// #example:ContentEditorProvider
+export function ContentEditorProviderExample() {
+  // Mounted once, wrapping the app in the root layout. In a production build
+  // it is a pass-through and the gate is never even imported.
+  return (
+    <ContentEditorProvider>
+      <main>The site.</main>
+    </ContentEditorProvider>
+  );
+}
+// #example-end
+
+// #example:DevEditorGate
+export function DevEditorGateExample() {
+  // Renders nothing. Normally mounted by ContentEditorProvider rather than
+  // directly; it activates the store only when the URL carries ?edit=1.
+  return (
+    <>
+      <DevEditorGate />
+      <p>Load this page with ?edit=1 to activate writing mode.</p>
+    </>
+  );
+}
+// #example-end
+
+// #example:EditorStatusLine
+export function EditorStatusLineExample() {
+  // Renders null unless the editor store is active, so in an ordinary page
+  // this contributes no markup at all.
+  return (
+    <footer>
+      <EditorStatusLine />
+    </footer>
+  );
+}
+// #example-end
+
+// #example:CanvasLabelEditor
+export function CanvasLabelEditorExample() {
+  const [editing, setEditing] = useState(true);
+
+  // Positioned absolutely from `rect`, so it needs a positioned ancestor —
+  // on the map that is the world element the canvas sits in.
+  if (!editing) return <button onClick={() => setEditing(true)} type="button">Edit</button>;
+  return (
+    <div style={{ height: 120, position: "relative" }}>
+      <CanvasLabelEditor
+        anchor={{
+          align: "center",
+          base: "Dubs",
+          compact: false,
+          initial: "Dubs",
+          nodeId: "dubs",
+          path: "records.dubs.label",
+          rect: { left: 40, top: 40, width: 96, height: 16 },
+        }}
+        onClose={() => setEditing(false)}
+      />
+    </div>
   );
 }
 // #example-end

@@ -41,6 +41,26 @@ inventory, and `/design` for the same components rendered in their states.
 | [AvatarToyboxOverlay](./avatar-toybox/AvatarToyboxOverlay.md) | The portalled full-screen renderer | `/design#toybox` |
 | [AvatarToyboxBoundary](./avatar-toybox/AvatarToyboxBoundary.md) | Error boundary around the toybox renderer | `/design#toybox` |
 
+## Writing mode
+
+Development-only inline editing (`?edit=1`). None of it reaches a production
+bundle: the interactive halves load through lazy boundaries guarded by
+`import.meta.env.DEV`.
+
+These have **no `/design` section**, deliberately. Activating the store is
+one-way — there is no deactivate — so a gallery specimen would leave every
+editable string on that page writing to the local endpoint. Run the site with
+`?edit=1` to see them instead.
+
+| Sheet | Component |
+| --- | --- |
+| [ContentEditorProvider](./editor/ContentEditorProvider.md) | Mounts writing mode; a pass-through in production |
+| [DevEditorGate](./editor/DevEditorGate.md) | Activates on `?edit=1`; injects the editable outlines |
+| [EditableText](./editor/EditableText.md) | Editable rendering of one static string |
+| [ActiveEditableText](./editor/ActiveEditableText.md) | The contentEditable half, development-only |
+| [CanvasLabelEditor](./editor/CanvasLabelEditor.md) | Anchored input for canvas-painted map labels |
+| [EditorStatusLine](./editor/EditorStatusLine.md) | Editing / Saving / Saved / Committed |
+
 ## How these stay true
 
 `tests/component-sheets.test.ts` fails if a component has no sheet, if a sheet
