@@ -57,6 +57,7 @@ type RuntimeNode = PortfolioWorldNode & {
   goal: Point3;
   goalAlpha: number;
   labelLines: string[];
+  labelSource: string;
   point: Point3;
   rawBase: Point3;
   screen: ProjectedPoint | null;
@@ -293,6 +294,7 @@ function createRuntimeNodes(): RuntimeNode[] {
       goal: clone(point),
       goalAlpha: 1,
       labelLines: [node.label],
+      labelSource: node.label,
       point: clone(point),
       rawBase: clone(point),
       screen: null,
@@ -322,6 +324,46 @@ function wrapLabel(
     }
   }
   return best;
+}
+
+/**
+ * Every colour the canvas paints, resolved in one pass.
+ *
+ * drawNode used to call getComputedStyle per node per frame, immediately after
+ * the loop wrote inline left/top/pointerEvents to all seventeen node buttons —
+ * so style was dirty and each read forced a synchronous recalculation of the
+ * document, ~35 times a frame. Reading once, before the writes, is the whole
+ * fix; the values only change with the mode.
+ */
+type WorldPalette = {
+  compact: boolean;
+  connector: string;
+  editingNodeId: string | undefined;
+  ink: string;
+  register: (name: string) => string;
+  selectedNodeId: string | undefined;
+  width: number;
+};
+
+function readWorldPalette(world: HTMLElement): WorldPalette {
+  const style = getComputedStyle(world);
+  const registers = new Map<string, string>();
+  const width = world.clientWidth;
+  return {
+    compact: width <= 600,
+    connector: cssColor(style, "--map-connector", "#4f585d"),
+    editingNodeId: world.dataset.editingLabel,
+    ink: cssColor(style, "--ink", "#201711"),
+    register: (name) => {
+      const cached = registers.get(name);
+      if (cached !== undefined) return cached;
+      const resolved = cssColor(style, `--world-${name}`, "#201711");
+      registers.set(name, resolved);
+      return resolved;
+    },
+    selectedNodeId: world.dataset.selectedNode,
+    width,
+  };
 }
 
 function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string) {
@@ -754,14 +796,18 @@ export function PortfolioWorld({
     resize();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
     observer?.observe(world);
-    window.addEventListener("resize", resize);
     const updateMotion = () => {
       reduceMotion = motion?.matches ?? false;
     };
     motion?.addEventListener?.("change", updateMotion);
 
+    let lastLabelWidth = -1;
     const render = () => {
+      // Read before the node buttons are written below, so the reads land on
+      // clean style instead of forcing a recalculation per node.
+      const palette = readWorldPalette(world);
       const { width, height } = size.current;
+      const labelWidth = width <= 600 ? 96 : LABEL_MAX_WIDTH;
       const nodes = runtime.current;
       const active = state.current;
       const currentCamera = camera.current;
@@ -790,11 +836,14 @@ export function PortfolioWorld({
           width,
           height,
         );
-        node.labelLines = wrapLabel(
-          editorLiveText(recordLabelPath(node.id), node.label),
-          measure,
-          width <= 600 ? 96 : LABEL_MAX_WIDTH,
-        );
+        // Re-wrap only when something that affects the wrap has changed. The
+        // label is live-editable, so the cache key is the resolved text as
+        // well as the width — width alone would freeze an in-progress edit.
+        const liveLabel = editorLiveText(recordLabelPath(node.id), node.label);
+        if (labelWidth !== lastLabelWidth || liveLabel !== node.labelSource) {
+          node.labelSource = liveLabel;
+          node.labelLines = wrapLabel(liveLabel, measure, labelWidth);
+        }
         const button = buttonRefs.current.get(node.id);
         if (button && node.screen) {
           button.style.left = `${(node.screen.x / width) * 100}%`;
@@ -805,14 +854,15 @@ export function PortfolioWorld({
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, active.activeThreadId, world);
+        drawLinks(context, nodes, linksRef.current, active.selectedId, active.activeThreadId, palette);
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
         for (const node of sorted) {
-          drawNode(context, node, world, brainImage.current, brainCache.current);
+          drawNode(context, node, palette, brainImage.current, brainCache.current);
         }
       }
+      lastLabelWidth = labelWidth;
       if (!disposed) frame = window.requestAnimationFrame(render);
     };
     frame = window.requestAnimationFrame(render);
@@ -821,7 +871,6 @@ export function PortfolioWorld({
       disposed = true;
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
-      window.removeEventListener("resize", resize);
       motion?.removeEventListener?.("change", updateMotion);
     };
   }, []);
@@ -1191,15 +1240,10 @@ function drawLinks(
   links: ReturnType<typeof getVisibleWorldLinks>,
   selectedId: string | null,
   activeThreadId: string | null,
-  world: HTMLElement,
+  palette: WorldPalette,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
-  const style = getComputedStyle(world);
-  // Read from the composition rather than matchMedia: the connector must
-  // follow whatever mode the element is actually in, which is what lets the
-  // gallery's [data-theme] toggle move it. The literal stays only as the
-  // getComputedStyle fallback (design conventions, Rule 1.4).
-  const color = cssColor(style, "--map-connector", "#4f585d");
+  const color = palette.connector;
   const selected = selectedId ? byId.get(selectedId) : undefined;
   const isActive = (link: (typeof links)[number]) => {
     if (!selectedId || !selected) return false;
@@ -1243,15 +1287,14 @@ function drawLinks(
 function drawNode(
   context: CanvasRenderingContext2D,
   node: RuntimeNode,
-  world: HTMLElement,
+  palette: WorldPalette,
   image: HTMLImageElement | null,
   cache: Map<string, HTMLCanvasElement>,
 ) {
   const point = node.screen;
   if (!point) return;
-  const style = getComputedStyle(world);
-  const color = cssColor(style, `--world-${node.register}`, "#201711");
-  const ink = cssColor(style, "--ink", "#201711");
+  const color = palette.register(node.register);
+  const ink = palette.ink;
   const size = MARK_SIZE;
   context.save();
   context.translate(point.x, point.y);
@@ -1304,14 +1347,14 @@ function drawNode(
   }
   context.restore();
 
-  const compact = world.clientWidth <= 600;
+  const compact = palette.compact;
   const showLabel =
     !compact ||
     node.family === "story" ||
-    world.dataset.selectedNode === node.id;
+    palette.selectedNodeId === node.id;
   // While the map-label input is open its canvas text stays hidden so the
   // draft renders exactly once, in the input.
-  if (!showLabel || world.dataset.editingLabel === node.id) return;
+  if (!showLabel || palette.editingNodeId === node.id) return;
 
   context.save();
   context.globalAlpha = node.alpha;
@@ -1322,13 +1365,13 @@ function drawNode(
   context.textBaseline = "middle";
   const labelLineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
   const labelX = compact
-    ? point.x + (point.x < world.clientWidth / 2 ? -12 : 12)
+    ? point.x + (point.x < palette.width / 2 ? -12 : 12)
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
     : point.y + 18 + LABEL_LINE_HEIGHT * 0.5;
   context.textAlign = compact
-    ? point.x < world.clientWidth / 2
+    ? point.x < palette.width / 2
       ? "right"
       : "left"
     : "center";
