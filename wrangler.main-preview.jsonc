@@ -30,6 +30,13 @@
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET"
     ]
   },
+  "ratelimits": [
+    {
+      "name": "PORTFOLIO_CHAT_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 25, "period": 60 }
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {

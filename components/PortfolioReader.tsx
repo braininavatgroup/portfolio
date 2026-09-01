@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { PortfolioNodeMark } from "./PortfolioNodeMark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
@@ -503,9 +503,15 @@ export function PortfolioReader({
     : thread
       ? `${thread.title} thread`
       : "Portfolio index";
-  const cleanReview =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("review") === "clean";
+  // Not read during render: the server yields false and a client with
+  // ?review=clean yields true, so reading it inline changed the className
+  // between the server HTML and the first client render. The subscribe
+  // callback is a no-op because the flag cannot change without a navigation.
+  const cleanReview = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("review") === "clean",
+    () => false,
+  );
 
   useLayoutEffect(() => {
     if (mode === "index" && readerRef.current) {

@@ -20,8 +20,14 @@ function chatRequest(ip = "203.0.113.10") {
 }
 
 describe("portfolio chat launch guard", () => {
-  it("serves a direct site without public abuse controls", async () => {
-    const rateLimit = vi.fn();
+  /**
+   * turnstileRequired gates the challenge only. It used to short-circuit the
+   * whole guard, which skipped the per-IP throttle too — so any deployment
+   * with the flag off (main-preview sets it false) had no per-actor limit at
+   * all. The limiter now runs whenever one is bound.
+   */
+  it("throttles per actor even when the challenge is disabled", async () => {
+    const rateLimit = vi.fn().mockResolvedValue({ success: true });
     const verifyTurnstile = vi.fn();
     const guard = createPortfolioChatLaunchGuard({
       config: { turnstileRequired: false },
@@ -33,8 +39,34 @@ describe("portfolio chat launch guard", () => {
     const result = await guard(chatRequest());
 
     expect(result).toEqual({ ok: true, requestId: "direct-request" });
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(rateLimit).toHaveBeenCalledTimes(1);
     expect(verifyTurnstile).not.toHaveBeenCalled();
+  });
+
+  it("rejects a throttled actor when the challenge is disabled", async () => {
+    const guard = createPortfolioChatLaunchGuard({
+      config: { turnstileRequired: false },
+      rateLimiter: { limit: async () => ({ success: false }) },
+      randomId: () => "direct-request",
+    });
+
+    const result = await guard(chatRequest());
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.response.status).toBe(429);
+  });
+
+  /** No limiter bound is the local/dev shape; it must still serve. */
+  it("serves when no limiter is bound and the challenge is disabled", async () => {
+    const guard = createPortfolioChatLaunchGuard({
+      config: { turnstileRequired: false },
+      randomId: () => "direct-request",
+    });
+
+    expect(await guard(chatRequest())).toEqual({
+      ok: true,
+      requestId: "direct-request",
+    });
   });
 
   it.each([

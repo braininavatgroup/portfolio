@@ -657,6 +657,20 @@ export function PortfolioExperience() {
       window.removeEventListener("scroll", refreshVisibleTarget);
       window.removeEventListener("resize", refreshVisibleTarget);
       document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [avatarController, avatarDirector]);
+
+  /**
+   * Registry teardown, owned separately. It used to ride on the listener
+   * effect's cleanup, which tore down registrations that effect never created
+   * — they come from the callback refs below, driven by child components. That
+   * was harmless only because every dep there was a lazily-constructed
+   * singleton, so the effect never re-ran. Adding one reactive dep would have
+   * wiped the whole registry mid-session, with the children's refs already
+   * fired and nothing left to re-register them.
+   */
+  useEffect(
+    () => () => {
       avatarActionState.beginTurn();
       for (const [target, element] of registeredAvatarTargets) {
         avatarRegistry.unregister(target, element);
@@ -670,16 +684,15 @@ export function PortfolioExperience() {
         avatarRegistry.unregisterStage(registeredAvatarStage.current);
         registeredAvatarStage.current = null;
       }
-    };
-  }, [
-    avatarController,
-    avatarActionState,
-    avatarDirector,
-    avatarRegistry,
-    registeredAvatarObstacles,
-    registeredAvatarStage,
-    registeredAvatarTargets,
-  ]);
+    },
+    [
+      avatarActionState,
+      avatarRegistry,
+      registeredAvatarObstacles,
+      registeredAvatarStage,
+      registeredAvatarTargets,
+    ],
+  );
 
   const setAssistantVisibility = useCallback(
     (visible: boolean) => {
@@ -722,7 +735,11 @@ export function PortfolioExperience() {
     if (bradleyNode) selectWorldNode(bradleyNode);
   }, [selectWorldNode]);
 
+  // The boundary matters more than the Suspense: a stale chunk after a deploy
+  // is a load failure, and without it that throw unwound past the composition
+  // and took the whole page. The toybox below has had one all along.
   const avatarOverlay = avatarMounted && !toyboxSession.isPlaying ? (
+    <AvatarToyboxBoundary onFailure={() => avatarController.markFailed()}>
     <Suspense fallback={null}>
       <AvatarOverlay
         controller={avatarController}
@@ -738,6 +755,7 @@ export function PortfolioExperience() {
         siteActionExecutor={siteActionExecutor}
       />
     </Suspense>
+    </AvatarToyboxBoundary>
   ) : null;
   const portfolioChat = (
     <PortfolioChat
