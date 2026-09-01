@@ -2973,7 +2973,8 @@ body:has(.portfolio-composition) {
     animation-duration: 1ms;
   }
 
-  .cursor-instrument {
+  .cursor-instrument,
+  .design-section-summary::after {
     transition-duration: 1ms;
   }
 }
@@ -3113,14 +3114,60 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   scroll-margin-top: 96px;
 }
 
-.design-section > h2 {
+.design-section-summary {
+  cursor: default;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr auto;
+  list-style: none;
+}
+
+.design-section-summary::-webkit-details-marker { display: none; }
+
+.design-section-summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+/* The disclosure mark: a plus that loses its vertical stroke when open, drawn
+   from the rule token so it stays the one neutral line treatment (Rule 6.3). */
+.design-section-summary::after {
+  align-self: center;
+  background:
+    linear-gradient(var(--map-line-strong), var(--map-line-strong)) center/100% 1px no-repeat,
+    linear-gradient(var(--map-line-strong), var(--map-line-strong)) center/1px 100% no-repeat;
+  content: "";
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  height: 11px;
+  transition: transform 140ms ease;
+  width: 11px;
+}
+
+.design-section[open] > .design-section-summary::after {
+  background-image: linear-gradient(var(--map-line-strong), var(--map-line-strong));
+  transform: rotate(180deg);
+}
+
+.design-section-summary > h2 {
   font-size: var(--reader-section-title-size);
+  grid-column: 1;
   letter-spacing: -0.02em;
-  margin: 0 0 4px;
+  margin: 0;
+}
+
+.design-section-summary > .design-note {
+  grid-column: 1;
+  margin: 0;
+}
+
+.design-section-body {
+  padding-top: 18px;
 }
 
 .design-note {
   color: var(--map-muted);
+  display: block;
   font-size: var(--reader-copy-size);
   margin: 0 0 18px;
   max-width: 72ch;

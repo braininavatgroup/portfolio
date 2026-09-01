@@ -78,6 +78,21 @@ export function DesignGallery() {
     };
   }, [theme]);
 
+  // Sections are collapsible, so the nav has to be able to reopen one. Without
+  // this, following a link to a section a reviewer had folded away scrolls to
+  // a closed summary and looks like the link is broken.
+  useEffect(() => {
+    const openTarget = () => {
+      const id = window.location.hash.slice(1);
+      if (!id) return;
+      const section = document.getElementById(id);
+      if (section instanceof HTMLDetailsElement) section.open = true;
+    };
+    openTarget();
+    window.addEventListener("hashchange", openTarget);
+    return () => window.removeEventListener("hashchange", openTarget);
+  }, []);
+
   return (
     <main className="design-gallery" data-theme={theme} id="main-content" tabIndex={-1}>
       <header className="design-gallery-bar">

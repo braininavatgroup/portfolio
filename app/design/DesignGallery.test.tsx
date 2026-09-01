@@ -52,6 +52,61 @@ describe("design gallery route", () => {
     }
   });
 
+  it("makes every section a disclosure that starts open", () => {
+    render(<DesignGallery />);
+
+    const sections = [...document.querySelectorAll(".design-section")];
+    expect(sections).toHaveLength(13);
+    for (const section of sections) {
+      expect(section.tagName).toBe("DETAILS");
+      expect((section as HTMLDetailsElement).open).toBe(true);
+      expect(section.querySelector(":scope > summary")).not.toBeNull();
+    }
+  });
+
+  /**
+   * A summary takes phrasing and heading content only, so the section note has
+   * to be a span. A <p> there is invalid markup that browsers silently reparent
+   * out of the summary, which would drop the note from a collapsed section.
+   */
+  it("keeps the collapsed note inside the summary as phrasing content", () => {
+    render(<DesignGallery />);
+
+    const summaries = [...document.querySelectorAll(".design-section-summary")];
+    expect(summaries.length).toBeGreaterThan(0);
+    for (const summary of summaries) {
+      expect(summary.querySelector("p")).toBeNull();
+      expect(summary.querySelector("h2")).not.toBeNull();
+    }
+  });
+
+  /** Collapsing must not unmount a fixture someone has already mounted. */
+  it("keeps a collapsed section's children in the DOM", async () => {
+    const user = userEvent.setup();
+    render(<DesignGallery />);
+
+    const world = document.getElementById("world") as HTMLDetailsElement;
+    await user.click(world.querySelector("summary")!);
+
+    expect(world.open).toBe(false);
+    expect(world.querySelectorAll(".portfolio-world").length).toBeGreaterThan(0);
+  });
+
+  it("reopens a collapsed section when the nav links to it", async () => {
+    const user = userEvent.setup();
+    render(<DesignGallery />);
+
+    const world = document.getElementById("world") as HTMLDetailsElement;
+    await user.click(world.querySelector("summary")!);
+    expect(world.open).toBe(false);
+
+    window.location.hash = "#world";
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(world.open).toBe(true);
+    window.location.hash = "";
+  });
+
   it("leaves every Three.js fixture unmounted until it is asked for", () => {
     render(<DesignGallery />);
 

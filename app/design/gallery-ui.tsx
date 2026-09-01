@@ -27,6 +27,17 @@ export type GallerySectionId =
 
 export type StageSize = "auto" | "short" | "medium" | "tall" | "viewport";
 
+/**
+ * A collapsible section. `<details>` rather than a button and a state hook:
+ * the disclosure semantics, the keyboard handling and the expanded state
+ * exposed to assistive technology all come for free, and a collapsed section
+ * keeps its children mounted, so a Three.js fixture someone has already
+ * mounted survives being folded away.
+ *
+ * The note stays inside the `<summary>` so a collapsed section still says what
+ * it holds. It is a `<span>`, not a `<p>` — summary takes phrasing and heading
+ * content only.
+ */
 export function Section({
   children,
   id,
@@ -39,11 +50,13 @@ export function Section({
   title: string;
 }) {
   return (
-    <section className="design-section" id={id}>
-      <h2>{title}</h2>
-      {note ? <p className="design-note">{note}</p> : null}
-      {children}
-    </section>
+    <details className="design-section" id={id} open>
+      <summary className="design-section-summary">
+        <h2>{title}</h2>
+        {note ? <span className="design-note">{note}</span> : null}
+      </summary>
+      <div className="design-section-body">{children}</div>
+    </details>
   );
 }
 
