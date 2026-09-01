@@ -294,7 +294,12 @@ function CursorStates() {
   );
 }
 
-export function ComponentGallery() {
+/**
+ * The composition, part by part, in the order it assembles: the vocabulary of
+ * marks, then the header, then the two surfaces that face each other, then the
+ * one that floats over them.
+ */
+export function CompositionSections() {
   return (
     <>
       <Section
@@ -316,21 +321,21 @@ export function ComponentGallery() {
       </Section>
 
       <Section
-        id="reader"
-        note="The fixed dossier, at its shipped width. Index, thread and record share it rather than becoming separate panels."
-        source="components/PortfolioReader.tsx"
-        title="Reader"
-      >
-        <ReaderStates />
-      </Section>
-
-      <Section
         id="world"
         note="A 2D canvas, not Three.js, sized around the dossier. It renders eagerly."
         source="components/PortfolioWorld.tsx"
         title="World"
       >
         <WorldStates />
+      </Section>
+
+      <Section
+        id="reader"
+        note="The fixed dossier, at its shipped width. Index, thread and record share it rather than becoming separate panels."
+        source="components/PortfolioReader.tsx"
+        title="Reader"
+      >
+        <ReaderStates />
       </Section>
 
       <Section
@@ -342,6 +347,13 @@ export function ComponentGallery() {
         <ChatStates />
       </Section>
 
+    </>
+  );
+}
+
+/** The cursor the whole site wears. */
+export function CursorSection() {
+  return (
       <Section
         id="cursor"
         note="One segmented cursor across the site on fine-pointer devices. The live instrument is already tracking your pointer — it is mounted in the root layout."
@@ -356,6 +368,13 @@ export function ComponentGallery() {
         </Specimen>
       </Section>
 
+  );
+}
+
+/** The privacy page's consent control — ambient, but not part of the site's
+ * chrome; it lives on a page of its own. */
+export function AnalyticsSection() {
+  return (
       <Section
         id="analytics"
         note="The privacy page's opt-in control. Backed by an in-memory store, so clicking here does not change the real preference — and the button toggles between both of its states."
@@ -366,6 +385,5 @@ export function ComponentGallery() {
           <PortfolioAnalyticsPreference storage={createMemoryStorage("granted")} />
         </div>
       </Section>
-    </>
   );
 }

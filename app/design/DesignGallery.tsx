@@ -1,7 +1,11 @@
 "use client";
 
 import { lazy, useEffect, useState, useSyncExternalStore } from "react";
-import { ComponentGallery } from "./ComponentGallery";
+import {
+  AnalyticsSection,
+  CompositionSections,
+  CursorSection,
+} from "./ComponentGallery";
 import { LazyFixture, Section, Stage } from "./gallery-ui";
 import { TokenGallery } from "./TokenGallery";
 
@@ -21,6 +25,19 @@ const PortfolioExperience = lazy(() =>
   })),
 );
 
+function GroupHeading({
+  group,
+}: {
+  group: { readonly title: string; readonly blurb: string };
+}) {
+  return (
+    <div className="design-group-heading">
+      <h2>{group.title}</h2>
+      <p>{group.blurb}</p>
+    </div>
+  );
+}
+
 function CompositionFixture() {
   return (
     <Stage size="viewport">
@@ -29,21 +46,54 @@ function CompositionFixture() {
   );
 }
 
-const sections = [
-  { id: "tokens-color", label: "Color" },
-  { id: "tokens-type", label: "Type" },
-  { id: "tokens-spacing", label: "Spacing" },
-  { id: "marks", label: "Marks" },
-  { id: "header", label: "Header" },
-  { id: "reader", label: "Reader" },
-  { id: "world", label: "World" },
-  { id: "chat", label: "Chat" },
-  { id: "cursor", label: "Cursor" },
-  { id: "analytics", label: "Analytics" },
-  { id: "avatar", label: "Avatar" },
-  { id: "toybox", label: "Toybox" },
-  { id: "composition", label: "Composition" },
+/**
+ * Thirteen sections in one flat row read as thirteen unrelated things. They are
+ * not: three are the vocabulary everything else is built from, five are the
+ * composition taken apart, four are ambient, and the last is the whole thing
+ * running. The groups are the page's argument, so the nav states them.
+ *
+ * Order is deliberate. Composition runs last because it contains the avatar and
+ * the toybox, and seeing the parts before the assembly is the only order that
+ * explains anything.
+ */
+const sectionGroups = [
+  {
+    title: "Foundations",
+    blurb: "The vocabulary. Resolved from the stylesheet at runtime.",
+    sections: [
+      { id: "tokens-color", label: "Color" },
+      { id: "tokens-type", label: "Type" },
+      { id: "tokens-spacing", label: "Spacing" },
+    ],
+  },
+  {
+    title: "Composition",
+    blurb: "The accepted portfolio, part by part, in assembly order.",
+    sections: [
+      { id: "marks", label: "Marks" },
+      { id: "header", label: "Header" },
+      { id: "world", label: "World" },
+      { id: "reader", label: "Reader" },
+      { id: "chat", label: "Chat" },
+    ],
+  },
+  {
+    title: "Ambient",
+    blurb: "Site-wide, or on a page of its own. Not part of the composition.",
+    sections: [
+      { id: "cursor", label: "Cursor" },
+      { id: "avatar", label: "Avatar" },
+      { id: "toybox", label: "Toybox" },
+      { id: "analytics", label: "Analytics" },
+    ],
+  },
+  {
+    title: "Whole",
+    blurb: "Everything above, running together.",
+    sections: [{ id: "composition", label: "Full composition" }],
+  },
 ] as const;
+
 
 type Theme = "light" | "dark";
 
@@ -124,15 +174,26 @@ export function DesignGallery() {
       </header>
 
       <nav aria-label="Gallery sections" className="design-gallery-nav">
-        {sections.map((section) => (
-          <a className="design-gallery-control" href={`#${section.id}`} key={section.id}>
-            {section.label}
-          </a>
+        {sectionGroups.map((group) => (
+          <div className="design-gallery-nav-group" key={group.title}>
+            <span className="design-gallery-nav-heading">{group.title}</span>
+            {group.sections.map((section) => (
+              <a className="design-gallery-control" href={`#${section.id}`} key={section.id}>
+                {section.label}
+              </a>
+            ))}
+          </div>
         ))}
       </nav>
 
+      <GroupHeading group={sectionGroups[0]} />
       <TokenGallery />
-      <ComponentGallery />
+
+      <GroupHeading group={sectionGroups[1]} />
+      <CompositionSections />
+
+      <GroupHeading group={sectionGroups[2]} />
+      <CursorSection />
 
       <Section
         id="avatar"
@@ -152,6 +213,9 @@ export function DesignGallery() {
         <LazyFixture as={AvatarToyboxFixture} label="the toybox" />
       </Section>
 
+      <AnalyticsSection />
+
+      <GroupHeading group={sectionGroups[3]} />
       <Section
         id="composition"
         note="The whole route as it ships: world, reader, chat, avatar and toybox. The header is present but hidden, as on the live site. Selecting a node here also writes to this page's history entry."

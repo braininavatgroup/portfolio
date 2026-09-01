@@ -52,6 +52,30 @@ describe("design gallery route", () => {
     }
   });
 
+  /**
+   * The nav is built from the same grouped list the page renders from, so this
+   * asserts the two cannot come apart: every section on the page is reachable
+   * from the nav, and every nav link points at a section that exists. Before
+   * the grouping, the list was a second hand-maintained copy of the ids.
+   */
+  it("keeps the grouped nav and the rendered sections in step", () => {
+    render(<DesignGallery />);
+
+    const linked = [...document.querySelectorAll(".design-gallery-nav a")].map(
+      (a) => a.getAttribute("href")?.slice(1),
+    );
+    const rendered = [...document.querySelectorAll(".design-section")].map(
+      (section) => section.id,
+    );
+
+    expect(linked).toEqual(rendered);
+    expect(
+      [...document.querySelectorAll(".design-gallery-nav-heading")].map(
+        (h) => h.textContent,
+      ),
+    ).toEqual(["Foundations", "Composition", "Ambient", "Whole"]);
+  });
+
   it("makes every section a disclosure that starts open", () => {
     render(<DesignGallery />);
 

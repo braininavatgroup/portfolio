@@ -2880,8 +2880,48 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 .design-gallery-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 6px 18px;
   padding: 14px var(--reader-gutter);
+}
+
+/* The nav states the grouping, so a reviewer sees the page's shape before
+   scrolling it. Each group keeps its links on one line with its heading. */
+.design-gallery-nav-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.design-gallery-nav-heading {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  letter-spacing: 0.07em;
+  margin-right: 2px;
+  text-transform: uppercase;
+}
+
+.design-group-heading {
+  border-top: 1px solid var(--map-line-strong);
+  padding: 34px var(--reader-gutter) 0;
+}
+
+.design-group-heading h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.design-group-heading p {
+  color: var(--map-muted);
+  margin: 4px 0 0;
+  max-width: 46ch;
+}
+
+/* A group heading already draws the heavier rule, so the first section under
+   it must not draw a second one immediately below. */
+.design-group-heading + .design-section {
+  border-top: 0;
 }
 
 .design-section {
