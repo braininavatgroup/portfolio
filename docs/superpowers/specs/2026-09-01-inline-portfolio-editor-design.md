@@ -6,30 +6,41 @@ Status: approved direction, pending implementation review
 
 ## Purpose
 
-Add a local writing mode to the accepted portfolio composition. Bradley can
-open the running site, click authored copy, edit it in place, and have the
-result saved and committed to the current Conductor writing branch.
+Add a local writing mode to the public portfolio. Bradley can open the running
+site, click any static text he can see, edit it in place, and have the result
+saved and committed to the current Conductor writing branch. Authoring happens
+on the page itself. The portfolio chat is not an authoring interface.
 
-The copy currently rendered from `lib/portfolio-world.ts` is the canonical
-edited version. The content migration must preserve every authored value. A
-parity test will compare the migrated content with the pre-migration fixture so
-the editor cannot silently restore older copy or rewrite punctuation.
+The copy currently rendered from `lib/portfolio-world.ts` and the current
+component literals is the canonical edited version. The content migration must
+preserve every visible value. A parity test will compare the migrated content
+with the pre-migration fixture so the editor cannot silently restore older copy
+or rewrite punctuation.
 
 ## Scope
 
-Writing mode covers authored portfolio content:
+Writing mode covers every static user-facing string on the public portfolio
+routes and in their reachable states:
 
 - record labels, kinds, summaries, principles, and prose paragraphs;
 - copy-placeholder prompts and questions;
 - thread titles, ledes, and prose paragraphs;
-- contact labels and values that are part of the authored portfolio content;
-- authored text inside visual records, including purpose, alt text, and
-  captions when present.
+- contact labels and values that are part of the visible portfolio;
+- text inside visual records, including purpose, alt text, captions, and
+  controls when present;
+- map mast, map hint, canvas-drawn node labels, reader headings, navigation,
+  footer links, button labels, empty states, and status messages;
+- the static labels, prompts, and status copy inside the portfolio chat,
+  without using chat to perform edits;
+- the privacy page and any other public route linked from the main portfolio;
+- text in the public avatar and toybox states when those states are visible.
 
-Writing mode does not cover interface language such as `Index`, `Thread`,
-`Related`, `Privacy`, editor status labels, or other application controls. It
-also does not edit IDs, slugs, relationships, registers, families, map
-positions, URLs, visual status, or other structural fields.
+The design and component galleries, director console, test fixtures, screen
+reader-only descriptions, the editor's own local status UI, generated chat
+answers, visitor-entered text, provider errors, and browser or third-party UI
+are outside the writing catalog. The editor also does not change IDs, slugs,
+relationships, registers, families, map positions, URLs, visual status, or
+other structural fields.
 
 The editor is a local development tool. It will not exist in a production
 bundle, deployment, preview Worker, or public API.
@@ -37,15 +48,18 @@ bundle, deployment, preview Worker, or public API.
 ## Source of truth
 
 Create `content/portfolio-content.json` as the canonical store for editable
-text. Keep structural records, relationships, positions, and visual metadata
-in TypeScript. A small content adapter combines the validated JSON with those
-structures and exports the same `portfolioWorldNodes`, `portfolioThreads`, and
-contact values that current callers use.
+text. Its top-level sections separate authored records and threads from a
+stable interface-string catalog. Keep structural records, relationships,
+positions, and visual metadata in TypeScript. A small content adapter combines
+the validated JSON with those structures and exports the same
+`portfolioWorldNodes`, `portfolioThreads`, and contact values that current
+callers use. Components read their static interface labels from the same
+catalog.
 
-Each editable value has a stable path based on an existing record or thread
-ID, never an array index. Paragraphs and placeholder questions receive stable
-content IDs during migration so later reordering does not redirect an edit to
-the wrong sentence.
+Each editable value has a stable path based on an existing record, thread,
+route, component, or state ID, never an array index. Paragraphs and placeholder
+questions receive stable content IDs during migration so later reordering does
+not redirect an edit to the wrong sentence.
 
 Validation runs before application startup and before every write. It rejects:
 
@@ -72,11 +86,25 @@ focus using the existing semantic ink and rule tokens. There is no second
 panel or floating editor because the accepted design allows chat as the only
 temporary floating surface.
 
-Clicking text places the caret in the rendered element. Plain text and line
-breaks are supported. Rich-text markup, pasted HTML, and arbitrary DOM changes
-are stripped. Escape restores the last saved value for the active field.
-Undo and redo use the browser's native editing history while the field remains
-active.
+Clicking DOM text places the caret in the rendered element. In writing mode,
+the text inside a link or button edits instead of activating the control. Exit
+writing mode or open a read-only tab to exercise normal navigation and actions.
+
+Canvas-drawn map labels cannot host a browser caret. Clicking one in writing
+mode opens a single plain-text input at the label's screen position. The input
+reuses the map label's typography and disappears on save or cancel. It is an
+editing control, not another persistent panel or navigation layer.
+
+Plain text and line breaks are supported where the content type allows them.
+Single-line fields strip line breaks. Rich-text markup, pasted HTML, and
+arbitrary DOM changes are stripped. Escape restores the last saved value for
+the active field. Undo and redo use the browser's native editing history while
+the field remains active.
+
+The editor session keeps in-memory text overrides keyed by stable content path.
+Every visible instance reads those overrides. Editing a record label in the
+dossier therefore updates its map label, index row, and related links before
+the save completes.
 
 A small status line inside the dossier footer reports `Editing`, `Saving`,
 `Saved`, `Committed <short hash>`, or a specific failure. It does not animate
@@ -168,6 +196,12 @@ Owns `contentEditable` behavior, plain-text normalization, keyboard handling,
 draft state, and accessible edit semantics. It receives a stable content path
 and renders as the semantic HTML element chosen by its caller.
 
+### Canvas label editor
+
+Owns map-label hit testing, the anchored single-line input, live canvas draft
+updates, Enter and blur save, and Escape restore. It changes no node geometry
+or map interaction outside writing mode.
+
 ### Editor session client
 
 Owns debouncing, revision tracking, request cancellation, retry state, and the
@@ -204,6 +238,10 @@ Durable tests will cover:
 - content-only Git staging and commits in a temporary repository containing
   unrelated staged and unstaged changes;
 - debounce, blur save, Escape restore, plain-text paste, and save-state UI;
+- direct editing for static text inside links and buttons without activating
+  their normal actions;
+- canvas-label editing and immediate synchronization across duplicate visible
+  instances;
 - unchanged rendering outside writing mode;
 - no editor code or write route in the production build;
 - existing portfolio, grounding, rendered-route, type, lint, and build checks.
@@ -216,8 +254,9 @@ the fixture is disposable.
 
 ## Acceptance criteria
 
-- Opening `/?edit=1` in the local Conductor run makes authored portfolio text
-  directly editable without changing the normal visual composition.
+- Opening `/?edit=1` in the local Conductor run makes every static visible
+  string on the public portfolio directly editable without using chat or
+  changing the normal visual composition.
 - A completed edit survives reload and appears as a content-only commit on the
   branch that started the development server.
 - Existing copy is unchanged immediately after migration.
