@@ -125,6 +125,7 @@ export const semanticAliases: readonly { token: string; role: string }[] = [
   { token: "--map-paper", role: "World background" },
   { token: "--map-paper-near", role: "Near-paper surfaces" },
   { token: "--map-muted", role: "Map secondary ink" },
+  { token: "--map-connector", role: "Canvas relationship lines, read by PortfolioWorld" },
   { token: "--map-line", role: "Neutral relationship and rule treatment" },
   { token: "--map-line-strong", role: "Strong rule treatment" },
   { token: "--map-grid", role: "Placeholder grid" },

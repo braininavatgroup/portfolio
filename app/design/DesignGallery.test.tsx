@@ -138,11 +138,67 @@ describe("design gallery route", () => {
     const flowHeaders = document.querySelectorAll(
       ".flat-index > .portfolio-header:not(.portfolio-header-overlay)",
     );
-    expect(flowHeaders).toHaveLength(3);
+    expect(flowHeaders).toHaveLength(1);
 
     expect(
       document.querySelectorAll(".portfolio-composition > .portfolio-header"),
     ).toHaveLength(0);
+  });
+
+  /**
+   * `/index` is hard-pinned to the light prototype palette. Without the pin the
+   * gallery's dark mode rendered an `/index` header the live site never shows.
+   */
+  it("pins the index surface to light, as app/index/page.tsx does", () => {
+    render(<DesignGallery />);
+
+    const surface = document.querySelector(".flat-index");
+    expect(surface?.getAttribute("data-theme")).toBe("light");
+    expect(surface?.getAttribute("data-index-layout")).toBe("stacked-editorial");
+  });
+
+  /**
+   * The state-matrix contract: one live tree per component, not one per state.
+   * Before this the page carried five readers, four worlds and two chats.
+   */
+  it("mounts exactly one live instance of each composition component", () => {
+    render(<DesignGallery />);
+
+    expect(document.querySelectorAll(".portfolio-reader")).toHaveLength(1);
+    expect(document.querySelectorAll(".portfolio-world")).toHaveLength(1);
+    expect(document.querySelectorAll(".portfolio-header")).toHaveLength(1);
+    expect(document.querySelectorAll(".portfolio-chat")).toHaveLength(1);
+  });
+
+  /**
+   * `--reader-width` has two live values: clamp(460px, 38vw, 560px) and, below
+   * 900px, 100%. The gallery used to force 100% on the reader and 0px on the
+   * world, rendering a layout the site cannot produce.
+   */
+  it("never overrides the dossier width", () => {
+    render(<DesignGallery />);
+
+    const overridden = [...document.querySelectorAll<HTMLElement>("[style]")].filter(
+      (node) => node.style.getPropertyValue("--reader-width") !== "",
+    );
+
+    expect(overridden.map((node) => node.className)).toEqual([]);
+  });
+
+  it("drives the reader through its states from one instance", async () => {
+    const user = userEvent.setup();
+    render(<DesignGallery />);
+
+    expect(
+      screen.getAllByRole("complementary", { name: /Portfolio index/ }),
+    ).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Thread" }));
+
+    expect(document.querySelectorAll(".portfolio-reader")).toHaveLength(1);
+    expect(
+      document.querySelector(".portfolio-reader")?.getAttribute("data-reader-mode"),
+    ).toBe("thread");
   });
 
   /**

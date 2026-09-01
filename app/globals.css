@@ -3063,7 +3063,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-gallery-bar h1 {
   font-size: var(--portfolio-display-title-size, var(--reader-section-title-size));
-  letter-spacing: -0.03em;
+  letter-spacing: -0.055em;
   margin: 0;
 }
 
@@ -3087,7 +3087,6 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   border: 1px solid var(--map-line-strong);
   border-radius: 4px;
   color: var(--ink);
-  cursor: pointer;
   font-family: var(--font-reader);
   font-size: var(--reader-label-size);
   letter-spacing: 0.06em;
@@ -3096,9 +3095,35 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   text-transform: uppercase;
 }
 
+/* Rule 5.8. The composition's default focus ring is scoped to
+   .portfolio-composition, and .design-gallery is not that — so without this
+   every nav link, mode button and Mount button fell through to the unscoped
+   legacy rules and drew the 3px olive prototype ring. */
+.design-gallery-control:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .design-gallery-control[aria-pressed="true"] {
   background: var(--ink);
   color: var(--map-paper);
+}
+
+.design-state-strip {
+  align-items: center;
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px var(--reader-gutter);
+}
+
+.design-state-strip-label {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  letter-spacing: 0.07em;
+  margin-inline-end: 4px;
+  text-transform: uppercase;
 }
 
 .design-gallery-nav {
@@ -3138,7 +3163,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
     linear-gradient(var(--map-line-strong), var(--map-line-strong)) center/1px 100% no-repeat;
   content: "";
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1 / -1;
   height: 11px;
   transition: transform 140ms ease;
   width: 11px;
@@ -3152,7 +3177,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 .design-section-summary > h2 {
   font-size: var(--reader-section-title-size);
   grid-column: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
@@ -3202,10 +3227,11 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   margin: 0;
 }
 
-.design-specimen-head .design-specimen-source {
+.design-section-source {
+  color: var(--map-muted);
   font-family: var(--font-prototype-mono);
   font-size: var(--reader-label-size);
-  margin-inline-start: auto;
+  grid-column: 1;
 }
 
 .design-specimen-body {
@@ -3245,6 +3271,17 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   max-width: 420px;
 }
 
+/* Composition widths are viewport-derived — --reader-width is
+   clamp(460px, 38vw, 560px), and the sole composition breakpoint is a
+   max-width media query. A stage inset by the page gutter therefore renders
+   the dossier at the right value but the wrong proportion, which is what the
+   old --reader-width overrides were papering over. Bleeding to the full window
+   makes the specimen's layout the layout the site actually ships. */
+.design-stage[data-bleed="true"] {
+  margin-inline: calc(50% - 50vw);
+  width: 100vw;
+}
+
 .design-lazy {
   align-items: center;
   color: var(--map-muted);
@@ -3256,66 +3293,11 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   text-align: center;
 }
 
-.design-swatch-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-.design-swatch {
-  border: 1px solid var(--map-line);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.design-swatch-chips {
-  display: flex;
-  height: 52px;
-}
-
-.design-swatch-chip {
-  align-items: flex-end;
-  border-inline-end: 1px solid var(--map-line);
-  display: flex;
-  flex: 1;
-  font-size: var(--reader-label-size);
-  justify-content: center;
-  padding-bottom: 3px;
-}
-
-.design-swatch-chip:last-child { border-inline-end: 0; }
-
-.design-swatch-chip span {
-  background: var(--map-paper-near);
-  border-radius: 2px;
-  color: var(--ink);
-  font-family: var(--font-prototype-mono);
-  padding: 0 3px;
-}
-
-.design-swatch-meta {
-  border-top: 1px solid var(--map-line);
-  display: grid;
-  gap: 2px;
-  padding: 8px 10px;
-}
-
-.design-swatch-meta strong {
-  font-size: var(--reader-copy-size);
-  font-weight: 500;
-}
-
-.design-swatch-meta code,
 .design-token-row code {
   color: var(--map-muted);
   font-family: var(--font-prototype-mono);
   font-size: var(--reader-label-size);
   word-break: break-all;
-}
-
-.design-swatch-meta small {
-  color: var(--map-muted);
-  font-size: var(--reader-label-size);
 }
 
 .design-token-table {
@@ -3358,24 +3340,31 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-type-specimen:last-child { border-bottom: 0; }
 
-.design-type-specimen p { margin: 0; }
+.design-type-specimen-label {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  letter-spacing: 0.07em;
+  margin: 0;
+  text-transform: uppercase;
+}
 
-.design-spacing-row {
-  align-items: center;
-  border-bottom: 1px solid var(--map-line);
+/* Seven poses share one canvas, so the labels are a matching seven-column row
+   underneath rather than a caption per cell. */
+.design-pose-labels {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 220px 1fr;
-  padding: 8px 0;
+  gap: 6px;
+  grid-template-columns: repeat(7, 1fr);
+  padding-top: 8px;
+  text-align: center;
 }
 
-.design-spacing-row:last-child { border-bottom: 0; }
-
-.design-spacing-bar {
-  background: var(--world-warm);
-  height: 10px;
-  max-width: 100%;
+.design-pose-labels small {
+  color: var(--map-muted);
+  font-size: var(--reader-label-size);
+  line-height: 1.3;
 }
+
+.design-type-specimen p { margin: 0; }
 
 .design-mark-grid {
   display: grid;
@@ -3392,9 +3381,6 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 }
 
 /* Pose cells hold a figure rather than a mark, so they need width to frame it. */
-.design-pose-grid {
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-}
 
 .design-mark-cell {
   align-items: center;
@@ -3422,7 +3408,6 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 @media (max-width: 900px) {
   .design-stage[data-size="tall"] { height: 560px; }
-  .design-spacing-row { grid-template-columns: 1fr; }
 }
 
 /* Gallery stages are shorter than a viewport. The composition surfaces size
