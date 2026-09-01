@@ -12,6 +12,10 @@ Related documents:
   its role, and its light/dark pair.
 - `docs/portfolio-design-system-checkpoint.md` — the accepted visual direction
   and the full node, relationship, and interaction grammar.
+- `docs/components/` — one cheat-sheet per component: purpose, the props that
+  matter, what has to be around it, a runnable example, and the pitfalls.
+  **Read a component's sheet before using or modifying it.** This document
+  says how to style; the sheet says what the thing already is.
 
 Where this document and the stylesheet disagree, the stylesheet is right and
 this document is stale — fix it here.
