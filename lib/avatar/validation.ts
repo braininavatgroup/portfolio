@@ -15,6 +15,7 @@ import {
   type AvatarState,
   type AvatarTargetId,
   type AvatarTone,
+  type EdgeDirection,
   type PortfolioResponseEffects,
 } from "./contracts";
 
@@ -126,145 +127,96 @@ function clampWait(value: number) {
   return Math.max(0, Math.min(maxWaitMs, value));
 }
 
+function isEdgeDirection(value: unknown): value is EdgeDirection {
+  return value === "left" || value === "right";
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+type FieldParser = (raw: unknown, issues: string[], prefix: string) => unknown;
+
+/**
+ * Every command in the grammar is `{ action, <one field> }`, so the only thing
+ * that varies between them is which field to read, what it must satisfy, and
+ * how to say so. This was eleven near-identical switch arms, and they had
+ * already drifted: setState and play suppressed the field-level issue when the
+ * key check was what failed, while the other seven pushed both.
+ */
+function guardedField(
+  accepts: (value: unknown) => boolean,
+  requirement: string,
+  coerce: (value: unknown) => unknown = (value) => value,
+): FieldParser {
+  return (raw, issues, prefix) => {
+    if (!accepts(raw)) {
+      issues.push(`${prefix} ${requirement}`);
+      return null;
+    }
+    return coerce(raw);
+  };
+}
+
+/**
+ * `satisfies Record<AvatarCommand["action"], …>` is the load-bearing part.
+ * The union in contracts.ts, the controller's switch and this parser have to
+ * agree, and nothing used to make them: adding a twelfth action meant a
+ * command the model could be told to emit and the client would silently drop
+ * at the network boundary. Now it is a compile error here until the grammar
+ * learns the new action.
+ */
+const commandGrammar = {
+  setState: { field: "state", parse: guardedField(isAvatarState, "must be an allowed state") },
+  setTone: { field: "tone", parse: parseAvatarTone as FieldParser },
+  play: { field: "animation", parse: guardedField(isAllowedAnimation, "must be an allowed animation") },
+  wait: {
+    field: "durationMs",
+    parse: guardedField(isFiniteNumber, "must be a finite number", (value) =>
+      clampWait(value as number),
+    ),
+  },
+  enter: { field: "from", parse: guardedField(isEdgeDirection, "must be left or right") },
+  exit: { field: "to", parse: guardedField(isEdgeDirection, "must be left or right") },
+  walkTo: { field: "target", parse: guardedField(isAvatarTarget, "must be a known target") },
+  swimTo: { field: "target", parse: guardedField(isAvatarTarget, "must be a known target") },
+  swimRoute: { field: "route", parse: guardedField(isAvatarRoute, "must be an allowed route") },
+  lookAt: { field: "target", parse: guardedField(isAvatarTarget, "must be a known target") },
+  pointAt: { field: "target", parse: guardedField(isAvatarTarget, "must be a known target") },
+} as const satisfies Record<
+  AvatarCommand["action"],
+  { field: string; parse: FieldParser }
+>;
+
+export const avatarCommandActions = Object.keys(
+  commandGrammar,
+) as readonly AvatarCommand["action"][];
+
 function parseAvatarCommand(
   value: unknown,
   issues: string[],
   index: number,
 ): AvatarCommand | null {
+  const prefix = `avatarSequence[${index}]`;
   if (!isObject(value)) {
-    issues.push(`avatarSequence[${index}] must be an object`);
+    issues.push(`${prefix} must be an object`);
     return null;
   }
-
-  if (typeof value.action !== "string") {
-    issues.push(`avatarSequence[${index}] must include a string action`);
+  const { action } = value;
+  if (typeof action !== "string") {
+    issues.push(`${prefix} must include a string action`);
     return null;
   }
-
-  switch (value.action) {
-    case "setState":
-      if (
-        !exactKeys(value, ["action", "state"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarState(value.state)
-      ) {
-        if (!isAvatarState(value.state)) {
-          issues.push(`avatarSequence[${index}].state must be an allowed state`);
-        }
-        return null;
-      }
-      return { action: "setState", state: value.state };
-    case "setTone": {
-      if (
-        !exactKeys(
-          value,
-          ["action", "tone"],
-          `avatarSequence[${index}]`,
-          issues,
-        )
-      ) {
-        return null;
-      }
-      const tone = parseAvatarTone(
-        value.tone,
-        issues,
-        `avatarSequence[${index}].tone`,
-      );
-      return tone ? { action: "setTone", tone } : null;
-    }
-    case "play":
-      if (
-        !exactKeys(
-          value,
-          ["action", "animation"],
-          `avatarSequence[${index}]`,
-          issues,
-        ) ||
-        !isAllowedAnimation(value.animation)
-      ) {
-        if (!isAllowedAnimation(value.animation)) {
-          issues.push(
-            `avatarSequence[${index}].animation must be an allowed animation`,
-          );
-        }
-        return null;
-      }
-      return { action: "play", animation: value.animation };
-    case "wait":
-      if (!exactKeys(value, ["action", "durationMs"], `avatarSequence[${index}]`, issues)) {
-        return null;
-      }
-      if (typeof value.durationMs !== "number" || !Number.isFinite(value.durationMs)) {
-        issues.push(`avatarSequence[${index}].durationMs must be a finite number`);
-        return null;
-      }
-      return { action: "wait", durationMs: clampWait(value.durationMs) };
-    case "enter":
-      if (
-        !exactKeys(value, ["action", "from"], `avatarSequence[${index}]`, issues) ||
-        (value.from !== "left" && value.from !== "right")
-      ) {
-        issues.push(`avatarSequence[${index}].from must be left or right`);
-        return null;
-      }
-      return { action: "enter", from: value.from };
-    case "exit":
-      if (
-        !exactKeys(value, ["action", "to"], `avatarSequence[${index}]`, issues) ||
-        (value.to !== "left" && value.to !== "right")
-      ) {
-        issues.push(`avatarSequence[${index}].to must be left or right`);
-        return null;
-      }
-      return { action: "exit", to: value.to };
-    case "walkTo":
-      if (
-        !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        issues.push(`avatarSequence[${index}].target must be a known target`);
-        return null;
-      }
-      return { action: "walkTo", target: value.target };
-    case "swimTo":
-      if (
-        !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        issues.push(`avatarSequence[${index}].target must be a known target`);
-        return null;
-      }
-      return { action: "swimTo", target: value.target };
-    case "swimRoute":
-      if (
-        !exactKeys(value, ["action", "route"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarRoute(value.route)
-      ) {
-        issues.push(`avatarSequence[${index}].route must be an allowed route`);
-        return null;
-      }
-      return { action: "swimRoute", route: value.route };
-    case "lookAt":
-      if (
-        !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        issues.push(`avatarSequence[${index}].target must be a known target`);
-        return null;
-      }
-      return { action: "lookAt", target: value.target };
-    case "pointAt":
-      if (
-        !exactKeys(value, ["action", "target"], `avatarSequence[${index}]`, issues) ||
-        !isAvatarTarget(value.target)
-      ) {
-        issues.push(`avatarSequence[${index}].target must be a known target`);
-        return null;
-      }
-      return { action: "pointAt", target: value.target };
-    default:
-      issues.push(`avatarSequence[${index}].action is not supported`);
-      return null;
+  // hasOwn, not `in`: `action: "toString"` would otherwise reach the prototype.
+  if (!Object.hasOwn(commandGrammar, action)) {
+    issues.push(`${prefix}.action is not supported`);
+    return null;
   }
+  const { field, parse } = commandGrammar[action as AvatarCommand["action"]];
+  if (!exactKeys(value, ["action", field], prefix, issues)) return null;
+  const parsed = parse(value[field], issues, `${prefix}.${field}`);
+  if (parsed === null) return null;
+  return { action, [field]: parsed } as AvatarCommand;
 }
 
 export function parsePortfolioResponseEffects(value: unknown): PortfolioResponseEffects {

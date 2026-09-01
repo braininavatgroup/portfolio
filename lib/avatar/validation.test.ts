@@ -1,5 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { parsePortfolioResponseEffects } from "./validation";
+import { AvatarController } from "./controller";
+import type { AvatarCommand } from "./contracts";
+import { AvatarTargetRegistry } from "./target-registry";
+import { avatarCommandActions, parsePortfolioResponseEffects } from "./validation";
+
+/**
+ * One valid instance of every command in the grammar. The `satisfies` clause
+ * makes a new action in the union a compile error here, so this fixture cannot
+ * silently fall behind the contract it is meant to cover.
+ */
+function stageElement(width: number, height: number) {
+  return {
+    getBoundingClientRect: () => ({
+      left: 0,
+      top: 0,
+      width,
+      height,
+      right: width,
+      bottom: height,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+  } as HTMLElement;
+}
+
+const oneOfEach = {
+  setState: { action: "setState", state: "idle" },
+  setTone: {
+    action: "setTone",
+    tone: { energy: "low", warmth: "warm", confidence: "assured", mischief: "none" },
+  },
+  play: { action: "play", animation: "shrug" },
+  wait: { action: "wait", durationMs: 250 },
+  enter: { action: "enter", from: "left" },
+  exit: { action: "exit", to: "right" },
+  walkTo: { action: "walkTo", target: "hero" },
+  swimTo: { action: "swimTo", target: "portfolio:chat" },
+  swimRoute: { action: "swimRoute", route: "lap" },
+  lookAt: { action: "lookAt", target: "portfolio:index" },
+  pointAt: { action: "pointAt", target: "hero" },
+} as const satisfies Record<AvatarCommand["action"], AvatarCommand>;
 
 describe("avatar effects validation", () => {
   it("accepts only semantic swimming commands", () => {
@@ -111,7 +152,85 @@ describe("avatar effects validation", () => {
     });
   });
 
+  /**
+   * Before this, the suite round-tripped three of the eleven commands. The
+   * other eight were parsed by hand-written switch arms nobody exercised, at
+   * the one boundary where the client decides what a model is allowed to make
+   * the avatar do.
+   */
+  it.each(avatarCommandActions)("round-trips a valid %s command", (action) => {
+    const command = oneOfEach[action];
+    const parsed = parsePortfolioResponseEffects({ avatarSequence: [command] });
 
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.avatarSequence).toEqual([command]);
+  });
 
+  it.each(avatarCommandActions)("rejects a %s command carrying an extra key", (action) => {
+    const parsed = parsePortfolioResponseEffects({
+      avatarSequence: [{ ...oneOfEach[action], smuggled: "rotate(90deg)" }],
+    });
 
+    expect(parsed.avatarSequence).toEqual([]);
+    expect(parsed.issues).toEqual(["avatarSequence[0] has unknown key: smuggled"]);
+  });
+
+  it("does not treat inherited Object properties as actions", () => {
+    // Catches a grammar lookup written with `in` rather than Object.hasOwn.
+    const parsed = parsePortfolioResponseEffects({
+      avatarSequence: [{ action: "toString" }, { action: "constructor" }],
+    });
+
+    expect(parsed.avatarSequence).toEqual([]);
+    expect(parsed.issues).toEqual([
+      "avatarSequence[0].action is not supported",
+      "avatarSequence[1].action is not supported",
+    ]);
+  });
+
+  /**
+   * The parser and the controller's switch are two independent lists of the
+   * same vocabulary, and TypeScript does not make the controller's exhaustive:
+   * a switch with no default over a widened union still compiles, it just
+   * silently does nothing. So assert it observably acts on every command it
+   * claims to accept.
+   */
+  it.each(avatarCommandActions.filter((action) => action !== "wait"))(
+    "the controller acts on %s",
+    (action) => {
+      // The four target commands resolve through the registry and correctly
+      // no-op on an unknown target, so the targets have to exist for this to
+      // be measuring the switch arm rather than a missing element.
+      const registry = new AvatarTargetRegistry();
+      const bounds = { left: 40, top: 40, width: 200, height: 120 };
+      const element = {
+        getBoundingClientRect: () => ({
+          ...bounds,
+          right: bounds.left + bounds.width,
+          bottom: bounds.top + bounds.height,
+          x: bounds.left,
+          y: bounds.top,
+          toJSON: () => ({}),
+        }),
+      } as HTMLElement;
+      for (const target of ["hero", "portfolio:chat", "portfolio:index"] as const) {
+        registry.register(target, element);
+      }
+      // Swimming plans a route across the stage, so it needs one.
+      registry.registerStage(stageElement(620, 800));
+      const controller = new AvatarController(registry);
+      const before = controller.getSnapshot();
+
+      // execute returns void for the synchronous arms and a promise for the
+      // locomotion ones; the snapshot updates before either resolves.
+      void controller.execute(
+        oneOfEach[action] as Exclude<AvatarCommand, { action: "wait" }>,
+      );
+
+      expect(
+        controller.getSnapshot(),
+        `${action} left the controller untouched`,
+      ).not.toBe(before);
+    },
+  );
 });
