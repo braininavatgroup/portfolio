@@ -70,6 +70,43 @@ describe("design gallery route", () => {
     ).toBeGreaterThan(0);
   });
 
+  /**
+   * globals.css hides `.portfolio-composition > .portfolio-header`, because the
+   * live composition only ever carries the overlay variant. Wrapping the
+   * flow-layout states in the composition class therefore rendered four
+   * invisible headers, and nothing in the DOM said so. The header's other real
+   * surface is `/index`, which is `.flat-index`.
+   */
+  it("renders the flow-layout header on the surface that actually shows it", () => {
+    render(<DesignGallery />);
+
+    const flowHeaders = document.querySelectorAll(
+      ".flat-index > .portfolio-header:not(.portfolio-header-overlay)",
+    );
+    expect(flowHeaders).toHaveLength(3);
+
+    expect(
+      document.querySelectorAll(".portfolio-composition > .portfolio-header"),
+    ).toHaveLength(0);
+  });
+
+  /**
+   * `.experience` carries `min-height: 100vh`, so one rendered outside a stage
+   * claims a whole screen of empty page and pushes the rest of the gallery
+   * below the fold. `.design-stage` is what bounds it. (A bare
+   * `.portfolio-composition` without `.experience` is only borrowing tokens and
+   * makes no viewport claim, so it does not need a stage.)
+   */
+  it("bounds every viewport-sized composition inside a stage", () => {
+    render(<DesignGallery />);
+
+    const unstaged = [...document.querySelectorAll(".experience")].filter(
+      (node) => !node.closest(".design-stage"),
+    );
+
+    expect(unstaged.map((node) => node.className)).toEqual([]);
+  });
+
   it("mirrors the mode onto the toybox portal host", async () => {
     const user = userEvent.setup();
     const host = document.createElement("div");

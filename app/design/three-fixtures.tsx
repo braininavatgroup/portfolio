@@ -44,7 +44,7 @@ function PoseCanvas({ children }: { children: React.ReactNode }) {
   return (
     <Canvas
       aria-hidden="true"
-      camera={{ fov: 30, position: [0, 1.1, 4.2] }}
+      camera={{ fov: 30, position: [0, 0, 4.0] }}
       dpr={[1, 1.25]}
       gl={{ alpha: true, antialias: true }}
       style={{ height: "100%", width: "100%" }}
@@ -75,18 +75,24 @@ const proceduralPoses: readonly {
 
 export function ProceduralAvatarFixture() {
   return (
-    <div className="design-mark-grid">
+    <div className="design-mark-grid design-pose-grid">
       {proceduralPoses.map((pose) => (
         <div className="design-mark-cell" key={pose.label}>
-          <div style={{ height: "180px", width: "100%" }}>
+          <div style={{ height: "220px", width: "100%" }}>
             <PoseCanvas>
-              <ProceduralAvatar
-                animation={pose.animation}
-                facing={pose.facing}
-                pointing={pose.pointing}
-                reducedMotion={pose.reducedMotion}
-                tone={pose.tone}
-              />
+              {/* The rig stands on y=0 and is ~1.5 tall after its 0.82 scale.
+                  R3F points the camera at the origin, so the rig is dropped by
+                  half its height to sit on that target; aiming at the feet put
+                  the head above the top of the frame. */}
+              <group position={[0, -0.76, 0]}>
+                <ProceduralAvatar
+                  animation={pose.animation}
+                  facing={pose.facing}
+                  pointing={pose.pointing}
+                  reducedMotion={pose.reducedMotion}
+                  tone={pose.tone}
+                />
+              </group>
             </PoseCanvas>
           </div>
           <small>{pose.label}</small>

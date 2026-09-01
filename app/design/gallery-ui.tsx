@@ -25,7 +25,7 @@ export type GallerySectionId =
   | "toybox"
   | "composition";
 
-export type StageSize = "short" | "medium" | "tall" | "viewport";
+export type StageSize = "auto" | "short" | "medium" | "tall" | "viewport";
 
 export function Section({
   children,

@@ -4281,6 +4281,15 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 .design-stage[data-size="short"] { height: 260px; }
 .design-stage[data-size="viewport"] { height: 100dvh; }
 
+/* A flow-layout specimen is as tall as its content. The composition surfaces
+   size themselves in viewport units, so that claim has to be released here or
+   a 60px header reserves a whole screen. */
+.design-stage[data-size="auto"] { height: auto; }
+.design-stage[data-size="auto"] .experience,
+.design-stage[data-size="auto"] .scene-shell {
+  min-height: 0;
+}
+
 .design-stage-narrow {
   margin: 0 auto;
   max-width: 420px;
@@ -4422,6 +4431,19 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* Hosts the overlay header one level below .portfolio-composition, so the
+   production rule that hides a direct-child header does not apply and the
+   variant stays reviewable. See the note on that specimen. */
+.design-overlay-host {
+  inset: 0;
+  position: absolute;
+}
+
+/* Pose cells hold a figure rather than a mark, so they need width to frame it. */
+.design-pose-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 
 .design-mark-cell {

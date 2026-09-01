@@ -46,6 +46,21 @@ function Composition({
   );
 }
 
+/**
+ * The other surface the header lives on. `/index` renders it in flow layout
+ * inside `.flat-index`, not inside `.portfolio-composition` — the composition
+ * only ever carries the overlay variant, and hides a direct-child header to
+ * say so. Wrapping this state in the composition class would therefore show a
+ * header the live site never renders.
+ */
+function IndexSurface({ children }: { children: ReactNode }) {
+  return (
+    <div className="flat-index stacked-editorial-index" data-index-layout="stacked-editorial">
+      {children}
+    </div>
+  );
+}
+
 function NodeMarkGrid() {
   return (
     <>
@@ -83,19 +98,29 @@ function HeaderStates() {
       {(["bradley", "map", "index"] as const).map((activeView) => (
         <div key={activeView} style={{ marginBottom: "14px" }}>
           <p className="design-note" style={{ marginBottom: "6px" }}>
-            activeView=&quot;{activeView}&quot;, flow layout
+            activeView=&quot;{activeView}&quot;, flow layout — as on /index
           </p>
-          <Composition>
-            <PortfolioHeader activeView={activeView} />
-          </Composition>
+          <Stage size="auto">
+            <IndexSurface>
+              <PortfolioHeader activeView={activeView} />
+            </IndexSurface>
+          </Stage>
         </div>
       ))}
       <p className="design-note" style={{ marginBottom: "6px" }}>
-        overlay — absolutely positioned over the world
+        overlay — absolutely positioned over the world.{" "}
+        <strong>Not currently visible on the live site:</strong>{" "}
+        <code>PortfolioExperience</code> renders this variant, but{" "}
+        <code>.portfolio-composition &gt; .portfolio-header</code> in
+        globals.css sets it to <code>display: none</code>, so the world shows no
+        nav header today. It is nested one level deeper here so the variant can
+        be reviewed at all.
       </p>
       <Stage size="short">
         <Composition>
-          <PortfolioHeader activeView="map" overlay />
+          <div className="design-overlay-host">
+            <PortfolioHeader activeView="map" overlay />
+          </div>
         </Composition>
       </Stage>
     </>
@@ -249,37 +274,43 @@ function WorldStates() {
   );
 }
 
-function ChatStates() {
-  const [open, setOpen] = useState(false);
+/**
+ * One chat, in one state. Both states get their own instance so the specimen
+ * shows them at once rather than making a reviewer toggle — the minimized
+ * trigger is 40px, so parking it alone in a 640px stage was mostly empty box.
+ */
+function ChatSpecimen({ initialOpen }: { initialOpen: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
 
   return (
+    <Stage size={initialOpen ? "tall" : "short"}>
+      <Composition>
+        <section className="scene-shell">
+          <PortfolioChat
+            askPortfolio={galleryAskPortfolio}
+            onOpenChange={setOpen}
+            onPoseChange={noop}
+            open={open}
+            renderTurnstile={galleryRenderTurnstile}
+          />
+        </section>
+      </Composition>
+    </Stage>
+  );
+}
+
+function ChatStates() {
+  return (
     <>
-      <div className="design-lazy">
-        <button
-          className="design-gallery-control"
-          onClick={() => setOpen((current) => !current)}
-          type="button"
-        >
-          {open ? "Minimize panel" : "Open panel"}
-        </button>
-        <span>
-          Answers come from a gallery stub, so asking a question never reaches
-          the chat API.
-        </span>
-      </div>
-      <Stage>
-        <Composition>
-          <section className="scene-shell">
-            <PortfolioChat
-              askPortfolio={galleryAskPortfolio}
-              onOpenChange={setOpen}
-              onPoseChange={noop}
-              open={open}
-              renderTurnstile={galleryRenderTurnstile}
-            />
-          </section>
-        </Composition>
-      </Stage>
+      <p className="design-note" style={{ marginBottom: "6px" }}>
+        Minimized — the 40px trigger, anchored bottom-right.
+      </p>
+      <ChatSpecimen initialOpen={false} />
+      <p className="design-note" style={{ margin: "14px 0 6px" }}>
+        Open — the 18rem panel. Both are live: answers come from a gallery
+        stub, so asking a question never reaches the chat API.
+      </p>
+      <ChatSpecimen initialOpen />
     </>
   );
 }
