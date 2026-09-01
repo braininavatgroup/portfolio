@@ -10,6 +10,6 @@ permissions:
 
 jobs:
   linear-link:
-    uses: braininavatgroup/agentic-workflow/.github/workflows/linear-link-reusable.yml@main
+    uses: braininavatgroup/brain-in-a-vat-group/.github/workflows/linear-link-reusable.yml@main
     with:
       require_changelog: false
