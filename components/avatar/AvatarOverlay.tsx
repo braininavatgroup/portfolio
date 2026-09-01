@@ -154,7 +154,7 @@ export function AvatarOverlay({
   return (
     <>
       <div
-        className="avatar-overlay pointer-events-none"
+        className="avatar-overlay"
         data-avatar-state={snapshot.state}
         style={{ pointerEvents: "none" }}
       >

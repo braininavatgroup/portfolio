@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 :root {
   /* Legacy prototype aliases. These remain live outside the accepted portfolio composition. */
   --accent: #c8f347;
@@ -182,67 +180,8 @@
   --world-hit-area: 34px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-ink: var(--ink);
-  --color-map-muted: var(--map-muted);
-  --color-map-paper: var(--map-paper);
-  --color-map-paper-near: var(--map-paper-near);
-  --color-map-line: var(--map-line);
-  --color-map-line-strong: var(--map-line-strong);
-  --color-reader-paper: var(--reader-paper);
-  --color-reader-summary: var(--reader-summary);
-  --color-reader-body: var(--reader-body);
-  --color-reader-muted: var(--reader-muted);
-  --color-world-identity: var(--world-identity);
-  --color-world-story: var(--world-story);
-  --color-world-finding: var(--world-finding);
-  --color-world-warm: var(--world-warm);
-  --color-world-bridge: var(--world-bridge);
-  --color-world-cool: var(--world-cool);
-  --color-map-silver: var(--map-silver);
-  --color-map-paper-dark: var(--map-paper-dark);
-  --color-map-paper-near-light: var(--map-paper-near-light);
-  --color-map-paper-near-dark: var(--map-paper-near-dark);
-  --color-map-muted-light: var(--map-muted-light);
-  --color-map-muted-dark: var(--map-muted-dark);
-  --color-map-line-light: var(--map-line-light);
-  --color-map-line-dark: var(--map-line-dark);
-  --color-map-line-strong-light: var(--map-line-strong-light);
-  --color-map-line-strong-dark: var(--map-line-strong-dark);
-  --color-map-grid-light: var(--map-grid-light);
-  --color-map-grid-dark: var(--map-grid-dark);
-  --color-reader-paper-light: var(--reader-paper-light);
-  --color-reader-paper-dark: var(--reader-paper-dark);
-  --color-reader-ink-light: var(--reader-ink-light);
-  --color-reader-ink-dark: var(--reader-ink-dark);
-  --color-reader-summary-light: var(--reader-summary-light);
-  --color-reader-summary-dark: var(--reader-summary-dark);
-  --color-reader-body-light: var(--reader-body-light);
-  --color-reader-body-dark: var(--reader-body-dark);
-  --color-reader-muted-light: var(--reader-muted-light);
-  --color-reader-muted-dark: var(--reader-muted-dark);
-  --color-reader-stage-shadow: var(--reader-stage-shadow);
-  --color-reader-media-shadow: var(--reader-media-shadow);
-  --color-reader-gallery-shadow: var(--reader-gallery-shadow);
-  --color-reader-assistant-shadow: var(--reader-assistant-shadow);
-  --color-reader-floating-control-shadow: var(--reader-floating-control-shadow);
-  --color-world-lichen: var(--world-lichen);
-  --color-world-acid: var(--world-acid);
-  --color-world-hard-red: var(--world-hard-red);
-  --color-world-signal-red: var(--world-signal-red);
-  --color-world-electric-pink: var(--world-electric-pink);
-  --color-world-hot-pink: var(--world-hot-pink);
-  --color-world-violet: var(--world-violet);
-  --color-world-violet-dark: var(--world-violet-dark);
-  --color-world-production-cyan: var(--world-production-cyan);
-  --color-world-production-cyan-dark: var(--world-production-cyan-dark);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 body {
+  -webkit-font-smoothing: antialiased;
   --font-prototype-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-prototype-sans-short: var(--font-geist-sans), sans-serif;
   --font-prototype-mono: var(--font-geist-mono), monospace;
@@ -965,13 +904,11 @@ body {
   padding-top: 0.65rem;
 }
 
-.chat-answer,
-.chat-evidence {
+.chat-answer {
   margin-top: 0.85rem;
 }
 
-.chat-answer h3,
-.chat-evidence h3 {
+.chat-answer h3 {
   color: var(--prototype-highlight);
   font-family: var(--font-prototype-mono);
   font-size: 0.65rem;
@@ -988,40 +925,6 @@ body {
   font-size: 0.72rem;
   line-height: 1.45;
   margin: 0.75rem 0 0;
-}
-
-.chat-evidence ol {
-  list-style: none;
-  margin: 0.4rem 0 0;
-  padding: 0;
-}
-
-.chat-evidence li {
-  border-top: 1px solid var(--prototype-chat-rule);
-  padding: 0.65rem 0;
-}
-
-.chat-evidence li > div {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.7rem;
-  justify-content: space-between;
-}
-
-.chat-evidence a {
-  font-size: 0.75rem;
-}
-
-.chat-evidence span {
-  color: var(--prototype-secondary-ink);
-  font-family: var(--font-prototype-mono);
-  font-size: 0.58rem;
-  text-transform: uppercase;
-}
-
-.chat-evidence li p {
-  margin-top: 0.35rem;
 }
 
 @media (max-width: 980px) {
@@ -1438,18 +1341,12 @@ input:focus-visible {
   opacity: 0;
 }
 
-[data-theme="light"] .chat-inspect,
-[data-theme="light"] .chat-evidence li {
+[data-theme="light"] .chat-inspect {
   border-color: var(--line);
 }
 
-[data-theme="light"] .chat-answer h3,
-[data-theme="light"] .chat-evidence h3 {
+[data-theme="light"] .chat-answer h3 {
   color: var(--prototype-label-ink-light-muted);
-}
-
-[data-theme="light"] .chat-evidence span {
-  color: var(--muted);
 }
 
 [data-theme="light"] .portfolio-chat input {

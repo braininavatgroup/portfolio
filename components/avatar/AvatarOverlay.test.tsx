@@ -79,7 +79,7 @@ describe("AvatarOverlay", () => {
 
     const overlay = container.querySelector<HTMLElement>(".avatar-overlay");
     const canvas = screen.getByTestId("avatar-canvas");
-    expect(overlay?.className).toContain("pointer-events-none");
+    expect(overlay?.getAttribute("style")).toContain("pointer-events: none");
     expect(overlay?.style.left).toBe("");
     expect(overlay?.style.pointerEvents).toBe("none");
     expect(canvas.getAttribute("data-orthographic")).toBe("true");
