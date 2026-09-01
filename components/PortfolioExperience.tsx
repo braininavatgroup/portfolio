@@ -562,7 +562,7 @@ export function PortfolioExperience() {
         command?.action === "pointAt"
       ) {
         avatarController.refreshStage(true, getAssistantHomeDock());
-        avatarController.execute(command);
+        void avatarController.execute(command);
       } else {
         avatarController.refreshStage(true, getAssistantHomeDock());
       }

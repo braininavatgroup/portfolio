@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/{page,layout,route,error,global-error,not-found}.tsx",
+    "app/**/{page,layout,route}.ts",
+    "worker/index.ts",
+    "scripts/**/*.{ts,mjs}",
+    "**/*.test.{ts,tsx,mjs}"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "worker/**/*.ts"
+  ],
+  "ignore": [],
+  "ignoreDependencies": [
+    "@gltf-transform/cli"
+  ]
+}

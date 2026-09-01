@@ -139,7 +139,7 @@ export function AvatarDirectorConsole({
   [director, reducedMotion]);
   const runTarget = useCallback((action: "walkTo" | "swimTo" | "lookAt" | "pointAt") => {
     if (!selectedTarget) return;
-    run([{ action, target: selectedTarget }]);
+    void run([{ action, target: selectedTarget }]);
   }, [run, selectedTarget]);
   const selectTarget = useCallback((target: AvatarTargetId) => {
     setSelectedTarget(target);
@@ -342,17 +342,17 @@ export function AvatarDirectorConsole({
               <p>position={Math.round(snapshot.position.x)},{Math.round(snapshot.position.y)} · locomotion={snapshot.locomotion} · path={snapshot.motion?.kind ?? "none"} · facing={snapshot.facing} · target={snapshot.target ?? "none"} · point={snapshot.pointing ?? "none"}</p>
               <p>tone={snapshot.tone.energy}/{snapshot.tone.warmth}/{snapshot.tone.confidence}/{snapshot.tone.mischief}</p>
               <h3>State</h3>
-              {allowedAvatarStates.map((state) => <button key={state} type="button" onClick={() => run([{ action: "setState", state }])}>State: {state}</button>)}
+              {allowedAvatarStates.map((state) => <button key={state} type="button" onClick={() => void run([{ action: "setState", state }])}>State: {state}</button>)}
               <h3>Tone</h3>
-              {tonePresets.map(({ label, tone }) => <button key={label} type="button" onClick={() => run([{ action: "setTone", tone }])}>{label}</button>)}
+              {tonePresets.map(({ label, tone }) => <button key={label} type="button" onClick={() => void run([{ action: "setTone", tone }])}>{label}</button>)}
               <h3>Behaviors</h3>
-              {avatarBehaviors.map(({ id, label }) => <button key={id} type="button" onClick={() => run([{ action: "play", animation: id }])}>{label}</button>)}
+              {avatarBehaviors.map(({ id, label }) => <button key={id} type="button" onClick={() => void run([{ action: "play", animation: id }])}>{label}</button>)}
               <h3>Stage</h3>
-              <button type="button" onClick={() => run([{ action: "enter", from: "left" }])}>Enter left</button>
-              <button type="button" onClick={() => run([{ action: "enter", from: "right" }])}>Enter right</button>
-              <button type="button" onClick={() => run([{ action: "exit", to: "left" }])}>Exit left</button>
-              <button type="button" onClick={() => run([{ action: "exit", to: "right" }])}>Exit right</button>
-              {debugTargets.map((target) => <span key={target}><button type="button" onClick={() => run([{ action: "walkTo", target }])}>Walk to {target}</button><button type="button" onClick={() => run([{ action: "lookAt", target }])}>Look at {target}</button><button type="button" onClick={() => run([{ action: "pointAt", target }])}>Point at {target}</button></span>)}
+              <button type="button" onClick={() => void run([{ action: "enter", from: "left" }])}>Enter left</button>
+              <button type="button" onClick={() => void run([{ action: "enter", from: "right" }])}>Enter right</button>
+              <button type="button" onClick={() => void run([{ action: "exit", to: "left" }])}>Exit left</button>
+              <button type="button" onClick={() => void run([{ action: "exit", to: "right" }])}>Exit right</button>
+              {debugTargets.map((target) => <span key={target}><button type="button" onClick={() => void run([{ action: "walkTo", target }])}>Walk to {target}</button><button type="button" onClick={() => void run([{ action: "lookAt", target }])}>Look at {target}</button><button type="button" onClick={() => void run([{ action: "pointAt", target }])}>Point at {target}</button></span>)}
               <h3>Context</h3>
               <button type="button" onClick={() => void director.handle({ type: "input_focus" })}>Simulate listening</button>
               <button type="button" onClick={() => void director.handle({ type: "input_activity" })}>Simulate typing</button>

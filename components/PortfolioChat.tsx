@@ -294,15 +294,17 @@ export function PortfolioChat({
       scheduleAvatarWork(
         () =>
           new Promise<void>((resolve) => {
-            window.setTimeout(async () => {
-              if (isCurrentTurn()) {
-                try {
-                  await work();
-                } catch {
-                  // Avatar work is optional and must never interrupt text.
+            window.setTimeout(() => {
+              void (async () => {
+                if (isCurrentTurn()) {
+                  try {
+                    await work();
+                  } catch {
+                    // Avatar work is optional and must never interrupt text.
+                  }
                 }
-              }
-              resolve();
+                resolve();
+              })();
             }, 0);
           }),
       );

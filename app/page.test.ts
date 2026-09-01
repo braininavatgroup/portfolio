@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("portfolio page", () => {
-  it("opens the spatial composition at the root URL with no landing phase", async () => {
-    const page = await Home();
+  it("opens the spatial composition at the root URL with no landing phase", () => {
+    const page = Home();
 
     expect(page.type.name).toBe("PortfolioExperience");
     expect(page.props).toEqual({});

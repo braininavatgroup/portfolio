@@ -84,7 +84,7 @@ export class AvatarDirector {
         ]);
       case "input_blur":
         if (this.#turnActive) return;
-        this.#controller.execute({ action: "setState", state: "idle" });
+        void this.#controller.execute({ action: "setState", state: "idle" });
         this.startAmbient();
         return;
       case "turn_start":
@@ -95,14 +95,14 @@ export class AvatarDirector {
           { action: "setState", state: "thinking" },
         ]);
       case "evidence":
-        this.#controller.execute({ action: "setState", state: "tool_use" });
+        void this.#controller.execute({ action: "setState", state: "tool_use" });
         return;
       case "first_text":
-        this.#controller.execute({ action: "setState", state: "talking" });
+        void this.#controller.execute({ action: "setState", state: "talking" });
         return;
       case "turn_complete":
         this.#turnActive = false;
-        this.#controller.execute({ action: "setState", state: "idle" });
+        void this.#controller.execute({ action: "setState", state: "idle" });
         this.startAmbient();
         return;
       case "project_open":
@@ -172,7 +172,7 @@ export class AvatarDirector {
     });
     this.#previousAmbientId = variant.id;
     if (!variant.command) {
-      this.#controller.execute({ action: "setState", state: "idle" });
+      void this.#controller.execute({ action: "setState", state: "idle" });
       return;
     }
     if (variant.command.action === "swimRoute") {
