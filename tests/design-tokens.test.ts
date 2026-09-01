@@ -87,12 +87,10 @@ describe("design token contract", () => {
       ...fontFacesRemoved.matchAll(/(?:^|[;{])\s*font(?:-family)?\s*:\s*([^;]+);/gm),
     ].map((match) => match[1]);
 
-    const approvedFontTokens = [
-      "--font-reader",
-      "--font-prototype-sans",
-      "--font-prototype-sans-short",
-      "--font-prototype-mono",
-    ];
+    // Two, not four. --font-prototype-sans and --font-prototype-sans-short
+    // named Geist and went with it; leaving them approved would have let Geist
+    // back in through a token nothing declares.
+    const approvedFontTokens = ["--font-reader", "--font-prototype-mono"];
     const unapprovedDeclarations = fontDeclarations.filter((value) => {
       const normalized = value.trim();
 
@@ -118,5 +116,36 @@ describe("design token contract", () => {
     );
 
     expect(undocumented).toEqual([]);
+  });
+
+  /**
+   * The inverse, which was missing — and its absence is why the documentation
+   * carried a table row for `--accent` describing a lime green that had no
+   * reader left in the stylesheet, plus font aliases naming a typeface the
+   * site no longer ships. Documentation that outlives its subject is worse
+   * than none: it is confidently wrong.
+   */
+  it("documents no token the stylesheet has retired", async () => {
+    const [stylesheet, documentation] = await Promise.all([
+      readStylesheet(),
+      readFile(tokenDocumentationUrl, "utf8"),
+    ]);
+    const declared = new Set(
+      [...stylesheet.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map(([, token]) => token),
+    );
+    // Only the inventory tables count. Naming a token in prose to record that
+    // it was retired is history, and a doc that cannot say "this is gone" is a
+    // doc that quietly drops the reason instead.
+    const documented = new Set(
+      documentation
+        .split("\n")
+        .filter((line) => line.startsWith("| `--"))
+        .flatMap((line) => [...line.matchAll(/`(--[a-z0-9-]+)`/gi)].map(([, t]) => t)),
+    );
+    const retired = [...documented].filter(
+      (token) => !declared.has(token) && !(token in inlineSetTokens),
+    );
+
+    expect(retired).toEqual([]);
   });
 });

@@ -28,7 +28,7 @@
 
 .avatar-director-console-status p {
   color: var(--prototype-director-status);
-  font: 600 0.62rem/1.35 var(--font-prototype-mono);
+  font: 600 0.62rem/1.35 var(--font-reader);
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -46,7 +46,7 @@
   border: 1px solid var(--prototype-director-control-rule);
   color: var(--prototype-director-control-ink);
   cursor: pointer;
-  font: 650 0.62rem/1.1 var(--font-prototype-mono);
+  font: 650 0.62rem/1.1 var(--font-reader);
   min-height: 2rem;
   padding: 0.42rem 0.52rem;
 }
@@ -102,7 +102,7 @@
 }
 
 .avatar-director-console-panel [role="tabpanel"] > p {
-  font: 600 0.62rem/1.45 var(--font-prototype-mono);
+  font: 600 0.62rem/1.45 var(--font-reader);
   margin: 0.1rem 0 0.45rem;
   overflow-wrap: anywhere;
   width: 100%;
@@ -111,7 +111,7 @@
 .avatar-director-console-panel h3 {
   color: var(--prototype-director-heading);
   flex-basis: 100%;
-  font: 700 0.6rem/1.2 var(--font-prototype-mono);
+  font: 700 0.6rem/1.2 var(--font-reader);
   letter-spacing: 0.08em;
   margin: 0.6rem 0 0.1rem;
   text-transform: uppercase;

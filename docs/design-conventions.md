@@ -35,7 +35,10 @@ Identify the surface first.
    working, not extended.
 
 **Rule 0.1** — New work targets the composition. Do not add new
-`--prototype-*` tokens, new Geist type, or new legacy-page selectors.
+`--prototype-*` tokens or new legacy-page selectors. The inventory only
+shrinks: a `--prototype-*` token with no `var()` reader left is not "frozen",
+it is dead, and it goes. Geist used to be named here too; it has been deleted
+outright, so there is nothing left to add.
 
 **Rule 0.2** — When you must touch a legacy page, use the `--prototype-*`
 tokens already there. Do not "upgrade" it to checkpoint colors as a side
@@ -44,8 +47,10 @@ effect; that is a deliberate migration, not a drive-by.
 ## 1. Never hard-code a color
 
 **Rule 1.1** — `app/globals.css` contains zero raw color literals outside the
-`:root` token block (lines 1–183). No `#rrggbb`, no `rgb()`, no `rgba()`,
-no named colors, anywhere below it. Keep it that way.
+`:root` token block. No `#rrggbb`, no `rgb()`, no `rgba()`, no named colors,
+anywhere below it. Keep it that way — `tests/design-tokens.test.ts` enforces
+it, which is why this no longer quotes a line number that went stale the first
+time a token was removed.
 
 **Rule 1.2** — To style something, reference an existing token with `var()`.
 If genuinely no token fits, add one to the correct family in `:root` and record

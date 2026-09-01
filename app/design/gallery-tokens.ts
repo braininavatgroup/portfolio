@@ -50,6 +50,6 @@ export const dimensionTokens: readonly { token: string; role: string }[] = [
 
 export const fontTokens: readonly { token: string; role: string }[] = [
   { token: "--font-reader", role: "The site's type stack — Neue Haas Grotesk everywhere" },
-  { token: "--font-prototype-mono", role: "System monospace, for this gallery's data columns only" },
+  { token: "--font-prototype-mono", role: "System monospace. Only where the content is literally code — this gallery's source paths and token names" },
 ];
 

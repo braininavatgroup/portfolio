@@ -172,9 +172,11 @@ export function TokenGallery() {
         />
         <p className="design-note" style={{ margin: "18px 0 0" }}>
           Shadows below are not mode-switched; both columns are expected to
-          match. The 118 <code>--prototype-*</code> values are frozen (Rule 0.1)
-          and inventoried with their roles in <code>docs/design-tokens.md</code>
-          — they are deliberately not rendered here.
+          match. The remaining <code>--prototype-*</code> values are a shrinking
+          inventory of pre-checkpoint CSS, listed with their roles in{" "}
+          <code>docs/design-tokens.md</code> — deliberately not rendered here.
+          Their count is asserted by <code>tests/design-tokens.test.ts</code>
+          rather than restated, because it moves every time one is retired.
         </p>
         <ModeTable
           caption="Shadow tokens"
@@ -197,16 +199,30 @@ export function TokenGallery() {
           rows={fontTokens}
           showSwatch={false}
         />
-        <div className="portfolio-composition" style={{ background: "transparent" }}>
-          {typeSpecimens.map((specimen) => (
-            <div className="design-type-specimen" key={specimen.selector}>
-              <p className="design-type-specimen-label">
-                {specimen.label} · <code>{specimen.selector}</code>
-              </p>
-              {specimen.render("Make complexity legible enough to act on.")}
+        {/* Both modes, side by side. The table above resolves the tokens to
+            text, which tells you the value and shows you nothing — and type is
+            the one place where the value is not the point. Each pair pins
+            [data-theme] on its own .portfolio-composition, the same mechanism
+            the composition uses for prefers-color-scheme. */}
+        {typeSpecimens.map((specimen) => (
+          <div className="design-type-specimen" key={specimen.selector}>
+            <p className="design-type-specimen-label">
+              {specimen.label} · <code>{specimen.selector}</code>
+            </p>
+            <div className="design-mode-pair">
+              {(["light", "dark"] as const).map((mode) => (
+                <div
+                  className="design-mode-pane portfolio-composition"
+                  data-mode={mode}
+                  data-theme={mode}
+                  key={mode}
+                >
+                  {specimen.render("Make complexity legible enough to act on.")}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </Section>
 
       <Section
