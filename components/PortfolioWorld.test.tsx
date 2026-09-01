@@ -236,41 +236,51 @@ describe("PortfolioWorld", () => {
  * paint runs and the colour it strokes with is observable.
  */
 describe("PortfolioWorld canvas paint", () => {
+  /**
+   * A no-op-by-default proxy rather than a hand-listed object. The first
+   * version of this stub listed the methods drawLinks calls and stopped there,
+   * so the very first drawNode threw `context.translate is not a function`
+   * inside a requestAnimationFrame callback — which jsdom swallows into an
+   * uncaught exception rather than a test failure. Every assertion still
+   * passed, because links stroke before nodes draw; the file merely exited
+   * non-zero. Defaulting unknown members to no-ops means an under-implemented
+   * stub can no longer masquerade as coverage.
+   */
   function recordingContext() {
     const record = {
       strokeStyles: [] as string[],
       fillStyles: [] as string[],
+      fillTexts: [] as string[],
       moveToCalls: 0,
+      translateCalls: 0,
     };
-    const context = {
-      arc: () => {},
-      beginPath: () => {},
-      clearRect: () => {},
-      closePath: () => {},
-      drawImage: () => {},
-      fill: () => {},
-      fillText: () => {},
-      lineTo: () => {},
+    const target: Record<string, unknown> = {
       measureText: (value: string) => ({ width: value.length * 6.2 }),
       moveTo: () => {
         record.moveToCalls += 1;
       },
-      restore: () => {},
-      save: () => {},
-      setTransform: () => {},
-      stroke: () => {},
-      set strokeStyle(value: string) {
-        record.strokeStyles.push(value);
+      translate: () => {
+        record.translateCalls += 1;
       },
-      set fillStyle(value: string) {
-        record.fillStyles.push(value);
+      fillText: (value: string) => {
+        record.fillTexts.push(value);
       },
-      font: "",
-      globalAlpha: 1,
-      lineWidth: 1,
-      textAlign: "center",
-      textBaseline: "middle",
     };
+    const context = new Proxy(target, {
+      get(object, property) {
+        if (property in object) return object[property as string];
+        // Canvas state properties read back as whatever was last written.
+        return typeof property === "string" && property.endsWith("Style")
+          ? ""
+          : () => {};
+      },
+      set(object, property, value) {
+        if (property === "strokeStyle") record.strokeStyles.push(String(value));
+        if (property === "fillStyle") record.fillStyles.push(String(value));
+        object[property as string] = value;
+        return true;
+      },
+    });
     return { context, record };
   }
 
@@ -308,7 +318,9 @@ describe("PortfolioWorld canvas paint", () => {
     const record = paintWithConnector("rgb(1, 2, 3)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
-    expect(record.moveToCalls).toBeGreaterThan(0);
+    expect(record.moveToCalls, "drawLinks never ran").toBeGreaterThan(0);
+    expect(record.translateCalls, "drawNode never ran").toBeGreaterThan(0);
+    expect(record.fillTexts.length, "no label was painted").toBeGreaterThan(0);
     expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
   });
 

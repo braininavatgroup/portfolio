@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { AvatarController } from "../lib/avatar/controller";
 import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
@@ -109,6 +109,29 @@ function mockMatchMedia(reducedMotion = false) {
     dispatchEvent: vi.fn(),
   }));
 }
+
+/**
+ * PortfolioExperience mounts both overlays through React.lazy. The modules are
+ * mocked above, so nothing heavy loads — but the dynamic import still round-
+ * trips through vite's module graph, and under a loaded worker pool that
+ * occasionally took longer than findBy's 1000ms default. The symptom was one
+ * test out of 537 failing perhaps one run in six with "Unable to find a label
+ * with the text of: Test avatar overlay" — a different test each time,
+ * depending on which one lost the race — which reads like a component bug and
+ * is not one. It was previously misdiagnosed as memory pressure and papered
+ * over by capping the worker pool, which only made the race rarer.
+ *
+ * Resolving the specifiers once, before any test renders, puts them in the
+ * module cache before React asks. The lazy boundaries then settle inside the
+ * act() flush rather than racing a timer, on every render path in this file
+ * rather than only the ones that remember to warm them.
+ */
+beforeAll(async () => {
+  await Promise.all([
+    import("./avatar/AvatarOverlay"),
+    import("./avatar-toybox/AvatarToyboxOverlay"),
+  ]);
+});
 
 async function renderExperience() {
   mockMatchMedia();
