@@ -42,3 +42,6 @@ yarn-error.log*
 /outputs/
 /work/
 graphify-out/
+
+# Scratch output from Playwright MCP browser sessions
+.playwright-mcp/
