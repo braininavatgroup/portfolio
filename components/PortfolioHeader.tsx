@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { EditableText } from "./editor/EditableText";
 
 type PortfolioHeaderProps = {
   activeView?: "bradley" | "map" | "index";
@@ -43,27 +45,42 @@ export function PortfolioHeader({
       ref={obstacleRef}
     >
       {activeView === "bradley" ? (
-        <span aria-current="page" className="wordmark">
-          Bradley Berkman
-        </span>
+        <EditableText
+          aria-current="page"
+          as="span"
+          className="wordmark"
+          path="interface.header.wordmark"
+          value={portfolioInterfaceText["header.wordmark"]}
+        />
       ) : (
         <Link
           className="wordmark"
           href="/"
           onClick={(event) => handleLocalNavigation(event, onBradleySelect)}
         >
-          Bradley Berkman
+          <EditableText
+            path="interface.header.wordmark"
+            value={portfolioInterfaceText["header.wordmark"]}
+          />
         </Link>
       )}
       <nav aria-label="Portfolio views">
         {activeView === "map" ? (
-          <span aria-current="page">Map</span>
+          <EditableText
+            aria-current="page"
+            as="span"
+            path="interface.header.mapLink"
+            value={portfolioInterfaceText["header.mapLink"]}
+          />
         ) : (
           <Link
             href="/?view=graph"
             onClick={(event) => handleLocalNavigation(event, onMapSelect)}
           >
-            Map
+            <EditableText
+              path="interface.header.mapLink"
+              value={portfolioInterfaceText["header.mapLink"]}
+            />
           </Link>
         )}
       </nav>

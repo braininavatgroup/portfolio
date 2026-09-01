@@ -35,6 +35,7 @@ import {
   type SpatialGraphNode,
 } from "../lib/spatial-graph";
 import { PortfolioChat } from "./PortfolioChat";
+import { EditableText } from "./editor/EditableText";
 import { PortfolioHeader } from "./PortfolioHeader";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
@@ -785,7 +786,10 @@ export function PortfolioExperience() {
             }
             ref={registerHero}
           >
-            {portfolioThroughline}
+            <EditableText
+              path="interface.hero.throughline"
+              value={portfolioThroughline}
+            />
           </h1>
         </div>
 

@@ -2,11 +2,13 @@ import Link from "next/link";
 import { PortfolioHeader } from "../../components/PortfolioHeader";
 import { PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import {
+  portfolioInterfaceText,
   portfolioThreads,
   portfolioThroughline,
   portfolioWorldIndexSections,
   portfolioWorldNodeById,
 } from "../../lib/portfolio-world";
+import { EditableText } from "../../components/editor/EditableText";
 
 export default function ProjectIndex() {
   return (
@@ -19,8 +21,17 @@ export default function ProjectIndex() {
     >
       <PortfolioHeader activeView="index" />
       <header className="index-header">
-        <h1>Index</h1>
-        <p className="lede">{portfolioThroughline}</p>
+        <EditableText
+          as="h1"
+          path="interface.reader.indexTitle"
+          value={portfolioInterfaceText["reader.indexTitle"]}
+        />
+        <EditableText
+          as="p"
+          className="lede"
+          path="interface.hero.throughline"
+          value={portfolioThroughline}
+        />
       </header>
 
       {portfolioWorldIndexSections.map((section) => {
@@ -29,8 +40,16 @@ export default function ProjectIndex() {
             <section className="domain-section" data-project-count={portfolioThreads.length} id={section.id} key={section.id}>
               <div className="domain-heading">
                 <div>
-                  <h2>{section.title}</h2>
-                  <p>Narrated paths through the work.</p>
+                  <EditableText
+                    as="h2"
+                    path={`interface.${section.titleKey}`}
+                    value={section.title}
+                  />
+                  <EditableText
+                    as="p"
+                    path="interface.indexPage.threadsSubtitle"
+                    value={portfolioInterfaceText["indexPage.threadsSubtitle"]}
+                  />
                 </div>
               </div>
               <div className="domain-work">
@@ -45,8 +64,16 @@ export default function ProjectIndex() {
                         href={`/?view=graph#thread/${thread.id}`}
                       >
                         <span className="artifact-index-copy">
-                          <strong>{thread.title}</strong>
-                          <small>{thread.lede}</small>
+                          <EditableText
+                            as="strong"
+                            path={`threads.${thread.id}.title`}
+                            value={thread.title}
+                          />
+                          <EditableText
+                            as="small"
+                            path={`threads.${thread.id}.lede`}
+                            value={thread.lede}
+                          />
                         </span>
                         <span className="artifact-index-meta">
                           <PortfolioNodeMark family={node.family} register={node.register} />
@@ -70,7 +97,11 @@ export default function ProjectIndex() {
           >
             <div className="domain-heading">
               <div>
-                <h2>{section.title}</h2>
+                <EditableText
+                  as="h2"
+                  path={`interface.${section.titleKey}`}
+                  value={section.title}
+                />
               </div>
             </div>
             <div className="domain-work">
@@ -85,8 +116,16 @@ export default function ProjectIndex() {
                         href={`/?view=graph#${node.id}`}
                       >
                         <span className="artifact-index-copy">
-                          <strong>{node.label}</strong>
-                          <small>{node.summary}</small>
+                          <EditableText
+                            as="strong"
+                            path={`records.${node.id}.label`}
+                            value={node.label}
+                          />
+                          <EditableText
+                            as="small"
+                            path={`records.${node.id}.summary`}
+                            value={node.summary}
+                          />
                         </span>
                         <span className="artifact-index-meta">
                           <PortfolioNodeMark family={node.family} register={node.register} />

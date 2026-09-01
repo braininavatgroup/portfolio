@@ -6,6 +6,8 @@ import { Canvas } from "@react-three/fiber";
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
+import { portfolioInterfaceText } from "../../lib/portfolio-world";
+import { EditableText } from "../editor/EditableText";
 import type { AvatarToyboxSession } from "./useAvatarToyboxSession";
 import { AvatarAssetAdapter } from "../avatar/AvatarAssetAdapter";
 
@@ -142,28 +144,28 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
 
       <header className="avatar-toybox-hud">
         <div>
-          <p className="eyebrow">Secret avatar toybox</p>
-          <h2 id="avatar-toybox-title">Avatar toybox</h2>
+          <EditableText as="p" className="eyebrow" path="interface.toybox.eyebrow" value={portfolioInterfaceText["toybox.eyebrow"]} />
+          <EditableText as="h2" id="avatar-toybox-title" path="interface.toybox.title" value={portfolioInterfaceText["toybox.title"]} />
         </div>
         {session.status === "collecting" ? (
           <p aria-label="Brain Food score and time">
             Score {session.score} of {session.collectibles.length} · {session.remainingSeconds}s
           </p>
         ) : session.status === "result" ? (
-          <p>Returning to portfolio...</p>
+          <EditableText as="p" path="interface.toybox.returning" value={portfolioInterfaceText["toybox.returning"]} />
         ) : session.status === "tossing" ? (
-          <p>Drag + release · R reset · Esc exits</p>
+          <EditableText as="p" path="interface.toybox.tossHint" value={portfolioInterfaceText["toybox.tossHint"]} />
         ) : (
-          <p>Press 1 or 2 · Esc exits</p>
+          <EditableText as="p" path="interface.toybox.chooseHint" value={portfolioInterfaceText["toybox.chooseHint"]} />
         )}
         <button className="avatar-toybox-exit" onClick={() => session.close()} type="button">
-          Close game
+          <EditableText path="interface.toybox.closeButton" value={portfolioInterfaceText["toybox.closeButton"]} />
         </button>
       </header>
 
       {session.status === "choosing" ? (
         <div className="avatar-toybox-chooser">
-          <p>You found the toybox. Pick a tiny diversion.</p>
+          <EditableText as="p" path="interface.toybox.chooserPrompt" value={portfolioInterfaceText["toybox.chooserPrompt"]} />
           <div className="avatar-toybox-choices">
             <button
               data-avatar-toybox-initial-focus
@@ -171,13 +173,13 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
               type="button"
             >
               <span>1</span>
-              <strong>Brain Food</strong>
-              <small>Steer Bradley through the work.</small>
+              <EditableText as="strong" path="interface.toybox.brainFoodTitle" value={portfolioInterfaceText["toybox.brainFoodTitle"]} />
+              <EditableText as="small" path="interface.toybox.brainFoodDescription" value={portfolioInterfaceText["toybox.brainFoodDescription"]} />
             </button>
             <button onClick={session.startTossing} type="button">
               <span>2</span>
-              <strong>Toss Bradley</strong>
-              <small>Pick him up and let cartoon gravity take over.</small>
+              <EditableText as="strong" path="interface.toybox.tossTitle" value={portfolioInterfaceText["toybox.tossTitle"]} />
+              <EditableText as="small" path="interface.toybox.tossDescription" value={portfolioInterfaceText["toybox.tossDescription"]} />
             </button>
           </div>
         </div>
@@ -228,14 +230,20 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
                 ×
               </button>
               <p className="eyebrow">
-                {session.resultKind === "toss" ? "Toss complete" : "Round complete"}
+                {session.resultKind === "toss" ? (
+                  <EditableText path="interface.toybox.tossEyebrow" value={portfolioInterfaceText["toybox.tossEyebrow"]} />
+                ) : (
+                  <EditableText path="interface.toybox.brainFoodEyebrow" value={portfolioInterfaceText["toybox.brainFoodEyebrow"]} />
+                )}
               </p>
               <strong>
-                {session.resultKind === "toss"
-                  ? "Bradley stuck the landing"
-                  : `${session.score} of ${session.collectibles.length} collected`}
+                {session.resultKind === "toss" ? (
+                  <EditableText path="interface.toybox.tossResult" value={portfolioInterfaceText["toybox.tossResult"]} />
+                ) : (
+                  `${session.score} of ${session.collectibles.length} collected`
+                )}
               </strong>
-              <p>Returning to the portfolio in five seconds.</p>
+              <EditableText as="p" path="interface.toybox.resultReturning" value={portfolioInterfaceText["toybox.resultReturning"]} />
             </div>
           ) : null}
         </div>
