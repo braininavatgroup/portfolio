@@ -59,8 +59,9 @@ export function PortfolioWorldExample() {
   belongs on the composition root — the component does not add it.
 - **A dragged node persists as `userPlaced` only at rest**, with no selection
   and no active thread.
-- **The label font is a code-side constant** (`FONT`), not a token. It has to
-  change by hand if the type scale does.
+- **Canvas type and size are code-side.** `FONT` paints 12.5px record labels;
+  `BRADLEY_FONT` paints Bradley at 14px medium, with his PNG at 21px rather
+  than the factual marks' `PORTFOLIO_NODE_MARK_SIZE` (15px).
 - **Past changes opacity, not color.** `PAST_WORLD_ALPHA` applies to the canvas
   mark and label in both modes. The node keeps its native register token, and
   the reader index remains full strength.

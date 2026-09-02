@@ -83,10 +83,12 @@ type PortfolioWorldProps = {
 };
 
 const MARK_SIZE = PORTFOLIO_NODE_MARK_SIZE;
+const BRADLEY_MARK_SIZE = 21;
 const LABEL_MAX_WIDTH = 132;
 const LABEL_LINE_HEIGHT = 15;
 export const PAST_WORLD_ALPHA = 0.42;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
+const BRADLEY_FONT = '500 14px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
 type ConnectorAnchor = Point & { family: PortfolioWorldFamily };
 
@@ -1046,7 +1048,8 @@ function drawNode(
   if (!point) return;
   const color = palette.register(node.register);
   const ink = palette.ink;
-  const size = MARK_SIZE;
+  const isBradley = node.id === "bradley";
+  const size = isBradley ? BRADLEY_MARK_SIZE : MARK_SIZE;
   const statusAlpha = node.status === "past" ? PAST_WORLD_ALPHA : 1;
   context.save();
   context.translate(point.x, point.y);
@@ -1112,7 +1115,9 @@ function drawNode(
   context.globalAlpha = node.alpha * statusAlpha;
   context.font = compact
     ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
-    : FONT;
+    : isBradley
+      ? BRADLEY_FONT
+      : FONT;
   context.fillStyle = ink;
   context.textBaseline = "middle";
   const labelLineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
@@ -1121,7 +1126,7 @@ function drawNode(
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
-    : point.y + 18 + LABEL_LINE_HEIGHT * 0.5;
+    : point.y + (isBradley ? 23 : 18) + LABEL_LINE_HEIGHT * 0.5;
   context.textAlign = compact
     ? point.x < palette.width / 2
       ? "right"
