@@ -14,6 +14,8 @@ import {
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
+  isWorldLinkActive,
+  PORTFOLIO_ARC_THREAD_ID,
   portfolioInterfaceText,
   portfolioThreadById,
   portfolioVisualFormat,
@@ -83,6 +85,7 @@ type PortfolioWorldProps = {
 const MARK_SIZE = PORTFOLIO_NODE_MARK_SIZE;
 const LABEL_MAX_WIDTH = 132;
 const LABEL_LINE_HEIGHT = 15;
+export const PAST_WORLD_ALPHA = 0.42;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
 type ConnectorAnchor = Point & { family: PortfolioWorldFamily };
@@ -110,7 +113,7 @@ function polygonBoundaryInset(vertices: readonly Point[], direction: Point) {
 
 function markBoundaryInset(family: PortfolioWorldFamily, direction: Point) {
   if (family === "operation") return MARK_SIZE * 0.5;
-  if (family === "formative" || family === "product") return MARK_SIZE * 0.49;
+  if (family === "product") return MARK_SIZE * 0.49;
   const vertices = portfolioNodeMarkVertices(family);
   return vertices ? polygonBoundaryInset(vertices, direction) : 0;
 }
@@ -144,29 +147,6 @@ const storyView = {
   target: { x: 0, y: -10, z: 800 },
 };
 
-export const portfolioOverviewLayout: Record<
-  string,
-  readonly [number, number, number]
-> = {
-  bradley: [48.88, 19.93, 646.71],
-  "thread-making-work-playable": [35.34, 32.79, 698.43],
-  "thread-choosing-what-not-to-automate": [63.3, 34.67, 719.72],
-  "thread-finding-myself-in-software": [11.29, 53.66, 721.38],
-  dubs: [18.73, 41.17, 859.1],
-  writ: [21.19, 55.82, 898.83],
-  kickoff: [81.31, 42.68, 838.89],
-  pitching: [92.13, 54.87, 939.23],
-  reporting: [70.78, 60.84, 902.14],
-  "personal-os": [34.29, 60.66, 797.65],
-  yoohoo: [52.43, 67.85, 881.72],
-  infamous: [9.34, 71.43, 762.31],
-  "music-practice": [25.41, 79.45, 822.3],
-  "systems-consulting": [47.11, 81.46, 882.3],
-  "product-studio": [53.6, 58.4, 812.3],
-  "real-estate": [76.49, 82.38, 919.84],
-  touring: [93.41, 72.24, 990.31],
-};
-
 const storyLayouts: Record<
   string,
   { bradley: Point3; story: Point3; members: Record<string, Point3> }
@@ -175,34 +155,35 @@ const storyLayouts: Record<
     bradley: { x: 560, y: 15, z: 540 },
     story: { x: 330, y: 10, z: 610 },
     members: {
-      "personal-os": { x: -100, y: 230, z: 820 },
-      dubs: { x: -320, y: 120, z: 820 },
-      writ: { x: -340, y: -90, z: 820 },
-      yoohoo: { x: -120, y: -220, z: 820 },
+      kickoff: { x: 80, y: 270, z: 820 },
+      pitching: { x: -130, y: 290, z: 850 },
+      reporting: { x: -330, y: 190, z: 820 },
+      "real-estate": { x: -420, y: 20, z: 850 },
+      touring: { x: -360, y: -170, z: 820 },
+      dubs: { x: -180, y: -280, z: 850 },
+      writ: { x: 40, y: -280, z: 820 },
+      yoohoo: { x: 190, y: -120, z: 850 },
     },
   },
-  "choosing-what-not-to-automate": {
-    bradley: { x: 570, y: 10, z: 540 },
-    story: { x: 350, y: 0, z: 610 },
-    members: {
-      kickoff: { x: 100, y: 200, z: 820 },
-      pitching: { x: -120, y: 230, z: 820 },
-      reporting: { x: -330, y: 110, z: 820 },
-      "personal-os": { x: -340, y: -110, z: 820 },
-      yoohoo: { x: -130, y: -230, z: 820 },
-    },
-  },
-  "finding-myself-in-software": {
+  [PORTFOLIO_ARC_THREAD_ID]: {
     bradley: { x: 680, y: 95, z: 500 },
     story: { x: 500, y: -75, z: 555 },
     members: {
-      infamous: { x: 220, y: 240, z: 850 },
+      "thread-philosophy": { x: 80, y: 230, z: 820 },
+      "thread-making-work-playable": { x: -180, y: 40, z: 850 },
+      "thread-authorship": { x: 80, y: -220, z: 820 },
+    },
+  },
+  authorship: {
+    bradley: { x: 680, y: 95, z: 500 },
+    story: { x: 500, y: -75, z: 555 },
+    members: {
       "music-practice": { x: 0, y: 300, z: 850 },
       "systems-consulting": { x: -170, y: 330, z: 850 },
+      "product-studio": { x: -300, y: 290, z: 850 },
       kickoff: { x: -220, y: 260, z: 850 },
       pitching: { x: -400, y: 150, z: 850 },
       reporting: { x: -480, y: 0, z: 850 },
-      "personal-os": { x: -420, y: -170, z: 850 },
       "real-estate": { x: -250, y: -280, z: 850 },
       touring: { x: -20, y: -365, z: 850 },
       dubs: { x: 210, y: -270, z: 850 },
@@ -210,11 +191,22 @@ const storyLayouts: Record<
       yoohoo: { x: 450, y: 40, z: 850 },
     },
   },
+  philosophy: {
+    bradley: { x: 570, y: 10, z: 540 },
+    story: { x: 350, y: 0, z: 610 },
+    members: {
+      pitching: { x: 100, y: 200, z: 820 },
+      reporting: { x: -120, y: 230, z: 820 },
+      "real-estate": { x: -330, y: 110, z: 820 },
+      touring: { x: -340, y: -110, z: 820 },
+      writ: { x: -130, y: -230, z: 820 },
+    },
+  },
 };
 
 function createRuntimeNodes(): RuntimeNode[] {
   return portfolioWorldNodes.map((node) => {
-    const [screenX, screenY, z] = portfolioOverviewLayout[node.id];
+    const { x: screenX, y: screenY, z } = node.position;
     const point = { x: (50 - screenX) * 18, y: (50 - screenY) * 18, z };
     return {
       ...node,
@@ -308,12 +300,10 @@ function PortfolioVisualStage({
 }) {
   const format = portfolioVisualFormat(block);
   const assets =
-    block.assets?.length
-      ? block.assets
-      : block.src && format !== "video"
-        ? [{ src: block.src, alt: block.alt ?? "", caption: block.caption }]
-        : [];
-  const frameCount = format === "gallery" ? Math.max(assets.length, 3) : 1;
+    block.src && format !== "video"
+      ? [{ src: block.src, alt: block.alt ?? "" }]
+      : [];
+  const frameCount = format === "gallery" ? assets.length || 3 : 1;
   const [activeFrame, setActiveFrame] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const asset = assets[activeFrame];
@@ -474,8 +464,8 @@ export function PortfolioWorld({
   );
   const focusRef = useRef(focusIds);
   const links = useMemo(
-    () => getVisibleWorldLinks({ activeThreadId, selectedId }),
-    [activeThreadId, selectedId],
+    () => getVisibleWorldLinks({ selectedId }),
+    [selectedId],
   );
   const linksRef = useRef(links);
   const setWorldElement = useCallback(
@@ -707,7 +697,7 @@ export function PortfolioWorld({
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, active.activeThreadId, palette);
+        drawLinks(context, nodes, linksRef.current, active.selectedId, palette);
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
@@ -916,6 +906,7 @@ export function PortfolioWorld({
           className="portfolio-world-node"
           data-cursor-color={`--world-${node.register}`}
           data-family={node.family}
+          data-status={node.status}
           data-world-node={node.id}
           disabled={Boolean(activeVisual)}
           key={node.id}
@@ -961,16 +952,17 @@ function applyStoryGoals(
   const layout = storyLayouts[storyId];
   if (!story || !layout) return;
   const byId = new Map(nodes.map((node) => [node.id, node]));
+  const focusIds = getWorldFocusIds({
+    activeThreadId: story.id,
+    selectedId: story.nodeId,
+  });
   nodes.forEach((node) => {
     if (node.id === "bradley") node.goal = clone(layout.bradley);
     else if (node.id === story.nodeId) node.goal = clone(layout.story);
     else node.goal = layout.members[node.id]
       ? clone(layout.members[node.id])
       : clone(node.base);
-    node.goalAlpha =
-      node.id === "bradley" || node.id === story.nodeId || story.members.includes(node.id)
-        ? 1
-        : 0.13;
+    node.goalAlpha = focusIds?.has(node.id) ? 1 : 0.13;
   });
 
   const { width, height } = dimensions;
@@ -1016,33 +1008,15 @@ function drawLinks(
   nodes: RuntimeNode[],
   links: ReturnType<typeof getVisibleWorldLinks>,
   selectedId: string | null,
-  activeThreadId: string | null,
   palette: WorldPalette,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const color = palette.connector;
-  const selected = selectedId ? byId.get(selectedId) : undefined;
-  const isActive = (link: (typeof links)[number]) => {
-    if (!selectedId || !selected) return false;
-    if (selectedId === "bradley") return link.layer === "story-root";
-    if (selected.family === "story") {
-      if (selected.threadId === "finding-myself-in-software") {
-        return link.layer === "factual" ||
-          (link.layer === "story-root" && (link.from === selectedId || link.to === selectedId));
-      }
-      return (
-        (link.layer === "story-root" && (link.from === selectedId || link.to === selectedId)) ||
-        (link.layer === "story-membership" && link.threadId === selected.threadId)
-      );
-    }
-    return link.from === selectedId || link.to === selectedId;
-  };
-  void activeThreadId;
   for (const link of links) {
     const from = byId.get(link.from);
     const to = byId.get(link.to);
     if (!from?.screen || !to?.screen) continue;
-    const active = isActive(link);
+    const active = isWorldLinkActive(link, selectedId);
     const strength = selectedId ? (active ? 0.78 : 0.025) : 0.25;
     const alpha = Math.min(from.alpha, to.alpha) * strength;
     const segment = connectorSegment(
@@ -1073,9 +1047,10 @@ function drawNode(
   const color = palette.register(node.register);
   const ink = palette.ink;
   const size = MARK_SIZE;
+  const statusAlpha = node.status === "past" ? PAST_WORLD_ALPHA : 1;
   context.save();
   context.translate(point.x, point.y);
-  context.globalAlpha = node.alpha;
+  context.globalAlpha = node.alpha * statusAlpha;
   context.fillStyle = color;
   context.strokeStyle = color;
   context.lineWidth = 1.45;
@@ -1105,13 +1080,6 @@ function drawNode(
         0,
         Math.PI * 2,
       );
-    } else if (primitive.kind === "rect") {
-      context.rect(
-        primitive.x,
-        primitive.y,
-        primitive.width,
-        primitive.height,
-      );
     } else {
       primitive.points.forEach(({ x, y }, index) => {
         if (index === 0) context.moveTo(x, y);
@@ -1134,7 +1102,7 @@ function drawNode(
   if (!showLabel || palette.editingNodeId === node.id) return;
 
   context.save();
-  context.globalAlpha = node.alpha;
+  context.globalAlpha = node.alpha * statusAlpha;
   context.font = compact
     ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
     : FONT;

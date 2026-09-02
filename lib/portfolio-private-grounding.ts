@@ -1,8 +1,8 @@
 // Chat-only grounding. Everything in this module feeds the portfolio chat
 // agent and is NEVER rendered in the UI. Facts that should be visible to a
-// human reader belong in lib/portfolio-world.ts instead. Review and extend
-// this file deliberately: it defines what the bot knows that the site does
-// not show.
+// human reader belong in content/portfolio-content.json instead. Review and
+// extend this file deliberately: it defines what the bot knows that the site
+// does not show.
 
 export const audienceStatement =
   "For AI product teams, music-world collaborators, and consulting clients looking for someone who can turn judgment into a system without sanding away the character of the work.";

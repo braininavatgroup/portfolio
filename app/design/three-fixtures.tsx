@@ -12,12 +12,11 @@ import { ProceduralAvatar } from "../../components/avatar/ProceduralAvatar";
 import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToyboxBoundary";
 import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
 import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
-import { getOutputToken } from "../../components/scene/output-token-map";
 import { createAvatarStageServices } from "../../lib/avatar/stage-services";
 import { defaultAvatarTone } from "../../lib/avatar/contracts";
 import type { AllowedAnimation, AvatarTone } from "../../lib/avatar/contracts";
 import type { AvatarFacing } from "../../lib/avatar/orientation";
-import { portfolioNodes } from "../../lib/spatial-graph";
+import { portfolioWhatNodes } from "../../lib/portfolio-world";
 import { Specimen, Stage } from "./gallery-ui";
 
 const energeticTone: AvatarTone = {
@@ -173,7 +172,7 @@ export function AvatarAssetAdapterFixture() {
 
 /**
  * The overlay as the composition wires it: a registry, a controller, a
- * director, a sequence runner and a site-action executor. The controller
+ * director, and a sequence runner. The controller
  * measures the browser window rather than the stage, so this fixture uses a
  * viewport-height stage to keep the avatar's floor in frame.
  */
@@ -218,7 +217,7 @@ export function AvatarOverlayFixture() {
         ) : null}
       </div>
       <div className="design-stage" data-size="viewport" ref={registerStage}>
-        <div className="experience experience-graph portfolio-composition">
+        <div className="experience portfolio-composition">
           <AvatarOverlay
             controller={services.controller}
             debug={debug}
@@ -228,7 +227,6 @@ export function AvatarOverlayFixture() {
             onEnabledChange={setEnabled}
             reducedMotion={false}
             registry={services.registry}
-            runner={services.runner}
           />
         </div>
       </div>
@@ -236,13 +234,7 @@ export function AvatarOverlayFixture() {
   );
 }
 
-const toyboxRoster = portfolioNodes
-  .filter(({ role }) => role === "output")
-  .map(({ id, label, projectSlug }) => ({
-    id,
-    label,
-    tokenKind: projectSlug ? getOutputToken(projectSlug) : undefined,
-  }));
+const toyboxRoster = portfolioWhatNodes.map(({ id, label }) => ({ id, label }));
 
 /**
  * The toybox portals to `#avatar-toybox-root` and takes the whole screen, as

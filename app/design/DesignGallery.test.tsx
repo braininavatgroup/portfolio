@@ -149,24 +149,10 @@ describe("design gallery route", () => {
     ).toBeGreaterThan(0);
   });
 
-  /**
-   * globals.css hides `.portfolio-composition > .portfolio-header`, because the
-   * live composition only ever carries the overlay variant. Wrapping the
-   * flow-layout states in the composition class therefore rendered four
-   * invisible headers, and nothing in the DOM said so. The header's other real
-   * surface is `/index`, which is `.flat-index`.
-   */
-  it("renders the flow-layout header on the surface that actually shows it", () => {
+  it("renders one index header on the flat index surface", () => {
     render(<DesignGallery />);
 
-    const flowHeaders = document.querySelectorAll(
-      ".flat-index > .portfolio-header:not(.portfolio-header-overlay)",
-    );
-    expect(flowHeaders).toHaveLength(1);
-
-    expect(
-      document.querySelectorAll(".portfolio-composition > .portfolio-header"),
-    ).toHaveLength(0);
+    expect(document.querySelectorAll(".flat-index > .portfolio-header")).toHaveLength(1);
   });
 
   /**
@@ -178,7 +164,6 @@ describe("design gallery route", () => {
 
     const surface = document.querySelector(".flat-index");
     expect(surface?.getAttribute("data-theme")).toBe("light");
-    expect(surface?.getAttribute("data-index-layout")).toBe("stacked-editorial");
   });
 
   /**

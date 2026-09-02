@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import { createAvatarStageServices } from "../lib/avatar/stage-services";
 import type { AvatarObstacleId } from "../lib/avatar/target-registry";
-import type { SpatialGraphNode } from "../lib/spatial-graph";
 
 const desktopAssistantHomeDock = {
   side: "left",
@@ -18,14 +17,13 @@ function getAssistantHomeDock() {
 }
 
 /**
- * Which project the assistant currently considers open, plus a turn counter
+ * Which What record the assistant currently considers open, plus a turn counter
  * for discarding effects that arrive after the user has moved on. Held outside
  * React state on purpose: every reader is an event handler or an effect, and
  * re-rendering on a change here would be pure cost.
  */
-export class PortfolioAvatarActionState {
-  #selectedNode: SpatialGraphNode | null = null;
-  #reducedMotion = false;
+class PortfolioAvatarActionState {
+  #selectedWhatId: string | null = null;
   #turn = 0;
 
   beginTurn() {
@@ -37,24 +35,17 @@ export class PortfolioAvatarActionState {
   }
 
   clearSelection() {
-    this.#selectedNode = null;
+    this.#selectedWhatId = null;
   }
 
-  selectNode(node: SpatialGraphNode) {
-    this.#selectedNode = node;
+  selectWhat(whatId: string) {
+    this.#selectedWhatId = whatId;
   }
 
-  getSelectedNode() {
-    return this.#selectedNode;
+  getSelectedWhatId() {
+    return this.#selectedWhatId;
   }
 
-  setReducedMotion(reducedMotion: boolean) {
-    this.#reducedMotion = reducedMotion;
-  }
-
-  getReducedMotion() {
-    return this.#reducedMotion;
-  }
 }
 
 /**
@@ -64,9 +55,9 @@ export class PortfolioAvatarActionState {
  * visibility and the user's motion preference.
  *
  * This was interleaved through PortfolioExperience with the map and reader
- * state, which made both harder to read than either is. The seam is narrow —
- * two booleans in, services and callback refs out — because the avatar never
- * needed to know what is selected; only whether the assistant is on screen.
+ * state, which made both harder to read than either is. The render seam stays
+ * at two booleans; current What selection and turn ownership live in the
+ * imperative action state returned to the experience.
  */
 export function useAvatarStage({
   assistantOpen,
@@ -80,7 +71,6 @@ export function useAvatarStage({
     controller: avatarController,
     director: avatarDirector,
     registry: avatarRegistry,
-    runner: avatarRunner,
   } = services;
   const [avatarActionState] = useState(() => new PortfolioAvatarActionState());
   const [avatarMounted, setAvatarMounted] = useState(false);
@@ -131,12 +121,6 @@ export function useAvatarStage({
     [avatarRegistry, registeredAvatarObstacles],
   );
 
-  const registerHeaderObstacle = useCallback(
-    (element: HTMLElement | null) =>
-      registerAvatarObstacle("portfolio:header", element),
-    [registerAvatarObstacle],
-  );
-
   const registerDirectorConsoleObstacle = useCallback(
     (element: HTMLDivElement | null) =>
       registerAvatarObstacle("avatar:director-console", element),
@@ -156,11 +140,6 @@ export function useAvatarStage({
     [avatarController, avatarRegistry],
   );
 
-  const registerHero = useCallback(
-    (element: HTMLHeadingElement | null) => registerAvatarTarget("hero", element),
-    [registerAvatarTarget],
-  );
-
   const refreshAssistantHome = useCallback(() => {
     if (!assistantOpenRef.current) return;
     avatarController.refreshStage(true, getAssistantHomeDock());
@@ -173,10 +152,9 @@ export function useAvatarStage({
   }, []);
 
   useEffect(() => {
-    avatarActionState.setReducedMotion(reducedMotion);
     if (reducedMotion) avatarDirector.stop();
     avatarDirector.setReducedMotion(reducedMotion);
-  }, [avatarActionState, avatarDirector, reducedMotion]);
+  }, [avatarDirector, reducedMotion]);
 
   useEffect(() => () => avatarDirector.dispose(), [avatarDirector]);
 
@@ -235,15 +213,7 @@ export function useAvatarStage({
     };
   }, [avatarController, avatarDirector]);
 
-  /**
-   * Registry teardown, owned separately. It used to ride on the listener
-   * effect's cleanup, which tore down registrations that effect never created
-   * — they come from the callback refs above, driven by child components. That
-   * was harmless only because every dep there was a lazily-constructed
-   * singleton, so the effect never re-ran. Adding one reactive dep would have
-   * wiped the whole registry mid-session, with the children's refs already
-   * fired and nothing left to re-register them.
-   */
+  // Callback refs own registration; this effect owns their shared teardown.
   useEffect(
     () => () => {
       avatarActionState.beginTurn();
@@ -274,13 +244,9 @@ export function useAvatarStage({
     avatarDirector,
     avatarMounted,
     avatarRegistry,
-    avatarRunner,
     refreshAssistantHome,
-    registerAvatarObstacle,
     registerAvatarStage,
     registerAvatarTarget,
     registerDirectorConsoleObstacle,
-    registerHeaderObstacle,
-    registerHero,
   };
 }

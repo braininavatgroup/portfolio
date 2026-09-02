@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAvatarToyboxSession } from "./useAvatarToyboxSession";
 
 const roster = [
-  { id: "one", label: "One", tokenKind: "document" as const },
-  { id: "two", label: "Two", tokenKind: "code" as const },
+  { id: "one", label: "One" },
+  { id: "two", label: "Two" },
 ];
 
 function setViewport(width = 1200, height = 800) {

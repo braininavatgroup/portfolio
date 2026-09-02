@@ -14,7 +14,6 @@ import {
 import * as THREE from "three";
 import { AvatarController } from "../../lib/avatar/controller";
 import { AvatarDirector } from "../../lib/avatar/director";
-import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
 import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
 import { AvatarStageActor } from "./AvatarStageActor";
 
@@ -33,7 +32,6 @@ type AvatarOverlayProps = {
   onEnabledChange: (enabled: boolean) => void;
   development?: boolean;
   debug?: boolean;
-  runner?: AvatarSequenceRunner;
   registry?: AvatarTargetRegistry;
   reducedMotion?: boolean;
   onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
@@ -109,7 +107,6 @@ export function AvatarOverlay({
   onEnabledChange,
   development = false,
   debug = false,
-  runner,
   registry,
   reducedMotion = false,
   onExpandedPanelChange,
@@ -176,13 +173,12 @@ export function AvatarOverlay({
           </RendererBoundary>
         ) : null}
       </div>
-      {AvatarDirectorConsole && development && debug && director && runner && registry ? (
+      {AvatarDirectorConsole && development && debug && director && registry ? (
         <Suspense fallback={null}>
           <AvatarDirectorConsole
             controller={controller}
             director={director}
             registry={registry}
-            runner={runner}
             onEnabledChange={onEnabledChange}
             onExpandedPanelChange={onExpandedPanelChange}
             reducedMotion={reducedMotion}

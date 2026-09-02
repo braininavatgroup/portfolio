@@ -93,12 +93,12 @@ describe("AvatarOverlay", () => {
 
   it("keeps the canvas mounted when controller travel changes", () => {
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", { getBoundingClientRect: () => rect(80, 100, 120, 80) } as HTMLElement);
+    registry.register("portfolio:record:dubs", { getBoundingClientRect: () => rect(80, 100, 120, 80) } as HTMLElement);
     const controller = new AvatarController(registry);
     render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
     const canvas = screen.getByTestId("avatar-canvas");
 
-    act(() => { void controller.execute({ action: "walkTo", target: "hero" }); });
+    act(() => { void controller.execute({ action: "walkTo", target: "portfolio:record:dubs" }); });
 
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
   });
@@ -140,7 +140,6 @@ describe("AvatarOverlay", () => {
         debug
         onEnabledChange={() => {}}
         registry={new AvatarTargetRegistry()}
-        runner={{} as never}
       />,
     );
 

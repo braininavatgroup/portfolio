@@ -15,6 +15,7 @@ import {
   portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
+  isPortfolioWhatNode,
   type PortfolioBodyBlock,
   type PortfolioThread,
   type PortfolioVisualBlock,
@@ -145,12 +146,8 @@ function VisualBlock({
   const format = portfolioVisualFormat(block);
   const thumbnailSrc =
     block.poster ??
-    block.assets?.[0]?.src ??
-    (format === "image" ? block.src : undefined);
-  const thumbnailAlt =
-    block.assets?.[0]?.alt ??
-    block.alt ??
-    "";
+    (format !== "video" ? block.src : undefined);
+  const thumbnailAlt = block.alt ?? "";
   const ready = isPortfolioVisualReady(block);
   const captionField = block.caption !== undefined ? "caption" : "purpose";
 
@@ -485,9 +482,9 @@ export function PortfolioReader({
   const indexScrollTop = useRef(0);
   const node = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   const thread = activeThreadId ? portfolioThreadById.get(activeThreadId) : undefined;
-  const mode = node && node.family !== "story" ? "record" : thread ? "thread" : "index";
-  const avatarTarget: AvatarTargetId = node?.projectSlug
-    ? `project:${node.projectSlug}`
+  const mode = node && node.outlineType !== "why" ? "record" : thread ? "thread" : "index";
+  const avatarTarget: AvatarTargetId = node && isPortfolioWhatNode(node)
+    ? `portfolio:record:${node.id}`
     : "portfolio:index";
   const setReaderRef = useCallback(
     (element: HTMLElement | null) => {
@@ -496,7 +493,7 @@ export function PortfolioReader({
     },
     [avatarTarget, registerAvatarTarget],
   );
-  const label = node && node.family !== "story"
+  const label = node && node.outlineType !== "why"
     ? `${node.label} record`
     : thread
       ? `${thread.title} thread`
@@ -539,7 +536,7 @@ export function PortfolioReader({
           </h1>
         </header>
       ) : null}
-      {node && node.family !== "story" ? (
+      {node && node.outlineType !== "why" ? (
         <WorldRecord
           activeThreadId={activeThreadId}
           node={node}

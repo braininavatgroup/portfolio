@@ -35,11 +35,11 @@ const oneOfEach = {
   wait: { action: "wait", durationMs: 250 },
   enter: { action: "enter", from: "left" },
   exit: { action: "exit", to: "right" },
-  walkTo: { action: "walkTo", target: "hero" },
+  walkTo: { action: "walkTo", target: "portfolio:record:dubs" },
   swimTo: { action: "swimTo", target: "portfolio:chat" },
   swimRoute: { action: "swimRoute", route: "lap" },
   lookAt: { action: "lookAt", target: "portfolio:index" },
-  pointAt: { action: "pointAt", target: "hero" },
+  pointAt: { action: "pointAt", target: "portfolio:record:dubs" },
 } as const satisfies Record<AvatarCommand["action"], AvatarCommand>;
 
 describe("avatar effects validation", () => {
@@ -213,7 +213,7 @@ describe("avatar effects validation", () => {
           toJSON: () => ({}),
         }),
       } as HTMLElement;
-      for (const target of ["hero", "portfolio:chat", "portfolio:index"] as const) {
+      for (const target of ["portfolio:record:dubs", "portfolio:chat", "portfolio:index"] as const) {
         registry.register(target, element);
       }
       // Swimming plans a route across the stage, so it needs one.

@@ -1,10 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { galleryFamilies } from "../app/design/fixtures";
 
 const stylesheetUrl = new URL("../app/globals.css", import.meta.url);
 const galleryUrl = new URL("../app/design/DesignGallery.tsx", import.meta.url);
 
 describe("design gallery stylesheet contract", () => {
+  it("shows only the six live world families", () => {
+    expect(galleryFamilies).toEqual([
+      "identity",
+      "story",
+      "operation",
+      "component",
+      "engagement",
+      "product",
+    ]);
+  });
+
   it("drives the composition tokens from [data-theme] in both modes", async () => {
     const stylesheet = await readFile(stylesheetUrl, "utf8");
 

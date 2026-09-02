@@ -36,10 +36,9 @@ function bounds(left: number, top: number, width: number, height: number) {
 }
 
 function registerDefaultTargets(registry: AvatarTargetRegistry) {
-  registry.register("hero", { getBoundingClientRect: () => bounds(100, 80, 200, 120) } as HTMLElement);
   registry.register("portfolio:chat", { getBoundingClientRect: () => bounds(480, 500, 300, 120) } as HTMLElement);
   registry.register("portfolio:index", { getBoundingClientRect: () => bounds(760, 100, 180, 360) } as HTMLElement);
-  registry.register("project:dubs", { getBoundingClientRect: () => bounds(760, 100, 180, 360) } as HTMLElement);
+  registry.register("portfolio:record:dubs", { getBoundingClientRect: () => bounds(760, 100, 180, 360) } as HTMLElement);
 }
 
 function renderDirector({
@@ -64,7 +63,6 @@ function renderDirector({
       onExpandedPanelChange={onExpandedPanelChange}
       reducedMotion={reducedMotion}
       registry={registry}
-      runner={runner}
     />,
   );
 
@@ -89,7 +87,7 @@ describe("AvatarDirectorConsole", () => {
     expect(screen.getByRole("tablist").textContent).toBe("ScenesTargetMovementAdvanced");
     expect(scenes).toHaveProperty("tabIndex", 0);
     expect(scenes.getAttribute("aria-controls")).toBe("avatar-director-scenes");
-    for (const scene of ["Greet", "Present project", "Answer", "Celebrate", "Dance", "Swim lap", "Come home"]) {
+    for (const scene of ["Greet", "Present record", "Answer", "Celebrate", "Dance", "Swim lap", "Come home"]) {
       expect(screen.getByRole("button", { name: scene })).toBeTruthy();
     }
 
@@ -173,8 +171,8 @@ describe("AvatarDirectorConsole", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Dance" }));
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
-    fireEvent.click(screen.getByRole("button", { name: "Select project:dubs" }));
-    fireEvent.click(screen.getByRole("button", { name: "Walk to project:dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select portfolio:record:dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Walk to portfolio:record:dubs" }));
     fireEvent.click(screen.getByRole("tab", { name: "Movement" }));
     fireEvent.click(screen.getByRole("button", { name: "Enter left" }));
     fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
@@ -187,7 +185,7 @@ describe("AvatarDirectorConsole", () => {
       { action: "setState", state: "idle" },
     ]);
     expect(runOperatorSequence).toHaveBeenNthCalledWith(2, [
-      { action: "walkTo", target: "project:dubs" },
+      { action: "walkTo", target: "portfolio:record:dubs" },
     ]);
     expect(runOperatorSequence).toHaveBeenNthCalledWith(3, [
       { action: "enter", from: "left" },
@@ -197,26 +195,26 @@ describe("AvatarDirectorConsole", () => {
     ]);
   });
 
-  it("walks, points, and only then settles a selected live project", async () => {
+  it("walks, points, and only then settles a selected live record", async () => {
     // Catches settling the actor before its presentation beat has completed.
     vi.useFakeTimers();
     const { controller } = renderDirector();
-    expect(screen.getByRole("button", { name: "Present project" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Present record" }).hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
     fireEvent.click(screen.getByRole("button", { name: "Select portfolio:chat" }));
     fireEvent.click(screen.getByRole("tab", { name: "Scenes" }));
-    expect(screen.getByRole("button", { name: "Present project" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Present record" }).hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
-    fireEvent.click(screen.getByRole("button", { name: "Select project:dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select portfolio:record:dubs" }));
     fireEvent.click(screen.getByRole("tab", { name: "Scenes" }));
-    const present = screen.getByRole("button", { name: "Present project" });
+    const present = screen.getByRole("button", { name: "Present record" });
     expect(present.hasAttribute("disabled")).toBe(false);
     fireEvent.click(present);
     const walkDuration = controller.getSnapshot().motion?.durationMs;
     await advance(walkDuration!);
-    expect(controller.getSnapshot().currentCommand).toMatchObject({ action: "pointAt", target: "project:dubs" });
+    expect(controller.getSnapshot().currentCommand).toMatchObject({ action: "pointAt", target: "portfolio:record:dubs" });
     await advance(900);
     expect(controller.getSnapshot().state).toBe("idle");
   });
@@ -247,8 +245,8 @@ describe("AvatarDirectorConsole", () => {
 
     commands.length = 0;
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
-    fireEvent.click(screen.getByRole("button", { name: "Select project:dubs" }));
-    fireEvent.click(screen.getByRole("button", { name: "Walk to project:dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select portfolio:record:dubs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Walk to portfolio:record:dubs" }));
     await act(async () => { await Promise.resolve(); });
     expect(commands.map(({ action }) => action)).toEqual(["lookAt"]);
 
@@ -260,7 +258,7 @@ describe("AvatarDirectorConsole", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
     fireEvent.click(screen.getByRole("button", { name: "Joyful hand-sway dance" }));
-    fireEvent.click(screen.getByRole("button", { name: "Point at hero" }));
+    fireEvent.click(screen.getByRole("button", { name: "Point at portfolio:index" }));
     fireEvent.click(screen.getByRole("button", { name: "State: thinking" }));
     await act(async () => { await Promise.resolve(); });
     expect(commands.map(({ action }) => action)).toEqual(["pointAt", "setState"]);
@@ -269,32 +267,32 @@ describe("AvatarDirectorConsole", () => {
   it("normalizes target and obstacle rectangles, refreshes live selections, and cleans listeners", () => {
     // Catches map geometry leaking viewport pixels or stale target IDs remaining actionable after resize.
     const registry = new AvatarTargetRegistry();
-    let hero = bounds(100, 80, 200, 120);
-    const heroElement = { getBoundingClientRect: () => hero } as HTMLElement;
-    registry.register("hero", heroElement);
-    const projectElement = { getBoundingClientRect: () => bounds(700, 200, 200, 160) } as HTMLElement;
-    registry.register("project:dubs", projectElement);
+    let indexBounds = bounds(100, 80, 200, 120);
+    const indexElement = { getBoundingClientRect: () => indexBounds } as HTMLElement;
+    registry.register("portfolio:index", indexElement);
+    const recordElement = { getBoundingClientRect: () => bounds(700, 200, 200, 160) } as HTMLElement;
+    registry.register("portfolio:record:dubs", recordElement);
     const obstacle = { getBoundingClientRect: () => bounds(800, 600, 250, 300) } as HTMLElement;
     registry.registerObstacle("avatar:director-console", obstacle);
     const removeListener = vi.spyOn(window, "removeEventListener");
     const { unmount } = renderDirector({ registry });
 
     fireEvent.click(screen.getByRole("tab", { name: "Target" }));
-    const heroTarget = screen.getByRole("button", { name: "Select hero" });
-    expect(heroTarget.style.left).toBe("10%");
-    expect(heroTarget.style.top).toBe("10%");
-    expect(heroTarget.getAttribute("data-avatar-map-target")).toBe("true");
+    const indexTarget = screen.getByRole("button", { name: "Select portfolio:index" });
+    expect(indexTarget.style.left).toBe("10%");
+    expect(indexTarget.style.top).toBe("10%");
+    expect(indexTarget.getAttribute("data-avatar-map-target")).toBe("true");
     expect(screen.getByLabelText("Obstacle avatar:director-console").style.left).toBe("80%");
     expect(screen.getByLabelText("Obstacle avatar:director-console").style.height).toBe("25%");
     expect(screen.queryByRole("img", { name: "Live stage map" })).toBeNull();
     expect(screen.queryByRole("button", { name: /avatar:director-console/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Select project:dubs" }));
-    registry.unregister("project:dubs", projectElement);
-    hero = bounds(200, 80, 200, 120);
+    fireEvent.click(screen.getByRole("button", { name: "Select portfolio:record:dubs" }));
+    registry.unregister("portfolio:record:dubs", recordElement);
+    indexBounds = bounds(200, 80, 200, 120);
     fireEvent(window, new Event("resize"));
-    expect(screen.getByRole("button", { name: "Select hero" }).style.left).toBe("20%");
-    expect(screen.getByText("Selected target: hero")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Select portfolio:index" }).style.left).toBe("20%");
+    expect(screen.getByText("Selected target: portfolio:index")).toBeTruthy();
     unmount();
     expect(removeListener).toHaveBeenCalledWith("resize", expect.any(Function));
     expect(removeListener).toHaveBeenCalledWith("scroll", expect.any(Function), true);

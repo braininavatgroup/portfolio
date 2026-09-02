@@ -17,10 +17,6 @@ describe("portfolio node mark grammar", () => {
     expect(portfolioNodeMarkPrimitives("component")).toMatchObject([
       { kind: "polyline", close: true, fill: false },
     ]);
-    expect(portfolioNodeMarkPrimitives("personal")).toMatchObject([
-      { kind: "rect", fill: false },
-      { kind: "circle", fill: true },
-    ]);
     expect(portfolioNodeMarkPrimitives("engagement")).toMatchObject([
       { kind: "polyline", close: true, fill: false },
     ]);
@@ -32,7 +28,6 @@ describe("portfolio node mark grammar", () => {
 
   it("shares closed mark vertices with connector geometry", () => {
     expect(portfolioNodeMarkVertices("component")).toHaveLength(3);
-    expect(portfolioNodeMarkVertices("personal")).toHaveLength(4);
     expect(portfolioNodeMarkVertices("engagement")).toHaveLength(4);
     expect(portfolioNodeMarkVertices("story")).toBeUndefined();
   });

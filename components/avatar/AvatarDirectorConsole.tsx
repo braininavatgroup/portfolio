@@ -19,7 +19,6 @@ import {
   type AvatarTargetId,
   type AvatarTone,
 } from "../../lib/avatar/contracts";
-import { AvatarSequenceRunner } from "../../lib/avatar/sequence-runner";
 import { adaptCommandsForReducedMotion } from "../../lib/avatar/state";
 import {
   AvatarTargetRegistry,
@@ -32,7 +31,6 @@ type AvatarDirectorConsoleProps = {
   controller: AvatarController;
   director: AvatarDirector;
   registry: AvatarTargetRegistry;
-  runner: AvatarSequenceRunner;
   onEnabledChange: (enabled: boolean) => void;
   onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
   reducedMotion?: boolean;
@@ -40,10 +38,9 @@ type AvatarDirectorConsoleProps = {
 
 const tabs: readonly DirectorTab[] = ["Scenes", "Target", "Movement", "Advanced"];
 const debugTargets: readonly AvatarTargetId[] = [
-  "hero",
   "portfolio:chat",
   "portfolio:index",
-  "project:dubs",
+  "portfolio:record:dubs",
 ];
 const tonePresets: ReadonlyArray<{ label: string; tone: AvatarTone }> = [
   { label: "Quiet tone", tone: { energy: "low", warmth: "warm", confidence: "neutral", mischief: "none" } },
@@ -56,8 +53,10 @@ function targetLabel(target: AvatarTargetId) {
   return target;
 }
 
-function isProjectTarget(target: AvatarTargetId | null): target is `project:${string}` {
-  return target?.startsWith("project:") ?? false;
+function isRecordTarget(
+  target: AvatarTargetId | null,
+): target is `portfolio:record:${string}` {
+  return target?.startsWith("portfolio:record:") ?? false;
 }
 
 function percentage(value: number, total: number) {
@@ -156,8 +155,8 @@ export function AvatarDirectorConsole({
     onEnabledChange(visible);
   }, [controller, onEnabledChange, snapshot.visible]);
   const visibleTargets = stageMap.targets.filter(({ bounds }) => bounds.inViewport);
-  const presentProject = useCallback(async () => {
-    if (!isProjectTarget(selectedTarget)) return;
+  const presentRecord = useCallback(async () => {
+    if (!isRecordTarget(selectedTarget)) return;
     await run([
       { action: "walkTo", target: selectedTarget },
       { action: "pointAt", target: selectedTarget },
@@ -198,8 +197,8 @@ export function AvatarDirectorConsole({
           { action: "setState", state: "idle" },
         ]);
         return;
-      case "Present project":
-        void presentProject();
+      case "Present record":
+        void presentRecord();
         return;
       case "Answer":
         void run([
@@ -286,9 +285,9 @@ export function AvatarDirectorConsole({
           {tab === "Scenes" ? (
             <div aria-labelledby="avatar-director-tab-scenes" id="avatar-director-scenes" role="tabpanel">
               <p>{reducedMotion ? "Reduced-motion scene recipes" : "Directed scene recipes"}</p>
-              {["Greet", "Present project", "Answer", "Celebrate", "Dance", "Swim lap", "Come home"].map((name) => (
+              {["Greet", "Present record", "Answer", "Celebrate", "Dance", "Swim lap", "Come home"].map((name) => (
                 <button
-                  disabled={name === "Present project" && !isProjectTarget(selectedTarget)}
+                  disabled={name === "Present record" && !isRecordTarget(selectedTarget)}
                   key={name}
                   type="button"
                   onClick={() => scene(name)}
@@ -322,7 +321,7 @@ export function AvatarDirectorConsole({
               <button disabled={!selectedTarget} type="button" onClick={() => runTarget("swimTo")}>Swim to {selectedTarget ?? "selected target"}</button>
               <button disabled={!selectedTarget} type="button" onClick={() => runTarget("lookAt")}>Look at {selectedTarget ?? "selected target"}</button>
               <button disabled={!selectedTarget} type="button" onClick={() => runTarget("pointAt")}>Point at {selectedTarget ?? "selected target"}</button>
-              <button disabled={!isProjectTarget(selectedTarget)} type="button" onClick={() => void presentProject()}>Present {selectedTarget ?? "selected project"}</button>
+              <button disabled={!isRecordTarget(selectedTarget)} type="button" onClick={() => void presentRecord()}>Present {selectedTarget ?? "selected record"}</button>
               <p>{visibleTargets.length} live semantic targets</p>
             </div>
           ) : null}
@@ -361,9 +360,8 @@ export function AvatarDirectorConsole({
               <button type="button" onClick={() => void director.handle({ type: "first_text" })}>Simulate talking</button>
               <button type="button" onClick={() => void director.handle({ type: "turn_complete" })}>Simulate completion</button>
               <button type="button" onClick={() => void director.onAmbientTick()}>Run ambient tick</button>
-              <button type="button" onClick={() => void director.handle({ type: "project_open", target: "project:dubs" })}>Simulate project hosting</button>
-              <button type="button" onClick={() => void director.handle({ type: "tab_change", target: "project:dubs" })}>Simulate tab change</button>
-              <button type="button" onClick={() => void director.handle({ type: "project_close" })}>Simulate project close</button>
+              <button type="button" onClick={() => void director.handle({ type: "record_open", target: "portfolio:record:dubs" })}>Simulate record hosting</button>
+              <button type="button" onClick={() => void director.handle({ type: "record_close" })}>Simulate record close</button>
               <button type="button" onClick={() => void director.perform({ avatarSequence: [{ action: "play", animation: "wave_one_hand" }, { action: "wait", durationMs: 1_200 }, { action: "play", animation: "joyful_dance_with_hand_sway" }], avatarIntent: "requested", avatarTone: tonePresets[3]!.tone, issues: [] })}>Run wave dance performance</button>
               <h3>Page and failure</h3>
               <button type="button" onClick={() => controller.markFailed()}>Simulate failure</button>

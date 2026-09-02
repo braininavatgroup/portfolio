@@ -4,8 +4,8 @@ Source: [`components/PortfolioExperience.tsx`](../../components/PortfolioExperie
 Gallery: `/design#composition` · Tests: `components/PortfolioExperience.test.tsx`
 
 The whole accepted composition in one component. It renders the
-`.experience.experience-graph.portfolio-composition` root and owns everything
-under it — header, world, reader, chat, avatar overlay, toybox — plus the state
+`.experience.portfolio-composition` root and owns everything under it — world,
+reader, chat, avatar overlay, toybox — plus the state
 those read, and the four avatar services, each built once via lazy `useState`.
 Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 `pushState`; `popstate` reads it back.

@@ -19,7 +19,7 @@ describe("avatar animation state", () => {
     expect(
       adaptCommandsForReducedMotion([
         { action: "enter", from: "left" },
-        { action: "walkTo", target: "hero" },
+        { action: "walkTo", target: "portfolio:record:dubs" },
         { action: "swimTo", target: "portfolio:chat" },
         { action: "swimRoute", route: "lap" },
         { action: "play", animation: "joyful_dance_with_hand_sway" },
@@ -29,7 +29,7 @@ describe("avatar animation state", () => {
         { action: "pointAt", target: "portfolio:chat" },
       ]),
     ).toEqual([
-      { action: "lookAt", target: "hero" },
+      { action: "lookAt", target: "portfolio:record:dubs" },
       { action: "lookAt", target: "portfolio:chat" },
       { action: "setState", state: "talking" },
       { action: "lookAt", target: "portfolio:index" },

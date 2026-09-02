@@ -32,7 +32,6 @@ export type ToyboxResultKind = "brain-food" | "toss";
 export type ToyboxCollectible = {
   id: string;
   label: string;
-  tokenKind?: string;
 };
 
 export type AvatarToyboxSession = {

@@ -15,6 +15,15 @@
 if (typeof document !== "undefined") {
   const { configure } = await import("@testing-library/dom");
   configure({ asyncUtilTimeout: 10_000 });
+
+  // jsdom deliberately omits the canvas implementation. Components feature-
+  // detect a missing context, so mirror that browser contract without emitting
+  // one "not implemented" warning for every render. Paint-path tests replace
+  // this stub with a recording context.
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+    configurable: true,
+    value: () => null,
+  });
 }
 
 export {};

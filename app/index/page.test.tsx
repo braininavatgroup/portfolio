@@ -2,16 +2,16 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import ProjectIndex from "./page";
+import PortfolioIndex from "./page";
 
 afterEach(cleanup);
 
-describe("project index", () => {
+describe("portfolio index", () => {
   it("presents the portfolio sections in the shared editorial order", () => {
-    const { container } = render(<ProjectIndex />);
+    const { container } = render(<PortfolioIndex />);
 
     expect(
-      [...container.querySelectorAll(".domain-section h2")].map(
+      [...container.querySelectorAll(".index-section h2")].map(
         (heading) => heading.textContent,
       ),
     ).toEqual([
@@ -20,29 +20,26 @@ describe("project index", () => {
       "Operations",
       "Music promotions systems",
       "Client systems",
-      "Personal systems",
       "In Production",
     ]);
   });
 
   it("lists threads and node groups without counts or numeric row prefixes", () => {
-    const { container } = render(<ProjectIndex />);
+    render(<PortfolioIndex />);
 
     expect(screen.getByRole("heading", { name: "Threads" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Operations" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Music promotions systems" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "In Production" })).toBeTruthy();
-    expect(container.querySelector(".domain-heading-meta")).toBeNull();
-    expect(container.querySelector(".artifact-index-number")).toBeNull();
     expect(screen.queryByText(/\d+ projects/i)).toBeNull();
   });
 
   it("links every node row into the map reader", () => {
-    render(<ProjectIndex />);
+    render(<PortfolioIndex />);
 
     expect(
       screen
-        .getByRole("link", { name: /Campaign pitching/ })
+        .getByRole("link", { name: /Music promo campaign pitching/ })
         .getAttribute("href"),
     ).toBe("/?view=graph#pitching");
     expect(

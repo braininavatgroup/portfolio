@@ -6,21 +6,19 @@ import { allowedAvatarAnimations, avatarBehaviors } from "../avatar/behaviors";
 
 const evidence: PortfolioGroundingEvidence[] = [
   {
-    id: "project:pitching",
-    title: "Pitching system",
+    id: "node:pitching",
+    title: "Music promo campaign pitching",
     excerpt:
-      "Research, curator selection, matching, and outreach arranged around a human approval step.",
-    href: "/index/pitching",
-    projectTitle: "Pitching system",
+      "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
+    href: "/?view=graph#pitching",
   },
 ];
 
 const secondEvidence: PortfolioGroundingEvidence = {
-  id: "project:reporting",
-  title: "Campaign reporting",
-  excerpt: "Reporting turns campaign activity into a reviewable record.",
-  href: "/index/reporting",
-  projectTitle: "Campaign reporting",
+  id: "node:reporting",
+  title: "Music promo campaign reporting",
+  excerpt: "A daily pipeline that finds wins, verifies the evidence, and drafts every client report.",
+  href: "/?view=graph#reporting",
 };
 
 type StructuredOutput = {
@@ -98,11 +96,11 @@ describe("OpenAI portfolio provider", () => {
           portfolioOutput([
             {
               text: "Human approval stays explicit.",
-              evidenceIds: ["project:pitching"],
+              evidenceIds: ["node:pitching"],
             },
             {
               text: "The system arranges research and outreach around that approval.",
-              evidenceIds: ["project:pitching"],
+              evidenceIds: ["node:pitching"],
             },
           ]),
           { input_tokens: 37, output_tokens: 29, total_tokens: 66 },
@@ -172,7 +170,7 @@ describe("OpenAI portfolio provider", () => {
           portfolioOutput([
             {
               text: "Human approval stays explicit. Research and outreach lead into it.",
-              evidenceIds: ["project:pitching"],
+              evidenceIds: ["node:pitching"],
             },
           ]),
         ),
@@ -206,7 +204,7 @@ describe("OpenAI portfolio provider", () => {
               {
                 text: "The model tried to attach another source. [E2]",
                 evidenceIds:
-                  mode === "portfolio" ? ["project:pitching"] : [],
+                  mode === "portfolio" ? ["node:pitching"] : [],
               },
             ],
           }),
@@ -263,7 +261,7 @@ describe("OpenAI portfolio provider", () => {
         portfolioOutput([
           {
             text: "Human approval stays explicit.",
-            evidenceIds: ["project:pitching"],
+            evidenceIds: ["node:pitching"],
           },
         ]),
         { input_tokens: 37, output_tokens: 11, total_tokens: 48 },
@@ -304,7 +302,7 @@ describe("OpenAI portfolio provider", () => {
       safety_identifier: "pc_anonymous-session-hash",
       text: { format: { type: "json_schema", strict: true } },
     });
-    expect(JSON.stringify(body)).toContain("project:pitching");
+    expect(JSON.stringify(body)).toContain("node:pitching");
     expect(JSON.stringify(body)).toContain(
       "Use only the supplied portfolio evidence",
     );
@@ -329,7 +327,7 @@ describe("OpenAI portfolio provider", () => {
         requestBody = String(init?.body);
         return completedResponse(
           portfolioOutput([
-            { text: "Grounded.", evidenceIds: ["project:pitching"] },
+            { text: "Grounded.", evidenceIds: ["node:pitching"] },
           ]),
         );
       },
@@ -370,7 +368,7 @@ describe("OpenAI portfolio provider", () => {
           {
             type: "input_text",
             text: expect.stringContaining(
-              "Current question: What changed?\n\nPortfolio evidence:\n[E1] id=project:pitching",
+              "Current question: What changed?\n\nPortfolio evidence:\n[E1] id=node:pitching",
             ),
           },
         ],
@@ -427,7 +425,7 @@ describe("OpenAI portfolio provider", () => {
       sentences: [
         {
           text: "Keep the blade at a steady angle.",
-          evidenceIds: ["project:pitching"],
+          evidenceIds: ["node:pitching"],
         },
       ],
     };
@@ -452,7 +450,7 @@ describe("OpenAI portfolio provider", () => {
     [
       "an evidence id outside the supplied structured-output enum",
       portfolioOutput([
-        { text: "Unsupported.", evidenceIds: ["project:not-supplied"] },
+        { text: "Unsupported.", evidenceIds: ["node:not-supplied"] },
       ]),
       "invalid_final_output",
     ],
@@ -513,7 +511,7 @@ describe("OpenAI portfolio provider", () => {
         expect(init?.signal).toBeInstanceOf(AbortSignal);
         return completedResponse(
           portfolioOutput([
-            { text: "Grounded.", evidenceIds: ["project:pitching"] },
+            { text: "Grounded.", evidenceIds: ["node:pitching"] },
           ]),
         );
       },

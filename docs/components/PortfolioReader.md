@@ -8,8 +8,9 @@ Three modes, derived from props rather than set directly and published as
 `data-reader-mode`: `index`, `record` (one node), and `thread` (a narrated
 path, the only long-form type). All three share this one panel instead of
 spawning panels or routes (Rule 6.5). Content comes from
-[`lib/portfolio-world.ts`](../../lib/portfolio-world.ts); it takes no data
-props.
+the validated runtime model exported by
+[`lib/portfolio-world.ts`](../../lib/portfolio-world.ts); canonical authored
+text lives in `content/portfolio-content.json`. It takes no data props.
 
 ## Props
 
@@ -54,10 +55,8 @@ export function PortfolioReaderExample() {
 
 - **A `story`-family node in `selectedId` does not open a record.** Stories are
   reached through `activeThreadId`; the story node id alone falls to the index.
-- **The registered avatar target follows the slug, not the mode.** It is
-  `project:<slug>` only when the node has a `projectSlug`; five non-story nodes
-  (including `bradley`) have none, so their *records* register
-  `portfolio:index`.
+- **The registered avatar target follows outline type.** Each What record uses
+  `portfolio:record:<id>`; Who, Where, Why, and the index use `portfolio:index`.
 - **`?review=clean` changes the rendering**, adding
   `.portfolio-reader-clean-review`. A screenshot taken with it set is not the
   default surface.

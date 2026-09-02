@@ -14,7 +14,7 @@ stroke weight; the register alone varies (Rule 6.4).
 ## Props
 
 `family` and `register`, both required, both from
-[`lib/portfolio-world.ts`](../../lib/portfolio-world.ts). Eight families, six
+[`lib/portfolio-world.ts`](../../lib/portfolio-world.ts). Seven families, six
 registers; a node's own fields are the intended source.
 
 ## Requires

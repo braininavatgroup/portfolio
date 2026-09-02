@@ -16,12 +16,11 @@ afterEach(() => {
 });
 
 const evidence = {
-  id: "project:pitching",
-  title: "Pitching system",
+  id: "node:pitching",
+  title: "Music promo campaign pitching",
   excerpt:
-    "Research, curator selection, matching, and outreach arranged around a human approval step.",
-  href: "/index/pitching",
-  projectTitle: "Pitching system",
+    "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
+  href: "/?view=graph#pitching",
 };
 
 describe("portfolio chat", () => {
@@ -668,8 +667,8 @@ describe("portfolio chat", () => {
       screen.getByRole("heading", { name: "Supporting portfolio evidence" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "[E1] Pitching system" }).getAttribute("href"),
-    ).toBe("/index/pitching");
+      screen.getByRole("link", { name: "[E1] Music promo campaign pitching" }).getAttribute("href"),
+    ).toBe("/?view=graph#pitching");
     expect(screen.getByText(evidence.excerpt)).toBeTruthy();
   });
 
@@ -678,10 +677,10 @@ describe("portfolio chat", () => {
   it("shows only the complete-context sources cited by the answer", async () => {
     const reportingEvidence = {
       ...evidence,
-      id: "project:reporting",
-      title: "Campaign reporting",
-      href: "/index/reporting",
-      projectTitle: "Campaign reporting",
+      id: "node:reporting",
+      title: "Music promo campaign reporting",
+      excerpt: "A daily pipeline that finds wins, verifies the evidence, and drafts every client report.",
+      href: "/?view=graph#reporting",
     };
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [evidence, reportingEvidence] });
@@ -696,9 +695,13 @@ describe("portfolio chat", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
     expect(
-      await screen.findByRole("link", { name: "[E2] Campaign reporting" }),
+      await screen.findByRole("link", { name: "[E2] Music promo campaign reporting" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "[E1] Pitching system" })).toBeNull();
+    expect(
+      screen.queryByRole("link", {
+        name: "[E1] Music promo campaign pitching",
+      }),
+    ).toBeNull();
   });
 
   it("keeps follow-up context in the current visit without persisting it", async () => {

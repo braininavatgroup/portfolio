@@ -16,15 +16,15 @@ meaningful beat so the avatar can react. State shows as `data-open` and
 No prop is required. `open`/`onOpenChange` make it
 controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
 and `renderTurnstile` are injection seams defaulting to the real transport and
-widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`,
-`spotlightTarget`, `onLayoutChange` optional.
+widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`, and
+`onLayoutChange` are optional.
 
 ## Requires
 
 `.experience` **and** `.portfolio-composition` on an ancestor.
 `.experience .portfolio-chat` is what makes the dock `position: fixed`; under
-`.portfolio-composition` alone the legacy base rule wins and you get the
-centred, absolutely positioned prototype chat.
+`.portfolio-composition` alone the base fallback remains centred and
+absolutely positioned.
 
 ## Example
 
@@ -36,12 +36,9 @@ import { useState } from "react";
 export function PortfolioChatExample() {
   const [open, setOpen] = useState(false);
 
-  // `experience` is load-bearing, not decoration: `.experience .portfolio-chat`
-  // is what makes the dock `position: fixed`. Under `.portfolio-composition`
-  // alone the legacy base rule wins and you get the centred, absolutely
-  // positioned prototype chat instead.
+  // Match the production composition so the dock uses its fixed positioning.
   return (
-    <div className="experience experience-graph portfolio-composition">
+    <div className="experience portfolio-composition">
       <section className="scene-shell">
         <PortfolioChat
           // Omit both stubs in production: the defaults are

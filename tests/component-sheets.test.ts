@@ -20,9 +20,9 @@ const componentsRoot = `${repositoryRoot}components`;
 const sheetsRoot = `${repositoryRoot}docs/components`;
 
 /**
- * The two modules under `components/` that are not components:
- * `bradley-glasses.ts` builds Three.js geometry and `output-token-map.ts` is a
- * lookup table. Everything that renders, or is a public hook, gets a sheet.
+ * The module under `components/` that is not a component:
+ * `bradley-glasses.ts` builds Three.js geometry. Everything that renders, or
+ * is a public hook, gets a sheet.
  *
  * The list is pinned to its exact contents below, because otherwise it is a
  * one-line escape hatch: adding a component and adding its name here would
@@ -30,7 +30,6 @@ const sheetsRoot = `${repositoryRoot}docs/components`;
  */
 const unsheetedModules = new Set([
   "avatar/bradley-glasses.ts",
-  "scene/output-token-map.ts",
 ]);
 
 async function componentModules() {
@@ -70,10 +69,9 @@ describe("component cheat-sheets", () => {
    * Pins the exclusion list so it cannot be quietly extended to silence the
    * gate above. Changing it is then a deliberate edit to this assertion.
    */
-  it("excludes only the two modules that are not components", () => {
+  it("excludes only the module that is not a component", () => {
     expect([...unsheetedModules].sort()).toEqual([
       "avatar/bradley-glasses.ts",
-      "scene/output-token-map.ts",
     ]);
   });
 

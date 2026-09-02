@@ -78,11 +78,14 @@ function words(text: string) {
 
 function includesPortfolioAlias(text: string, grounding: PortfolioGrounding) {
   const normalizedText = ` ${words(text).join(" ")} `;
-  const aliases = grounding.evidence.flatMap(({ id, projectTitle, title }) => [
-    id.replace(/^(?:project|entity|node|thread):/, "").replaceAll("-", " "),
-    projectTitle,
-    title,
-  ]);
+  const aliases = grounding.evidence.flatMap(({ id, title }) => {
+    const titleWords = words(title);
+    return [
+      id.replace(/^(?:entity|node|thread):/, "").replaceAll("-", " "),
+      title,
+      ...(titleWords.length >= 3 ? [titleWords.slice(-2).join(" ")] : []),
+    ];
+  });
   return aliases.some((alias) => {
     const aliasWords = words(alias);
     return (

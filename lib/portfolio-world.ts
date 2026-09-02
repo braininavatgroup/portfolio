@@ -18,23 +18,31 @@ import {
 } from "./portfolio-content-schema";
 import {
   portfolioContactStructure,
+  portfolioFactualLinkStructures,
+  PORTFOLIO_ARC_NODE_ID,
   portfolioRecordStructures,
   portfolioThreadStructures,
   type PortfolioBodyBlockSkeleton,
+  type PortfolioOutlineType,
   type PortfolioVisualFormat,
   type PortfolioVisualSourceStatus,
   type PortfolioVisualTreatment,
+  type PortfolioRecordStatus,
   type PortfolioWorldFamily,
-  type PortfolioWorldGroup,
   type PortfolioWorldRegister,
 } from "./portfolio-structure";
 
 export type {
+  PortfolioOutlineType,
   PortfolioVisualFormat,
   PortfolioVisualSourceStatus,
   PortfolioVisualTreatment,
   PortfolioWorldFamily,
   PortfolioWorldRegister,
+} from "./portfolio-structure";
+export {
+  PORTFOLIO_ARC_NODE_ID,
+  PORTFOLIO_ARC_THREAD_ID,
 } from "./portfolio-structure";
 
 export type PortfolioCopyPlaceholderBlock = {
@@ -42,12 +50,6 @@ export type PortfolioCopyPlaceholderBlock = {
   id: string;
   prompt: string;
   questions?: readonly string[];
-};
-
-export type PortfolioVisualAsset = {
-  src: string;
-  alt: string;
-  caption?: string;
 };
 
 export type PortfolioVisualBlock = {
@@ -63,7 +65,6 @@ export type PortfolioVisualBlock = {
   caption?: string;
   captionsSrc?: string;
   poster?: string;
-  assets?: readonly PortfolioVisualAsset[];
 };
 
 export type PortfolioBodyBlock =
@@ -77,13 +78,13 @@ export type PortfolioWorldNode = {
   kind: string;
   family: PortfolioWorldFamily;
   register: PortfolioWorldRegister;
-  group: PortfolioWorldGroup;
-  position: { x: number; y: number };
+  outlineType: PortfolioOutlineType;
+  position: { x: number; y: number; z: number };
+  status?: PortfolioRecordStatus;
   summary: string;
   summaryStatus?: "placeholder";
   principle?: string;
   body: readonly PortfolioBodyBlock[];
-  projectSlug?: string;
   threadId?: string;
 };
 
@@ -95,6 +96,14 @@ export type PortfolioThread = {
   body: readonly PortfolioBodyBlock[];
   members: readonly string[];
 };
+
+export type PortfolioWhatNode = PortfolioWorldNode & { outlineType: "what" };
+
+export function isPortfolioWhatNode(
+  node: PortfolioWorldNode,
+): node is PortfolioWhatNode {
+  return node.outlineType === "what";
+}
 
 export type PortfolioWorldLink = {
   from: string;
@@ -108,8 +117,6 @@ export type PortfolioWorldLink = {
 // content document fails application startup rather than serving wrong copy.
 assertValidPortfolioContentDocument(portfolioContentJson);
 const contentDocument: PortfolioContentDocument = portfolioContentJson;
-
-export const portfolioContentRevision = contentDocument.revision;
 
 export const portfolioInterfaceText: Record<PortfolioInterfaceTextKey, string> =
   contentDocument.interface as Record<PortfolioInterfaceTextKey, string>;
@@ -134,8 +141,7 @@ export const isPortfolioVisualReady = (
 
   const format = portfolioVisualFormat(block);
   if (format === "video") return Boolean(block.src && block.captionsSrc);
-  if (format === "gallery") return Boolean(block.assets?.length || block.src);
-  return Boolean(block.src || block.assets?.[0]?.src);
+  return Boolean(block.src);
 };
 
 function mergeBody(
@@ -206,7 +212,7 @@ export function portfolioBodyText(
 }
 
 export const portfolioThroughline =
-  portfolioInterfaceText["hero.throughline"];
+  portfolioInterfaceText["index.throughline"];
 
 export const portfolioContact = {
   email: contentDocument.contact.email,
@@ -221,17 +227,23 @@ export const portfolioContact = {
   })),
 } as const;
 
+const portfolioThreadIdByNodeId = new Map(
+  portfolioThreadStructures.map(({ id, nodeId }) => [nodeId, id]),
+);
+
 export const portfolioWorldNodes: readonly PortfolioWorldNode[] =
   portfolioRecordStructures.map((structure) => {
     const texts = contentDocument.records[structure.id];
+    const threadId = portfolioThreadIdByNodeId.get(structure.id);
     return {
       id: structure.id,
       label: texts.label,
       kind: texts.kind,
       family: structure.family,
       register: structure.register,
-      group: structure.group,
+      outlineType: structure.outlineType,
       position: structure.position,
+      ...(structure.status ? { status: structure.status } : {}),
       summary: texts.summary,
       ...(structure.summaryStatus
         ? { summaryStatus: structure.summaryStatus }
@@ -240,10 +252,12 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] =
         ? { principle: texts.principle }
         : {}),
       body: mergeBody(structure.body, texts),
-      ...(structure.projectSlug ? { projectSlug: structure.projectSlug } : {}),
-      ...(structure.threadId ? { threadId: structure.threadId } : {}),
+      ...(threadId ? { threadId } : {}),
     };
   });
+
+export const portfolioWhatNodes: readonly PortfolioWhatNode[] =
+  portfolioWorldNodes.filter(isPortfolioWhatNode);
 
 export const portfolioThreads: readonly PortfolioThread[] =
   portfolioThreadStructures.map((structure) => {
@@ -258,27 +272,11 @@ export const portfolioThreads: readonly PortfolioThread[] =
     };
   });
 
-export const portfolioWorldLinks: readonly PortfolioWorldLink[] = [
-  ["infamous", "music-practice", "lineage"],
-  ["infamous", "kickoff", "lineage"],
-  ["infamous", "pitching", "lineage"],
-  ["infamous", "reporting", "lineage"],
-  ["infamous", "personal-os", "lineage"],
-  ["music-practice", "kickoff", "direct"],
-  ["music-practice", "pitching", "direct"],
-  ["music-practice", "reporting", "direct"],
-  ["kickoff", "pitching", "direct"],
-  ["pitching", "reporting", "direct"],
-  ["music-practice", "personal-os", "direct"],
-  ["personal-os", "dubs", "lineage"],
-  ["personal-os", "writ", "lineage"],
-  ["personal-os", "yoohoo", "lineage"],
-  ["systems-consulting", "real-estate", "direct"],
-  ["systems-consulting", "touring", "direct"],
-  ["product-studio", "dubs", "direct"],
-  ["product-studio", "writ", "direct"],
-  ["product-studio", "yoohoo", "direct"],
-].map(([from, to, type]) => ({ from, to, type, layer: "factual" } as PortfolioWorldLink));
+export const portfolioWorldLinks: readonly PortfolioWorldLink[] =
+  portfolioFactualLinkStructures.map((link) => ({
+    ...link,
+    layer: "factual",
+  }));
 
 export const portfolioWorldNodeById = new Map(
   portfolioWorldNodes.map((node) => [node.id, node]),
@@ -312,36 +310,44 @@ const threadMembershipLinks: readonly PortfolioWorldLink[] = portfolioThreads.fl
 export function getVisibleWorldLinks({
   selectedId,
 }: {
-  activeThreadId: string | null;
   selectedId: string | null;
 }): PortfolioWorldLink[] {
-  const links = [...portfolioWorldLinks];
   const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
+  const links = [...portfolioWorldLinks];
 
   if (selectedId === "bradley") {
     links.push(...threadRootLinks);
-  } else if (selected?.family === "story" && selected.threadId) {
+  } else if (selected?.outlineType === "why" && selected.threadId) {
     links.push(...threadRootLinks.filter(({ threadId }) => threadId === selected.threadId));
   }
 
-  // The two concise editorial constellations remain part of the authored
-  // field. Focus changes their emphasis, not their existence. Finding is
-  // intentionally read through the factual field rather than redundant
-  // spokes.
-  links.push(
-    ...threadMembershipLinks.filter(
-      ({ threadId }) => threadId !== "finding-myself-in-software",
-    ),
-  );
-  if (selectedId && selected?.family !== "story") {
-    const finding = threadMembershipLinks.find(
-      ({ from, to, threadId }) =>
-        threadId === "finding-myself-in-software" &&
-        (from === selectedId || to === selectedId),
-    );
-    if (finding) links.push(finding);
-  }
+  links.push(...threadMembershipLinks);
   return links;
+}
+
+export function isWorldLinkActive(
+  link: PortfolioWorldLink,
+  selectedId: string | null,
+): boolean {
+  if (!selectedId) return false;
+  if (selectedId === "bradley") return link.layer === "story-root";
+
+  const selected = portfolioWorldNodeById.get(selectedId);
+  if (!selected) return false;
+  if (selected.outlineType !== "why") {
+    return link.from === selectedId || link.to === selectedId;
+  }
+
+  const ownsRoot =
+    link.layer === "story-root" &&
+    (link.from === selectedId || link.to === selectedId);
+  const ownsMembership =
+    link.layer === "story-membership" &&
+    link.threadId === selected.threadId;
+  if (selected.id === PORTFOLIO_ARC_NODE_ID) {
+    return link.layer === "factual" || ownsRoot || ownsMembership;
+  }
+  return ownsRoot || ownsMembership;
 }
 
 export function getWorldFocusIds({
@@ -357,6 +363,9 @@ export function getWorldFocusIds({
   }
   if (activeThreadId) {
     const thread = portfolioThreadById.get(activeThreadId);
+    if (thread?.nodeId === PORTFOLIO_ARC_NODE_ID) {
+      return new Set(portfolioWorldNodes.map(({ id }) => id));
+    }
     return thread
       ? new Set(["bradley", thread.nodeId, ...thread.members])
       : new Set([selectedId]);
@@ -399,17 +408,5 @@ export const portfolioWorldIndexSections: readonly PortfolioWorldIndexSection[] 
   indexSection("operations", "index.section.operations", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
   indexSection("campaign", "index.section.campaign", ["kickoff", "pitching", "reporting"]),
   indexSection("client", "index.section.client", ["real-estate", "touring"]),
-  indexSection("personal", "index.section.personal", ["personal-os"]),
   indexSection("products", "index.section.products", ["dubs", "writ", "yoohoo"]),
 ];
-
-// Legacy case-study slugs → canonical node pages. Keeps old /index/<slug>
-// links working after the case-study layer was retired.
-export const legacyProjectSlugRedirects: Readonly<Record<string, string>> = {
-  "kickoff-intake": "kickoff",
-  "real-estate-deal-tracker": "real-estate",
-  "touring-advancing-tool": "touring",
-  "personal-tooling": "personal-os",
-  "spec-discipline": "personal-os",
-  "three-maturity-bundle": "writ",
-};

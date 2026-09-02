@@ -33,7 +33,6 @@ describe("PortfolioReader", () => {
       "Operations",
       "Music promotions systems",
       "Client systems",
-      "Personal systems",
       "In Production",
     ]);
     expect(
@@ -93,6 +92,21 @@ describe("PortfolioReader", () => {
         expect(screen.getByText(block)).toBeTruthy();
       }
     }
+  });
+
+  it.each([
+    ["authorship", "thread-authorship"],
+    ["philosophy", "thread-philosophy"],
+  ])("renders the %s Why as copy in progress", (activeThreadId, selectedId) => {
+    render(
+      <PortfolioReader
+        {...baseProps}
+        activeThreadId={activeThreadId}
+        selectedId={selectedId}
+      />,
+    );
+
+    expect(screen.getByText("Copy in progress")).toBeTruthy();
   });
 
   it("uses one summary treatment at the start of every record", () => {

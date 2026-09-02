@@ -2,7 +2,7 @@ import { chooseAmbientVariant } from "./ambient";
 import type {
   AvatarCommand,
   PortfolioResponseEffects,
-  ProjectAvatarTargetId,
+  RecordAvatarTargetId,
 } from "./contracts";
 import { AvatarController } from "./controller";
 import { AvatarSequenceRunner } from "./sequence-runner";
@@ -17,9 +17,8 @@ export type AvatarContextEvent =
   | { type: "evidence" }
   | { type: "first_text" }
   | { type: "turn_complete" }
-  | { type: "project_open"; target: ProjectAvatarTargetId }
-  | { type: "tab_change"; target: ProjectAvatarTargetId }
-  | { type: "project_close" };
+  | { type: "record_open"; target: RecordAvatarTargetId }
+  | { type: "record_close" };
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 
@@ -105,7 +104,7 @@ export class AvatarDirector {
         void this.#controller.execute({ action: "setState", state: "idle" });
         this.startAmbient();
         return;
-      case "project_open":
+      case "record_open":
         this.stopAmbient();
         return this.#run([
           { action: "walkTo", target: event.target },
@@ -113,10 +112,7 @@ export class AvatarDirector {
           { action: "wait", durationMs: 900 },
           { action: "setState", state: "idle" },
         ]);
-      case "tab_change":
-        this.stopAmbient();
-        return this.#run([{ action: "lookAt", target: event.target }]);
-      case "project_close":
+      case "record_close":
         this.stopAmbient();
         return this.#run([
           { action: "walkTo", target: "portfolio:chat" },

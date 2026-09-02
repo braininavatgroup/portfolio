@@ -1,6 +1,6 @@
 # Bradley Berkman portfolio
 
-An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns projects into an explorable graph with a shared reader; the flat HTML index links into that same reading surface.
+An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns portfolio records and threads into an explorable map with a shared reader; the flat HTML index links into that same reading surface.
 
 ## Run it
 
@@ -44,28 +44,21 @@ both preserve the current map, reader, chat, and history state.
 
 ## Routes
 
-- `/` contains the pointer-responsive figure, transition into the graph, graph controls, node records, and portfolio chat.
+- `/` contains the spatial map, shared reader, portfolio chat, and embodied assistant.
 - `/index` is the complete HTML index of threads and nodes and works without WebGL.
-- `/index/[slug]` preserves old record links by redirecting into the corresponding map reader state.
-- Legacy `/work` routes and retired case-study slugs redirect to their canonical `/index` equivalents.
+- `/index/[id]` redirects a canonical record ID into the corresponding map reader state.
 
 ## Content model
 
-A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the short piece for one thing in the map reader) or a **thread** (a narrated path through the map; the only long-form type). Authored content lives in `lib/portfolio-world.ts`. Record and Thread bodies interleave prose with structured copy and visual placeholders while the portfolio is being composed. Visual blocks support image, video, and gallery formats; selecting one opens it at useful scale in the map pane and returns to the same record when closed. Placeholders intentionally render on `main`, and `?review=clean` hides them for a clean reading pass without forking the content. Chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. Grounding labels workbench placeholders as draft context rather than published proof.
+A **node** is a dot on the map. Opening one reads one of two authored content types: a **record** (the short piece for one thing in the map reader) or a **thread** (a narrated path through the map; the only long-form type). Authored text lives in `content/portfolio-content.json`; `lib/portfolio-structure.ts` owns IDs, relationships, positions, and block order; and `lib/portfolio-world.ts` validates and combines them into the runtime model. Record and Thread bodies interleave prose with structured copy and visual placeholders while the portfolio is being composed. Visual blocks support image, video, and gallery formats; selecting one opens it at useful scale in the map pane and returns to the same record when closed. Placeholders intentionally render on `main`, and `?review=clean` hides them for a clean reading pass without forking the content. Chat-only facts (audience statement, career timeline, private context) live in `lib/portfolio-private-grounding.ts` and are never rendered in the UI. Grounding labels workbench placeholders as draft context rather than published proof.
 
-## Portfolio model
-
-`lib/portfolio-model.ts` defines projects, reusable entities, relations, projections, validation, and pure lookups. `lib/portfolio-adapter.ts` translates the `ArtifactRecord[]` scaffolding in `lib/portfolio.ts` into that model. That scaffolding only feeds the body-phase brain scene, avatar targets, and scene tokens; it is not authored site content.
-
-`lib/spatial-graph.ts` projects the selected model into renderer-owned nodes and positions. The approved `instinct-approach-output/v1` projection is specific to this stage. Its `Instinct`, `Approach`, and `Output` roles do not define a generic graph language or constrain later portfolio models.
-
-`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, obstacle-aware CSS-pixel stage layout, controller, behavior director, sequence runner, bounded tone mappings, and site-action boundary. Safe movement commands include `swimTo` for a semantic target and `swimRoute` with the repository-owned `lap` route. `components/avatar` owns the lazy overlay, Director console, and replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for architecture, controls, troubleshooting, and the proof boundary.
+`lib/avatar` owns the embodied assistant's validated command contract, semantic target registry, obstacle-aware CSS-pixel stage layout, controller, behavior director, sequence runner, and bounded tone mappings. Safe movement commands include `swimTo` for a semantic target and `swimRoute` with the repository-owned `lap` route. `components/avatar` owns the lazy overlay, Director console, and replaceable GLB/procedural renderer. See [Embodied portfolio agent](docs/embodied-portfolio-agent.md) for architecture, controls, troubleshooting, and the proof boundary.
 
 ## Evidence policy
 
 The prototype never invents campaign counts, outcomes, artist photos, screenshots, release links, or handoff proof; a piece that leans on unpublished material says so in its prose or leaves it out. The current CC0 Quaternius game character is a stand-in for Bradley's final 3D model; the procedural figure remains the no-asset fallback.
 
-Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, the Yoohoo interface, the personal-tooling map, and one complete spec-to-agent record.
+Inputs still needed for a production version include the real 3D model, roster press photos and verified campaign count, current resume, representative music outcomes, consulting before-and-afters, Dubs and Writ builds, and the Yoohoo interface.
 
 ## Portfolio chat launch controls
 

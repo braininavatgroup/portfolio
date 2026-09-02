@@ -32,9 +32,6 @@ test("the flat index lists threads and every node with its canonical page", asyn
   assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
   assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
   assert.match(html, /<h1>Index<\/h1>/i);
-  assert.match(html, /data-index-layout=["']stacked-editorial["']/i);
-  assert.doesNotMatch(html, /class=["'][^"']*domain-heading-meta/i);
-  assert.doesNotMatch(html, /class=["'][^"']*artifact-index-number/i);
   assert.doesNotMatch(html, /Evidence (available|partial|needed|undefined)/i);
   assert.doesNotMatch(html, /Career timeline/i);
   assert.doesNotMatch(html, /For AI product teams/i);
@@ -45,7 +42,6 @@ test("the flat index lists threads and every node with its canonical page", asyn
     "about",
     "operations",
     "campaign",
-    "personal",
     "client",
     "products",
   ]) {
@@ -53,23 +49,20 @@ test("the flat index lists threads and every node with its canonical page", asyn
   }
   assert.match(html, /href=["']\/\?view=graph#thread\/making-work-playable["']/i);
   assert.equal(
-    (html.match(/class=["'][^"']*artifact-index-entry[^"']*["']/gi) ?? [])
-      .length,
+    (html.match(/<li[^>]*class=["']index-entry["']/gi) ?? []).length,
     17,
-    "stacked editorial index renders three threads and fourteen nodes",
+    "the index renders four threads and thirteen nodes",
   );
   assert.equal(
-    (html.match(/class=["'][^"']*portfolio-node-mark[^"']*["']/gi) ?? [])
+    (html.match(/<span[^>]*class=["']portfolio-node-mark["'][^>]*>/gi) ?? [])
       .length,
     17,
     "every index row reuses its graph node mark",
   );
   assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-family=["']story["']/i);
   assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-register=["']warm["']/i);
-  assert.doesNotMatch(html, /artifact-index-meta[^>]*>\s*<span[^>]*>→<\/span>/i);
 
-  // The standalone per-record pages were retired (2026-08-30): the flat index
-  // links straight into the map reader, and old /index/<id> URLs redirect there.
+  // The flat index links into the map reader; canonical /index/<id> URLs do the same.
   const nodeIds = new Set();
   for (const [, attributes] of html.matchAll(/<a\b([^>]*)>/gi)) {
     const nodeId = attributes.match(
@@ -77,7 +70,7 @@ test("the flat index lists threads and every node with its canonical page", asyn
     )?.[1];
     if (nodeId) nodeIds.add(nodeId);
   }
-  assert.equal(nodeIds.size, 14, "every node links into the map reader");
+  assert.equal(nodeIds.size, 13, "every node links into the map reader");
 
   for (const nodeId of nodeIds) {
     const response = await render(`/index/${nodeId}`);
@@ -95,39 +88,12 @@ test("the flat index lists threads and every node with its canonical page", asyn
   }
 });
 
-test("legacy work and case-study routes redirect to the canonical pages", async () => {
+test("retired work routes stay retired", async () => {
   const indexResponse = await render("/work");
-  assert.ok([301, 302, 307, 308].includes(indexResponse.status));
-  assert.equal(new URL(indexResponse.headers.get("location"), "http://localhost").pathname, "/index");
+  assert.equal(indexResponse.status, 404);
 
   const workResponse = await render("/work/dubs");
-  assert.ok([301, 302, 307, 308].includes(workResponse.status));
-  assert.equal(
-    new URL(workResponse.headers.get("location"), "http://localhost").pathname,
-    "/index/dubs",
-  );
-
-  for (const [legacySlug, target] of [
-    ["kickoff-intake", "kickoff"],
-    ["real-estate-deal-tracker", "real-estate"],
-    ["touring-advancing-tool", "touring"],
-    ["personal-tooling", "personal-os"],
-    ["spec-discipline", "personal-os"],
-    ["three-maturity-bundle", "writ"],
-  ]) {
-    const response = await render(`/index/${legacySlug}`);
-    assert.ok(
-      [301, 302, 307, 308].includes(response.status),
-      `/index/${legacySlug} redirects`,
-    );
-    const location = new URL(
-      response.headers.get("location"),
-      "http://localhost",
-    );
-    assert.equal(location.pathname, "/", `/index/${legacySlug} → map`);
-    assert.equal(location.search, "?view=graph");
-    assert.equal(location.hash, `#${target}`, `/index/${legacySlug} → #${target}`);
-  }
+  assert.equal(workResponse.status, 404);
 });
 
 test("the privacy route discloses analytics, replay masking, and opt-out", async () => {

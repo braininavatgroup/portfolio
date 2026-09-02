@@ -20,6 +20,17 @@ const inlineSetTokens: Readonly<Record<string, string>> = {
 };
 
 describe("design token contract", () => {
+  it("keeps the arc register on the approved red pair in both modes", async () => {
+    const stylesheet = await readStylesheet();
+    const composition = stylesheet.match(/\n\.portfolio-composition\s*\{([^}]+)\}/)?.[1] ?? "";
+    const dark = stylesheet.match(
+      /@media \(prefers-color-scheme: dark\)\s*\{\s*\.portfolio-composition\s*\{([^}]+)\}/,
+    )?.[1] ?? "";
+
+    expect(composition).toContain("--world-arc: var(--world-hard-red)");
+    expect(dark).toContain("--world-arc: var(--world-signal-red)");
+  });
+
   it("resolves every custom property the stylesheet reads", async () => {
     const stylesheet = await readStylesheet();
     const declared = new Set(
