@@ -32,7 +32,10 @@ rendered. Bodies may interleave authored paragraphs, Bradley-owned copy
 placeholders, and planned visual blocks. A paragraph may link a phrase to
 another record or Thread inline as `[phrase](record:<id>)` or
 `[phrase](thread:<id>)`; the id must exist in the structure or the content
-document fails validation, and the assistant sees the plain phrase. These workbench blocks intentionally
+document fails validation, and the assistant sees the plain phrase. An outside
+address is `[phrase](https://…)`, opened in a new tab; the assistant sees the
+phrase and the address. Lines beginning with `- ` inside a paragraph render as
+a bulleted list. These workbench blocks intentionally
 render on `main`; `?review=clean` hides them for a clean reading pass. Agents
 may refine the placeholder brief or ask its questions, but must not silently
 replace a Bradley-owned copy placeholder with invented portfolio prose.
@@ -40,9 +43,8 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
 ## What to produce
 
 1. **12 records** — every non-About, non-Why node in `portfolioWorldNodes`: `summary`
-   (one sentence), optional `principle` (a pull-quote; keepers like "Taste is
-   encodable. The approval step stays human." already exist), and `body`
-   paragraphs.
+   (one sentence) and `body` paragraphs. Records have no principle field; the
+   pull-quotes were retired on 2026-09-02.
 2. **The Bradley/About record** — a short bio paragraph (careful; the map and
    chat already carry the detail), real LinkedIn/GitHub/Instagram URLs in
    `portfolioContact`, and the CV file at `public/cv/bradley-berkman-cv.pdf`

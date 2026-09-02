@@ -4,6 +4,7 @@ import {
   careerTimeline,
 } from "./portfolio-private-grounding";
 import {
+  portfolioBodyText,
   portfolioContact,
   portfolioThreads,
   portfolioThroughline,
@@ -63,12 +64,11 @@ describe("portfolio chat grounding", () => {
       title: "Music promo campaign pitching",
       href: "/?view=graph#pitching",
     });
-    expect(pitching?.excerpt).toContain(
-      "Weekly curator targeting driven by recorded taste",
-    );
-    expect(pitching?.excerpt).toContain(
-      "Taste is encodable. The approval step stays human.",
-    );
+    const node = portfolioWorldNodes.find(({ id }) => id === "pitching")!;
+    expect(pitching?.excerpt).toContain(`Summary: ${node.summary}`);
+    for (const line of portfolioBodyText(node.body)) {
+      expect(pitching?.excerpt).toContain(line);
+    }
     expect(pitching?.excerpt).toContain(
       "Threads: Making work playable; Authorship; Philosophy",
     );
@@ -84,6 +84,15 @@ describe("portfolio chat grounding", () => {
     expect(music?.excerpt).toContain(
       "[PLANNED VISUAL — not published evidence]",
     );
+  });
+
+  it("reads list lines and external addresses as plain text", () => {
+    const music = groundPortfolioQuestion("Any question").evidence.find(
+      ({ id }) => id === "node:music-practice",
+    );
+    expect(music?.excerpt).toMatch(/\n- \S/);
+    expect(music?.excerpt).toMatch(/ \(https:\/\/[^)]+\)/);
+    expect(music?.excerpt).not.toMatch(/\]\((record|thread|https?):/);
   });
 
   it("keeps the chat-only layer out of every rendered surface", () => {

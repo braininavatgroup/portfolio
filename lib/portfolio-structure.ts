@@ -76,7 +76,6 @@ export type PortfolioRecordStructure = {
   position: { x: number; y: number; z: number };
   status?: PortfolioRecordStatus;
   summaryStatus?: "placeholder";
-  hasPrinciple: boolean;
   body: readonly PortfolioBodyBlockSkeleton[];
 };
 
@@ -130,7 +129,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "identity",
     register: "identity",
     position: { x: 48.88, y: 19.93, z: 646.71 },
-    hasPrinciple: false,
     body: [
       para("p1"),
       para("p2"),
@@ -146,11 +144,13 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "warm",
     position: { x: 9.34, y: 71.43, z: 762.31 },
     status: "past",
-    hasPrinciple: false,
     body: [
       para("p1"),
       para("p2"),
+      draft("infamous-early-days"),
+      para("p3"),
       plannedVisual("infamous-service-evolution", "sequence", "recreate"),
+      para("p4"),
     ],
   },
   {
@@ -160,13 +160,20 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "warm",
     position: { x: 25.41, y: 79.45, z: 822.3 },
     status: "active",
-    summaryStatus: "placeholder",
-    hasPrinciple: false,
     body: [
-      draft("music-practice-introduction"),
-      draft("music-practice-service-evolution"),
-      plannedVisual("music-practice-evolution", "sequence"),
       para("p1"),
+      plannedVisual("music-practice-clients", "artifact", "capture", "gallery"),
+      para("p2"),
+      para("p3"),
+      para("p4"),
+      para("p5"),
+      para("p6"),
+      para("p7"),
+      para("p8"),
+      para("p9"),
+      para("p10"),
+      draft("music-practice-automation", ["q1", "q2"]),
+      para("p11"),
     ],
   },
   {
@@ -176,13 +183,13 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "warm",
     position: { x: 47.11, y: 81.46, z: 882.3 },
     status: "active",
-    hasPrinciple: true,
     body: [
-      draft("consulting-opening"),
+      draft("consulting-bridge"),
       para("p1"),
-      plannedVisual("consulting-engagement-loop", "sequence", "recreate"),
       para("p2"),
+      plannedVisual("consulting-engagement-loop", "sequence", "recreate"),
       para("p3"),
+      para("p4"),
     ],
   },
   {
@@ -193,7 +200,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     position: { x: 53.6, y: 58.4, z: 812.3 },
     status: "active",
     summaryStatus: "placeholder",
-    hasPrinciple: false,
     body: [
       draft("product-studio-record", ["q1", "q2"]),
       plannedVisual("product-studio-relationship", "sequence", "recreate"),
@@ -205,12 +211,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "component",
     register: "bridge",
     position: { x: 81.31, y: 42.68, z: 838.89 },
-    hasPrinciple: true,
     body: [
-      para("p1"),
+      draft("kickoff-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("kickoff-sequence", "comparison", "capture"),
-      para("p2"),
-      para("p3"),
     ],
   },
   {
@@ -219,12 +222,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "component",
     register: "bridge",
     position: { x: 92.13, y: 54.87, z: 939.23 },
-    hasPrinciple: true,
+    summaryStatus: "placeholder",
     body: [
-      para("p1"),
-      para("p2"),
+      draft("pitching-rewrite", ["q1", "q2", "q3", "q4", "q5"]),
       plannedVisual("pitching-targeting-model", "sequence", "recreate"),
-      para("p3"),
     ],
   },
   {
@@ -233,13 +234,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "component",
     register: "bridge",
     position: { x: 70.78, y: 60.84, z: 902.14 },
-    hasPrinciple: true,
+    summaryStatus: "placeholder",
     body: [
-      para("p1"),
-      para("p2"),
-      para("p3"),
+      draft("reporting-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("reporting-pipeline", "sequence", "recreate"),
-      para("p4"),
     ],
   },
   {
@@ -248,12 +246,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "engagement",
     register: "bridge",
     position: { x: 76.49, y: 82.38, z: 919.84 },
-    hasPrinciple: true,
     body: [
-      para("p1"),
-      para("p2"),
+      draft("real-estate-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("real-estate-operation-map", "comparison", "recreate"),
-      para("p3"),
     ],
   },
   {
@@ -262,11 +257,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "engagement",
     register: "bridge",
     position: { x: 93.41, y: 72.24, z: 990.31 },
-    hasPrinciple: true,
+    summaryStatus: "placeholder",
     body: [
-      para("p1"),
-      para("p2"),
-      para("p3"),
+      draft("touring-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("touring-field-registry", "sequence", "recreate"),
     ],
   },
@@ -276,12 +269,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "product",
     register: "cool",
     position: { x: 18.73, y: 41.17, z: 859.1 },
-    hasPrinciple: true,
+    summaryStatus: "placeholder",
     body: [
-      para("p1"),
+      draft("dubs-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("dubs-loop", "demo", "capture"),
-      para("p2"),
-      para("p3"),
     ],
   },
   {
@@ -290,12 +281,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "product",
     register: "cool",
     position: { x: 21.19, y: 55.82, z: 898.83 },
-    hasPrinciple: true,
+    summaryStatus: "placeholder",
     body: [
-      para("p1"),
+      draft("writ-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("writ-priority-behavior", "annotation", "capture"),
-      para("p2"),
-      para("p3"),
     ],
   },
   {
@@ -304,13 +293,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "product",
     register: "cool",
     position: { x: 52.43, y: 67.85, z: 881.72 },
-    hasPrinciple: true,
     body: [
-      para("p1"),
+      draft("yoohoo-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("yoohoo-state", "sequence", "recreate"),
-      para("p2"),
-      para("p3"),
-      para("p4"),
     ],
   },
   {
@@ -319,7 +304,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "story",
     register: "story",
     position: { x: 35.34, y: 32.79, z: 698.43 },
-    hasPrinciple: false,
     body: [para("p1")],
   },
   {
@@ -328,7 +312,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "story",
     register: "arc",
     position: { x: 11.29, y: 53.66, z: 721.38 },
-    hasPrinciple: false,
     body: [para("p1")],
   },
   {
@@ -338,7 +321,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "story",
     position: { x: 63.3, y: 34.67, z: 719.72 },
     summaryStatus: "placeholder",
-    hasPrinciple: false,
     body: [draft("authorship-record")],
   },
   {
@@ -348,7 +330,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "story",
     position: { x: 34.29, y: 60.66, z: 797.65 },
     summaryStatus: "placeholder",
-    hasPrinciple: false,
     body: [draft("philosophy-record")],
   },
 ] as const;
@@ -378,10 +359,8 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     id: "making-work-playable",
     nodeId: "thread-making-work-playable",
     body: [
-      para("p1"),
-      para("p2"),
+      draft("playable-rewrite", ["q1", "q2", "q3"]),
       plannedVisual("thread-playable-instruments", "sequence"),
-      para("p3"),
     ],
     members: [
       "kickoff",
@@ -398,13 +377,8 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     id: PORTFOLIO_ARC_THREAD_ID,
     nodeId: PORTFOLIO_ARC_NODE_ID,
     body: [
-      para("p1"),
-      para("p2"),
-      para("p3"),
-      para("p4"),
+      draft("argument-rewrite", ["q1", "q2", "q3", "q4", "q5", "q6"]),
       plannedVisual("thread-from-argument-to-instrument", "sequence"),
-      para("p5"),
-      para("p6"),
     ],
     members: [
       "thread-philosophy",
@@ -433,7 +407,7 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
   {
     id: "philosophy",
     nodeId: "thread-philosophy",
-    body: [draft("philosophy-thread")],
+    body: [draft("philosophy-thread", ["q1", "q2", "q3"])],
     members: ["pitching", "reporting", "real-estate", "touring", "writ"],
   },
 ] as const;

@@ -7,6 +7,8 @@ import {
   portfolioThreads,
   portfolioWorldNodeById,
 } from "../lib/portfolio-world";
+import { inlineLinkTargets, stripInlineLinks } from "../lib/portfolio-inline-links";
+import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { PortfolioReader } from "./PortfolioReader";
 
 afterEach(cleanup);
@@ -19,6 +21,30 @@ const baseProps = {
   selectedId: null,
 };
 
+// A planned visual's purpose text for a node, read from the content rather
+// than pinned here, so the copy can keep changing without touching this file.
+function plannedVisualPurpose(id: string, format: "image" | "video" | "gallery") {
+  const node = portfolioWorldNodeById.get(id)!;
+  const block = node.body.find(
+    (candidate) =>
+      typeof candidate !== "string" &&
+      candidate.type === "visual" &&
+      candidate.format === format,
+  );
+  if (!block || typeof block === "string" || block.type !== "visual") {
+    throw new Error(`${id} has no planned ${format} visual`);
+  }
+  return block.purpose;
+}
+
+function countWorkbenchBlocks(id: string) {
+  const node = portfolioWorldNodeById.get(id)!;
+  return (
+    (node.summaryStatus === "placeholder" ? 1 : 0) +
+    node.body.filter((block) => typeof block !== "string").length
+  );
+}
+
 describe("PortfolioReader", () => {
   it("opens on the About record as home, titled by its throughline", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
@@ -26,7 +52,7 @@ describe("PortfolioReader", () => {
     const reader = screen.getByRole("complementary", { name: "Portfolio home" });
     expect(reader.getAttribute("data-reader-mode")).toBe("home");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
-      "I make complexity legible enough to act on.",
+      portfolioWorldNodeById.get("bradley")!.summary,
     );
     expect(container.querySelector(".reader-summary")).toBeNull();
     expect(container.querySelector(".reader-kind")).toBeNull();
@@ -218,14 +244,54 @@ describe("PortfolioReader", () => {
     ).toBeTruthy();
     expect(summary.classList.contains("reader-summary")).toBe(true);
     expect(container.querySelectorAll(".reader-summary")).toHaveLength(1);
-    expect(container.querySelector(".reader-principle")).toBeNull();
-    expect(screen.queryByText(node.principle!)).toBeNull();
     for (const block of node.body) {
       if (typeof block === "string") {
-        expect(screen.getByText(block)).toBeTruthy();
+        expect(container.textContent).toContain(stripInlineLinks(block).replace(/ \(https?:[^)]+\)/g, ""));
       }
     }
     expect(screen.queryByText("Read the current case study")).toBeNull();
+  });
+
+  it("renders a paragraph's `- ` lines as a bulleted list in the body voice", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+    );
+
+    const listed = portfolioWorldNodeById
+      .get("music-practice")!
+      .body.find((block) => typeof block === "string" && paragraphHasList(block)) as string;
+    const flow = parseParagraphFlow(listed);
+    const group = container.querySelector(".reader-composed-body > .reader-paragraph-group");
+    expect(group?.querySelector("p")?.textContent).toBe(
+      flow.find((run) => run.type === "prose")!.text,
+    );
+    const items = Array.from(group?.querySelectorAll("ul.reader-list > li") ?? []);
+    expect(items.map((item) => item.textContent)).toEqual(
+      flow.find((run) => run.type === "list")!.items,
+    );
+    expect(container.querySelector(".reader-composed-body > p > ul")).toBeNull();
+  });
+
+  it("renders an external link as an anchor that opens in a new tab", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+    );
+
+    const external = portfolioWorldNodeById
+      .get("music-practice")!
+      .body.flatMap((block) => (typeof block === "string" ? inlineLinkTargets(block) : []))
+      .find((target) => target.kind === "external");
+    const anchor = container.querySelector<HTMLAnchorElement>(
+      ".reader-composed-body a.reader-inline-link",
+    );
+    expect(external?.kind).toBe("external");
+    expect(anchor?.getAttribute("href")).toBe(external && "href" in external ? external.href : "");
+    expect(anchor?.textContent).not.toBe("");
+    expect(anchor?.getAttribute("target")).toBe("_blank");
+    expect(anchor?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(anchor?.getAttribute("data-external")).toBe("true");
+    expect(anchor?.hasAttribute("data-register")).toBe(false);
+    expect(screen.queryByText(/\]\(https?:/)).toBeNull();
   });
 
   it("renders unfinished copy and planned visuals as part of the working composition", () => {
@@ -233,14 +299,13 @@ describe("PortfolioReader", () => {
       <PortfolioReader {...baseProps} selectedId="music-practice" />,
     );
 
-    expect(screen.getAllByText("Copy in progress")).toHaveLength(2);
+    const galleryPurpose = plannedVisualPurpose("music-practice", "gallery");
+    expect(screen.getAllByText("Copy in progress")).toHaveLength(1);
     expect(
       screen.getByRole("button", {
-        name: /Open gallery visual in map: Show how the service offering developed/,
+        name: `Open gallery visual in map: ${galleryPurpose}`,
       }),
     ).toBeTruthy();
-    const summary = screen.getByText("[Summary in progress]");
-    expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
 
     for (const label of screen.getAllByText("Copy in progress")) {
       const placeholder = label.closest("aside")!;
@@ -249,35 +314,34 @@ describe("PortfolioReader", () => {
     }
 
     const visual = screen.getByRole("button", {
-      name: /Open gallery visual in map: Show how the service offering developed/,
+      name: `Open gallery visual in map: ${galleryPurpose}`,
     });
     expect(visual.classList.contains("reader-visual-draft")).toBe(true);
     expect(visual.classList.contains("reader-text-placeholder")).toBe(false);
     expect(visual.querySelector(".reader-visual-placeholder")).toBeTruthy();
   });
 
+  it("marks an in-progress summary as placeholder text", () => {
+    const id = [...portfolioWorldNodeById.values()].find(
+      (node) => node.summaryStatus === "placeholder",
+    )!.id;
+    render(<PortfolioReader {...baseProps} selectedId={id} />);
+
+    const summary = screen.getByText("[Summary in progress]");
+    expect(summary.classList.contains("reader-summary")).toBe(true);
+    expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
+  });
+
   it("opens image, video, and gallery blocks through the same map control", () => {
     const onOpenVisual = vi.fn();
 
     const cases = [
-      {
-        id: "bradley",
-        format: "image",
-        purpose: /Find the right documentary image or artifact/,
-      },
-      {
-        id: "dubs",
-        format: "video",
-        purpose: /Demonstrate the listen, inline voice or text capture/,
-      },
-      {
-        id: "music-practice",
-        format: "gallery",
-        purpose: /Show how the service offering developed/,
-      },
+      { id: "bradley", format: "image" },
+      { id: "dubs", format: "video" },
+      { id: "music-practice", format: "gallery" },
     ] as const;
 
-    for (const { id, format, purpose } of cases) {
+    for (const { id, format } of cases) {
       const { unmount } = render(
         <PortfolioReader
           {...baseProps}
@@ -286,7 +350,7 @@ describe("PortfolioReader", () => {
         />,
       );
       const trigger = screen.getByRole("button", {
-        name: new RegExp(`Open ${format} visual in map: ${purpose.source}`, "i"),
+        name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
       });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
@@ -305,14 +369,14 @@ describe("PortfolioReader", () => {
     );
 
     const reader = screen.getByRole("complementary", {
-      name: "Brain in a Vat Music Promotions Agency record",
+      name: `${portfolioWorldNodeById.get("music-practice")!.label} record`,
     });
     expect(reader.classList.contains("portfolio-reader-clean-review")).toBe(true);
     expect(
       reader.querySelectorAll(
         ".reader-text-placeholder, .reader-visual-draft",
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(countWorkbenchBlocks("music-practice"));
     window.history.replaceState({}, "", "/");
   });
 
@@ -383,8 +447,9 @@ describe("PortfolioReader", () => {
   it("draws a planned visual as a bare frame with its kind, source, and caption", () => {
     render(<PortfolioReader {...baseProps} selectedId="music-practice" />);
 
+    const purpose = plannedVisualPurpose("music-practice", "gallery");
     const trigger = screen.getByRole("button", {
-      name: /Open gallery visual in map: Show how the service offering developed/,
+      name: `Open gallery visual in map: ${purpose}`,
     });
     const frame = trigger.querySelector(".reader-placeholder-frame")!;
     expect(frame.getAttribute("data-format")).toBe("gallery");
@@ -393,6 +458,6 @@ describe("PortfolioReader", () => {
     expect(frame.querySelector(".reader-placeholder-source")?.textContent).toMatch(/·/);
     expect(trigger.querySelector("figcaption strong")).toBeNull();
     expect(trigger.querySelector(".reader-placeholder-meta")).toBeNull();
-    expect(trigger.querySelector("figcaption")?.textContent).toMatch(/Show how the service offering developed/);
+    expect(trigger.querySelector("figcaption")?.textContent).toContain(purpose);
   });
 });

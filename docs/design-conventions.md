@@ -143,6 +143,8 @@ is defined inside the 600px block only.
 - `--register` — set by `.reader-inline-link[data-register="…"]` to one
   `--world-*` alias, then read as `var(--register, var(--world-identity))`.
   This is the idiom for "this element takes its record's register color."
+  An external anchor (`[data-external="true"]`) sets it to `--ink` instead:
+  an address off the site belongs to no register.
 - `--cursor-a` / `--cursor-b` — set inline by `components/CursorInstrument.tsx`
   from the hovered node's register.
 

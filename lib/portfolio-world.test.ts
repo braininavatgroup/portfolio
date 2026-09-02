@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import contentDocument from "../content/portfolio-content.json";
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
@@ -35,26 +36,26 @@ describe("accepted portfolio world", () => {
     ]);
   });
 
-  it("uses the exact outline-v5 record names", () => {
-    expect(
-      portfolioWorldNodes
-        .filter(({ outlineType }) => outlineType !== "why")
-        .map(({ id, label }) => [id, label]),
-    ).toEqual([
-      ["bradley", "Bradley Berkman"],
-      ["infamous", "INFAMOUS PR"],
-      ["music-practice", "Brain in a Vat Music Promotions Agency"],
-      ["systems-consulting", "Brain in a Vat Systems & AI Consulting"],
-      ["product-studio", "Brain in a Vat Product Studio"],
-      ["kickoff", "Music promo campaign kickoff"],
-      ["pitching", "Music promo campaign pitching"],
-      ["reporting", "Music promo campaign reporting"],
-      ["real-estate", "Real-estate deal tracker"],
-      ["touring", "Tour advancing system"],
-      ["dubs", "Dubs"],
-      ["writ", "Writ"],
-      ["yoohoo", "Yoohoo"],
+  it("keeps the outline-v5 record order and takes every label from the content document", () => {
+    const records = portfolioWorldNodes.filter(({ outlineType }) => outlineType !== "why");
+    expect(records.map(({ id }) => id)).toEqual([
+      "bradley",
+      "infamous",
+      "music-practice",
+      "systems-consulting",
+      "product-studio",
+      "kickoff",
+      "pitching",
+      "reporting",
+      "real-estate",
+      "touring",
+      "dubs",
+      "writ",
+      "yoohoo",
     ]);
+    for (const { id, label } of records) {
+      expect(label).toBe(contentDocument.records[id as keyof typeof contentDocument.records].label);
+    }
   });
 
   it("derives the eight Whats from the canonical record structures", () => {
@@ -77,7 +78,7 @@ describe("accepted portfolio world", () => {
     expect(portfolioThreads.map(({ id, title, members }) => ({ id, title, members }))).toEqual([
       {
         id: "making-work-playable",
-        title: "Making work playable",
+        title: contentDocument.threads["making-work-playable"].title,
         members: [
           "kickoff",
           "pitching",
@@ -91,7 +92,7 @@ describe("accepted portfolio world", () => {
       },
       {
         id: "from-argument-to-instrument",
-        title: "From argument to instrument",
+        title: contentDocument.threads["from-argument-to-instrument"].title,
         members: [
           "thread-philosophy",
           "thread-making-work-playable",
@@ -100,7 +101,7 @@ describe("accepted portfolio world", () => {
       },
       {
         id: "authorship",
-        title: "Authorship",
+        title: contentDocument.threads["authorship"].title,
         members: [
           "music-practice",
           "systems-consulting",
@@ -117,7 +118,7 @@ describe("accepted portfolio world", () => {
       },
       {
         id: "philosophy",
-        title: "Philosophy",
+        title: contentDocument.threads["philosophy"].title,
         members: ["pitching", "reporting", "real-estate", "touring", "writ"],
       },
     ]);

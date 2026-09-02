@@ -1196,11 +1196,28 @@ body:has(.portfolio-composition) {
   gap: var(--reader-space-2);
 }
 
-.reader-composed-body > p {
+.reader-composed-body > p,
+.reader-paragraph-group > p,
+.reader-list {
   color: var(--reader-body);
   font: var(--reader-type-body) var(--font-reader);
   margin: 0;
   text-wrap: pretty;
+}
+
+/* A paragraph that carries a bulleted list: its prose runs and lists sit 8
+   apart, and the list keeps the body voice with a plain marker. */
+.reader-paragraph-group {
+  display: grid;
+  gap: var(--reader-space-1);
+}
+
+.reader-list {
+  padding-left: var(--reader-space-3);
+}
+
+.reader-list > li {
+  padding-left: var(--reader-space-1);
 }
 
 /* Sections are separated by space alone: 64 above a label, 8 below it. */
@@ -1279,6 +1296,8 @@ body:has(.portfolio-composition) {
 .reader-inline-link[data-register="warm"] { --register: var(--world-warm); }
 .reader-inline-link[data-register="bridge"] { --register: var(--world-bridge); }
 .reader-inline-link[data-register="cool"] { --register: var(--world-cool); }
+
+.reader-inline-link[data-external="true"] { --register: var(--ink); }
 
 .reader-inline-link:focus-visible {
   text-decoration-color: currentColor;

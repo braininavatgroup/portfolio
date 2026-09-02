@@ -10,10 +10,10 @@ section model (64 above a label, rows as `ul > li > button`) and one footer
 band outside the scroll area: **Index** (or **Home** on the index) and
 Privacy. No kind chip, path line, or Threads section: a record's containing
 threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
-`[phrase](thread:<id>)` links, rendered as `.reader-inline-link` buttons. It
-exports `ReaderPlaceholderFrame`, the draft frame the visual stage reuses.
-Content comes from [`lib/portfolio-world.ts`](../../lib/portfolio-world.ts);
-authored text lives in `content/portfolio-content.json`. No data props.
+`[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
+(new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
+`ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
+from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
 
 ## Props
 
