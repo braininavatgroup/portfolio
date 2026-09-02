@@ -15,10 +15,8 @@ import type {
 export const galleryFamilies: readonly PortfolioWorldFamily[] = [
   "identity",
   "story",
-  "formative",
   "operation",
   "component",
-  "personal",
   "engagement",
   "product",
 ];
@@ -30,10 +28,8 @@ export const galleryFamilyRegister: Record<
 > = {
   identity: "identity",
   story: "story",
-  formative: "finding",
   operation: "warm",
   component: "bridge",
-  personal: "bridge",
   engagement: "bridge",
   product: "cool",
 };
@@ -41,18 +37,16 @@ export const galleryFamilyRegister: Record<
 const galleryEvidence: readonly PortfolioGroundingEvidence[] = [
   {
     id: "gallery-evidence-reporting",
-    title: "Campaign reporting",
+    title: "Music promo campaign reporting",
     excerpt:
       "Placements are reconciled against the campaign record before anything is reported.",
     href: "/?view=graph#reporting",
-    projectTitle: "Campaign reporting",
   },
   {
     id: "gallery-evidence-dubs",
     title: "Dubs",
     excerpt: "A spoken document you can walk and talk back to.",
     href: "/?view=graph#dubs",
-    projectTitle: "Dubs",
   },
 ];
 

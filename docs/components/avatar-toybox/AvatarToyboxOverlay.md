@@ -30,7 +30,7 @@ import { useAvatarToyboxSession } from "components/avatar-toybox/useAvatarToybox
 export function AvatarToyboxOverlayExample() {
   const session = useAvatarToyboxSession({
     canOpen: () => true,
-    collectibles: [{ id: "dubs", label: "Dubs", tokenKind: "document" }],
+    collectibles: [{ id: "dubs", label: "Dubs" }],
     reducedMotion: false,
   });
 

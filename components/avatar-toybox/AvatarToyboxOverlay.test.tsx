@@ -17,7 +17,7 @@ vi.mock("../avatar/AvatarAssetAdapter", () => ({
   ),
 }));
 
-const roster = [{ id: "one", label: "One", tokenKind: "document" }];
+const roster = [{ id: "one", label: "One" }];
 
 function Harness({
   collectibles = roster,

@@ -17,7 +17,6 @@ export type PortfolioGroundingEvidence = {
   title: string;
   excerpt: string;
   href: string;
-  projectTitle: string;
 };
 
 export type PortfolioGrounding = {
@@ -26,7 +25,7 @@ export type PortfolioGrounding = {
 };
 
 const contentNodes = portfolioWorldNodes.filter(
-  (node) => node.family !== "story",
+  (node) => node.outlineType !== "why",
 );
 
 function threadsContaining(nodeId: string) {
@@ -49,7 +48,6 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     title: node.label,
     excerpt: lines.join("\n"),
     href: `/?view=graph#${node.id}`,
-    projectTitle: node.label,
   };
 }
 
@@ -71,7 +69,6 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
       title: "Bradley Berkman",
       excerpt: portfolioExcerpt,
       href: "/",
-      projectTitle: "Portfolio",
     },
     ...contentNodes.map(nodeEvidence),
     ...portfolioThreads.map((thread) => ({
@@ -84,7 +81,6 @@ function completePortfolioEvidence(): PortfolioGroundingEvidence[] {
         `Members: ${thread.members.join(", ")}`,
       ].join("\n"),
       href: `/?view=graph#thread/${thread.id}`,
-      projectTitle: thread.title,
     })),
   ];
 }

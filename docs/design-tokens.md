@@ -31,8 +31,8 @@ portfolio-composition work.
 | `--reader-ink-dark` | `#f0e6dc` | Dark-mode ink and identity | `--reader-ink-light` |
 | `--world-lichen` | `#466700` | Lichen Story register | `--world-acid` |
 | `--world-acid` | `#b6df5b` | Acid Story register | `--world-lichen` |
-| `--world-hard-red` | `#d7191c` | Hard red Finding register | `--world-signal-red` |
-| `--world-signal-red` | `#ff554a` | Signal red Finding register | `--world-hard-red` |
+| `--world-hard-red` | `#d7191c` | Hard red Arc register | `--world-signal-red` |
+| `--world-signal-red` | `#ff554a` | Signal red Arc register | `--world-hard-red` |
 | `--world-electric-pink` | `#d0007e` | Electric pink Operations register | `--world-hot-pink` |
 | `--world-hot-pink` | `#ff84d0` | Hot pink Operations register | `--world-electric-pink` |
 | `--world-violet` | `#4d1fc5` | Light bridge violet | `--world-violet-dark` |
@@ -81,7 +81,7 @@ The live shadow tokens are not mode-switched:
 | `--reader-muted` | `--reader-muted-light` | `--reader-muted-dark` | Labels and metadata |
 | `--world-identity` | `--reader-ink-light` | `--reader-ink-dark` | Bradley identity mark |
 | `--world-story` | `--world-lichen` | `--world-acid` | Story marks |
-| `--world-finding` | `--world-hard-red` | `--world-signal-red` | Finding marks |
+| `--world-arc` | `--world-hard-red` | `--world-signal-red` | From argument to instrument marks |
 | `--world-warm` | `--world-electric-pink` | `--world-hot-pink` | Operations marks |
 | `--world-bridge` | `--world-violet` | `--world-violet-dark` | Bridge marks |
 | `--world-cool` | `--world-production-cyan` | `--world-production-cyan-dark` | In Production marks |
@@ -149,7 +149,6 @@ No light/dark pairing is implied unless both tokens appear in the same row.
 | `--prototype-error-surface`; `--prototype-error-rule`; `--prototype-error-ink` | `#2e1014`; `#ff9a9a`; `#fff0f0` | Avatar renderer failure treatment |
 | `--prototype-tool-rule` | `#496a61` | Local tool/input rule and ink |
 | `--prototype-link-hover` | `#526b00` | Prototype hover/link greens |
-| `--prototype-dossier-eyebrow` | `#59736a` | Dossier eyebrow and rule |
 | `--prototype-focus-outline-light`; `--prototype-focus-outline` | `#688500`; `#76951a` | Light and dark focus outlines |
 | `--prototype-label-ink`; `--prototype-muted-ink` | `#8ab5a9`; `#91a49d` | Prototype labels and secondary copy |
 | `--prototype-toybox-accent`; `--prototype-toybox-focus` | `#99bd4c`; `#b8df62` | Toybox accent and focus outline |

@@ -19,7 +19,7 @@ export const semanticAliases: readonly { token: string; role: string }[] = [
   { token: "--reader-muted", role: "Labels and metadata" },
   { token: "--world-identity", role: "Bradley identity mark" },
   { token: "--world-story", role: "Story marks" },
-  { token: "--world-finding", role: "Finding marks" },
+  { token: "--world-arc", role: "From argument to instrument marks" },
   { token: "--world-warm", role: "Operations marks" },
   { token: "--world-bridge", role: "Bridge marks" },
   { token: "--world-cool", role: "In Production marks" },
@@ -52,4 +52,3 @@ export const fontTokens: readonly { token: string; role: string }[] = [
   { token: "--font-reader", role: "The site's type stack — Neue Haas Grotesk everywhere" },
   { token: "--font-prototype-mono", role: "System monospace. Only where the content is literally code — this gallery's source paths and token names" },
 ];
-

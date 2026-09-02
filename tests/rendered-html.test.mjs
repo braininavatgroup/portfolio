@@ -52,9 +52,9 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*tabindex=["']-1["']/i);
   assert.match(html, /id=["']cursorInstrument["']/i);
-  assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
+  assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
+  assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /<h1>Index<\/h1>/i);
   assert.doesNotMatch(html, />Enter map</i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
@@ -85,16 +85,17 @@ test("the homepage opens directly on the map with its synchronized index", async
   const html = await response.text();
 
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
-  assert.match(html, /aria-current=["']page["'][^>]*>Map</i);
+  assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /<h1>Index<\/h1>/i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /INFAMOUS PR/i);
-  assert.match(html, /Campaign kickoff/i);
+  assert.match(html, /Music promo campaign kickoff/i);
   assert.match(html, /Making work playable/i);
-  assert.match(html, /Choosing what not to automate/i);
   assert.match(html, /From argument to instrument/i);
+  assert.match(html, /Authorship/i);
+  assert.match(html, /Philosophy/i);
   assert.match(html, /data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']identity["'][^>]*data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']story["'][^>]*data-world-node=["']thread-/i);

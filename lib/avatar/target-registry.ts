@@ -14,9 +14,7 @@ export type AvatarTargetBounds = {
   inViewport: boolean;
 };
 
-export type AvatarObstacleId =
-  | "portfolio:header"
-  | "avatar:director-console";
+export type AvatarObstacleId = "avatar:director-console";
 
 export type AvatarStageMap = {
   viewport: { width: number; height: number };

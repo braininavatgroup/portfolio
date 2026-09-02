@@ -45,7 +45,7 @@ describe("main preview password boundary", () => {
     const app = downstream();
 
     const response = await withMainPreviewPassword(
-      new Request("https://preview.example/work"),
+      new Request("https://preview.example/index"),
       {},
       app.next,
       () => NOW,
@@ -87,7 +87,7 @@ describe("main preview password boundary", () => {
   it("redirects an unauthenticated navigation to login with a safe return path", async () => {
     const app = downstream();
     const response = await withMainPreviewPassword(
-      new Request("https://preview.example/work?draft=1", {
+      new Request("https://preview.example/index?draft=1", {
         headers: { accept: "text/html" },
       }),
       enabledEnv,
@@ -97,7 +97,7 @@ describe("main preview password boundary", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "/_portfolio-preview/login?next=%2Fwork%3Fdraft%3D1",
+      "/_portfolio-preview/login?next=%2Findex%3Fdraft%3D1",
     );
     expect(response.headers.get("x-robots-tag")).toBe(
       "noindex, nofollow, noarchive",
@@ -153,7 +153,7 @@ describe("main preview password boundary", () => {
 
   it("rejects a wrong password with a generic error and no cookie", async () => {
     const response = await withMainPreviewPassword(
-      postLogin("definitely wrong", "/work"),
+      postLogin("definitely wrong", "/index"),
       enabledEnv,
       downstream().next,
       () => NOW,
@@ -166,7 +166,7 @@ describe("main preview password boundary", () => {
 
   it("issues a seven-day secure cookie and redirects after a correct password", async () => {
     const response = await withMainPreviewPassword(
-      postLogin(enabledEnv.PORTFOLIO_MAIN_PREVIEW_PASSWORD!, "/work?draft=1"),
+      postLogin(enabledEnv.PORTFOLIO_MAIN_PREVIEW_PASSWORD!, "/index?draft=1"),
       enabledEnv,
       downstream().next,
       () => NOW,
@@ -174,7 +174,7 @@ describe("main preview password boundary", () => {
     const cookie = response.headers.get("set-cookie");
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/work?draft=1");
+    expect(response.headers.get("location")).toBe("/index?draft=1");
     expect(cookie).toMatch(/^portfolio_main_preview_session=[^;]+/);
     expect(cookie).toContain("Max-Age=604800");
     expect(cookie).toContain("HttpOnly");
@@ -190,14 +190,14 @@ describe("main preview password boundary", () => {
     };
 
     const response = await withMainPreviewPassword(
-      postLogin("draft", "/work"),
+      postLogin("draft", "/index"),
       env,
       downstream().next,
       () => NOW,
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/work");
+    expect(response.headers.get("location")).toBe("/index");
     expect(response.headers.get("set-cookie")).toContain(
       "portfolio_main_preview_session=",
     );
@@ -212,7 +212,7 @@ describe("main preview password boundary", () => {
     );
     const app = downstream("protected application");
     const response = await withMainPreviewPassword(
-      new Request("https://preview.example/work", {
+      new Request("https://preview.example/index", {
         headers: { cookie: cookiePair(login)! },
       }),
       enabledEnv,
@@ -246,7 +246,7 @@ describe("main preview password boundary", () => {
     const app = downstream();
 
     const response = await withMainPreviewPassword(
-      new Request("https://preview.example/work", {
+      new Request("https://preview.example/index", {
         headers: { accept: "text/html", cookie },
       }),
       enabledEnv,

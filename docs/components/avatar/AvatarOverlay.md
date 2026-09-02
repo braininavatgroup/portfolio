@@ -12,9 +12,9 @@ render throw into `controller.markFailed()` rather than a blank crash.
 
 ## Props
 
-`controller`, `enabled`, `onEnabledChange` required. `director`, `runner`,
-`registry`, `siteActionExecutor`, `development`, `debug`, `reducedMotion`,
-`onExpandedPanelChange`, `createRenderer` optional — see
+`controller`, `enabled`, and `onEnabledChange` are required. `director`,
+`registry`, `development`, `debug`, `reducedMotion`,
+`onExpandedPanelChange`, and `createRenderer` are optional — see
 [`AvatarOverlayProps`](../../../components/avatar/AvatarOverlay.tsx).
 
 ## Requires
@@ -55,7 +55,6 @@ export function AvatarOverlayExample() {
         onEnabledChange={setEnabled}
         reducedMotion={false}
         registry={services.registry}
-        runner={services.runner}
       />
     </div>
   );
@@ -68,10 +67,9 @@ export function AvatarOverlayExample() {
   `exit` command settling does this — and the overlay then calls
   `onEnabledChange(false)`. Treating `enabled` as write-only desyncs the
   parent. (A renderer failure sets `failed`, not `visible`.)
-- **The Director console needs seven conditions at once**: the lazy import
-  existing (`import.meta.env.DEV`), then `development`, `debug`, `director`,
-  `runner`, `registry`, `siteActionExecutor`. Miss one and the toggle looks
-  broken. It is compiled out of production entirely.
+- **The Director console needs five conditions at once**: the lazy import
+  existing (`import.meta.env.DEV`), then `development`, `debug`, `director`, and
+  `registry`. It is compiled out of production entirely.
 - **`pointer-events: none` is set inline**, deliberately, so the overlay never
   intercepts clicks meant for the composition beneath it.
 - **`RendererBoundary` here catches render-phase throws only.** Async and

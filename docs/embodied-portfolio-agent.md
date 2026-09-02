@@ -7,7 +7,7 @@ Production renders the exact Meshy model at `public/avatars/bradley-meshy-rigged
 ## Architecture and data flow
 
 1. `PortfolioChat` reports focus, typing, blur, turn start, evidence, first text, effects, notices, errors, and completion.
-2. `PortfolioExperience` owns one `AvatarDirector`, `AvatarSequenceRunner`, `AvatarController`, `AvatarTargetRegistry`, and `SiteActionExecutor`.
+2. `PortfolioExperience` owns one `AvatarDirector`, `AvatarSequenceRunner`, `AvatarController`, and `AvatarTargetRegistry`.
 3. `AvatarDirector` arbitrates lifecycle, visitor navigation, model-selected performance, and ambient attention. A new run cancels the previous sequence.
 4. `AvatarSequenceRunner` executes the safe command list serially and passes its abort signal into the controller.
 5. `AvatarController` publishes stable snapshots containing state, active clip, tone, target, anchor, time-bearing stage motion, facing, and pointing.
@@ -50,8 +50,6 @@ Allowed avatar commands are:
 | `lookAt` | one semantic target | Face the live target without moving. |
 | `pointAt` | one semantic target | Face and point toward the live target. |
 
-Allowed site actions remain `openProject`, `closeProject`, `activateTab`, `scrollTo`, `spotlight`, and `clearSpotlight`. They execute through `SiteActionExecutor`, never through model-authored selectors.
-
 ## Direction and stage motion
 
 Contextual direction is deterministic:
@@ -60,14 +58,21 @@ Contextual direction is deterministic:
 - submit looks toward chat before thinking;
 - evidence produces tool-use motion;
 - first committed answer text produces talking motion;
-- project selection walks beside the mounted dossier and points;
-- dossier tab changes retain project attention;
-- closing a project returns attention toward the index;
+- What-record selection walks beside the mounted reader and points;
+- reader state changes retain record attention;
+- closing a record returns attention toward the index;
 - completion settles to idle and restarts ambient scoring.
 
 The stage model uses a CSS-pixel foot point: `position.x` and `position.y` identify the actor's planted foot in the viewport, and the orthographic renderer maps that same point into the scene. The grounded floor is calculated from the viewport bottom and moves upward when the expanded Director console would otherwise cover the actor. `walkTo` evaluates candidate docks on both sides of the target. `lib/avatar/stage.ts` scores overlap count, overlap width, and travel distance, then clamps the dock inside the viewport.
 
-Semantic targets identify things the actor may address (`hero`, chat, index, or a mounted project); they are not automatically forbidden space. Repository obstacles identify rectangles the actor must route around: the portfolio header and the expanded Director console. Grounded movement avoids both other target rectangles and obstacles. Swim planning uses the same registered geometry to route around targets, the header, and the expanded console; it never crosses a registered rectangle or clips itself through the viewport edge. Movement duration is derived from CSS-pixel path distance and bounded energy. The controller does not settle until travel completes or cancellation transfers ownership to another event.
+Semantic targets identify things the actor may address: chat, the index, or a
+mounted What record. They are not automatically forbidden space. The expanded
+Director console is the repository's obstacle. Grounded movement avoids other
+target rectangles and that obstacle. Swim planning uses the same registered
+geometry; it never crosses a registered rectangle or clips itself through the
+viewport edge. Movement duration is derived from CSS-pixel path distance and
+bounded energy. The controller does not settle until travel completes or
+cancellation transfers ownership to another event.
 
 Use only bounded commands, for example:
 
@@ -78,16 +83,15 @@ Use only bounded commands, for example:
 
 Ambient presence is a weighted choice between stillness and contextual glances. It excludes the immediately previous variant, runs only when the director is idle, and never selects arbitrary full-body clips. The timer stops while the document is hidden and cannot recreate itself after the director is stopped or disposed.
 
-Reduced motion completes travel immediately and removes decorative waits, selected full-body performance, and ambient swimming or sway. It preserves stable targets, gaze, pointing, lifecycle state, page actions, and answer text. The overlay also collapses any remaining stage animation duration to zero. Hiding the avatar, enabling reduced motion, starting a newer sequence, and hiding the document each cancel current travel; a cancelled motion cannot later settle stale state.
+Reduced motion completes travel immediately and removes decorative waits, selected full-body performance, and ambient swimming or sway. It preserves stable targets, gaze, pointing, lifecycle state, and answer text. The overlay also collapses any remaining stage animation duration to zero. Hiding the avatar, enabling reduced motion, starting a newer sequence, and hiding the document each cancel current travel; a cancelled motion cannot later settle stale state.
 
 ## Semantic targets
 
-The target vocabulary is derived from portfolio data:
+The target vocabulary is derived from the canonical portfolio world:
 
-- `hero`
 - `portfolio:chat`
 - `portfolio:index`
-- every known `project:<slug>`
+- every known What record as `portfolio:record:<id>`
 
 React owners register the element they render and unregister it by passing `null`. Bounds are read at command time and refreshed after scroll, resize, and visibility changes. A valid target that is not mounted is skipped without DOM queries or answer failure.
 
@@ -97,10 +101,10 @@ Run the development server, enter the map, and press `Shift+A`. The full console
 
 The Director console has four tabs:
 
-- **Scenes** runs Greet, Present project, Answer, Celebrate, Dance, Swim lap, and Come home recipes.
+- **Scenes** runs Greet, Present record, Answer, Celebrate, Dance, Swim lap, and Come home recipes.
 - **Target** shows the live stage map, selects a semantic target, and provides Walk, Swim, Look, Point, Present, and Spotlight actions.
 - **Movement** provides enter/exit from either edge, a lap, target swim, and home dock.
-- **Advanced** provides bounded state, tone, and behavior controls; contextual event simulations; spotlight controls; renderer-failure simulation; reset; and live position, locomotion, path, facing, target, and tone diagnostics.
+- **Advanced** provides bounded state, tone, and behavior controls; contextual event simulations; renderer-failure simulation; reset; and live position, locomotion, path, facing, target, and tone diagnostics.
 
 The status controls are Stop, Reset avatar, Hide/Show assistant, and Collapse/Expand console. The expanded console is itself registered as an obstacle, so its bottom-sheet layout remains clear of travel routes.
 
@@ -124,7 +128,7 @@ Do not transform or overwrite the recoverable source by hand.
 
 **A behavior does not play.** Compare its exact `clipName` in `lib/avatar/behaviors.ts` with the union of native and motion-library clips. The controller marks the isolated avatar failed when a registered behavior is unavailable.
 
-**A target command does nothing.** Confirm the target owner mounted and registered a live element. Project targets exist only while their dossier or lab block is mounted.
+**A target command does nothing.** Confirm the target owner mounted and registered a live element. Record targets exist only while their reader or design fixture is mounted.
 
 **Travel snaps or completes late.** Inspect snapshot `motion`, the CSS-pixel foot point, the planned path, and the runner abort signal together. Do not add detached movement timers in React.
 

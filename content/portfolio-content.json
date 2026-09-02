@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 3,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -97,7 +97,7 @@
       }
     },
     "kickoff": {
-      "label": "Campaign kickoff",
+      "label": "Music promo campaign kickoff",
       "kind": "Music promotions systems",
       "summary": "The keyboard shortcut that turns a client’s “let’s do it” into the correct Airtable records, [Drive and Fillout details in progress], a live invoice, a folder, and a drafted kickoff email in under a minute.",
       "principle": "Design the loop rather than do the task.",
@@ -114,7 +114,7 @@
       }
     },
     "pitching": {
-      "label": "Campaign pitching",
+      "label": "Music promo campaign pitching",
       "kind": "Music promotions systems",
       "summary": "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
       "principle": "Taste is encodable. The approval step stays human.",
@@ -131,7 +131,7 @@
       }
     },
     "reporting": {
-      "label": "Campaign reporting",
+      "label": "Music promo campaign reporting",
       "kind": "Music promotions systems",
       "summary": "A daily pipeline that finds wins, verifies the evidence, and drafts every client report.",
       "principle": "Judgment does not scale until it is specified.",
@@ -166,7 +166,7 @@
       }
     },
     "touring": {
-      "label": "Tour advance system",
+      "label": "Tour advancing system",
       "kind": "Client systems",
       "summary": "One structured record per show, a day-sheet that generates itself, and a chase engine that drafts every nudge but never sends one.",
       "principle": "Meet people inside the tools they already use.",
@@ -179,23 +179,6 @@
       "visuals": {
         "touring-field-registry": {
           "purpose": "Show the field registry projecting one authoritative advance into forms, the day-sheet, calendar entry, and draft-only chase engine."
-        }
-      }
-    },
-    "personal-os": {
-      "label": "Personal operating system",
-      "kind": "Personal systems",
-      "summary": "The desk, the capture discipline, and the delegation specs I run my own work through.",
-      "principle": "Capture now, process later.",
-      "paragraphs": {
-        "p1": "The businesses run on discipline that starts at the desk, and the desk is set up like an instrument. Every action I take more than a few times a day has a physical trigger under a finger, on a Stream Deck key, a remapped keypad, or a gesture, and the tuning is never finished. The rule matters more than the gear.",
-        "p2": "All of it protects attention. Whatever comes to mind gets captured instantly into an inbox I trust, then processed later, so nothing interrupts the current thread of work. Text goes to Drafts, tasks to OmniFocus, and durable notes to Obsidian. Even the audible part of the day is instrumented; long reading and agent updates reach me through Dubs while I walk.",
-        "p3": "Agent work runs on the same discipline. I delegate builds against written specs with falsifiable done-conditions, because a worker who guesses produces work that has to be audited. The test for whether a task is ready to hand off is a single rule. Another session, human or agent, could pick it up and move it today."
-      },
-      "placeholders": {},
-      "visuals": {
-        "personal-os-map": {
-          "purpose": "Map the physical controls, capture destinations, review discipline, and spec-driven agent delegation as one personal operating system."
         }
       }
     },
@@ -256,22 +239,12 @@
       "kind": "Thread",
       "summary": "A thread about responsive tools that become fluent enough to think and work through.",
       "paragraphs": {
-        "p1": "The personal operating system, Dubs, Writ, and Yoohoo compose this reading."
+        "p1": "Music promo campaign kickoff, pitching, reporting, the real-estate deal tracker, the tour advancing system, Dubs, Writ, and Yoohoo compose this reading."
       },
       "placeholders": {},
       "visuals": {}
     },
-    "thread-choosing-what-not-to-automate": {
-      "label": "Choosing what not to automate",
-      "kind": "Thread",
-      "summary": "A thread about making systems more capable while keeping consequential judgment human.",
-      "paragraphs": {
-        "p1": "The music promotions systems, personal tooling, and Yoohoo compose this reading."
-      },
-      "placeholders": {},
-      "visuals": {}
-    },
-    "thread-finding-myself-in-software": {
+    "thread-from-argument-to-instrument": {
       "label": "From argument to instrument",
       "kind": "Thread",
       "summary": "A thread about the route from argument and operating work into software as a medium.",
@@ -279,6 +252,30 @@
         "p1": "The operating contexts and every software project compose this reading."
       },
       "placeholders": {},
+      "visuals": {}
+    },
+    "thread-authorship": {
+      "label": "Authorship",
+      "kind": "Thread",
+      "summary": "[Summary in progress]",
+      "paragraphs": {},
+      "placeholders": {
+        "authorship-record": {
+          "prompt": "Draft the Authorship record."
+        }
+      },
+      "visuals": {}
+    },
+    "thread-philosophy": {
+      "label": "Philosophy",
+      "kind": "Thread",
+      "summary": "[Summary in progress]",
+      "paragraphs": {},
+      "placeholders": {
+        "philosophy-record": {
+          "prompt": "Draft the Philosophy record."
+        }
+      },
       "visuals": {}
     }
   },
@@ -294,29 +291,11 @@
       "placeholders": {},
       "visuals": {
         "thread-playable-instruments": {
-          "purpose": "Reuse the strongest Personal OS, Dubs, Writ, and Yoohoo visuals as one sequence of tools becoming fluent enough to disappear."
+          "purpose": "Reuse the strongest campaign, client-system, Dubs, Writ, and Yoohoo visuals as one sequence of tools becoming fluent enough to disappear."
         }
       }
     },
-    "choosing-what-not-to-automate": {
-      "title": "Choosing what not to automate",
-      "lede": "Automation begins with a boundary. Some decisions gain from more information and faster execution but still lose their value when nobody owns the final call.",
-      "paragraphs": {
-        "p1": "Every campaign moves through three systems, and each one draws its automation boundary in a different place. None of the placements is an accident.",
-        "p2": "Kickoff puts the boundary at the moment of commitment. A client who confirms is ready to pay, and administrative delay is how invoices go stale, so one shortcut runs the whole sequence. But every step can be abandoned cleanly, and the email at the end stays a draft until I send it. The machine assembles; a person says go.",
-        "p3": "Pitching keeps the boundary at judgment. Matching, deduplication, and segmentation across thousands of playlists happen without me. The qualitative read the genre ontology can't express stays mine, at a weekly review gate. And the ontology is capped on purpose. You could add qualitative tags forever, and a trained eye is cheaper than that data architecture will ever be.",
-        "p4": "Reporting has the most precise boundary of the three because it was delegated to a person before it was delegated to software. Making the process teachable forced the judgment into writing, and the automated version inherits that. The rules are stated outright, code double-checks the model's conclusions, and the one decision with consequences beyond the report never enters the model at all.",
-        "p5": "One rule spans all three. Email to a human leaves only on my confirmation. Kickoff emails, asset chases, and client reports stage as drafts, and the weekly pitches send after I approve each segment. Every message needs to feel personal because it is. The rule predates the automation and survived it.",
-        "p6": "The boundary is where the value sits. Curators keep opening my emails because I don't send them things they don't want, and clients stay because nothing gets lost. The systems buy attention, and attention is what the business sells."
-      },
-      "placeholders": {},
-      "visuals": {
-        "thread-automation-boundaries": {
-          "purpose": "Reuse the campaign-system visuals to compare where commitment, judgment, and deterministic verification remain human."
-        }
-      }
-    },
-    "finding-myself-in-software": {
+    "from-argument-to-instrument": {
       "title": "From argument to instrument",
       "lede": "Software was never a career change. Operating work kept producing problems I wanted to model and build around, and at some point the medium became the throughline.",
       "paragraphs": {
@@ -329,10 +308,32 @@
       },
       "placeholders": {},
       "visuals": {
-        "thread-argument-to-instrument": {
-          "purpose": "Recompose the strongest operating-system and product visuals as a chronological path from argument to software as the medium of the work."
+        "thread-from-argument-to-instrument": {
+          "purpose": "Recompose the strongest operating and product visuals as a chronological path from argument to software as the medium of the work."
         }
       }
+    },
+    "authorship": {
+      "title": "Authorship",
+      "lede": "[Summary in progress]",
+      "paragraphs": {},
+      "placeholders": {
+        "authorship-thread": {
+          "prompt": "Draft the Authorship thread."
+        }
+      },
+      "visuals": {}
+    },
+    "philosophy": {
+      "title": "Philosophy",
+      "lede": "[Summary in progress]",
+      "paragraphs": {},
+      "placeholders": {
+        "philosophy-thread": {
+          "prompt": "Draft the Philosophy thread."
+        }
+      },
+      "visuals": {}
     }
   },
   "contact": {
@@ -348,7 +349,7 @@
     "layout.skipLink": "Skip to portfolio content",
     "header.wordmark": "Bradley Berkman",
     "header.mapLink": "Map",
-    "hero.throughline": "Make complexity legible enough to act on.",
+    "index.throughline": "Make complexity legible enough to act on.",
     "world.mast": "Bradley Berkman",
     "world.hint": "Tap a point to read",
     "visualStage.eyebrow": "Map visual",
@@ -366,7 +367,6 @@
     "index.section.operations": "Operations",
     "index.section.campaign": "Music promotions systems",
     "index.section.client": "Client systems",
-    "index.section.personal": "Personal systems",
     "index.section.products": "In Production",
     "indexPage.threadsSubtitle": "Narrated paths through the work.",
     "chat.title": "Chat about the portfolio",

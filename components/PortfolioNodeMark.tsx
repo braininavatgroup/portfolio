@@ -43,18 +43,6 @@ export function PortfolioNodeMark({
                 />
               );
             }
-            if (primitive.kind === "rect") {
-              return (
-                <rect
-                  fill={primitive.fill ? "currentColor" : "none"}
-                  height={primitive.height}
-                  key={index}
-                  width={primitive.width}
-                  x={primitive.x}
-                  y={primitive.y}
-                />
-              );
-            }
             if (primitive.kind === "polyline") {
               const Mark = primitive.close ? "polygon" : "polyline";
               return (

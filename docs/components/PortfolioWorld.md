@@ -14,9 +14,9 @@ the canvas follows light, dark and `[data-theme]` without a second palette.
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect` required; `activeVisual`,
 `onCloseVisual`, `registerAvatarStage` optional — see
-[`PortfolioWorldProps`](../../components/PortfolioWorld.tsx). Also exports the
-pure helpers `projectWorldPoint`, `translateWorldPointByScreenDelta` and
-`connectorSegment`.
+[`PortfolioWorldProps`](../../components/PortfolioWorld.tsx). It also exports
+the pure `connectorSegment` helper; projection helpers live in
+[`lib/portfolio-world-projection.ts`](../../lib/portfolio-world-projection.ts).
 
 ## Requires
 
@@ -61,3 +61,6 @@ export function PortfolioWorldExample() {
   and no active thread.
 - **The label font is a code-side constant** (`FONT`), not a token. It has to
   change by hand if the type scale does.
+- **Past changes opacity, not color.** `PAST_WORLD_ALPHA` applies to the canvas
+  mark and label in both modes. The node keeps its native register token, and
+  the reader index remains full strength.

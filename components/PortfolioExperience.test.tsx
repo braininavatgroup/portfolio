@@ -11,7 +11,6 @@ import {
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { AvatarController } from "../lib/avatar/controller";
 import { AvatarDirector } from "../lib/avatar/director";
-import type { AvatarSequenceRunner } from "../lib/avatar/sequence-runner";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import type { AvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
 import { PortfolioExperience } from "./PortfolioExperience";
@@ -27,7 +26,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       enabled,
       onExpandedPanelChange,
       registry,
-      runner,
     }: {
       controller: AvatarController;
       debug?: boolean;
@@ -37,7 +35,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
       onEnabledChange: (enabled: boolean) => void;
       onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
       registry?: AvatarTargetRegistry;
-      runner?: AvatarSequenceRunner;
     }) => {
       React.useEffect(() => controller.setVisible(enabled), [controller, enabled]);
       const snapshot = React.useSyncExternalStore(
@@ -46,9 +43,6 @@ vi.mock("./avatar/AvatarOverlay", async () => {
         controller.getSnapshot,
       );
       const commands = React.useRef<string[]>([]);
-      if (runner) {
-        Reflect.set(globalThis, "__portfolioTestAvatarRunner", runner);
-      }
       if (registry) {
         Reflect.set(globalThis, "__portfolioTestAvatarRegistry", registry);
       }
@@ -369,11 +363,13 @@ describe("spatial self-portrait", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Open portfolio assistant" }),
     );
-    const runner = Reflect.get(
+    const director = Reflect.get(
       globalThis,
-      "__portfolioTestAvatarRunner",
-    ) as AvatarSequenceRunner;
-    await runner.run([{ action: "lookAt", target: "portfolio:index" }]);
+      "__portfolioTestAvatarDirector",
+    ) as AvatarDirector;
+    await director.runOperatorSequence([
+      { action: "lookAt", target: "portfolio:index" },
+    ]);
     refreshStage.mockClear();
     execute.mockClear();
 
@@ -403,10 +399,13 @@ describe("spatial self-portrait", () => {
       screen.getByRole("button", { name: "Making work playable" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Choosing what not to automate" }),
+      screen.getByRole("button", { name: "From argument to instrument" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "From argument to instrument" }),
+      screen.getByRole("button", { name: "Authorship" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Philosophy" }),
     ).toBeTruthy();
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
@@ -460,6 +459,21 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
+  it("uses the canonical arc identity in navigation state", async () => {
+    await renderExperience();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "From argument to instrument" }),
+    );
+
+    expect(window.location.hash).toBe("#thread/from-argument-to-instrument");
+    expect(
+      screen.getByRole("complementary", {
+        name: "From argument to instrument thread",
+      }),
+    ).toBeTruthy();
+  });
+
   it("does not add duplicate history when reset is already at overview", async () => {
     await renderExperience();
     const push = vi.spyOn(window.history, "pushState");
@@ -469,24 +483,39 @@ describe("spatial self-portrait", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("restores a direct thread and node state from a legacy story link", async () => {
+  it("restores a direct thread and node state from the canonical thread link", async () => {
     window.history.replaceState(
       {},
       "",
-      "/?view=graph#story/choosing-what-not-to-automate/pitching",
+      "/?view=graph#thread/philosophy/pitching",
     );
     await renderExperience();
 
     expect(
-      screen.getByRole("complementary", { name: "Campaign pitching record" }),
+      screen.getByRole("complementary", {
+        name: "Music promo campaign pitching record",
+      }),
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("button", { name: "Thread Choosing what not to automate" })
+        .getByRole("button", { name: "Thread Philosophy" })
         .getAttribute("aria-pressed"),
     ).toBe("false");
     expect(document.querySelector(".reader-path")?.textContent).toContain(
-      "Choosing what not to automate",
+      "Philosophy",
+    );
+    expect(document.querySelector(".scene-shell")?.classList).toContain(
+      "scene-shell-node-open",
+    );
+
+    const director = Reflect.get(
+      globalThis,
+      "__portfolioTestAvatarDirector",
+    ) as AvatarDirector;
+    const handle = vi.spyOn(director, "handle");
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    await waitFor(() =>
+      expect(handle).toHaveBeenCalledWith({ type: "record_close" }),
     );
   });
 
@@ -540,7 +569,7 @@ describe("spatial self-portrait", () => {
   it("opens straight onto the map with the reader index", async () => {
     await renderExperience();
 
-    expect(document.querySelector(".experience-graph")).toBeTruthy();
+    expect(document.querySelector(".portfolio-composition")).toBeTruthy();
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
@@ -549,12 +578,6 @@ describe("spatial self-portrait", () => {
   it("keeps the map primary while the shared reader supplies the index", async () => {
     await renderExperience();
 
-    const navigation = screen.getByRole("navigation", {
-      name: "Portfolio views",
-    });
-    expect(navigation.querySelector('[aria-current="page"]')?.textContent).toBe(
-      "Map",
-    );
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
@@ -569,15 +592,14 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
   });
 
-  it("opens the About record from the header wordmark instead of leaving the map", async () => {
+  it("opens the About record from Bradley's map node", async () => {
     await renderExperience();
 
-    expect(document.querySelector(".experience-graph")).toBeTruthy();
+    expect(document.querySelector(".portfolio-composition")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("link", { name: "Bradley Berkman" }));
+    fireEvent.click(document.querySelector('[data-world-node="bradley"]')!);
     await act(async () => {});
 
-    expect(document.querySelector(".experience-graph")).toBeTruthy();
     expect(
       screen.getByRole("complementary", { name: "Bradley Berkman record" }),
     ).toBeTruthy();
@@ -588,15 +610,14 @@ describe("spatial self-portrait", () => {
 
     expect(document.querySelector(".portfolio-world canvas")).toBeTruthy();
     expect(document.querySelectorAll('.portfolio-world-node[data-family="identity"]')).toHaveLength(1);
-    expect(document.querySelectorAll('.portfolio-world-node[data-family="story"]')).toHaveLength(3);
+    expect(document.querySelectorAll('.portfolio-world-node[data-family="story"]')).toHaveLength(4);
     expect(document.querySelectorAll('.portfolio-world-node[data-family="operation"]')).toHaveLength(4);
     expect(document.querySelectorAll('.portfolio-world-node[data-family="component"]')).toHaveLength(3);
-    expect(document.querySelectorAll('.portfolio-world-node[data-family="personal"]')).toHaveLength(1);
     expect(document.querySelectorAll('.portfolio-world-node[data-family="engagement"]')).toHaveLength(2);
     expect(document.querySelectorAll('.portfolio-world-node[data-family="product"]')).toHaveLength(3);
   });
 
-  it("opens a project record in the reader and restores the index", async () => {
+  it("opens a What record in the reader and restores the index", async () => {
     await renderExperience();
 
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
@@ -613,7 +634,7 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
   });
 
-  it("connects chat attention and direct project navigation to the avatar director", async () => {
+  it("connects chat attention and direct record navigation to the avatar director", async () => {
     // Catches the contextual director existing in isolation without owning real interface events.
     await renderExperience();
     fireEvent.click(
@@ -635,7 +656,7 @@ describe("spatial self-portrait", () => {
         "walkTo",
       ),
     );
-    expect(screen.getByTestId("avatar-target").textContent).toBe("project:dubs");
+    expect(screen.getByTestId("avatar-target").textContent).toBe("portfolio:record:dubs");
 
     expect(
       screen.getByRole("complementary", { name: "Dubs record" }),
@@ -649,24 +670,22 @@ describe("spatial self-portrait", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
-    const projectPanel = screen.getByRole("complementary", {
+    const recordPanel = screen.getByRole("complementary", {
       name: "Dubs record",
     });
-    expect(projectPanel).toBe(panel);
+    expect(recordPanel).toBe(panel);
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
 
-  it("resolves hero, real chat, and current dossier semantic targets", async () => {
-    // Catches semantic IDs registering wrappers, missing DOM, or stale dossier elements.
+  it("resolves the live chat and index semantic targets", async () => {
+    // Catches semantic IDs registering wrappers or missing DOM.
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
         const { question } = JSON.parse(String(init?.body)) as {
           question: string;
         };
-        const target = question.includes("hero")
-          ? "hero"
-          : question.includes("chat")
+        const target = question.includes("chat")
             ? "portfolio:chat"
             : "portfolio:index";
         return effectsResponse({
@@ -676,8 +695,6 @@ describe("spatial self-portrait", () => {
     );
     await renderExperience();
 
-    await askExperience("Look at hero");
-    await screen.findByText("hero", { selector: '[data-testid="avatar-target"]' });
     await askExperience("Look at chat");
     await screen.findByText("portfolio:chat", {
       selector: '[data-testid="avatar-target"]',
@@ -743,22 +760,6 @@ describe("spatial self-portrait", () => {
     expect(screen.getByLabelText("Ask a question about the portfolio")).toBeTruthy();
   });
 
-  it("registers the visible header as a stage obstacle without exposing it as a target", async () => {
-    await renderExperience();
-    await screen.findByLabelText("Test avatar overlay");
-    const registry = Reflect.get(
-      globalThis,
-      "__portfolioTestAvatarRegistry",
-    ) as AvatarTargetRegistry;
-
-    expect(registry.resolveStageMap().obstacles.map(({ obstacle }) => obstacle)).toContain(
-      "portfolio:header",
-    );
-    expect(registry.resolveAll().map(({ target }) => target)).not.toContain(
-      "portfolio:header",
-    );
-  });
-
   it("cancels active travel before applying a reduced-motion policy", async () => {
     mockMatchMedia(false);
     render(<PortfolioExperience />);
@@ -821,10 +822,19 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
     fireEvent.keyDown(document, { key: "g", shiftKey: true });
     expect(
-      (await screen.findByTestId("toybox-status", {}, { timeout: 5000 })).textContent,
+      (await screen.findByTestId("toybox-status")).textContent,
     ).toBe("choosing");
     expect(screen.getByLabelText("Test avatar overlay")).toBeTruthy();
-    expect(screen.getByTestId("toybox-roster").textContent?.split(",").every((id) => id.endsWith(":output"))).toBe(true);
+    expect(screen.getByTestId("toybox-roster").textContent?.split(",")).toEqual([
+      "kickoff",
+      "pitching",
+      "reporting",
+      "real-estate",
+      "touring",
+      "dubs",
+      "writ",
+      "yoohoo",
+    ]);
 
     fireEvent.click(screen.getByText("Start Brain Food"));
     expect(screen.getByTestId("toybox-status").textContent).toBe("collecting");

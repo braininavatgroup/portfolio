@@ -4,9 +4,10 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   connectorSegment,
-  portfolioOverviewLayout,
+  PAST_WORLD_ALPHA,
   PortfolioWorld,
 } from "./PortfolioWorld";
+import { portfolioWorldNodeById } from "../lib/portfolio-world";
 import {
   projectWorldPoint,
   translateWorldPointByScreenDelta,
@@ -81,6 +82,33 @@ describe("PortfolioWorld", () => {
       screen.getByRole("button", { name: "Close visual in map" }),
     );
     expect(onCloseVisual).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a ready single-image gallery to one reachable frame", () => {
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "ready-gallery",
+          status: "ready",
+          purpose: "Inspect the finished system.",
+          format: "gallery",
+          src: "/visuals/finished-system.jpg",
+          alt: "Finished system",
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    expect(screen.getByText("1 / 1")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Next visual frame" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
   });
 
   it("keeps a ready video in placeholder state until captions exist", () => {
@@ -192,11 +220,11 @@ describe("PortfolioWorld", () => {
     const expectedCenters: Record<string, readonly [number, number]> = {
       bradley: [448.5, 153.5],
       "thread-making-work-playable": [344.5, 261.5],
-      "thread-choosing-what-not-to-automate": [558.5, 277.5],
-      "thread-finding-myself-in-software": [165.5, 421.5],
+      "thread-from-argument-to-instrument": [165.5, 421.5],
+      "thread-authorship": [558.5, 277.5],
+      "thread-philosophy": [345, 469.5],
       dubs: [241, 331.5],
       writ: [263.5, 431.5],
-      "personal-os": [345, 469.5],
       yoohoo: [474, 513.5],
       kickoff: [677, 341.5],
       pitching: [734.5, 424],
@@ -206,10 +234,12 @@ describe("PortfolioWorld", () => {
       infamous: [160.5, 550],
       "music-practice": [285, 599.5],
       "systems-consulting": [438, 605],
+      "product-studio": [483, 453],
     };
 
     for (const [id, [expectedX, expectedY]] of Object.entries(expectedCenters)) {
-      const [layoutX, layoutY, z] = portfolioOverviewLayout[id];
+      const { x: layoutX, y: layoutY, z } =
+        portfolioWorldNodeById.get(id)!.position;
       const projected = projectWorldPoint(
         { x: (50 - layoutX) * 18, y: (50 - layoutY) * 18, z },
         { x: 0, y: 35, z: -760 },
@@ -237,24 +267,24 @@ describe("PortfolioWorld", () => {
  */
 describe("PortfolioWorld canvas paint", () => {
   /**
-   * A no-op-by-default proxy rather than a hand-listed object. The first
-   * version of this stub listed the methods drawLinks calls and stopped there,
-   * so the very first drawNode threw `context.translate is not a function`
-   * inside a requestAnimationFrame callback — which jsdom swallows into an
-   * uncaught exception rather than a test failure. Every assertion still
-   * passed, because links stroke before nodes draw; the file merely exited
-   * non-zero. Defaulting unknown members to no-ops means an under-implemented
-   * stub can no longer masquerade as coverage.
+   * A no-op-by-default proxy keeps newly added canvas calls from crashing the
+   * jsdom harness. The assertions below intentionally observe only the paint
+   * signals recorded here; they do not claim every canvas operation is covered.
    */
   function recordingContext() {
     const record = {
       strokeStyles: [] as string[],
       fillStyles: [] as string[],
       fillTexts: [] as string[],
+      labelAlphas: new Map<string, number>(),
+      pathAlphas: [] as number[],
       moveToCalls: 0,
       translateCalls: 0,
     };
     const target: Record<string, unknown> = {
+      beginPath: () => {
+        record.pathAlphas.push(Number(target.globalAlpha));
+      },
       measureText: (value: string) => ({ width: value.length * 6.2 }),
       moveTo: () => {
         record.moveToCalls += 1;
@@ -264,6 +294,7 @@ describe("PortfolioWorld canvas paint", () => {
       },
       fillText: (value: string) => {
         record.fillTexts.push(value);
+        record.labelAlphas.set(value, Number(target.globalAlpha));
       },
     };
     const context = new Proxy(target, {
@@ -286,6 +317,8 @@ describe("PortfolioWorld canvas paint", () => {
 
   function paintWithConnector(connector: string) {
     const { context, record } = recordingContext();
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(915);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(787);
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       context as unknown as CanvasRenderingContext2D,
     );
@@ -324,11 +357,20 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
   });
 
-  it("follows the token when the mode changes it", async () => {
+  it("consumes the resolved connector token without a hardcoded fallback", async () => {
     const record = paintWithConnector("rgb(9, 8, 7)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     expect(record.strokeStyles).toContain("rgb(9, 8, 7)");
     expect(record.strokeStyles).not.toContain("#4f585d");
+  });
+
+  it("applies the Past alpha to the INFAMOUS mark and label", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.pathAlphas).toContain(PAST_WORLD_ALPHA);
+    expect(record.labelAlphas.get("INFAMOUS PR")).toBe(PAST_WORLD_ALPHA);
+    expect(record.labelAlphas.get("Authorship")).toBe(1);
   });
 });

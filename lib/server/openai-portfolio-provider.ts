@@ -48,7 +48,7 @@ function groundedInput({
   const sources = evidence
     .map(
       (item, index) =>
-        `[E${index + 1}] id=${item.id}\nProject: ${item.projectTitle}\nTitle: ${item.title}\nPortfolio context: ${item.excerpt}\nPortfolio link: ${item.href}`,
+        `[E${index + 1}] id=${item.id}\nTitle: ${item.title}\nPortfolio context: ${item.excerpt}\nPortfolio link: ${item.href}`,
     )
     .join("\n\n");
 
@@ -70,7 +70,7 @@ Portfolio mode covers questions about Bradley, his work, projects, decisions, or
 
 Social mode covers greetings, thanks, jokes, casual reactions, and interpersonal small talk. Respond naturally. Social chat is unlimited: never redirect it toward Bradley and never count it as a general off-topic question. Never add a portfolio nudge; the application owns that behavior. Use an empty evidenceIds array for every social sentence.
 
-General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in the portfolio evidence or project titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears. Use an empty evidenceIds array for every general sentence.
+General mode covers unrelated factual questions, advice, and explanations. If the current question stands on its own without knowing Bradley, his work, or this site, choose general even when some words also appear in portfolio source titles. Answer directly from general knowledge, clearly acknowledging when current verification would be needed. Do not make claims about Bradley or his portfolio in social or general mode. Never add a portfolio nudge; the application owns when and how that appears. Use an empty evidenceIds array for every general sentence.
 
 Always answer directly and use only as much detail as the visitor's question needs.
 

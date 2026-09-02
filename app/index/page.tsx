@@ -10,16 +10,15 @@ import {
 } from "../../lib/portfolio-world";
 import { EditableText } from "../../components/editor/EditableText";
 
-export default function ProjectIndex() {
+export default function PortfolioIndex() {
   return (
     <main
-      className="flat-index stacked-editorial-index"
-      data-index-layout="stacked-editorial"
+      className="flat-index"
       data-theme="light"
       id="main-content"
       tabIndex={-1}
     >
-      <PortfolioHeader activeView="index" />
+      <PortfolioHeader />
       <header className="index-header">
         <EditableText
           as="h1"
@@ -29,7 +28,7 @@ export default function ProjectIndex() {
         <EditableText
           as="p"
           className="lede"
-          path="interface.hero.throughline"
+          path="interface.index.throughline"
           value={portfolioThroughline}
         />
       </header>
@@ -37,8 +36,8 @@ export default function ProjectIndex() {
       {portfolioWorldIndexSections.map((section) => {
         if (section.type === "threads") {
           return (
-            <section className="domain-section" data-project-count={portfolioThreads.length} id={section.id} key={section.id}>
-              <div className="domain-heading">
+            <section className="index-section" id={section.id} key={section.id}>
+              <div className="index-section-heading">
                 <div>
                   <EditableText
                     as="h2"
@@ -52,18 +51,17 @@ export default function ProjectIndex() {
                   />
                 </div>
               </div>
-              <div className="domain-work">
-                <ol className="artifact-index-list">
-                  {portfolioThreads.map((thread) => {
-                    const node = portfolioWorldNodeById.get(thread.nodeId);
-                    if (!node) return null;
-                    return (
-                    <li className="artifact-index-entry" key={thread.id}>
+              <ol className="index-entry-list">
+                {portfolioThreads.map((thread) => {
+                  const node = portfolioWorldNodeById.get(thread.nodeId);
+                  if (!node) return null;
+                  return (
+                    <li className="index-entry" key={thread.id}>
                       <Link
-                        className="artifact-main-link"
+                        className="index-entry-link"
                         href={`/?view=graph#thread/${thread.id}`}
                       >
-                        <span className="artifact-index-copy">
+                        <span className="index-entry-copy">
                           <EditableText
                             as="strong"
                             path={`threads.${thread.id}.title`}
@@ -75,27 +73,28 @@ export default function ProjectIndex() {
                             value={thread.lede}
                           />
                         </span>
-                        <span className="artifact-index-meta">
-                          <PortfolioNodeMark family={node.family} register={node.register} />
+                        <span className="index-entry-meta">
+                          <PortfolioNodeMark
+                            family={node.family}
+                            register={node.register}
+                          />
                         </span>
                       </Link>
                     </li>
-                    );
-                  })}
-                </ol>
-              </div>
+                  );
+                })}
+              </ol>
             </section>
           );
         }
 
         return (
           <section
-            className="domain-section"
-            data-project-count={section.nodeIds.length}
+            className="index-section"
             id={section.id}
             key={section.id}
           >
-            <div className="domain-heading">
+            <div className="index-section-heading">
               <div>
                 <EditableText
                   as="h2"
@@ -104,38 +103,39 @@ export default function ProjectIndex() {
                 />
               </div>
             </div>
-            <div className="domain-work">
-              <ol className="artifact-index-list">
-                {section.nodeIds.map((nodeId) => {
-                  const node = portfolioWorldNodeById.get(nodeId);
-                  if (!node) return null;
-                  return (
-                    <li className="artifact-index-entry" key={node.id}>
-                      <Link
-                        className="artifact-main-link"
-                        href={`/?view=graph#${node.id}`}
-                      >
-                        <span className="artifact-index-copy">
-                          <EditableText
-                            as="strong"
-                            path={`records.${node.id}.label`}
-                            value={node.label}
-                          />
-                          <EditableText
-                            as="small"
-                            path={`records.${node.id}.summary`}
-                            value={node.summary}
-                          />
-                        </span>
-                        <span className="artifact-index-meta">
-                          <PortfolioNodeMark family={node.family} register={node.register} />
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
+            <ol className="index-entry-list">
+              {section.nodeIds.map((nodeId) => {
+                const node = portfolioWorldNodeById.get(nodeId);
+                if (!node) return null;
+                return (
+                  <li className="index-entry" key={node.id}>
+                    <Link
+                      className="index-entry-link"
+                      href={`/?view=graph#${node.id}`}
+                    >
+                      <span className="index-entry-copy">
+                        <EditableText
+                          as="strong"
+                          path={`records.${node.id}.label`}
+                          value={node.label}
+                        />
+                        <EditableText
+                          as="small"
+                          path={`records.${node.id}.summary`}
+                          value={node.summary}
+                        />
+                      </span>
+                      <span className="index-entry-meta">
+                        <PortfolioNodeMark
+                          family={node.family}
+                          register={node.register}
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
           </section>
         );
       })}

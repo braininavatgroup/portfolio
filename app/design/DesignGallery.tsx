@@ -218,7 +218,7 @@ export function DesignGallery() {
       <GroupHeading group={sectionGroups[3]} />
       <Section
         id="composition"
-        note="The whole route as it ships: world, reader, chat, avatar and toybox. The header is present but hidden, as on the live site. Selecting a node here also writes to this page's history entry."
+        note="The whole route as it ships: world, reader, chat, avatar and toybox. Selecting a node here also writes to this page's history entry."
         source="components/PortfolioExperience.tsx"
         title="Full composition"
       >

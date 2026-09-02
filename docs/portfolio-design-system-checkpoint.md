@@ -27,23 +27,22 @@ production-integration specification.
 - Operations use Electric pink `#D0007E` in light mode and Hot pink `#FF84D0`
   in dark mode. Bridges use violet `#4D1FC5` / `#AAA0FF`; In Production work uses cyan
   `#006E91` / `#62C6DF`.
-- `Making work playable` and `Choosing what not to automate` use Lichen
-  `#466700` / Acid `#B6DF5B`. `Finding myself in software` uses Hard red
-  `#D7191C` / Signal red `#FF554A`.
+- `Making work playable`, `Authorship`, and `Philosophy` use Lichen `#466700`
+  / Acid `#B6DF5B`. `From argument to instrument` uses Hard red `#D7191C` /
+  Signal red `#FF554A`.
 - Selection introduces no new color. Marks retain their native register.
 
 ## Node and relationship grammar
 
 - Bradley uses the Brain in a Vat symbol without a containing shape. Stories
   use an Asterisk.
-- Factual marks share one optical envelope and stroke weight: formative
-  influence is an open circle, operation a double circle, component an open
-  triangle; Personal systems use a square, engagements use an open diamond,
-  and In Production work uses a circle with a center.
+- Factual marks share one optical envelope and stroke weight: operation uses a
+  double circle, component an open triangle, engagements an open diamond, and
+  In Production work a circle with a center.
 - Labels use one typographic treatment and sit below their marks.
 - Relationships use one Silverpoint treatment: thin, straight, neutral, and
   arrowless. Their internal classifications remain backstage.
-- Bradley has no Story connectors at rest. Selecting Bradley reveals the three
+- Bradley has no Story connectors at rest. Selecting Bradley reveals the four
   Story links; selecting a Story foregrounds its authored constellation.
 - Nodes can be moved individually. Blank-space dragging does not move the
   field, while a blank-space click resets the focused composition.

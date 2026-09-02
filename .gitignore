@@ -40,7 +40,6 @@ yarn-error.log*
 /.wrangler/
 /tsconfig.tsbuildinfo
 /outputs/
-/work/
 graphify-out/
 
 # Scratch output from Playwright MCP browser sessions

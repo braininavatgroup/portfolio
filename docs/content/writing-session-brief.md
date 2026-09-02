@@ -24,8 +24,10 @@ A **node** is a dot on the map. Opening one reads one of two content types:
 - A **Thread** — a narrated path through the map; the only long-form type.
 
 A record says what a thing is; a Thread says why things belong together.
-Nothing else exists. All authored content lives in `lib/portfolio-world.ts`;
-chat-only facts live in `lib/portfolio-private-grounding.ts` and are never
+Nothing else exists. All authored text lives in `content/portfolio-content.json`;
+`lib/portfolio-structure.ts` owns the current IDs, relationships, positions,
+and block order; and `lib/portfolio-world.ts` validates and combines them.
+Chat-only facts live in `lib/portfolio-private-grounding.ts` and are never
 rendered. Bodies may interleave authored paragraphs, Bradley-owned copy
 placeholders, and planned visual blocks. These workbench blocks intentionally
 render on `main`; `?review=clean` hides them for a clean reading pass. Agents
@@ -34,7 +36,7 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
 
 ## What to produce
 
-1. **13 records** — every non-About node in `portfolioWorldNodes`: `summary`
+1. **12 records** — every non-About, non-Why node in `portfolioWorldNodes`: `summary`
    (one sentence), optional `principle` (a pull-quote; keepers like "Taste is
    encodable. The approval step stays human." already exist), and `body`
    paragraphs.
@@ -42,17 +44,14 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
    chat already carry the detail), real LinkedIn/GitHub/Instagram URLs in
    `portfolioContact`, and the CV file at `public/cv/bradley-berkman-cv.pdf`
    (the link exists and 404s until the file lands).
-3. **3 Threads as serialized essays** — expand each `lede`/`body` into a real
-   piece. Working claims, all revisable (retitle, re-member, merge to two, or
-   add a consulting thread if the material asks):
-   - *Choosing what not to automate* → the operations story: one campaign
-     walked end-to-end (kickoff → pitching → reporting); where automation
-     stops and taste stays should emerge from the walk.
-   - *Making work playable* → the In Production story: what the human's hands are
-     holding (dubs, writ, yoohoo, personal-os). Complement, not
-     overlap: one thread is what you keep, the other is how you hold it.
-   - *Finding myself in software* → a real chronological arc with curated
-     stops (~6–8 nodes), not all 12.
+3. **4 Threads as serialized essays** — expand each `lede`/`body` into a real
+   piece. The current structural contracts are:
+   - *Making work playable* → kickoff, pitching, reporting, real estate,
+     touring, Dubs, Writ, and Yoohoo.
+   - *From argument to instrument* → Philosophy, Making work playable, and
+     Authorship as a chronological arc.
+   - *Authorship* → the three active practices and all eight What records.
+   - *Philosophy* → pitching, reporting, real estate, touring, and Writ.
    A useful lens: each thread answers a question a visitor arrives with
    ("how would this person run my operation?" / "can they build?" /
    "who is this?").
@@ -62,8 +61,8 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
    formats: image, video, or gallery. The reader block is the entry point, not
    the final viewing surface: clicking it opens the visual at useful scale in
    the map pane (and switches a phone or tablet into the map view). Ready image
-   and gallery assets use `src`/`assets`; a ready video uses `src` and
-   `captionsSrc`, and may supply a `poster`. Visual work can proceed in
+   and gallery assets use `src`; a ready video uses `src` and `captionsSrc`,
+   and may supply a `poster`. Visual work can proceed in
    parallel with copy; remove, move, or revise a block when the argument
    changes.
 5. **Chat-only grounding** (`lib/portfolio-private-grounding.ts`) — review the

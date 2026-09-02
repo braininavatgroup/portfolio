@@ -187,14 +187,14 @@ describe("avatar controller", () => {
     vi.useFakeTimers();
     vi.unstubAllGlobals();
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(20, 40, 80, 80));
+    registry.register("portfolio:record:dubs", elementAt(20, 40, 80, 80));
     const controller = new AvatarController(registry);
 
     expect(controller.getSnapshot().position).toSatisfy(
       ({ x, y }: AvatarStagePoint) => Number.isFinite(x) && Number.isFinite(y),
     );
 
-    void controller.execute({ action: "walkTo", target: "hero" });
+    void controller.execute({ action: "walkTo", target: "portfolio:record:dubs" });
     expect(controller.getSnapshot().motion?.points).toSatisfy(
       (points: readonly AvatarStagePoint[]) =>
         points.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y)),
@@ -303,10 +303,10 @@ describe("avatar controller", () => {
   it("faces target attention from the stable foot x coordinate", () => {
     // Catches target facing retaining a stale scalar anchor after a stage journey.
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(120, 0, 80, 40));
+    registry.register("portfolio:record:dubs", elementAt(120, 0, 80, 40));
     const controller = new AvatarController(registry);
 
-    controller.execute({ action: "lookAt", target: "hero" });
+    controller.execute({ action: "lookAt", target: "portfolio:record:dubs" });
     expect(controller.getSnapshot().facing).toBe("left");
 
     registry.register("portfolio:chat", elementAt(940, 0, 40, 40));
@@ -410,14 +410,14 @@ describe("avatar controller", () => {
     const controller = controllerWithOpenStage();
     const before = controller.getSnapshot();
 
-    expect(() => controller.execute({ action: "swimTo", target: "hero" })).not.toThrow();
+    expect(() => controller.execute({ action: "swimTo", target: "portfolio:record:dubs" })).not.toThrow();
     expect(controller.getSnapshot()).toBe(before);
   });
 
   it("leaves an unsafe lap route unchanged", () => {
     // Catches a planner rejection becoming a failed animation or a partial movement update.
     const registry = new AvatarTargetRegistry();
-    registry.registerObstacle("portfolio:header", elementAt(0, 0, 1_000, 800));
+    registry.registerObstacle("avatar:director-console", elementAt(0, 0, 1_000, 800));
     const controller = new AvatarController(registry);
     const before = controller.getSnapshot();
 
@@ -428,7 +428,7 @@ describe("avatar controller", () => {
   it("does not offer a lap when actor clearance encloses the home dock", () => {
     // Catches canSwimLap accepting a zero-length route when every bounded stop falls back to the dock.
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(0, 0, 800, 800));
+    registry.register("portfolio:record:dubs", elementAt(0, 0, 800, 800));
     registry.register("portfolio:chat", elementAt(800, 0, 200, 650));
     const controller = new AvatarController(registry);
 
@@ -439,9 +439,9 @@ describe("avatar controller", () => {
     // Catches the live lab console's expanded swim clearance rejecting the greeted index dock.
     vi.stubGlobal("innerWidth", 1_440);
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(368, 32, 336, 112));
+    registry.register("portfolio:record:dubs", elementAt(368, 32, 336, 112));
     registry.register("portfolio:index", elementAt(720, 32, 336, 112));
-    registry.register("project:dubs", elementAt(1_072, 32, 336, 112));
+    registry.register("portfolio:record:dubs", elementAt(1_072, 32, 336, 112));
     registry.registerObstacle("avatar:director-console", elementAt(368, 600, 704, 188));
     const controller = new AvatarController(registry);
 
@@ -465,7 +465,7 @@ describe("avatar controller", () => {
     expect(controller.canSwimLap()).toBe(true);
     expect(controller.getSnapshot()).toBe(before);
 
-    registry.registerObstacle("portfolio:header", elementAt(0, 0, 1_000, 800));
+    registry.registerObstacle("avatar:director-console", elementAt(0, 0, 1_000, 800));
     expect(controller.canSwimLap()).toBe(false);
     expect(controller.getSnapshot()).toBe(before);
   });
@@ -568,7 +568,7 @@ describe("avatar controller", () => {
   it("preserves stable placement for tone and target attention", () => {
     // Catches non-travel commands accidentally cancelling a route or moving its stable destination.
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(120, 0, 80, 40));
+    registry.register("portfolio:record:dubs", elementAt(120, 0, 80, 40));
     const controller = new AvatarController(registry);
     void controller.execute({ action: "swimRoute", route: "lap" });
     const position = controller.getSnapshot().position;
@@ -578,7 +578,7 @@ describe("avatar controller", () => {
       action: "setTone",
       tone: { energy: "high", warmth: "reserved", confidence: "uncertain", mischief: "playful" },
     });
-    controller.execute({ action: "lookAt", target: "hero" });
+    controller.execute({ action: "lookAt", target: "portfolio:record:dubs" });
 
     expect(controller.getSnapshot()).toMatchObject({ position, motion });
   });

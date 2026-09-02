@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { AvatarTargetId } from "./contracts";
 import { AvatarTargetRegistry } from "./target-registry";
 
 function rect(left: number, top: number, width: number, height: number): DOMRect {
@@ -30,10 +29,10 @@ describe("avatar target registry", () => {
       getBoundingClientRect: () => rect(120, 40, 80, 160),
     } as HTMLElement;
 
-    registry.register("hero", element);
+    registry.register("portfolio:record:dubs", element);
 
-    expect(registry.resolve("hero")?.centerX).toBe(160);
-    expect(registry.resolve("hero")?.centerY).toBe(120);
+    expect(registry.resolve("portfolio:record:dubs")?.centerX).toBe(160);
+    expect(registry.resolve("portfolio:record:dubs")?.centerY).toBe(120);
   });
 
   it("unregisters the same mounted element and clears its semantic target", () => {
@@ -43,10 +42,10 @@ describe("avatar target registry", () => {
       getBoundingClientRect: () => rect(40, 20, 20, 20),
     } as HTMLElement;
 
-    registry.register("hero", element);
-    registry.unregister("hero", element);
+    registry.register("portfolio:record:dubs", element);
+    registry.unregister("portfolio:record:dubs", element);
 
-    expect(registry.resolve("hero")).toBeUndefined();
+    expect(registry.resolve("portfolio:record:dubs")).toBeUndefined();
   });
 
   it("never caches a rectangle across resolve calls", () => {
@@ -57,19 +56,19 @@ describe("avatar target registry", () => {
       getBoundingClientRect: () => rect(left, 10, 40, 40),
     } as HTMLElement;
 
-    registry.register("hero", element);
-    expect(registry.resolve("hero")?.left).toBe(20);
+    registry.register("portfolio:record:dubs", element);
+    expect(registry.resolve("portfolio:record:dubs")?.left).toBe(20);
 
     left = 180;
 
-    expect(registry.resolve("hero")?.left).toBe(180);
+    expect(registry.resolve("portfolio:record:dubs")?.left).toBe(180);
   });
 
   it("enumerates fresh bounds for every mounted semantic target", () => {
     // Catches collision avoidance seeing only the requested target or stale obstacle geometry.
     const registry = new AvatarTargetRegistry();
     let chatLeft = 300;
-    registry.register("hero", {
+    registry.register("portfolio:record:dubs", {
       getBoundingClientRect: () => rect(40, 20, 120, 80),
     } as HTMLElement);
     registry.register("portfolio:chat", {
@@ -78,7 +77,7 @@ describe("avatar target registry", () => {
 
     expect(registry.resolveAll().map(({ target, bounds }) => [target, bounds.left]))
       .toEqual([
-        ["hero", 40],
+        ["portfolio:record:dubs", 40],
         ["portfolio:chat", 300],
       ]);
 
@@ -88,11 +87,11 @@ describe("avatar target registry", () => {
 
   it("keeps repository obstacles out of semantic targets", () => {
     const registry = new AvatarTargetRegistry();
-    registry.registerObstacle("portfolio:header", elementAt(0, 0, 1_000, 72));
+    registry.registerObstacle("avatar:director-console", elementAt(0, 0, 1_000, 72));
 
-    expect(registry.resolve("portfolio:header" as AvatarTargetId)).toBeUndefined();
+    expect(registry.resolve("portfolio:index")).toBeUndefined();
     expect(registry.resolveObstacles()).toEqual([
-      expect.objectContaining({ obstacle: "portfolio:header" }),
+      expect.objectContaining({ obstacle: "avatar:director-console" }),
     ]);
   });
 
@@ -101,22 +100,24 @@ describe("avatar target registry", () => {
     const registered = elementAt(0, 0, 100, 50);
     const replacement = elementAt(10, 10, 100, 50);
 
-    registry.registerObstacle("portfolio:header", registered);
-    registry.unregisterObstacle("portfolio:header", replacement);
+    registry.registerObstacle("avatar:director-console", registered);
+    registry.unregisterObstacle("avatar:director-console", replacement);
     expect(registry.resolveObstacles()).toHaveLength(1);
 
-    registry.unregisterObstacle("portfolio:header", registered);
+    registry.unregisterObstacle("avatar:director-console", registered);
     expect(registry.resolveObstacles()).toHaveLength(0);
   });
 
   it("retains hidden and offscreen bounds while reporting them outside the viewport", () => {
     Object.assign(globalThis, { innerWidth: 800, innerHeight: 600 });
     const registry = new AvatarTargetRegistry();
-    registry.registerObstacle("portfolio:header", elementAt(-200, 20, 100, 40));
+    registry.register("portfolio:record:dubs", elementAt(-200, 20, 100, 40));
     registry.registerObstacle("avatar:director-console", elementAt(100, 100, 0, 0));
 
+    expect(registry.resolveAll()).toEqual([
+      { target: "portfolio:record:dubs", bounds: expect.objectContaining({ left: -200, inViewport: false }) },
+    ]);
     expect(registry.resolveObstacles()).toEqual([
-      { obstacle: "portfolio:header", bounds: expect.objectContaining({ left: -200, inViewport: false }) },
       { obstacle: "avatar:director-console", bounds: expect.objectContaining({ left: 100, top: 100, width: 0, height: 0, inViewport: false }) },
     ]);
   });
@@ -125,17 +126,15 @@ describe("avatar target registry", () => {
     let left = 30;
     Object.assign(globalThis, { innerWidth: 800, innerHeight: 600 });
     const registry = new AvatarTargetRegistry();
-    registry.register("hero", elementAt(0, 40, 100, 100));
-    registry.registerObstacle("portfolio:header", elementAt(0, 0, 800, 72));
+    registry.register("portfolio:record:dubs", elementAt(0, 40, 100, 100));
     registry.registerObstacle("avatar:director-console", {
       getBoundingClientRect: () => rect(left, 400, 300, 160),
     } as HTMLElement);
 
     expect(registry.resolveStageMap()).toMatchObject({
       viewport: { width: 800, height: 600 },
-      targets: [{ target: "hero" }],
+      targets: [{ target: "portfolio:record:dubs" }],
       obstacles: [
-        { obstacle: "portfolio:header" },
         { obstacle: "avatar:director-console", bounds: { left: 30 } },
       ],
     });
@@ -144,7 +143,7 @@ describe("avatar target registry", () => {
     left = 120;
     expect(registry.resolveStageMap()).toMatchObject({
       viewport: { width: 1024, height: 700 },
-      obstacles: [{ obstacle: "portfolio:header" }, { obstacle: "avatar:director-console", bounds: { left: 120 } }],
+      obstacles: [{ obstacle: "avatar:director-console", bounds: { left: 120 } }],
     });
   });
 

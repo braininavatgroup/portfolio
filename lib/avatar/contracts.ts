@@ -52,12 +52,14 @@ export const defaultAvatarTone: AvatarTone = {
 };
 
 export type AvatarTargetId =
-  | "hero"
   | "portfolio:chat"
   | "portfolio:index"
-  | `project:${string}`;
+  | `portfolio:record:${string}`;
 
-export type ProjectAvatarTargetId = Extract<AvatarTargetId, `project:${string}`>;
+export type RecordAvatarTargetId = Extract<
+  AvatarTargetId,
+  `portfolio:record:${string}`
+>;
 
 export const avatarRouteIds = ["lap"] as const;
 export type AvatarRouteId = (typeof avatarRouteIds)[number];

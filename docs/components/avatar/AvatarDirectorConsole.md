@@ -6,21 +6,21 @@ Tests: `components/avatar/AvatarDirectorConsole.test.tsx`
 
 A development-only control room. Four tabs — Scenes, Target, Movement,
 Advanced — replay authored sequences, aim the avatar at any registered
-`AvatarTargetId`, drive it manually, apply tone presets, and run site actions.
+`AvatarTargetId`, drive it manually, and apply tone presets.
 The Target tab draws a live stage map from the registry: every registered
 target and obstacle scaled into the viewport, which is the fastest way to see
 why the avatar walked somewhere unexpected.
 
 ## Props
 
-`controller`, `director`, `registry`, `runner`, `siteActionExecutor` and
-`onEnabledChange` required; `onExpandedPanelChange` and `reducedMotion`
+`controller`, `director`, `registry`, and `onEnabledChange` required;
+`onExpandedPanelChange` and `reducedMotion`
 optional — see
 [`AvatarDirectorConsoleProps`](../../../components/avatar/AvatarDirectorConsole.tsx).
 
 ## Requires
 
-The five avatar services, with targets actually registered — an empty registry
+The controller, director, and registry, with targets actually registered — an empty registry
 leaves the stage map and most of the Target tab inert. It is never mounted
 directly in the app: [`AvatarOverlay`](./AvatarOverlay.md) lazily imports it,
 and `PortfolioExperience` flips `debug` from Shift+A or `?avatarDebug=1`.
@@ -45,7 +45,6 @@ export function AvatarDirectorConsoleExample() {
       director={services.director}
       onEnabledChange={() => {}}
       registry={services.registry}
-      runner={services.runner}
     />
   );
 }

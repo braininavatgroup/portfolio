@@ -7,13 +7,13 @@ describe("avatar ambient score", () => {
     expect(
       chooseAmbientVariant({
         previousId: "still",
-        targets: ["hero", "portfolio:chat"],
+        targets: ["portfolio:record:dubs", "portfolio:chat"],
         canSwim: false,
         random: () => 0,
       }),
     ).toEqual({
-      id: "look:hero",
-      command: { action: "lookAt", target: "hero" },
+      id: "look:portfolio:record:dubs",
+      command: { action: "lookAt", target: "portfolio:record:dubs" },
     });
   });
 
@@ -34,13 +34,13 @@ describe("avatar ambient score", () => {
     expect(
       chooseAmbientVariant({
         previousId: null,
-        targets: ["hero"],
+        targets: ["portfolio:record:dubs"],
         canSwim: false,
         random: () => 1,
       }),
     ).toEqual({
-      id: "look:hero",
-      command: { action: "lookAt", target: "hero" },
+      id: "look:portfolio:record:dubs",
+      command: { action: "lookAt", target: "portfolio:record:dubs" },
     });
   });
 
@@ -49,7 +49,7 @@ describe("avatar ambient score", () => {
     expect(
       chooseAmbientVariant({
         previousId: null,
-        targets: ["hero"],
+        targets: ["portfolio:record:dubs"],
         canSwim: true,
         random: () => 0.99,
       }),
@@ -58,7 +58,7 @@ describe("avatar ambient score", () => {
     expect(
       chooseAmbientVariant({
         previousId: "swim:lap",
-        targets: ["hero"],
+        targets: ["portfolio:record:dubs"],
         canSwim: true,
         random: () => 0.99,
       }),
@@ -70,7 +70,7 @@ describe("avatar ambient score", () => {
     expect(
       chooseAmbientVariant({
         previousId: null,
-        targets: ["hero"],
+        targets: ["portfolio:record:dubs"],
         canSwim: false,
         random: () => 0.99,
       }),

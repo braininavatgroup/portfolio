@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   getVisibleWorldLinks,
+  getWorldFocusIds,
+  isWorldLinkActive,
   isPortfolioVisualReady,
-  legacyProjectSlugRedirects,
   portfolioContact,
   portfolioThreads,
   portfolioThroughline,
   portfolioWorldLinks,
-  portfolioWorldNodeById,
   portfolioWorldNodes,
+  portfolioWhatNodes,
 } from "./portfolio-world";
 
 describe("accepted portfolio world", () => {
-  it("keeps the authored world free of the discarded music node", () => {
+  it("renders outline v5 as exactly 17 nodes", () => {
     expect(portfolioWorldNodes.map(({ id }) => id)).toEqual([
       "bradley",
       "infamous",
@@ -24,37 +25,63 @@ describe("accepted portfolio world", () => {
       "reporting",
       "real-estate",
       "touring",
-      "personal-os",
       "dubs",
       "writ",
       "yoohoo",
       "thread-making-work-playable",
-      "thread-choosing-what-not-to-automate",
-      "thread-finding-myself-in-software",
+      "thread-from-argument-to-instrument",
+      "thread-authorship",
+      "thread-philosophy",
     ]);
-    expect(portfolioWorldNodes.some(({ id }) => id === "music")).toBe(false);
   });
 
-  it("keeps the three editorial threads and their deliberate memberships", () => {
-    expect(portfolioThreads.map(({ title, members }) => ({ title, members }))).toEqual([
+  it("uses the exact outline-v5 record names", () => {
+    expect(
+      portfolioWorldNodes
+        .filter(({ outlineType }) => outlineType !== "why")
+        .map(({ id, label }) => [id, label]),
+    ).toEqual([
+      ["bradley", "Bradley Berkman"],
+      ["infamous", "INFAMOUS PR"],
+      ["music-practice", "Brain in a Vat Music Promotions Agency"],
+      ["systems-consulting", "Brain in a Vat Systems & AI Consulting"],
+      ["product-studio", "Brain in a Vat Product Studio"],
+      ["kickoff", "Music promo campaign kickoff"],
+      ["pitching", "Music promo campaign pitching"],
+      ["reporting", "Music promo campaign reporting"],
+      ["real-estate", "Real-estate deal tracker"],
+      ["touring", "Tour advancing system"],
+      ["dubs", "Dubs"],
+      ["writ", "Writ"],
+      ["yoohoo", "Yoohoo"],
+    ]);
+  });
+
+  it("derives the eight Whats from the canonical record structures", () => {
+    expect(portfolioWhatNodes.map(({ id }) => id)).toEqual([
+      "kickoff",
+      "pitching",
+      "reporting",
+      "real-estate",
+      "touring",
+      "dubs",
+      "writ",
+      "yoohoo",
+    ]);
+    expect(portfolioWhatNodes.every(({ outlineType }) => outlineType === "what")).toBe(
+      true,
+    );
+  });
+
+  it("keeps the four Whys and their exact outline-v5 memberships", () => {
+    expect(portfolioThreads.map(({ id, title, members }) => ({ id, title, members }))).toEqual([
       {
+        id: "making-work-playable",
         title: "Making work playable",
-        members: ["personal-os", "dubs", "writ", "yoohoo"],
-      },
-      {
-        title: "Choosing what not to automate",
-        members: ["kickoff", "pitching", "reporting", "personal-os", "yoohoo"],
-      },
-      {
-        title: "From argument to instrument",
         members: [
-          "infamous",
-          "music-practice",
-          "systems-consulting",
           "kickoff",
           "pitching",
           "reporting",
-          "personal-os",
           "real-estate",
           "touring",
           "dubs",
@@ -62,41 +89,220 @@ describe("accepted portfolio world", () => {
           "yoohoo",
         ],
       },
+      {
+        id: "from-argument-to-instrument",
+        title: "From argument to instrument",
+        members: [
+          "thread-philosophy",
+          "thread-making-work-playable",
+          "thread-authorship",
+        ],
+      },
+      {
+        id: "authorship",
+        title: "Authorship",
+        members: [
+          "music-practice",
+          "systems-consulting",
+          "product-studio",
+          "kickoff",
+          "pitching",
+          "reporting",
+          "real-estate",
+          "touring",
+          "dubs",
+          "writ",
+          "yoohoo",
+        ],
+      },
+      {
+        id: "philosophy",
+        title: "Philosophy",
+        members: ["pitching", "reporting", "real-estate", "touring", "writ"],
+      },
     ]);
   });
 
-  it("keeps Bradley disconnected at rest and reveals authorship on selection", () => {
-    const resting = getVisibleWorldLinks({ activeThreadId: null, selectedId: null });
+  it("derives each Why node's thread identity from the canonical thread", () => {
+    expect(
+      portfolioThreads.map(({ id, nodeId }) => ({
+        id,
+        nodeId,
+        derivedThreadId: portfolioWorldNodes.find((node) => node.id === nodeId)
+          ?.threadId,
+      })),
+    ).toEqual(
+      portfolioThreads.map(({ id, nodeId }) => ({
+        id,
+        nodeId,
+        derivedThreadId: id,
+      })),
+    );
+  });
+
+  it("uses exactly the Where-to-What and sequence lines from outline v5", () => {
+    expect(portfolioWorldLinks.map(({ from, to }) => [from, to])).toEqual([
+      ["infamous", "music-practice"],
+      ["music-practice", "kickoff"],
+      ["music-practice", "pitching"],
+      ["music-practice", "reporting"],
+      ["systems-consulting", "real-estate"],
+      ["systems-consulting", "touring"],
+      ["product-studio", "dubs"],
+      ["product-studio", "writ"],
+      ["product-studio", "yoohoo"],
+      ["kickoff", "pitching"],
+      ["pitching", "reporting"],
+    ]);
+  });
+
+  it("keeps Bradley disconnected at rest and reveals four Why lines on selection", () => {
+    const resting = getVisibleWorldLinks({ selectedId: null });
     expect(resting.some(({ from, to }) => from === "bradley" || to === "bradley")).toBe(false);
 
-    const selected = getVisibleWorldLinks({ activeThreadId: null, selectedId: "bradley" });
+    const selected = getVisibleWorldLinks({ selectedId: "bradley" });
     expect(
       selected
         .filter(({ layer }) => layer === "story-root")
         .map(({ to }) => to),
     ).toEqual([
       "thread-making-work-playable",
-      "thread-choosing-what-not-to-automate",
-      "thread-finding-myself-in-software",
+      "thread-from-argument-to-instrument",
+      "thread-authorship",
+      "thread-philosophy",
     ]);
   });
 
-  it("uses the factual field instead of redundant membership spokes for Finding", () => {
+  it("draws the arc's three Why memberships while retaining its factual-field focus", () => {
     const links = getVisibleWorldLinks({
-      activeThreadId: "finding-myself-in-software",
-      selectedId: "thread-finding-myself-in-software",
+      selectedId: "thread-from-argument-to-instrument",
     });
 
     expect(
       links.filter(
         ({ layer, threadId }) =>
           layer === "story-membership" &&
-          threadId === "finding-myself-in-software",
-      ),
-    ).toHaveLength(0);
+          threadId === "from-argument-to-instrument",
+      ).map(({ to }) => to),
+    ).toEqual([
+      "thread-philosophy",
+      "thread-making-work-playable",
+      "thread-authorship",
+    ]);
     expect(
       links.filter(({ layer }) => layer === "factual"),
     ).toHaveLength(portfolioWorldLinks.length);
+  });
+
+  it("keeps the factual field present while another Why is foregrounded", () => {
+    const links = getVisibleWorldLinks({
+      selectedId: "thread-authorship",
+    });
+
+    expect(links.filter(({ layer }) => layer === "factual")).toHaveLength(11);
+  });
+
+  it.each([
+    [
+      "bradley",
+      [
+        "story-root:bradley->thread-making-work-playable",
+        "story-root:bradley->thread-from-argument-to-instrument",
+        "story-root:bradley->thread-authorship",
+        "story-root:bradley->thread-philosophy",
+      ],
+    ],
+    [
+      "thread-making-work-playable",
+      [
+        "story-root:bradley->thread-making-work-playable",
+        "story-membership:thread-making-work-playable->kickoff",
+        "story-membership:thread-making-work-playable->pitching",
+        "story-membership:thread-making-work-playable->reporting",
+        "story-membership:thread-making-work-playable->real-estate",
+        "story-membership:thread-making-work-playable->touring",
+        "story-membership:thread-making-work-playable->dubs",
+        "story-membership:thread-making-work-playable->writ",
+        "story-membership:thread-making-work-playable->yoohoo",
+      ],
+    ],
+    [
+      "thread-authorship",
+      [
+        "story-root:bradley->thread-authorship",
+        "story-membership:thread-authorship->music-practice",
+        "story-membership:thread-authorship->systems-consulting",
+        "story-membership:thread-authorship->product-studio",
+        "story-membership:thread-authorship->kickoff",
+        "story-membership:thread-authorship->pitching",
+        "story-membership:thread-authorship->reporting",
+        "story-membership:thread-authorship->real-estate",
+        "story-membership:thread-authorship->touring",
+        "story-membership:thread-authorship->dubs",
+        "story-membership:thread-authorship->writ",
+        "story-membership:thread-authorship->yoohoo",
+      ],
+    ],
+    [
+      "thread-philosophy",
+      [
+        "story-root:bradley->thread-philosophy",
+        "story-membership:thread-philosophy->pitching",
+        "story-membership:thread-philosophy->reporting",
+        "story-membership:thread-philosophy->real-estate",
+        "story-membership:thread-philosophy->touring",
+        "story-membership:thread-philosophy->writ",
+      ],
+    ],
+  ])("activates exactly the signed links for %s", (selectedId, expected) => {
+    const active = getVisibleWorldLinks({ selectedId })
+      .filter((link) => isWorldLinkActive(link, selectedId))
+      .map(({ layer, from, to }) => `${layer}:${from}->${to}`);
+
+    expect(active).toEqual(expected);
+  });
+
+  it("activates the arc root, memberships, and complete factual field", () => {
+    const selectedId = "thread-from-argument-to-instrument";
+    const active = getVisibleWorldLinks({ selectedId }).filter((link) =>
+      isWorldLinkActive(link, selectedId),
+    );
+
+    expect(active.filter(({ layer }) => layer === "factual")).toHaveLength(11);
+    expect(
+      active
+        .filter(({ layer }) => layer !== "factual")
+        .map(({ layer, from, to }) => `${layer}:${from}->${to}`),
+    ).toEqual([
+      "story-root:bradley->thread-from-argument-to-instrument",
+      "story-membership:thread-from-argument-to-instrument->thread-philosophy",
+      "story-membership:thread-from-argument-to-instrument->thread-making-work-playable",
+      "story-membership:thread-from-argument-to-instrument->thread-authorship",
+    ]);
+  });
+
+  it("keeps the complete factual field visible while the arc is open", () => {
+    expect(
+      getWorldFocusIds({
+        activeThreadId: "from-argument-to-instrument",
+        selectedId: "thread-from-argument-to-instrument",
+      }),
+    ).toEqual(new Set(portfolioWorldNodes.map(({ id }) => id)));
+  });
+
+  it("assigns the exact Where status contract", () => {
+    expect(
+      Object.fromEntries(
+        portfolioWorldNodes.flatMap(({ id, status }) =>
+          status ? [[id, status]] : [],
+        ),
+      ),
+    ).toEqual({
+      infamous: "past",
+      "music-practice": "active",
+      "product-studio": "active",
+      "systems-consulting": "active",
+    });
   });
 });
 
@@ -154,13 +360,5 @@ describe("authored content contract", () => {
       "GitHub",
       "Instagram",
     ]);
-  });
-
-  it("redirects every legacy case-study slug to an existing node", () => {
-    for (const target of Object.values(legacyProjectSlugRedirects)) {
-      const node = portfolioWorldNodeById.get(target);
-      expect(node).toBeDefined();
-      expect(node?.family).not.toBe("story");
-    }
   });
 });

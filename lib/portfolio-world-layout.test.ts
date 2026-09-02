@@ -68,8 +68,8 @@ function overlaps(a: ReturnType<typeof footprints>[number], b: typeof a) {
 describe("relaxWorldOverlaps", () => {
   it("separates footprints that start stacked on one another", () => {
     const nodes: RelaxNode[] = [
-      { id: "a", label: "Campaign reporting", pinned: false },
-      { id: "b", label: "Campaign kickoff", pinned: false },
+      { id: "a", label: "Reporting", pinned: false },
+      { id: "b", label: "Kickoff", pinned: false },
       { id: "c", label: "Pitching", pinned: false },
     ];
     const positions = new Map<string, Point3>(
@@ -95,7 +95,7 @@ describe("relaxWorldOverlaps", () => {
   it("never moves a pinned node", () => {
     const nodes: RelaxNode[] = [
       { id: "bradley", label: "Bradley Berkman", pinned: true },
-      { id: "other", label: "Campaign reporting", pinned: false },
+      { id: "other", label: "Reporting", pinned: false },
     ];
     const positions = new Map<string, Point3>([
       ["bradley", { x: 0, y: 0, z: 700 }],

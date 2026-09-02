@@ -7,15 +7,15 @@ Owns everything the avatar needs in order to stand somewhere sensible: the
 stage services (controller, director, registry, sequence runner), the element
 registrations that children hand up through callback refs, and the effects
 keeping the stage in step with scroll, resize, tab visibility and the user's
-motion preference. Also owns `PortfolioAvatarActionState` — which project the
-assistant considers open, plus a turn counter for discarding effects that
+motion preference. Also owns `PortfolioAvatarActionState` — which What record
+the assistant considers open, plus a turn counter for discarding effects that
 arrive after the user has moved on.
 
 ## Arguments
 
-`assistantOpen` and `reducedMotion`, both required. That is the whole seam: the
-avatar never needs to know what is selected, only whether the assistant is on
-screen. See the return type in
+`assistantOpen` and `reducedMotion`, both required. What selection and turn
+ownership are tracked through the returned imperative action state, not as
+render inputs. See the return type in
 [`components/useAvatarStage.ts`](../../components/useAvatarStage.ts).
 
 ## Requires
@@ -37,14 +37,14 @@ export function UseAvatarStageExample() {
   // Owns the stage services and the element registrations. The two inputs are
   // the only thing it needs to know about the page: whether the assistant is
   // on screen, and whether the user has asked for reduced motion.
-  const { avatarMounted, registerAvatarStage, registerHero } = useAvatarStage({
+  const { avatarMounted, registerAvatarStage } = useAvatarStage({
     assistantOpen,
     reducedMotion: false,
   });
 
   return (
     <section ref={registerAvatarStage}>
-      <h1 ref={registerHero}>Bradley Berkman</h1>
+      <h1>Bradley Berkman</h1>
       <button onClick={() => setAssistantOpen((open) => !open)} type="button">
         {assistantOpen ? "Hide" : "Show"} the assistant
       </button>

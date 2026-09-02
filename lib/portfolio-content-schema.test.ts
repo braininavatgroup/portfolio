@@ -6,6 +6,7 @@ import {
   isMultiLineContentPath,
   normalizeContentValue,
   resolveContentPath,
+  portfolioInterfaceTextKeys,
   SINGLE_LINE_MAX_LENGTH,
   validatePortfolioContentDocument,
   type PortfolioContentDocument,
@@ -20,6 +21,16 @@ function document(): PortfolioContentDocument {
 describe("validatePortfolioContentDocument", () => {
   it("accepts the canonical content document", () => {
     expect(validatePortfolioContentDocument(contentJson)).toEqual([]);
+    expect(
+      portfolioInterfaceTextKeys.filter((key) => key.startsWith("index.section.")),
+    ).toEqual([
+      "index.section.about",
+      "index.section.threads",
+      "index.section.operations",
+      "index.section.campaign",
+      "index.section.client",
+      "index.section.products",
+    ]);
   });
 
   it("rejects unknown record IDs", () => {
@@ -112,7 +123,7 @@ describe("resolveContentPath", () => {
   it("rejects structural and unknown paths", () => {
     expect(resolveContentPath("records.bradley.position")).toBeNull();
     expect(resolveContentPath("records.bradley.family")).toBeNull();
-    expect(resolveContentPath("records.bradley.projectSlug")).toBeNull();
+    expect(resolveContentPath("records.bradley.outlineType")).toBeNull();
     expect(resolveContentPath("records.nope.summary")).toBeNull();
     expect(resolveContentPath("records.bradley.paragraphs.p9")).toBeNull();
     expect(resolveContentPath("records.bradley.principle")).toBeNull();

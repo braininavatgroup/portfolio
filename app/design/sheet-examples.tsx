@@ -79,11 +79,9 @@ export function PortfolioAnalyticsExample() {
 
 // #example:PortfolioHeader
 export function PortfolioHeaderExample() {
-  // Flow layout, as on /index. `overlay` instead gives the absolutely
-  // positioned variant the composition uses.
   return (
     <div className="flat-index">
-      <PortfolioHeader activeView="map" />
+      <PortfolioHeader />
     </div>
   );
 }
@@ -146,12 +144,9 @@ export function PortfolioWorldExample() {
 export function PortfolioChatExample() {
   const [open, setOpen] = useState(false);
 
-  // `experience` is load-bearing, not decoration: `.experience .portfolio-chat`
-  // is what makes the dock `position: fixed`. Under `.portfolio-composition`
-  // alone the legacy base rule wins and you get the centred, absolutely
-  // positioned prototype chat instead.
+  // Match the production composition so the dock uses its fixed positioning.
   return (
-    <div className="experience experience-graph portfolio-composition">
+    <div className="experience portfolio-composition">
       <section className="scene-shell">
         <PortfolioChat
           // Omit both stubs in production: the defaults are
@@ -265,7 +260,6 @@ export function AvatarOverlayExample() {
         onEnabledChange={setEnabled}
         reducedMotion={false}
         registry={services.registry}
-        runner={services.runner}
       />
     </div>
   );
@@ -286,7 +280,6 @@ export function AvatarDirectorConsoleExample() {
       director={services.director}
       onEnabledChange={() => {}}
       registry={services.registry}
-      runner={services.runner}
     />
   );
 }
@@ -296,7 +289,7 @@ export function AvatarDirectorConsoleExample() {
 export function UseAvatarToyboxSessionExample() {
   const session = useAvatarToyboxSession({
     canOpen: () => true,
-    collectibles: [{ id: "dubs", label: "Dubs", tokenKind: "document" }],
+    collectibles: [{ id: "dubs", label: "Dubs" }],
     reducedMotion: false,
   });
 
@@ -313,7 +306,7 @@ export function UseAvatarToyboxSessionExample() {
 export function AvatarToyboxOverlayExample() {
   const session = useAvatarToyboxSession({
     canOpen: () => true,
-    collectibles: [{ id: "dubs", label: "Dubs", tokenKind: "document" }],
+    collectibles: [{ id: "dubs", label: "Dubs" }],
     reducedMotion: false,
   });
 
@@ -354,14 +347,14 @@ export function UseAvatarStageExample() {
   // Owns the stage services and the element registrations. The two inputs are
   // the only thing it needs to know about the page: whether the assistant is
   // on screen, and whether the user has asked for reduced motion.
-  const { avatarMounted, registerAvatarStage, registerHero } = useAvatarStage({
+  const { avatarMounted, registerAvatarStage } = useAvatarStage({
     assistantOpen,
     reducedMotion: false,
   });
 
   return (
     <section ref={registerAvatarStage}>
-      <h1 ref={registerHero}>Bradley Berkman</h1>
+      <h1>Bradley Berkman</h1>
       <button onClick={() => setAssistantOpen((open) => !open)} type="button">
         {assistantOpen ? "Hide" : "Show"} the assistant
       </button>

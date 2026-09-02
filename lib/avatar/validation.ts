@@ -1,4 +1,4 @@
-import { portfolioData } from "../portfolio-data";
+import { portfolioWhatNodes } from "../portfolio-world";
 import {
   allowedAvatarAnimations,
   allowedAvatarStates,
@@ -19,11 +19,11 @@ import {
   type PortfolioResponseEffects,
 } from "./contracts";
 
-const baseTargets = ["hero", "portfolio:chat", "portfolio:index"] as const;
+const baseTargets = ["portfolio:chat", "portfolio:index"] as const;
 
 export const allowedAvatarTargets = [
   ...baseTargets,
-  ...portfolioData.projects.map(({ slug }) => `project:${slug}` as const),
+  ...portfolioWhatNodes.map(({ id }) => `portfolio:record:${id}` as const),
 ] as const satisfies readonly AvatarTargetId[];
 
 const avatarStateSet = new Set<string>(allowedAvatarStates);

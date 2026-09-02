@@ -12,7 +12,7 @@ import {
 import { groundPortfolioQuestion } from "./portfolio-grounding";
 
 const contentNodeCount = portfolioWorldNodes.filter(
-  ({ family }) => family !== "story",
+  ({ outlineType }) => outlineType !== "why",
 ).length;
 
 describe("portfolio chat grounding", () => {
@@ -60,9 +60,8 @@ describe("portfolio chat grounding", () => {
     );
 
     expect(pitching).toMatchObject({
-      title: "Campaign pitching",
+      title: "Music promo campaign pitching",
       href: "/?view=graph#pitching",
-      projectTitle: "Campaign pitching",
     });
     expect(pitching?.excerpt).toContain(
       "Weekly curator targeting driven by recorded taste",
@@ -70,7 +69,9 @@ describe("portfolio chat grounding", () => {
     expect(pitching?.excerpt).toContain(
       "Taste is encodable. The approval step stays human.",
     );
-    expect(pitching?.excerpt).toContain("Choosing what not to automate");
+    expect(pitching?.excerpt).toContain(
+      "Threads: Making work playable; Authorship; Philosophy",
+    );
   });
 
   it("marks unfinished copy and planned visuals as editorial notes", () => {

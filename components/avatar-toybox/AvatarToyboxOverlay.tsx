@@ -203,7 +203,6 @@ export function AvatarToyboxOverlay({ session }: { session: AvatarToyboxSession 
                   <span
                     aria-label={`Collect ${item?.label ?? collectible.id}`}
                     className="avatar-toybox-collectible"
-                    data-token-kind={item?.tokenKind}
                     key={collectible.id}
                     role="img"
                     style={{

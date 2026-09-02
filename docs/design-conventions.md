@@ -29,7 +29,7 @@ Identify the surface first.
    the world, the dossier, the assistant, the cursor. Applied in
    `components/PortfolioExperience.tsx`. This is the client-facing portfolio
    and the only surface where new design work happens.
-2. **Legacy prototype pages.** `/index` (`.stacked-editorial-index`),
+2. **Supporting pages.** `/index` (`.flat-index`),
    `/privacy`, the graph/scene/drawer/toybox/avatar-director selectors, and the
    non-overlay `.portfolio-header`. These predate the checkpoint. They are kept
    working, not extended.
@@ -104,7 +104,7 @@ They are the only color names that belong in new composition CSS.
 | `--reader-muted` | Labels and metadata |
 | `--world-identity` | Bradley's identity mark |
 | `--world-story` | Story register |
-| `--world-finding` | Finding register |
+| `--world-arc` | From argument to instrument register |
 | `--world-warm` | Operations register |
 | `--world-bridge` | Bridge register |
 | `--world-cool` | In Production register |
@@ -142,8 +142,6 @@ the theme:
   idiom for "this element takes its record's register color."
 - `--cursor-a` / `--cursor-b` — set inline by `components/CursorInstrument.tsx`
   from the hovered node's register.
-- `--legend-color` — set by `.legend-spec` / `.legend-system` /
-  `.legend-artifact`. Legacy only.
 
 ## 3. The two typographic voices
 
@@ -270,8 +268,8 @@ shared with the legacy surface.
 A modifier class is used only when a whole region changes mode, and it is
 appended to that region's own class: `.portfolio-visual-open` and
 `.portfolio-mobile-map-open` on the composition root,
-`.portfolio-reader-clean-review` on the dossier, `.avatar-spotlight` on
-whichever region the avatar is pointing at. Never a `.is-` or `.active` class.
+`.portfolio-reader-clean-review` on the dossier. Never a `.is-` or `.active`
+class.
 
 **Rule 5.6** — Declarations inside a rule are alphabetical. Selectors are flat;
 no CSS nesting is used. Related one-line rules may be written on a single line
@@ -281,10 +279,8 @@ where the file already does so.
 (`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
 sizing), plus a 600px block for phone-scale safe-area insets and a
 `max-height: 820px and (pointer: fine)` block for short desktop windows. The
-980px breakpoint belongs to legacy pages. 760px is shared: it is a legacy
-breakpoint that also carries a handful of composition header and chat rules,
-predating the checkpoint — read it before touching the header at phone widths,
-and do not add to it. Do not add a new breakpoint.
+980px breakpoint belongs to supporting pages. The 760px breakpoint carries the
+index header and composition chat rules. Do not add a new breakpoint.
 
 **Rule 5.8** — The house focus treatment is
 `outline: 2px solid var(--ink); outline-offset: 2px`, and the composition now
@@ -387,7 +383,7 @@ block:
 }
 
 .reader-source-row[data-register="story"] { --register: var(--world-story); }
-.reader-source-row[data-register="finding"] { --register: var(--world-finding); }
+.reader-source-row[data-register="arc"] { --register: var(--world-arc); }
 
 .reader-source-label {
   color: var(--register, var(--world-identity));

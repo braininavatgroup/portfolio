@@ -54,7 +54,7 @@ describe("portfolio chat route handler", () => {
     }
     expect(events[0].evidence).toContainEqual(expect.objectContaining({
       id: "node:pitching",
-      title: "Campaign pitching",
+      title: "Music promo campaign pitching",
       href: "/?view=graph#pitching",
     }));
     expect(events.slice(1)).toEqual([
@@ -299,7 +299,7 @@ describe("portfolio chat route handler", () => {
     ["What are common reporting metrics?", "Track the measures tied to the goal."],
     ["How do touring musicians sleep on the road?", "Sleep routines vary by itinerary."],
   ])(
-    "does not promote generic project-title words to portfolio mode: %s",
+    "does not promote generic source-title words to portfolio mode: %s",
     async (question, answer) => {
       const provider: PortfolioChatProvider = {
         async *streamAnswer({ onMode }) {
@@ -319,11 +319,11 @@ describe("portfolio chat route handler", () => {
     },
   );
 
-  it("allows ordinary general-language phrases that also appear in project titles", async () => {
+  it("allows ordinary general-language phrases that also appear in source titles", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onMode }) {
         onMode?.("general");
-        yield "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.";
+        yield "Common reporting metrics cover volume and outcomes. Campaign reports often add reach and conversion rates.";
       },
     };
     const handler = createPortfolioChatHandler({
@@ -341,7 +341,7 @@ describe("portfolio chat route handler", () => {
         .map((event) => event.delta)
         .join(""),
     ).toBe(
-      "Common reporting metrics cover volume and outcomes. Campaign reporting often adds reach and conversion rates.",
+      "Common reporting metrics cover volume and outcomes. Campaign reports often add reach and conversion rates.",
     );
     expect(events.some((event) => event.type === "error")).toBe(false);
   });

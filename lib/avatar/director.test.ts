@@ -23,10 +23,10 @@ function createDirector(random = () => 0) {
   registry.register("portfolio:chat", {
     getBoundingClientRect: () => rect(300, 500, 400, 160),
   } as HTMLElement);
-  registry.register("hero", {
+  registry.register("portfolio:record:dubs", {
     getBoundingClientRect: () => rect(80, 100, 180, 80),
   } as HTMLElement);
-  registry.register("project:dubs", {
+  registry.register("portfolio:record:dubs", {
     getBoundingClientRect: () => rect(160, 180, 220, 300),
   } as HTMLElement);
   const controller = new AvatarController(registry);
@@ -120,7 +120,7 @@ describe("AvatarDirector", () => {
         return callbacks.length as unknown as ReturnType<typeof setTimeout>;
       });
       const registry = new AvatarTargetRegistry();
-      registry.register("hero", {
+      registry.register("portfolio:record:dubs", {
         getBoundingClientRect: () => rect(80, 100, 180, 80),
       } as HTMLElement);
       const controller = new AvatarController(registry);
@@ -180,19 +180,19 @@ describe("AvatarDirector", () => {
     });
   });
 
-  it("walks beside a selected project, points, and settles", async () => {
-    // Catches project navigation that feels disconnected from the actor or teleports over the dossier.
+  it("walks beside a selected record, points, and settles", async () => {
+    // Catches record navigation that feels disconnected from the actor or teleports over the dossier.
     vi.useFakeTimers();
     const { controller, director } = createDirector();
 
     const reaction = director.handle({
-      type: "project_open",
-      target: "project:dubs",
+      type: "record_open",
+      target: "portfolio:record:dubs",
     });
     await Promise.resolve();
     expect(controller.getSnapshot()).toMatchObject({
       animation: "walking",
-      target: "project:dubs",
+      target: "portfolio:record:dubs",
       position: { x: expect.any(Number), y: expect.any(Number) },
       motion: { kind: "walk" },
     });
@@ -206,12 +206,12 @@ describe("AvatarDirector", () => {
     });
   });
 
-  it("returns beside the chat instead of walking into the reader when a project closes", async () => {
+  it("returns beside the chat instead of walking into the reader when a record closes", async () => {
     vi.useFakeTimers();
     const { director, runner } = createDirector();
     const run = vi.spyOn(runner, "run");
 
-    const closing = director.handle({ type: "project_close" });
+    const closing = director.handle({ type: "record_close" });
     await vi.runAllTimersAsync();
     await closing;
 
@@ -222,18 +222,18 @@ describe("AvatarDirector", () => {
     ]);
   });
 
-  it("preserves project attention without stage travel under reduced motion", async () => {
+  it("preserves record attention without stage travel under reduced motion", async () => {
     // Catches contextual navigation ignoring the same motion preference as agent-selected commands.
     const { controller, director } = createDirector();
     director.setReducedMotion(true);
 
     await director.handle({
-      type: "project_open",
-      target: "project:dubs",
+      type: "record_open",
+      target: "portfolio:record:dubs",
     });
 
     expect(controller.getSnapshot()).toMatchObject({
-      target: "project:dubs",
+      target: "portfolio:record:dubs",
       motion: null,
     });
   });
@@ -290,7 +290,7 @@ describe("AvatarDirector", () => {
   it("keeps an unsafe ambient lap at stable idle", async () => {
     // Catches a closed lap throwing or publishing a partial swimming scene.
     const registry = new AvatarTargetRegistry();
-    registry.registerObstacle("portfolio:header", {
+    registry.registerObstacle("avatar:director-console", {
       getBoundingClientRect: () => rect(0, 0, 1_000, 800),
     } as HTMLElement);
     const controller = new AvatarController(registry);
@@ -447,7 +447,7 @@ describe("AvatarDirector", () => {
   it("does not add a lap to a swimming clip when the current stage is unsafe", async () => {
     // Catches a direct performance reserving travel from a stale safety check.
     const registry = new AvatarTargetRegistry();
-    registry.registerObstacle("portfolio:header", {
+    registry.registerObstacle("avatar:director-console", {
       getBoundingClientRect: () => rect(0, 0, 1_000, 800),
     } as HTMLElement);
     const controller = new AvatarController(registry);

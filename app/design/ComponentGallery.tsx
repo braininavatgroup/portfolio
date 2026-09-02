@@ -41,7 +41,7 @@ function Composition({
 }) {
   return (
     <div
-      className={`experience experience-graph portfolio-composition ${className}`.trim()}
+      className={`experience portfolio-composition ${className}`.trim()}
       style={style}
     >
       {children}
@@ -57,8 +57,7 @@ function Composition({
 function IndexSurface({ children }: { children: ReactNode }) {
   return (
     <div
-      className="flat-index stacked-editorial-index"
-      data-index-layout="stacked-editorial"
+      className="flat-index"
       data-theme="light"
     >
       {children}
@@ -90,37 +89,13 @@ function NodeMarkGrid() {
   );
 }
 
-const headerViews = [
-  { value: "index", label: 'activeView="index"' },
-  { value: "map", label: 'activeView="map"' },
-  { value: "bradley", label: 'activeView="bradley"' },
-] as const;
-
 function HeaderStates() {
-  const [activeView, setActiveView] =
-    useState<(typeof headerViews)[number]["value"]>("index");
-
   return (
-    <>
-      <StateStrip
-        label="Active view"
-        onChange={setActiveView}
-        options={headerViews}
-        value={activeView}
-      />
-      <Stage size="auto">
-        <IndexSurface>
-          <PortfolioHeader activeView={activeView} />
-        </IndexSurface>
-      </Stage>
-      <p className="design-note" style={{ margin: "14px var(--reader-gutter) 0" }}>
-        Only <code>index</code> ships: <code>/index</code> passes it, and the
-        composition&apos;s <code>overlay</code> variant is hidden by{" "}
-        <code>.portfolio-composition &gt; .portfolio-header</code>. Nothing
-        passes <code>bradley</code>. See{" "}
-        <code>docs/components/PortfolioHeader.md</code>.
-      </p>
-    </>
+    <Stage size="auto">
+      <IndexSurface>
+        <PortfolioHeader />
+      </IndexSurface>
+    </Stage>
   );
 }
 

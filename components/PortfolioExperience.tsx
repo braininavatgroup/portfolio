@@ -11,30 +11,24 @@ import {
 } from "react";
 import type {
   PortfolioResponseEffects,
-  ProjectAvatarTargetId,
+  RecordAvatarTargetId,
 } from "../lib/avatar/contracts";
 import { isExactShiftShortcut } from "../lib/dom-keyboard";
-import { domains, type DomainId } from "../lib/portfolio";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
 import {
+  isPortfolioWhatNode,
   portfolioThreadById,
-  portfolioThroughline,
+  portfolioWhatNodes,
+  portfolioWorldNodeById,
   portfolioWorldNodes,
   type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
-import {
-  portfolioNodes,
-  type SpatialGraphNode,
-} from "../lib/spatial-graph";
 import { PortfolioChat } from "./PortfolioChat";
-import { EditableText } from "./editor/EditableText";
-import { PortfolioHeader } from "./PortfolioHeader";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
 import { AvatarToyboxBoundary } from "./avatar-toybox/AvatarToyboxBoundary";
 import { useAvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
-import { getOutputToken } from "./scene/output-token-map";
 import { useAvatarStage } from "./useAvatarStage";
 
 const AvatarOverlay = lazy(() =>
@@ -65,8 +59,7 @@ function useReducedMotion() {
 
 function readWorldLocation() {
   const parts = window.location.hash.slice(1).split("/").filter(Boolean);
-  // "thread/…" is canonical; "story/…" remains parseable for old links.
-  if (parts[0] === "thread" || parts[0] === "story") {
+  if (parts[0] === "thread") {
     return { threadId: parts[1] ?? null, nodeId: parts[2] ?? null };
   }
   return { threadId: null, nodeId: parts[0] ?? null };
@@ -83,8 +76,6 @@ function pushWorldLocation(nodeId: string | null, threadId: string | null) {
 
 export function PortfolioExperience() {
   const reducedMotion = useReducedMotion();
-  const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
-  const [selectedNode, setSelectedNode] = useState<SpatialGraphNode | null>(null);
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
@@ -102,25 +93,21 @@ export function PortfolioExperience() {
     avatarDirector,
     avatarMounted,
     avatarRegistry,
-    avatarRunner,
     refreshAssistantHome,
     registerAvatarStage,
     registerAvatarTarget,
     registerDirectorConsoleObstacle,
-    registerHeaderObstacle,
-    registerHero,
   } = useAvatarStage({ assistantOpen, reducedMotion });
   const visualTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const selectedWorldNode = selectedWorldId
+    ? portfolioWorldNodeById.get(selectedWorldId)
+    : undefined;
+  const selectedWhatOpen = selectedWorldNode
+    ? isPortfolioWhatNode(selectedWorldNode)
+    : false;
 
   const toyboxCollectibles = useMemo(
-    () =>
-      portfolioNodes
-        .filter(({ role }) => role === "output")
-        .map(({ id, label, projectSlug }) => ({
-          id,
-          label,
-          tokenKind: projectSlug ? getOutputToken(projectSlug) : undefined,
-        })),
+    () => portfolioWhatNodes.map(({ id, label }) => ({ id, label })),
     [],
   );
   const canOpenToybox = useCallback(() => {
@@ -148,102 +135,48 @@ export function PortfolioExperience() {
 
   /**
    * The director reads the DOM this state change is about to alter, so the
-   * notification has to land after React commits. This pairing — read the
-   * outgoing selection, clear it, tell the director only if there was one —
-   * appeared five times, and the "only if there was one" guard is the part
-   * that is easy to drop.
-   */
-  const notifyProjectClosed = useCallback(
-    (previous: SpatialGraphNode | null) => {
-      if (!previous) return;
+   * notification has to land after React commits. The outgoing selection is
+   * captured before it is cleared so index-only transitions stay silent.
+  */
+  const notifyRecordClosed = useCallback(
+    (previousWhatId: string | null) => {
+      if (!previousWhatId) return;
       window.setTimeout(
-        () => void avatarDirector.handle({ type: "project_close" }),
+        () => void avatarDirector.handle({ type: "record_close" }),
         0,
       );
     },
     [avatarDirector],
   );
 
-  const clearProjectSelection = useCallback(() => {
-    const previous = avatarActionState.getSelectedNode();
+  const clearRecordSelection = useCallback(() => {
+    const previousWhatId = avatarActionState.getSelectedWhatId();
     avatarActionState.clearSelection();
-    setSelectedNode(null);
-    setSelectedDomain(null);
-    notifyProjectClosed(previous);
-  }, [avatarActionState, notifyProjectClosed]);
+    notifyRecordClosed(previousWhatId);
+  }, [avatarActionState, notifyRecordClosed]);
 
   const showIndex = useCallback(() => {
     avatarActionState.clearSelection();
     setMobileMapOpen(false);
-    setSelectedDomain(null);
-    setSelectedNode(null);
     setSelectedWorldId(null);
     setActiveThreadId(null);
     setActiveVisual(null);
   }, [avatarActionState]);
 
-  const selectDomain = useCallback((domain: DomainId | null) => {
-    setActiveVisual(null);
-    avatarActionState.clearSelection();
-    setSelectedDomain(domain);
-    setSelectedNode(null);
-  }, [avatarActionState]);
-
-  const selectNode = useCallback(
-    (node: SpatialGraphNode | null) => {
-      setActiveVisual(null);
-      if (!node || node.role === "root") {
-        showIndex();
-        return;
-      }
-
-      if (node.role === "domain") {
-        const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
-        selectDomain(domain);
-        return;
-      }
-
-      if (!node.projectSlug) {
-        showIndex();
-        return;
-      }
-
-      const domain = domains.find(({ id }) => id === node.groupId)?.id ?? null;
-      avatarActionState.selectNode(node);
-      setSelectedDomain(domain);
-      setSelectedNode(node);
-      const worldNode = portfolioWorldNodes.find(
-        ({ projectSlug }) => projectSlug === node.projectSlug,
-      );
-      setSelectedWorldId(worldNode?.id ?? null);
-      setActiveThreadId(null);
-    },
-    [avatarActionState, selectDomain, showIndex],
-  );
-
-  const selectNodeWithAvatar = useCallback(
-    (node: SpatialGraphNode | null) => {
-      const previous = avatarActionState.getSelectedNode();
-      selectNode(node);
-      if (!node || node.role === "root" || node.role === "domain") {
-        notifyProjectClosed(previous);
-        return;
-      }
-      if (!node.projectSlug) return;
-      const target: ProjectAvatarTargetId = `project:${node.projectSlug}`;
+  const selectWhatWithAvatar = useCallback(
+    (whatId: string) => {
+      avatarActionState.selectWhat(whatId);
+      const target: RecordAvatarTargetId = `portfolio:record:${whatId}`;
       window.setTimeout(
         () =>
           void avatarDirector.handle({
-            type:
-              previous?.projectSlug === node.projectSlug
-                ? "tab_change"
-                : "project_open",
+            type: "record_open",
             target,
           }),
         0,
       );
     },
-    [avatarActionState, avatarDirector, notifyProjectClosed, selectNode],
+    [avatarActionState, avatarDirector],
   );
 
   const selectWorldNode = useCallback(
@@ -253,8 +186,8 @@ export function PortfolioExperience() {
       // Tapping the node that is already selected deselects it, falling back
       // to the story it belongs to if there is one.
       if (selectedWorldId === node.id) {
-        clearProjectSelection();
-        if (activeThreadId && node.family !== "story") {
+        clearRecordSelection();
+        if (activeThreadId && node.outlineType !== "why") {
           setSelectedWorldId(portfolioThreadById.get(activeThreadId)?.nodeId ?? null);
           pushWorldLocation(null, activeThreadId);
         } else {
@@ -267,9 +200,9 @@ export function PortfolioExperience() {
       setSelectedWorldId(node.id);
 
       // A story is addressed by its thread, not by the node id.
-      if (node.family === "story") {
+      if (node.outlineType === "why") {
         setActiveThreadId(node.threadId ?? null);
-        clearProjectSelection();
+        clearRecordSelection();
         pushWorldLocation(null, node.threadId ?? null);
         return;
       }
@@ -280,28 +213,22 @@ export function PortfolioExperience() {
         ? activeThreadId
         : null;
 
-      if (!node.projectSlug) {
+      if (!isPortfolioWhatNode(node)) {
         setActiveThreadId(retainedStoryId);
-        clearProjectSelection();
+        clearRecordSelection();
         pushWorldLocation(node.id, retainedStoryId);
         return;
       }
 
-      const spatialNode =
-        portfolioNodes.find(
-          ({ projectSlug, role }) =>
-            projectSlug === node.projectSlug && role === "output",
-        ) ?? portfolioNodes.find(({ projectSlug }) => projectSlug === node.projectSlug);
-      if (spatialNode) selectNodeWithAvatar(spatialNode);
-      setSelectedWorldId(node.id);
+      selectWhatWithAvatar(node.id);
       setActiveThreadId(retainedStoryId);
       pushWorldLocation(node.id, retainedStoryId);
     },
     [
       activeThreadId,
-      clearProjectSelection,
+      clearRecordSelection,
       selectedWorldId,
-      selectNodeWithAvatar,
+      selectWhatWithAvatar,
       showIndex,
     ],
   );
@@ -333,13 +260,13 @@ export function PortfolioExperience() {
   }, []);
 
   const showIndexWithAvatar = useCallback(() => {
-    const hadProject = Boolean(avatarActionState.getSelectedNode());
+    const hadWhat = Boolean(avatarActionState.getSelectedWhatId());
     const hadComposition = Boolean(selectedWorldId || activeThreadId);
     showIndex();
     if (hadComposition) pushWorldLocation(null, null);
-    if (hadProject) {
+    if (hadWhat) {
       window.setTimeout(
-        () => void avatarDirector.handle({ type: "project_close" }),
+        () => void avatarDirector.handle({ type: "record_close" }),
         0,
       );
     }
@@ -390,18 +317,24 @@ export function PortfolioExperience() {
 
       const { nodeId, threadId } = readWorldLocation();
       const story = threadId ? portfolioThreadById.get(threadId) : undefined;
-      const node = nodeId ? portfolioWorldNodes.find(({ id }) => id === nodeId) : undefined;
+      const node = nodeId ? portfolioWorldNodeById.get(nodeId) : undefined;
       if (story) {
         setActiveThreadId(story.id);
         setSelectedWorldId(node?.id ?? story.nodeId);
+        if (node && isPortfolioWhatNode(node)) {
+          avatarActionState.selectWhat(node.id);
+        }
       } else if (node) {
         setSelectedWorldId(node.id);
+        if (isPortfolioWhatNode(node)) {
+          avatarActionState.selectWhat(node.id);
+        }
       }
     };
     window.addEventListener("popstate", syncWithLocation);
     syncWithLocation();
     return () => window.removeEventListener("popstate", syncWithLocation);
-  }, [showIndex]);
+  }, [avatarActionState, showIndex]);
 
   const setAssistantVisibility = useCallback(
     (visible: boolean) => {
@@ -434,11 +367,6 @@ export function PortfolioExperience() {
     setAssistantVisibility(true);
   }, [activeVisual, mobileMapOpen, setAssistantVisibility]);
 
-  const showBradleyRecord = useCallback(() => {
-    const bradleyNode = portfolioWorldNodes.find(({ id }) => id === "bradley");
-    if (bradleyNode) selectWorldNode(bradleyNode);
-  }, [selectWorldNode]);
-
   // The boundary matters more than the Suspense: a stale chunk after a deploy
   // is a load failure, and without it that throw unwound past the composition
   // and took the whole page. The toybox below has had one all along.
@@ -455,7 +383,6 @@ export function PortfolioExperience() {
         onExpandedPanelChange={registerDirectorConsoleObstacle}
         reducedMotion={reducedMotion}
         registry={avatarRegistry}
-        runner={avatarRunner}
       />
     </Suspense>
     </AvatarToyboxBoundary>
@@ -473,19 +400,13 @@ export function PortfolioExperience() {
 
   return (
     <main
-      className={`experience experience-graph portfolio-composition${mobileMapOpen ? " portfolio-mobile-map-open" : ""}${activeVisual ? " portfolio-visual-open" : ""}`}
+      className={`experience portfolio-composition${mobileMapOpen ? " portfolio-mobile-map-open" : ""}${activeVisual ? " portfolio-visual-open" : ""}`}
       id="main-content"
       tabIndex={-1}
     >
-      <PortfolioHeader
-        activeView="map"
-        onBradleySelect={showBradleyRecord}
-        obstacleRef={registerHeaderObstacle}
-        overlay
-      />
       <section
         aria-label="Spatial portfolio map"
-        className={`scene-shell${selectedNode ? " scene-shell-node-open" : ""}${selectedDomain ? " scene-shell-domain-focus" : ""}`}
+        className={`scene-shell${selectedWhatOpen ? " scene-shell-node-open" : ""}`}
         id="brain"
       >
         <PortfolioWorld
@@ -497,17 +418,6 @@ export function PortfolioExperience() {
           registerAvatarStage={registerAvatarStage}
           selectedId={selectedWorldId}
         />
-
-        <div className="scene-copy">
-          <h1
-            ref={registerHero}
-          >
-            <EditableText
-              path="interface.hero.throughline"
-              value={portfolioThroughline}
-            />
-          </h1>
-        </div>
 
         <>
           <PortfolioReader
