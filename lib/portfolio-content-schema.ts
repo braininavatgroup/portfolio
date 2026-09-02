@@ -5,7 +5,7 @@
 // the local writing endpoint validate with the same code.
 //
 // Stable content paths:
-//   records.<recordId>.label|kind|summary|principle
+//   records.<recordId>.label|kind|summary
 //   records.<recordId>.paragraphs.<paragraphId>
 //   records.<recordId>.placeholders.<blockId>.prompt
 //   records.<recordId>.placeholders.<blockId>.questions.<questionId>
@@ -44,7 +44,6 @@ export type PortfolioContentRecord = PortfolioContentBodyText & {
   label: string;
   kind: string;
   summary: string;
-  principle?: string;
 };
 
 export type PortfolioContentThread = PortfolioContentBodyText & {
@@ -183,6 +182,7 @@ function checkInlineLinks(
   text: string,
 ) {
   for (const target of inlineLinkTargets(text)) {
+    if (target.kind === "external") continue;
     const known = target.kind === "record" ? recordIds : threadIds;
     if (!known.has(target.id)) {
       issues.push({ path, message: `links to unknown ${target.kind} "${target.id}"` });
@@ -336,11 +336,6 @@ export function validatePortfolioContentDocument(
       checkString(issues, `${basePath}.label`, record.label);
       checkString(issues, `${basePath}.kind`, record.kind);
       checkString(issues, `${basePath}.summary`, record.summary);
-      if (structure.hasPrinciple) {
-        checkString(issues, `${basePath}.principle`, record.principle);
-      } else if (record.principle !== undefined) {
-        issues.push({ path: `${basePath}.principle`, message: "record has no principle field" });
-      }
       checkBodyText(issues, basePath, structure.body, record);
     }
     for (const id of Object.keys(records)) {
@@ -522,14 +517,6 @@ export function resolveContentPath(path: string): ResolvedContentPath | null {
         read: (doc) => doc.records[id]?.[field as "label" | "kind" | "summary"],
         write: (doc, value) => {
           doc.records[id][field as "label" | "kind" | "summary"] = value;
-        },
-      };
-    }
-    if (rest.length === 1 && field === "principle" && structure.hasPrinciple) {
-      return {
-        read: (doc) => doc.records[id]?.principle,
-        write: (doc, value) => {
-          doc.records[id].principle = value;
         },
       };
     }

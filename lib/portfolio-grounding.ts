@@ -37,7 +37,6 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
   const lines = [
     `Kind: ${node.kind}`,
     `Summary: ${node.summary}`,
-    ...(node.principle ? [`Principle: ${node.principle}`] : []),
     ...portfolioBodyText(node.body),
     ...(threads.length
       ? [`Threads: ${threads.map(({ title }) => title).join("; ")}`]

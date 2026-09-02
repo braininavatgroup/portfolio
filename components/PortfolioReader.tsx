@@ -13,6 +13,7 @@ import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
+import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import {
   portfolioContact,
   portfolioInterfaceText,
@@ -248,6 +249,22 @@ function LinkedParagraph({
   return parseInlineLinks(text).map((segment, index) => {
     if (segment.type === "text") return segment.text;
     const { target } = segment;
+    if (target.kind === "external") {
+      // An address off the site: the paragraph's voice in ink, opened in a
+      // new tab so the dossier keeps its place.
+      return (
+        <a
+          className="reader-inline-link"
+          data-external="true"
+          href={target.href}
+          key={`link-${index}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {segment.text}
+        </a>
+      );
+    }
     const node = target.kind === "record" ? portfolioWorldNodeById.get(target.id) : undefined;
     const thread = target.kind === "thread" ? portfolioThreadById.get(target.id) : undefined;
     if (!node && !thread) return segment.text;
@@ -270,6 +287,30 @@ function LinkedParagraph({
   });
 }
 
+// One authored paragraph: a single <p>, or, when the string carries `- `
+// lines, a group of prose runs and bulleted lists.
+function ParagraphFlow({
+  onSelect,
+  onSelectThread,
+  text,
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & { text: string }) {
+  return parseParagraphFlow(text).map((run, index) =>
+    run.type === "prose" ? (
+      <p key={`run-${index}`}>
+        <LinkedParagraph onSelect={onSelect} onSelectThread={onSelectThread} text={run.text} />
+      </p>
+    ) : (
+      <ul className="reader-list" key={`run-${index}`}>
+        {run.items.map((item, itemIndex) => (
+          <li key={`item-${itemIndex}`}>
+            <LinkedParagraph onSelect={onSelect} onSelectThread={onSelectThread} text={item} />
+          </li>
+        ))}
+      </ul>
+    ),
+  );
+}
+
 function PortfolioBody({
   body,
   contentBase,
@@ -288,19 +329,29 @@ function PortfolioBody({
     <section className="reader-composed-body">
       {bodyWithParagraphIds(body).map(({ block, paragraphId }, index) => {
         if (typeof block === "string") {
+          const listed = paragraphHasList(block);
           return (
             <EditableText
-              as="p"
+              as={listed ? "div" : "p"}
+              {...(listed ? { className: "reader-paragraph-group" } : {})}
               key={`paragraph-${index}`}
               multiline
               path={`${contentBase}.paragraphs.${paragraphId}`}
-              render={(text) => (
-                <LinkedParagraph
-                  onSelect={onSelect}
-                  onSelectThread={onSelectThread}
-                  text={text}
-                />
-              )}
+              render={(text) =>
+                listed ? (
+                  <ParagraphFlow
+                    onSelect={onSelect}
+                    onSelectThread={onSelectThread}
+                    text={text}
+                  />
+                ) : (
+                  <LinkedParagraph
+                    onSelect={onSelect}
+                    onSelectThread={onSelectThread}
+                    text={text}
+                  />
+                )
+              }
               value={block}
             />
           );
@@ -635,10 +686,19 @@ export function PortfolioReader({
             onSelectThread={onSelectThread}
           />
         )}
+        {/* Privacy is the dossier's last line: it appears only once the
+            reader has scrolled to the end, on the same 24 inset as the
+            Index control and the chat mark. */}
+        <a className="reader-privacy" href="/privacy">
+          <EditableText
+            path="interface.reader.privacyLink"
+            value={portfolioInterfaceText["reader.privacyLink"]}
+          />
+        </a>
       </div>
-      {/* One band outside the scroll area: one text control whose label the
-          state sets (Index everywhere but the index, where it is Home), then
-          Privacy. On mobile the map control sits at the band's right edge. */}
+      {/* One text control laid over the scroll area's bottom-left corner, on
+          the page's 24 inset: Index everywhere but the index, where it is
+          Home. Content scrolls beneath it. */}
       <footer className="portfolio-reader-footer">
         <nav aria-label="Dossier" className="reader-footer-links">
           {mode === "index" ? (
@@ -656,12 +716,6 @@ export function PortfolioReader({
               />
             </button>
           ) : null}
-          <a href="/privacy">
-            <EditableText
-              path="interface.reader.privacyLink"
-              value={portfolioInterfaceText["reader.privacyLink"]}
-            />
-          </a>
         </nav>
         <EditorStatusLine />
       </footer>

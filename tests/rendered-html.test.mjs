@@ -14,6 +14,15 @@ async function filesBelow(directory) {
   ).flat();
 }
 
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#x27;");
+}
+
 async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
@@ -96,12 +105,17 @@ test("the homepage opens directly on the map with About as the untitled home", a
   // The footer's Index control and the inline practice links ship in the HTML.
   assert.match(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /class=["']reader-inline-link["'][^>]*data-register=["']warm["']/i);
-  assert.match(html, /INFAMOUS PR/i);
-  assert.match(html, /Music promo campaign kickoff/i);
-  assert.match(html, /Making work playable/i);
-  assert.match(html, /From argument to instrument/i);
-  assert.match(html, /Authorship/i);
-  assert.match(html, /Philosophy/i);
+  // Every record label and thread title from the content document ships in
+  // the HTML, whatever the copy currently says.
+  const content = JSON.parse(
+    await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
+  );
+  for (const { label } of Object.values(content.records)) {
+    assert.ok(html.includes(escapeHtml(label)), `missing record label ${label}`);
+  }
+  for (const { title } of Object.values(content.threads)) {
+    assert.ok(html.includes(escapeHtml(title)), `missing thread title ${title}`);
+  }
   assert.match(html, /data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']identity["'][^>]*data-world-node=["']bradley["']/i);
   assert.match(html, /data-family=["']story["'][^>]*data-world-node=["']thread-/i);

@@ -59,7 +59,6 @@ describe("portfolio content adapter fidelity", () => {
           label: node.label,
           kind: node.kind,
           summary: node.summary,
-          ...(node.principle ? { principle: node.principle } : {}),
           ...extractBody(node.body),
         },
       ]),
@@ -71,9 +70,6 @@ describe("portfolio content adapter fidelity", () => {
           label: record.label,
           kind: record.kind,
           summary: record.summary,
-          ...("principle" in record && record.principle
-            ? { principle: record.principle }
-            : {}),
           paragraphs: record.paragraphs,
           placeholders: record.placeholders,
           visuals: record.visuals,

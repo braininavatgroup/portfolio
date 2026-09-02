@@ -84,7 +84,6 @@ export type PortfolioWorldNode = {
   status?: PortfolioRecordStatus;
   summary: string;
   summaryStatus?: "placeholder";
-  principle?: string;
   body: readonly PortfolioBodyBlock[];
   threadId?: string;
 };
@@ -248,9 +247,6 @@ export const portfolioWorldNodes: readonly PortfolioWorldNode[] =
       summary: texts.summary,
       ...(structure.summaryStatus
         ? { summaryStatus: structure.summaryStatus }
-        : {}),
-      ...(structure.hasPrinciple && texts.principle !== undefined
-        ? { principle: texts.principle }
         : {}),
       body: mergeBody(structure.body, texts),
       ...(threadId ? { threadId } : {}),

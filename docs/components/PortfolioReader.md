@@ -6,14 +6,14 @@ Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 The fixed dossier — the `<aside>` holding every piece of reading on the site.
 Four modes, derived from props and published as `data-reader-mode`: `home`
 (About, titled by its summary), `index`, `record`, and `thread`. All share one
-section model (64 above a label, rows as `ul > li > button`) and one footer
-band outside the scroll area: **Index** (or **Home** on the index) and
-Privacy. No kind chip, path line, or Threads section: a record's containing
+section model (64 above a label, rows as `ul > li > button`), one **Index**
+(or **Home**) control laid over the scroll's bottom-left corner, and Privacy
+as the last line. No kind chip, path line, or Threads section: a record's containing
 threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
-`[phrase](thread:<id>)` links, rendered as `.reader-inline-link` buttons. It
-exports `ReaderPlaceholderFrame`, the draft frame the visual stage reuses.
-Content comes from [`lib/portfolio-world.ts`](../../lib/portfolio-world.ts);
-authored text lives in `content/portfolio-content.json`. No data props.
+`[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
+(new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
+`ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
+from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
 
 ## Props
 

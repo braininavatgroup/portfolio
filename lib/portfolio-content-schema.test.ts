@@ -48,6 +48,13 @@ describe("validatePortfolioContentDocument", () => {
     ]);
   });
 
+  it("accepts an external https link without checking it against the structure", () => {
+    const doc = document();
+    doc.records.bradley.paragraphs.p1 =
+      "More at [braininavat.dance](https://braininavat.dance/) and [ok](record:dubs).";
+    expect(validatePortfolioContentDocument(doc)).toEqual([]);
+  });
+
   it("rejects unknown record IDs", () => {
     const doc = document();
     (doc.records as Record<string, unknown>).impostor = doc.records.bradley;
@@ -142,6 +149,7 @@ describe("resolveContentPath", () => {
     expect(resolveContentPath("records.nope.summary")).toBeNull();
     expect(resolveContentPath("records.bradley.paragraphs.p9")).toBeNull();
     expect(resolveContentPath("records.bradley.principle")).toBeNull();
+    expect(resolveContentPath("records.pitching.principle")).toBeNull();
     expect(resolveContentPath("threads.making-work-playable.members")).toBeNull();
     expect(resolveContentPath("interface.unknown.key")).toBeNull();
     expect(resolveContentPath("revision")).toBeNull();

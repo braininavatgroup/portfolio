@@ -98,7 +98,7 @@ They are the only color names that belong in new composition CSS.
 | `--map-paper-near` | Near-paper world surfaces |
 | `--map-muted` | Map labels and secondary map ink |
 | `--map-line` | The single neutral rule. On the dossier it draws exactly one thing: the left edge |
-| `--map-line-strong` | Figure frames, the play ring, the row hover ring, the stage border |
+| `--map-line-strong` | Figure frames, the play ring, the stage border |
 | `--map-grid` | Placeholder grids |
 | `--reader-paper` | Dossier surface |
 | `--reader-body` | Paragraph copy |
@@ -143,6 +143,8 @@ is defined inside the 600px block only.
 - `--register` — set by `.reader-inline-link[data-register="…"]` to one
   `--world-*` alias, then read as `var(--register, var(--world-identity))`.
   This is the idiom for "this element takes its record's register color."
+  An external anchor (`[data-external="true"]`) sets it to `--ink` instead:
+  an address off the site belongs to no register.
 - `--cursor-a` / `--cursor-b` — set inline by `components/CursorInstrument.tsx`
   from the hovered node's register.
 
@@ -288,8 +290,9 @@ where the file already does so.
 (`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
 sizing), plus a 600px block for phone-scale safe-area insets and the chat's
 phone layout. Below 900 the world is removed, the dossier is full width, its
-padding becomes `24px 24px 32px` (page inset and gutter are the same number),
-and the footer band grows to 72 to hold the map control. The 980px and 760px
+padding becomes `24px 24px 0` (page inset and gutter are the same number) and
+the Privacy line keeps 40 clear on its right for the fixed map control. The
+980px and 760px
 breakpoints belong to supporting pages. Do not add a new breakpoint, and do
 not add a `pointer: coarse` or `max-height` block that resizes the dossier.
 
@@ -319,10 +322,9 @@ weight, scale, or the outline. There is no "selected blue."
 **Rule 6.2 — One row rule set.** Index, Related, Explore this thread, and
 Contact rows are one shape: `ul > li > button` (or `a` for Contact) with class
 `.reader-index-row`, a 40px row (`padding: 8px 0` on a 24 line), the label in
-the row voice, the mark trailing right in its register, no kind text. Hover is
-a 1px `--map-line-strong` outline at `outline-offset: 2px` around the row's
-own box; focus is the house 2px `--ink` ring. No negative margins, no padding
-bleed; rows stay full text-column width. The mark never changes.
+the row voice, the mark trailing right in its register, no kind text. Rows
+have no hover state; focus is the house 2px `--ink` ring. No negative margins,
+no padding bleed; rows stay full text-column width. The mark never changes.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
 Silverpoint line: thin, straight, neutral, arrowless. The canvas connectors in
@@ -365,12 +367,16 @@ mast and the dossier title share the display voice and the same top, so they
 sit on one baseline across the seam. The stage's top edge clears the mast row
 (24 + 40 + 24).
 
-**Rule 6.9 — The footer band.** One band outside the scroll area, in every
-dossier state: one text control in the caption voice — **Home** on the index
-(calls `onReset`), **Index** everywhere else (calls `onOpenIndex`) — and
-**Privacy**, muted at rest and `--ink` on hover. On mobile the map/index
-control sits at the band's right edge, positioned by the composition so it
-also stays on the map's band when the dossier is hidden.
+**Rule 6.9 — The bottom line.** No footer band. One text control in the
+caption voice — **Home** on the index (calls `onReset`), **Index** everywhere
+else (calls `onOpenIndex`) — is laid over the scroll area's bottom-left corner
+on the page's 24 inset, with a paper halo so text scrolls beneath it legibly.
+**Privacy** is the dossier's last line, right-aligned in the caption voice, 32
+below the content, reached only by scrolling to the end. The chat mark's
+label, the Index control, and the Privacy line share one bottom edge at the
+24 inset; both controls are muted at rest and `--ink` on hover. On mobile the
+map/index control is fixed at the 16 inset, so the Index label and Privacy
+line drop to 16 and the Privacy line keeps 40 clear on its right.
 
 **Rule 6.10 — Cursor contract.** On `pointer: fine`, `cursor: none` is forced
 globally and `.cursor-instrument` is the only pointer. Consequences for new UI:

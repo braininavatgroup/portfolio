@@ -93,9 +93,9 @@ multiple of 8; these are the multiples it uses.
 | Token | Value | Use |
 | --- | --- | --- |
 | `--reader-space-1` | `8px` | Label to content; row padding; figure margin |
-| `--reader-space-2` | `16px` | Paragraph gap; title to summary; footer band padding |
-| `--reader-space-3` | `24px` | The page inset (mast, dossier top, chat and stage corners); mobile gutter |
-| `--reader-space-4` | `32px` | Desktop gutter; summary to body; index group gap; dossier bottom padding |
+| `--reader-space-2` | `16px` | Paragraph gap; title to summary; mobile bottom inset |
+| `--reader-space-3` | `24px` | The page inset (mast, dossier top and bottom, chat and stage corners); mobile gutter |
+| `--reader-space-4` | `32px` | Desktop gutter; summary to body; index group gap; content to Privacy line |
 | `--reader-space-6` | `48px` | Reserved; unused in the approved states |
 | `--reader-space-8` | `64px` | Above every section label |
 

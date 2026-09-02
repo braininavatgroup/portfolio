@@ -13,6 +13,7 @@ import { AvatarController } from "../lib/avatar/controller";
 import { AvatarDirector } from "../lib/avatar/director";
 import type { AvatarTargetRegistry } from "../lib/avatar/target-registry";
 import type { AvatarToyboxSession } from "./avatar-toybox/useAvatarToyboxSession";
+import { portfolioThreadById, portfolioWorldNodeById } from "../lib/portfolio-world";
 import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./avatar/AvatarOverlay", async () => {
@@ -410,16 +411,16 @@ describe("spatial self-portrait", () => {
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Making work playable" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("making-work-playable")!.title }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "From argument to instrument" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("from-argument-to-instrument")!.title }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Authorship" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("authorship")!.title }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Philosophy" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("philosophy")!.title }),
     ).toBeTruthy();
     expect(screen.queryByLabelText("Move portfolio panel")).toBeNull();
   });
@@ -429,14 +430,14 @@ describe("spatial self-portrait", () => {
     openIndex();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Making work playable" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("making-work-playable")!.title }),
     );
 
     expect(window.location.hash).toBe("#thread/making-work-playable");
 
     expect(
       screen.getByRole("complementary", {
-        name: "Making work playable thread",
+        name: `${portfolioThreadById.get("making-work-playable")!.title} thread`,
       }),
     ).toBeTruthy();
     expect(
@@ -454,7 +455,7 @@ describe("spatial self-portrait", () => {
     fireEvent.click(screen.getByRole("button", { name: "In Production Dubs" }));
     expect(window.location.hash).toBe("#thread/making-work-playable");
     expect(
-      screen.getByRole("complementary", { name: "Making work playable thread" }),
+      screen.getByRole("complementary", { name: `${portfolioThreadById.get("making-work-playable")!.title} thread` }),
     ).toBeTruthy();
 
     fireEvent.click(
@@ -482,13 +483,13 @@ describe("spatial self-portrait", () => {
     openIndex();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "From argument to instrument" }),
+      screen.getByRole("button", { name: portfolioThreadById.get("from-argument-to-instrument")!.title }),
     );
 
     expect(window.location.hash).toBe("#thread/from-argument-to-instrument");
     expect(
       screen.getByRole("complementary", {
-        name: "From argument to instrument thread",
+        name: `${portfolioThreadById.get("from-argument-to-instrument")!.title} thread`,
       }),
     ).toBeTruthy();
   });
@@ -512,7 +513,7 @@ describe("spatial self-portrait", () => {
 
     expect(
       screen.getByRole("complementary", {
-        name: "Music promo campaign pitching record",
+        name: `${portfolioWorldNodeById.get("pitching")!.label} record`,
       }),
     ).toBeTruthy();
     expect(

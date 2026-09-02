@@ -23,21 +23,32 @@ describe("inline links", () => {
     expect(parseInlineLinks("")).toEqual([]);
   });
 
-  it("leaves markdown-looking text that is not a record or thread link alone", () => {
-    const other = "See [the docs](https://example.com) and [x](note:1).";
-    expect(parseInlineLinks(other)).toEqual([{ type: "text", text: other }]);
+  it("parses an external link and leaves other markdown-looking text alone", () => {
+    const other = "See [the docs](https://example.com/a?b=1) and [x](note:1).";
+    expect(parseInlineLinks(other)).toEqual([
+      { type: "text", text: "See " },
+      { type: "link", text: "the docs", target: { kind: "external", href: "https://example.com/a?b=1" } },
+      { type: "text", text: " and [x](note:1)." },
+    ]);
+    expect(parseInlineLinks("[x](ftp://example.com) [y](javascript:alert(1))")).toEqual([
+      { type: "text", text: "[x](ftp://example.com) [y](javascript:alert(1))" },
+    ]);
   });
 
-  it("strips the markup for plain-text consumers", () => {
+  it("strips the markup for plain-text consumers, keeping an external address", () => {
     expect(stripInlineLinks(text)).toBe(
       "I run a music promotions agency and read Philosophy.",
+    );
+    expect(stripInlineLinks("More at [braininavat.dance](https://braininavat.dance/).")).toBe(
+      "More at braininavat.dance (https://braininavat.dance/).",
     );
   });
 
   it("lists every target", () => {
-    expect(inlineLinkTargets(text)).toEqual([
+    expect(inlineLinkTargets(`${text} [site](https://example.com)`)).toEqual([
       { kind: "record", id: "music-practice" },
       { kind: "thread", id: "philosophy" },
+      { kind: "external", href: "https://example.com" },
     ]);
   });
 });

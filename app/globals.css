@@ -489,39 +489,60 @@ body {
   }
 }
 
-/* One band outside the dossier's scroll area, in every state: one text
-   control whose label the state sets (Home on the index, Index elsewhere),
-   then Privacy. Desktop band is 56 (16 · 24 line · 16); mobile 72 while it
-   holds the 40px map control. */
+/* The Index / Home control: one caption-voice label laid over the scroll
+   area's bottom-left corner on the page's 24 inset, so its bottom edge sits
+   on the same line as the chat mark's label and, at the end of the scroll,
+   the Privacy line. Content scrolls beneath it; a paper halo behind the word
+   keeps passing text legible without a band. */
 .portfolio-reader-footer {
   align-items: flex-end;
+  bottom: 0;
   display: flex;
-  flex-shrink: 0;
   justify-content: space-between;
-  padding: var(--reader-space-2) var(--reader-space-4) max(var(--reader-space-2), env(safe-area-inset-bottom));
-  width: 100%;
+  left: 0;
+  padding: 0 var(--reader-space-4) max(var(--reader-space-3), env(safe-area-inset-bottom));
+  pointer-events: none;
+  position: absolute;
+  right: 0;
 }
 
 .reader-footer-links {
   display: flex;
   flex: 1;
   gap: var(--reader-space-2);
-  justify-content: space-between;
 }
 
-.portfolio-reader-footer a,
 .portfolio-reader-footer button {
-  background: none;
+  appearance: none;
+  background: var(--reader-paper);
   border: 0;
+  box-shadow: 0 0 10px 8px var(--reader-paper);
   color: var(--reader-muted);
   font: var(--reader-type-caption) var(--font-reader);
-  line-height: var(--reader-space-3);
   padding: 0;
+  pointer-events: auto;
+}
+
+.portfolio-reader-footer button:focus-visible {
+  color: var(--ink);
+}
+
+/* The dossier's last line: Privacy, right-aligned in the caption voice,
+   32 below the content, reached only by scrolling to the end. It carries
+   the dossier's end inset (24, matching the Index control and chat mark)
+   so all three labels share one bottom edge. */
+.reader-privacy {
+  color: var(--reader-muted);
+  display: block;
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: auto 0 0;
+  padding: var(--reader-space-4) var(--reader-space-4) max(var(--reader-space-3), env(safe-area-inset-bottom));
+  text-align: right;
   text-decoration: none;
 }
 
-.portfolio-reader-footer a:focus-visible,
-.portfolio-reader-footer button:focus-visible {
+.reader-privacy:focus-visible {
   color: var(--ink);
 }
 
@@ -1149,16 +1170,24 @@ body:has(.portfolio-composition) {
   z-index: 6;
 }
 
-/* The content area scrolls; the footer band below it does not. */
+/* The content area scrolls; the Index control is laid over it. A column so
+   the Privacy line can sit at the pane's end even when the content is
+   shorter than the pane. */
 .reader-scroll {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
 }
 
+.reader-scroll > .reader-content {
+  flex: 0 0 auto;
+}
+
 .reader-content {
-  padding: var(--reader-space-3) var(--reader-space-4) var(--reader-space-4);
+  padding: var(--reader-space-3) var(--reader-space-4) 0;
 }
 
 /* Head stack: title → 16 → summary → 32 → body. Home and Index have no
@@ -1196,11 +1225,28 @@ body:has(.portfolio-composition) {
   gap: var(--reader-space-2);
 }
 
-.reader-composed-body > p {
+.reader-composed-body > p,
+.reader-paragraph-group > p,
+.reader-list {
   color: var(--reader-body);
   font: var(--reader-type-body) var(--font-reader);
   margin: 0;
   text-wrap: pretty;
+}
+
+/* A paragraph that carries a bulleted list: its prose runs and lists sit 8
+   apart, and the list keeps the body voice with a plain marker. */
+.reader-paragraph-group {
+  display: grid;
+  gap: var(--reader-space-1);
+}
+
+.reader-list {
+  padding-left: var(--reader-space-3);
+}
+
+.reader-list > li {
+  padding-left: var(--reader-space-1);
 }
 
 /* Sections are separated by space alone: 64 above a label, 8 below it. */
@@ -1279,6 +1325,8 @@ body:has(.portfolio-composition) {
 .reader-inline-link[data-register="warm"] { --register: var(--world-warm); }
 .reader-inline-link[data-register="bridge"] { --register: var(--world-bridge); }
 .reader-inline-link[data-register="cool"] { --register: var(--world-cool); }
+
+.reader-inline-link[data-external="true"] { --register: var(--ink); }
 
 .reader-inline-link:focus-visible {
   text-decoration-color: currentColor;
@@ -1414,14 +1462,10 @@ body:has(.portfolio-composition) {
   display: none;
 }
 
-/* Hover is fine-pointer only, and instant: rows and figures take a ring or a
-   darker frame, links a full-strength underline, footer controls ink. */
+/* Hover is fine-pointer only, and instant: figures take a darker frame,
+   links a full-strength underline, the Index and Privacy controls ink. Rows
+   have no hover state. */
 @media (pointer: fine) {
-  .reader-index-row:hover {
-    outline: 1px solid var(--map-line-strong);
-    outline-offset: 2px;
-  }
-
   .reader-inline-link:hover {
     text-decoration-color: currentColor;
   }
@@ -1431,7 +1475,7 @@ body:has(.portfolio-composition) {
     border-color: var(--ink);
   }
 
-  .portfolio-reader-footer a:hover,
+  .reader-privacy:hover,
   .portfolio-reader-footer button:hover {
     color: var(--ink);
   }
@@ -1726,18 +1770,17 @@ body:has(.portfolio-composition) {
     width: 100%;
   }
   /* Page inset and gutter become the same number; nothing shrinks. */
+  /* The mobile map/index control is fixed at the 16 inset, so the Index
+     label and the Privacy line drop to that inset too, and the content
+     keeps 40 clear at the end for the control's box. */
   .portfolio-composition .reader-content {
-    padding: var(--reader-space-3) var(--reader-space-3) var(--reader-space-4);
+    padding: var(--reader-space-3) var(--reader-space-3) 0;
   }
-  /* The band is 72 while it holds the 40px map control at its right edge;
-     the control itself is fixed so it stays on the map's band when the
-     dossier is hidden. */
+  .portfolio-composition .reader-privacy {
+    padding: var(--reader-space-4) calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
+  }
   .portfolio-composition .portfolio-reader-footer {
-    min-height: 72px;
-    padding: var(--reader-space-2) calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
-  }
-  .portfolio-composition .reader-footer-links {
-    justify-content: flex-start;
+    padding: 0 calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
   }
   .portfolio-composition .portfolio-chat-trigger {
     display: none;
