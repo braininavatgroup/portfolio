@@ -532,7 +532,7 @@ export function PortfolioChat({
         hidden={!open}
       >
         <button
-          aria-label="Back to portfolio index"
+          aria-label="Back to portfolio home"
           onClick={minimize}
           ref={mobileBackRef}
           type="button"

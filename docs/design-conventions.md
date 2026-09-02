@@ -29,10 +29,9 @@ Identify the surface first.
    the world, the dossier, the assistant, the cursor. Applied in
    `components/PortfolioExperience.tsx`. This is the client-facing portfolio
    and the only surface where new design work happens.
-2. **Supporting pages.** `/index` (`.flat-index`),
-   `/privacy`, the graph/scene/drawer/toybox/avatar-director selectors, and the
-   non-overlay `.portfolio-header`. These predate the checkpoint. They are kept
-   working, not extended.
+2. **Supporting pages.** `/privacy` and the
+   graph/scene/drawer/toybox/avatar-director selectors. These predate the
+   checkpoint. They are kept working, not extended.
 
 **Rule 0.1** — New work targets the composition. Do not add new
 `--prototype-*` tokens or new legacy-page selectors. The inventory only
@@ -157,7 +156,7 @@ large sizes.
 
 | Use | Rule |
 | --- | --- |
-| Mast and index title | `var(--portfolio-display-title-size)`, weight 500, `letter-spacing: -0.055em`, `line-height: 0.98` (`.portfolio-world-mast`, `.reader-index-content > h1`, `.reader-topbar button`) |
+| Mast and dossier topbar | `var(--portfolio-display-title-size)`, weight 500, `letter-spacing: -0.055em`, `line-height: 0.98` (`.portfolio-world-mast`, `.reader-topbar button`) |
 | Record title | `clamp(34px, 4vw, 53px)`, weight 400, `letter-spacing: -0.065em`, `line-height: 0.92` (`.reader-content h1`) |
 | Section heading | `var(--reader-section-title-size)`, weight 500, `letter-spacing: -0.025em` (`.reader-index-group h2`) |
 | Summary | `var(--reader-row-size)`, `letter-spacing: -0.015em`, `line-height: 1.43` |
@@ -212,9 +211,8 @@ is enforced, not a courtesy.)
 gallery drives it. `:where([data-theme="…"]) .portfolio-composition` re-points
 every semantic alias, which is how `/design` shows light and dark on one page.
 There is no user-facing theme toggle: on the live site the mode comes from
-`prefers-color-scheme` alone. `data-theme="light"` is additionally set on
-exactly one legacy element (`app/index/page.tsx`) to force the prototype light
-palette there. Do not wire new composition styling to it — read the aliases.
+`prefers-color-scheme` alone. Do not wire new composition styling to it — read the
+aliases.
 
 **Rule 4.4** — Anything painted behind the composition must follow the mode
 too. `body:has(.portfolio-composition)` sets the body background to
@@ -326,7 +324,10 @@ Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
 symbol
 (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png` filled with
 `currentColor` and has no containing shape. A new mark type joins that
-envelope; it does not get its own size or weight.
+envelope; it does not get its own size or weight. The Contact marks
+(`lib/portfolio-contact-mark.ts`) are the worked case: three built from the
+node primitives, two brand marks as filled silhouettes like the brain symbol,
+all in the identity colour.
 
 **Rule 6.5 — One temporary floating surface.** Chat is it. Do not add a second
 overlay, popover, or navigation layer; the dossier holds Index, Story, and

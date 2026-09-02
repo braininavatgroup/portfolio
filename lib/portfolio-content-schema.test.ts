@@ -24,12 +24,27 @@ describe("validatePortfolioContentDocument", () => {
     expect(
       portfolioInterfaceTextKeys.filter((key) => key.startsWith("index.section.")),
     ).toEqual([
-      "index.section.about",
       "index.section.threads",
       "index.section.operations",
       "index.section.campaign",
       "index.section.client",
       "index.section.products",
+    ]);
+  });
+
+  it("rejects an inline link to a record or thread that does not exist", () => {
+    const doc = document();
+    doc.records.bradley.paragraphs.p1 =
+      "See [this](record:nope) and [that](thread:missing) and [ok](record:dubs).";
+    expect(validatePortfolioContentDocument(doc)).toEqual([
+      expect.objectContaining({
+        path: "records.bradley.paragraphs.p1",
+        message: 'links to unknown record "nope"',
+      }),
+      expect.objectContaining({
+        path: "records.bradley.paragraphs.p1",
+        message: 'links to unknown thread "missing"',
+      }),
     ]);
   });
 

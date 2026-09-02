@@ -74,14 +74,14 @@ describe("portfolio chat", () => {
       name: "Portfolio assistant navigation",
     });
     const back = screen.getByRole("button", {
-      name: "Back to portfolio index",
+      name: "Back to portfolio home",
     });
     const composer = document.querySelector(".portfolio-chat-composer")!;
     const input = screen.getByLabelText("Ask a question about the portfolio");
 
     expect(navigation.contains(back)).toBe(true);
     expect(back.querySelector("[data-index-mark]")).toBeNull();
-    expect(back.textContent).toBe("Index");
+    expect(back.textContent).toBe("Home");
     expect(navigation.textContent).toContain("Chat about the portfolio");
     expect(composer.contains(back)).toBe(false);
     expect(input.tagName).toBe("TEXTAREA");

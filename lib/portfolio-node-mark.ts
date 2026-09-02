@@ -18,6 +18,12 @@ export type PortfolioNodeMarkPrimitive =
       points: readonly PortfolioNodeMarkPoint[];
       close: boolean;
       fill: boolean;
+    }
+  | {
+      /** SVG path data in the same mark coordinate space; curves only. */
+      kind: "path";
+      d: string;
+      fill: boolean;
     };
 
 export function portfolioNodeMarkVertices(

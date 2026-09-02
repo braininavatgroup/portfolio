@@ -127,6 +127,11 @@ beforeAll(async () => {
   ]);
 });
 
+// The dossier opens on home; the index rows live behind the footer control.
+function openIndex() {
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+}
+
 async function renderExperience() {
   mockMatchMedia();
   if (!window.location.search) {
@@ -196,7 +201,7 @@ describe("spatial self-portrait", () => {
       (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
     ).toBe(false);
 
-    const back = screen.getByRole("button", { name: "Back to portfolio index" });
+    const back = screen.getByRole("button", { name: "Back to portfolio home" });
     await waitFor(() => expect(document.activeElement).toBe(back));
     fireEvent.click(back);
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
@@ -227,6 +232,7 @@ describe("spatial self-portrait", () => {
   it("opens a reader visual in the map surface and returns to the record", async () => {
     await renderExperience();
     const experience = document.getElementById("main-content")!;
+    openIndex();
 
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
     expect(
@@ -393,6 +399,10 @@ describe("spatial self-portrait", () => {
 
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
     expect(
+      screen.getByRole("complementary", { name: "Portfolio home" }),
+    ).toBeTruthy();
+    openIndex();
+    expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
     expect(
@@ -412,6 +422,7 @@ describe("spatial self-portrait", () => {
 
   it("uses the index and world as two controls for the same thread state", async () => {
     await renderExperience();
+    openIndex();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Making work playable" }),
@@ -447,20 +458,22 @@ describe("spatial self-portrait", () => {
     );
     expect(window.location.hash).toBe("");
     expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
 
+    openIndex();
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
     expect(window.location.hash).toBe("");
     expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
   });
 
   it("uses the canonical arc identity in navigation state", async () => {
     await renderExperience();
+    openIndex();
 
     fireEvent.click(
       screen.getByRole("button", { name: "From argument to instrument" }),
@@ -513,7 +526,7 @@ describe("spatial self-portrait", () => {
       "__portfolioTestAvatarDirector",
     ) as AvatarDirector;
     const handle = vi.spyOn(director, "handle");
-    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
     await waitFor(() =>
       expect(handle).toHaveBeenCalledWith({ type: "record_close" }),
     );
@@ -571,13 +584,17 @@ describe("spatial self-portrait", () => {
 
     expect(document.querySelector(".portfolio-composition")).toBeTruthy();
     expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
   });
 
   it("keeps the map primary while the shared reader supplies the index", async () => {
     await renderExperience();
 
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio home" }),
+    ).toBeTruthy();
+    openIndex();
     expect(
       screen.getByRole("complementary", { name: "Portfolio index" }),
     ).toBeTruthy();
@@ -592,17 +609,20 @@ describe("spatial self-portrait", () => {
     expect(screen.queryByText("Moving through the glass…")).toBeNull();
   });
 
-  it("opens the About record from Bradley's map node", async () => {
+  it("lands on home from Bradley's map node, since About is the home state", async () => {
     await renderExperience();
-
-    expect(document.querySelector(".portfolio-composition")).toBeTruthy();
+    openIndex();
+    expect(
+      screen.getByRole("complementary", { name: "Portfolio index" }),
+    ).toBeTruthy();
 
     fireEvent.click(document.querySelector('[data-world-node="bradley"]')!);
     await act(async () => {});
 
     expect(
-      screen.getByRole("complementary", { name: "Bradley Berkman record" }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
+    expect(document.querySelector(".reader-topbar")).toBeNull();
   });
 
   it("renders the locked mark grammar at one optical scale", async () => {
@@ -619,6 +639,7 @@ describe("spatial self-portrait", () => {
 
   it("opens a What record in the reader and restores the index", async () => {
     await renderExperience();
+    openIndex();
 
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
@@ -627,16 +648,18 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
     expect(screen.getByText(/human thinking in the age of agents/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
 
     expect(
-      screen.getByRole("complementary", { name: "Portfolio index" }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
+    expect(window.location.hash).toBe("");
   });
 
   it("connects chat attention and direct record navigation to the avatar director", async () => {
     // Catches the contextual director existing in isolation without owning real interface events.
     await renderExperience();
+    openIndex();
     fireEvent.click(
       screen.getByRole("button", { name: "Open portfolio assistant" }),
     );
@@ -666,8 +689,9 @@ describe("spatial self-portrait", () => {
   it("keeps the reader fixed when selection changes its contents", async () => {
     await renderExperience();
     const panel = screen.getByRole("complementary", {
-      name: "Portfolio index",
+      name: "Portfolio home",
     });
+    openIndex();
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
     const recordPanel = screen.getByRole("complementary", {

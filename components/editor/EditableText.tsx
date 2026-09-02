@@ -58,6 +58,11 @@ export type EditableTextProps = {
   as?: ElementType;
   multiline?: boolean;
   children?: ReactNode;
+  /**
+   * Renders the live string when writing mode is off. Writing mode always
+   * shows the raw string so inline markup stays editable in place.
+   */
+  render?: (display: string) => ReactNode;
   [key: string]: unknown;
 };
 
@@ -66,6 +71,7 @@ export function EditableText({
   value,
   as = "span",
   multiline,
+  render,
   ...rest
 }: EditableTextProps) {
   const display = useEditableContent(path, value);
@@ -83,5 +89,5 @@ export function EditableText({
       </Suspense>
     );
   }
-  return createElement(as, rest, display);
+  return createElement(as, rest, render ? render(display) : display);
 }

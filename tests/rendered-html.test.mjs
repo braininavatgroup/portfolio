@@ -55,9 +55,10 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
   assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
-  assert.match(html, /<h1>Index<\/h1>/i);
+  assert.match(html, /data-reader-mode=["']home["']/i);
+  assert.doesNotMatch(html, /<h1>Index<\/h1>/i);
   assert.doesNotMatch(html, />Enter map</i);
-  assert.match(html, /aria-label=["']Portfolio index["']/i);
+  assert.match(html, /aria-label=["']Portfolio home["']/i);
   assert.doesNotMatch(html, /Give small operators larger-operator leverage/i);
   assert.doesNotMatch(html, /Bradley Berkman portfolio/i);
   assert.doesNotMatch(html, /Click anywhere to step inside, then follow the work outward\./i);
@@ -79,17 +80,22 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.doesNotMatch(html, /Avatar developer controls|avatarDebug/i);
 });
 
-test("the homepage opens directly on the map with its synchronized index", async () => {
+test("the homepage opens directly on the map with About as the untitled home", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
 
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
   assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /<h1>Index<\/h1>/i);
+  assert.match(html, /data-reader-mode=["']home["']/i);
+  assert.doesNotMatch(html, /<h1>Index<\/h1>/i);
+  assert.doesNotMatch(html, /<h1>Bradley Berkman<\/h1>/i);
   assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
+  assert.match(html, /aria-label=["']Portfolio home["']/i);
+  // The footer's Index control and the inline practice links ship in the HTML.
   assert.match(html, /aria-label=["']Portfolio index["']/i);
+  assert.match(html, /class=["']reader-inline-link["'][^>]*data-register=["']warm["']/i);
   assert.match(html, /INFAMOUS PR/i);
   assert.match(html, /Music promo campaign kickoff/i);
   assert.match(html, /Making work playable/i);

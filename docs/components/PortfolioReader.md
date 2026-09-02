@@ -4,10 +4,13 @@ Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx)
 Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
 The fixed dossier — the `<aside>` holding every piece of reading on the site.
-Three modes, derived from props rather than set directly and published as
-`data-reader-mode`: `index`, `record` (one node), and `thread` (a narrated
-path, the only long-form type). All three share this one panel instead of
-spawning panels or routes (Rule 6.5). Content comes from
+Four modes, derived from props rather than set directly and published as
+`data-reader-mode`: `home` (the About record, untitled), `index` (the grouped
+list, opened from the footer), `record` (one node), and `thread` (a narrated
+path, the only long-form type). All four share this one panel instead of
+spawning panels or routes (Rule 6.5). Body paragraphs may carry inline
+`[phrase](record:<id>)` / `[phrase](thread:<id>)` links, rendered as
+`.reader-inline-link` buttons that call `onSelect` / `onSelectThread`. Content comes from
 the validated runtime model exported by
 [`lib/portfolio-world.ts`](../../lib/portfolio-world.ts); canonical authored
 text lives in `content/portfolio-content.json`. It takes no data props.
@@ -15,9 +18,10 @@ text lives in `content/portfolio-content.json`. It takes no data props.
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, `onSelectThread`
-required; `onOpenVisual` and `registerAvatarTarget` optional.
-Mode is `record` when `selectedId` names a non-`story` node, else `thread` when
-`activeThreadId` is set, else `index`.
+required; `indexOpen`, `onOpenIndex`, `onOpenVisual` and `registerAvatarTarget`
+optional. Mode is `record` when `selectedId` names a non-`story` node other
+than `bradley`, else `thread` when `activeThreadId` is set, else `index` when
+`indexOpen`, else `home`. Selecting `bradley` lands on `home`.
 
 ## Requires
 
@@ -54,13 +58,13 @@ export function PortfolioReaderExample() {
 ## Pitfalls
 
 - **A `story`-family node in `selectedId` does not open a record.** Stories are
-  reached through `activeThreadId`; the story node id alone falls to the index.
-- **The registered avatar target follows outline type.** Each What record uses
-  `portfolio:record:<id>`; Who, Where, Why, and the index use `portfolio:index`.
+  reached through `activeThreadId`; the story node id alone falls to home.
+- **The registered avatar target follows outline type.** What records use
+  `portfolio:record:<id>`; everything else uses `portfolio:index`.
 - **`?review=clean` changes the rendering**, adding
   `.portfolio-reader-clean-review`. A screenshot taken with it set is not the
   default surface.
-- **Index scroll position is restored by a layout effect keyed on mode.**
-  Remounting instead of changing props loses it.
+- **Index scroll position is restored by a layout effect keyed on mode**;
+  every other mode opens at its top. Remounting loses the index position.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the
-  in-record triggers render with nothing to open.
+  triggers render with nothing to open.

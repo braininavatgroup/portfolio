@@ -17,7 +17,6 @@ inventory, and `/design` for the same components rendered in their states.
 | [PortfolioWorld](./PortfolioWorld.md) | The spatial map (2D canvas) | `/design#world` |
 | [PortfolioReader](./PortfolioReader.md) | The fixed dossier | `/design#reader` |
 | [PortfolioChat](./PortfolioChat.md) | The assistant dock | `/design#chat` |
-| [PortfolioHeader](./PortfolioHeader.md) | Wordmark and the Map control | `/design#header` |
 | [PortfolioNodeMark](./PortfolioNodeMark.md) | The register mark | `/design#marks` |
 | [CursorInstrument](./CursorInstrument.md) | The site cursor | `/design#cursor` |
 | [PortfolioAnalytics](./PortfolioAnalytics.md) | Replay consent and its control | `/design#analytics` |

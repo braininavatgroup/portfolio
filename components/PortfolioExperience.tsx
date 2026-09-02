@@ -80,6 +80,9 @@ export function PortfolioExperience() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
+  // The dossier's index state, opened from the footer. Any selection, reset,
+  // or navigation closes it; it carries no URL of its own.
+  const [indexOpen, setIndexOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [avatarDebug, setAvatarDebug] = useState(
     () =>
@@ -155,9 +158,10 @@ export function PortfolioExperience() {
     notifyRecordClosed(previousWhatId);
   }, [avatarActionState, notifyRecordClosed]);
 
-  const showIndex = useCallback(() => {
+  const showHome = useCallback(() => {
     avatarActionState.clearSelection();
     setMobileMapOpen(false);
+    setIndexOpen(false);
     setSelectedWorldId(null);
     setActiveThreadId(null);
     setActiveVisual(null);
@@ -183,6 +187,7 @@ export function PortfolioExperience() {
     (node: PortfolioWorldNode) => {
       setActiveVisual(null);
       setMobileMapOpen(false);
+      setIndexOpen(false);
       // Tapping the node that is already selected deselects it, falling back
       // to the story it belongs to if there is one.
       if (selectedWorldId === node.id) {
@@ -191,7 +196,7 @@ export function PortfolioExperience() {
           setSelectedWorldId(portfolioThreadById.get(activeThreadId)?.nodeId ?? null);
           pushWorldLocation(null, activeThreadId);
         } else {
-          showIndex();
+          showHome();
           pushWorldLocation(null, null);
         }
         return;
@@ -229,7 +234,7 @@ export function PortfolioExperience() {
       clearRecordSelection,
       selectedWorldId,
       selectWhatWithAvatar,
-      showIndex,
+      showHome,
     ],
   );
 
@@ -259,10 +264,10 @@ export function PortfolioExperience() {
     }, 0);
   }, []);
 
-  const showIndexWithAvatar = useCallback(() => {
+  const showHomeWithAvatar = useCallback(() => {
     const hadWhat = Boolean(avatarActionState.getSelectedWhatId());
     const hadComposition = Boolean(selectedWorldId || activeThreadId);
-    showIndex();
+    showHome();
     if (hadComposition) pushWorldLocation(null, null);
     if (hadWhat) {
       window.setTimeout(
@@ -270,7 +275,12 @@ export function PortfolioExperience() {
         0,
       );
     }
-  }, [activeThreadId, avatarActionState, avatarDirector, selectedWorldId, showIndex]);
+  }, [activeThreadId, avatarActionState, avatarDirector, selectedWorldId, showHome]);
+
+  const openIndex = useCallback(() => {
+    showHomeWithAvatar();
+    setIndexOpen(true);
+  }, [showHomeWithAvatar]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -279,11 +289,11 @@ export function PortfolioExperience() {
         closeVisualInMap();
         return;
       }
-      showIndexWithAvatar();
+      showHomeWithAvatar();
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [activeVisual, closeVisualInMap, showIndexWithAvatar]);
+  }, [activeVisual, closeVisualInMap, showHomeWithAvatar]);
 
   const avatarIntegration = useMemo(
     () => ({
@@ -313,7 +323,7 @@ export function PortfolioExperience() {
 
   useEffect(() => {
     const syncWithLocation = () => {
-      showIndex();
+      showHome();
 
       const { nodeId, threadId } = readWorldLocation();
       const story = threadId ? portfolioThreadById.get(threadId) : undefined;
@@ -334,7 +344,7 @@ export function PortfolioExperience() {
     window.addEventListener("popstate", syncWithLocation);
     syncWithLocation();
     return () => window.removeEventListener("popstate", syncWithLocation);
-  }, [avatarActionState, showIndex]);
+  }, [avatarActionState, showHome]);
 
   const setAssistantVisibility = useCallback(
     (visible: boolean) => {
@@ -344,7 +354,7 @@ export function PortfolioExperience() {
         const returningToMobileIndex =
           typeof window !== "undefined" && window.innerWidth <= 600;
         if (returningToMobileIndex) {
-          showIndexWithAvatar();
+          showHomeWithAvatar();
           window.setTimeout(() => {
             document
               .querySelector<HTMLButtonElement>(".portfolio-mobile-view-toggle")
@@ -354,7 +364,7 @@ export function PortfolioExperience() {
       }
       setAssistantOpen(visible);
     },
-    [avatarDirector, showIndexWithAvatar],
+    [avatarDirector, showHomeWithAvatar],
   );
 
   const toggleMobileCombinedView = useCallback(() => {
@@ -413,7 +423,7 @@ export function PortfolioExperience() {
           activeThreadId={activeThreadId}
           activeVisual={activeVisual}
           onCloseVisual={closeVisualInMap}
-          onReset={showIndexWithAvatar}
+          onReset={showHomeWithAvatar}
           onSelect={selectWorldNode}
           registerAvatarStage={registerAvatarStage}
           selectedId={selectedWorldId}
@@ -422,15 +432,17 @@ export function PortfolioExperience() {
         <>
           <PortfolioReader
               activeThreadId={activeThreadId}
+              indexOpen={indexOpen}
+              onOpenIndex={openIndex}
               onOpenVisual={openVisualInMap}
-              onReset={showIndexWithAvatar}
+              onReset={showHomeWithAvatar}
               onSelect={selectWorldNode}
               onSelectThread={selectThread}
               registerAvatarTarget={registerAvatarTarget}
               selectedId={selectedWorldId}
             />
             <button
-              aria-label={mobileMapOpen ? "Show portfolio index" : "Show portfolio map"}
+              aria-label={mobileMapOpen ? "Show portfolio home" : "Show portfolio map"}
               aria-pressed={mobileMapOpen}
               className="portfolio-mobile-view-toggle"
               onClick={toggleMobileCombinedView}

@@ -20,15 +20,74 @@ const baseProps = {
 };
 
 describe("PortfolioReader", () => {
-  it("presents the portfolio sections in the shared editorial order", () => {
+  it("opens on the About record as an untitled home with the chip where a record's chip sits", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
+
+    const reader = screen.getByRole("complementary", { name: "Portfolio home" });
+    expect(reader.getAttribute("data-reader-mode")).toBe("home");
+    expect(container.querySelector(".reader-topbar")).toBeNull();
+    expect(container.querySelector(".reader-home-content > h1")).toBeNull();
+    expect(screen.getByText("About").classList.contains("reader-kind")).toBe(true);
+    expect(container.querySelector(".reader-index-group")).toBeNull();
+    expect(screen.getByRole("link", { name: portfolioContact.email })).toBeTruthy();
+  });
+
+  it("treats Bradley's own node as home rather than a titled record", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="bradley" />,
+    );
+
+    expect(screen.getByRole("complementary", { name: "Portfolio home" })).toBeTruthy();
+    expect(container.querySelector(".reader-topbar")).toBeNull();
+  });
+
+  it("links About's first sentence to the three practices in their register", () => {
+    const onSelect = vi.fn();
+    render(<PortfolioReader {...baseProps} onSelect={onSelect} />);
+
+    const links = screen.getAllByRole("button").filter((button) =>
+      button.classList.contains("reader-inline-link"),
+    );
+    expect(links.map((link) => link.textContent)).toEqual([
+      "music promotions agency",
+      "systems and AI consulting practice",
+      "product studio",
+    ]);
+    expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
+      "warm",
+      "warm",
+      "warm",
+    ]);
+    expect(screen.queryByText(/\[|\]\(/)).toBeNull();
+
+    fireEvent.click(links[0]);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "music-practice" }),
+    );
+  });
+
+  it("draws every contact row as an index row with its own mark", () => {
+    const { container } = render(<PortfolioReader {...baseProps} />);
+
+    const rows = [...container.querySelectorAll(".reader-contact-row")];
+    expect(rows).toHaveLength(5);
+    expect(
+      rows.map((row) => row.querySelector(".portfolio-node-mark")?.getAttribute("data-contact")),
+    ).toEqual(["email", "cv", "linkedin", "github", "instagram"]);
+    for (const row of rows) {
+      expect(row.classList.contains("reader-index-row")).toBe(true);
+      expect(row.querySelector("small")).toBeNull();
+    }
+  });
+
+  it("presents the portfolio sections in the shared editorial order", () => {
+    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
 
     expect(
       [...container.querySelectorAll(".reader-index-group h2")].map(
         (heading) => heading.textContent,
       ),
     ).toEqual([
-      "About",
       "Threads",
       "Operations",
       "Music promotions systems",
@@ -41,7 +100,7 @@ describe("PortfolioReader", () => {
   });
 
   it("uses the same compact row contract for Threads as the rest of the Index", () => {
-    const { container } = render(<PortfolioReader {...baseProps} />);
+    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
 
     for (const thread of portfolioThreads) {
       const row = screen.getByRole("button", { name: thread.title });
@@ -49,7 +108,7 @@ describe("PortfolioReader", () => {
       expect(screen.queryByText(thread.lede)).toBeNull();
     }
     expect(container.querySelector(".reader-thread-row")).toBeNull();
-    expect(container.querySelectorAll(".portfolio-node-mark")).toHaveLength(17);
+    expect(container.querySelectorAll(".portfolio-node-mark")).toHaveLength(16);
     expect(container.textContent).not.toContain("→");
   });
 
@@ -59,18 +118,28 @@ describe("PortfolioReader", () => {
     expect(screen.queryByRole("link", { name: "View as list" })).toBeNull();
   });
 
-  it("puts one privacy link after the reader content instead of in a persistent overlay", () => {
-    render(<PortfolioReader {...baseProps} />);
+  it("puts the Index control and the privacy link on one footer row after the content", () => {
+    const onOpenIndex = vi.fn();
+    render(<PortfolioReader {...baseProps} onOpenIndex={onOpenIndex} />);
 
     const reader = screen.getByRole("complementary", {
-      name: "Portfolio index",
+      name: "Portfolio home",
     });
     const footer = reader.querySelector(".portfolio-reader-footer");
+    const index = screen.getByRole("button", { name: "Portfolio index" });
     const privacy = screen.getByRole("link", { name: "Privacy" });
 
     expect(footer).toBeTruthy();
+    expect(footer?.contains(index)).toBe(true);
     expect(footer?.contains(privacy)).toBe(true);
+    expect(index.textContent).toBe("Index");
+    expect(
+      index.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(reader.lastElementChild).toBe(footer);
+
+    fireEvent.click(index);
+    expect(onOpenIndex).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByRole("button", { name: "Opt out of analytics" }),
     ).toBeNull();
@@ -237,19 +306,28 @@ describe("PortfolioReader", () => {
     expect(screen.queryByText(portfolioContact.email)).toBeNull();
   });
 
+  it("hides the footer's Index control while the index is open", () => {
+    render(<PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />);
+
+    expect(screen.getByRole("complementary", { name: "Portfolio index" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Index" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Portfolio index" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Portfolio home" }).textContent).toBe("Home");
+  });
+
   it("restores the visitor's Index scroll position after inspecting a record", () => {
-    const { rerender } = render(<PortfolioReader {...baseProps} />);
+    const { rerender } = render(<PortfolioReader {...baseProps} indexOpen />);
     const reader = screen.getByRole("complementary", { name: "Portfolio index" });
     reader.scrollTop = 420;
     fireEvent.scroll(reader);
 
     rerender(<PortfolioReader {...baseProps} selectedId="dubs" />);
-    const indexButton = screen.getByRole("button", { name: "Portfolio index" });
-    expect(indexButton.closest("h1")).toBeTruthy();
-    expect(indexButton.querySelector("[data-index-mark]")).toBeNull();
-    expect(indexButton.textContent).toBe("Index");
-    reader.scrollTop = 0;
-    rerender(<PortfolioReader {...baseProps} />);
+    const homeButton = screen.getByRole("button", { name: "Portfolio home" });
+    expect(homeButton.closest("h1")).toBeTruthy();
+    expect(homeButton.textContent).toBe("Home");
+    expect(reader.scrollTop).toBe(0);
+    reader.scrollTop = 300;
+    rerender(<PortfolioReader {...baseProps} indexOpen />);
 
     expect(reader.scrollTop).toBe(420);
   });

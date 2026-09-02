@@ -1071,6 +1071,13 @@ function drawNode(
       continue;
     }
 
+    if (primitive.kind === "path") {
+      const path = new Path2D(primitive.d);
+      if (primitive.fill) context.fill(path);
+      else context.stroke(path);
+      continue;
+    }
+
     context.beginPath();
     if (primitive.kind === "circle") {
       context.arc(
