@@ -192,9 +192,13 @@ describe("spatial self-portrait", () => {
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(false);
     expect(avatar.getAttribute("data-enabled")).toBe("false");
     const mapToggle = screen.getByRole("button", { name: "Show portfolio map" });
-    expect(mapToggle.textContent).toBe("");
-    expect(mapToggle.querySelector("svg[aria-hidden='true']")).toBeTruthy();
+    expect(mapToggle.classList.contains("portfolio-control-mark")).toBe(true);
+    expect(mapToggle.getAttribute("data-control")).toBe("map");
+    expect(mapToggle.querySelector(".portfolio-node-brain")).toBeTruthy();
+    expect(mapToggle.textContent).toBe("Map");
     fireEvent.click(mapToggle);
+    expect(mapToggle.getAttribute("data-control")).toBe("index");
+    expect(mapToggle.textContent).toBe("Index");
     expect(experience.classList.contains("portfolio-mobile-map-open")).toBe(true);
     expect(avatar.getAttribute("data-enabled")).toBe("true");
     expect(
@@ -464,6 +468,8 @@ describe("spatial self-portrait", () => {
     openIndex();
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
 
+    // A record's footer offers Index; Home is the index state's own control.
+    openIndex();
     fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
     expect(window.location.hash).toBe("");
     expect(
@@ -514,9 +520,12 @@ describe("spatial self-portrait", () => {
         .getByRole("button", { name: "Thread Philosophy" })
         .getAttribute("aria-pressed"),
     ).toBe("false");
-    expect(document.querySelector(".reader-path")?.textContent).toContain(
-      "Philosophy",
-    );
+    // No breadcrumb: the thread appears as the first Related row instead.
+    expect(document.querySelector(".reader-path")).toBeNull();
+    const related = document.querySelector(".reader-record-section .reader-rows")!;
+    expect(
+      [...related.querySelectorAll(".reader-index-row")].map((row) => row.textContent),
+    ).toContain("Philosophy");
     expect(document.querySelector(".scene-shell")?.classList).toContain(
       "scene-shell-node-open",
     );
@@ -526,7 +535,7 @@ describe("spatial self-portrait", () => {
       "__portfolioTestAvatarDirector",
     ) as AvatarDirector;
     const handle = vi.spyOn(director, "handle");
-    fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
     await waitFor(() =>
       expect(handle).toHaveBeenCalledWith({ type: "record_close" }),
     );
@@ -648,6 +657,8 @@ describe("spatial self-portrait", () => {
     ).toBeTruthy();
     expect(screen.getByText(/human thinking in the age of agents/)).toBeTruthy();
 
+    expect(screen.queryByRole("button", { name: "Portfolio home" })).toBeNull();
+    openIndex();
     fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
 
     expect(

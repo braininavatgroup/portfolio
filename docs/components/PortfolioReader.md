@@ -4,29 +4,27 @@ Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx)
 Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
 The fixed dossier — the `<aside>` holding every piece of reading on the site.
-Four modes, derived from props rather than set directly and published as
-`data-reader-mode`: `home` (the About record, untitled), `index` (the grouped
-list, opened from the footer), `record` (one node), and `thread` (a narrated
-path, the only long-form type). All four share this one panel instead of
-spawning panels or routes (Rule 6.5). Body paragraphs may carry inline
-`[phrase](record:<id>)` / `[phrase](thread:<id>)` links, rendered as
-`.reader-inline-link` buttons that call `onSelect` / `onSelectThread`. Content comes from
-the validated runtime model exported by
-[`lib/portfolio-world.ts`](../../lib/portfolio-world.ts); canonical authored
-text lives in `content/portfolio-content.json`. It takes no data props.
+Four modes, derived from props and published as `data-reader-mode`: `home`
+(About, titled by its summary), `index`, `record`, and `thread`. All share one
+section model (64 above a label, rows as `ul > li > button`) and one footer
+band outside the scroll area: **Index** (or **Home** on the index) and
+Privacy. No kind chip, path line, or Threads section: a record's containing
+threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
+`[phrase](thread:<id>)` links, rendered as `.reader-inline-link` buttons. It
+exports `ReaderPlaceholderFrame`, the draft frame the visual stage reuses.
+Content comes from [`lib/portfolio-world.ts`](../../lib/portfolio-world.ts);
+authored text lives in `content/portfolio-content.json`. No data props.
 
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, `onSelectThread`
-required; `indexOpen`, `onOpenIndex`, `onOpenVisual` and `registerAvatarTarget`
-optional. Mode is `record` when `selectedId` names a non-`story` node other
-than `bradley`, else `thread` when `activeThreadId` is set, else `index` when
-`indexOpen`, else `home`. Selecting `bradley` lands on `home`.
+required; `indexOpen`, `onOpenIndex`, `onOpenVisual`, `registerAvatarTarget`
+optional. Mode: `record` for a non-`story`, non-`bradley` `selectedId`; else
+`thread` if `activeThreadId`; else `index` if `indexOpen`; else `home`.
 
 ## Requires
 
-A `.portfolio-composition` ancestor for the tokens and `--reader-width`
-(`clamp(460px, 38vw, 560px)`, `100%` below 900px).
+A `.portfolio-composition` ancestor for the tokens and `--reader-width`.
 
 ## Example
 
@@ -57,14 +55,16 @@ export function PortfolioReaderExample() {
 
 ## Pitfalls
 
-- **A `story`-family node in `selectedId` does not open a record.** Stories are
-  reached through `activeThreadId`; the story node id alone falls to home.
-- **The registered avatar target follows outline type.** What records use
-  `portfolio:record:<id>`; everything else uses `portfolio:index`.
+- **A `story`-family node in `selectedId` does not open a record.** Stories
+  are reached through `activeThreadId`.
+- **The avatar target follows outline type**: `portfolio:record:<id>` for What
+  records, `portfolio:index` otherwise.
 - **`?review=clean` changes the rendering**, adding
-  `.portfolio-reader-clean-review`. A screenshot taken with it set is not the
-  default surface.
-- **Index scroll position is restored by a layout effect keyed on mode**;
-  every other mode opens at its top. Remounting loses the index position.
+  `.portfolio-reader-clean-review`; it is not the default surface.
+- **The content area (`.reader-scroll`) scrolls, not the aside.** Index scroll
+  position is restored on it by a layout effect keyed on mode; every other
+  mode opens at its top. Remounting loses the index position.
+- **A record has no Home control.** Its footer offers Index; Home is the index
+  state's own control. Escape and blank-space click still reset.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the
-  triggers render with nothing to open.
+  triggers open nothing.

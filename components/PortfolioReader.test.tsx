@@ -20,16 +20,23 @@ const baseProps = {
 };
 
 describe("PortfolioReader", () => {
-  it("opens on the About record as an untitled home with the chip where a record's chip sits", () => {
+  it("opens on the About record as home, titled by its throughline", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
 
     const reader = screen.getByRole("complementary", { name: "Portfolio home" });
     expect(reader.getAttribute("data-reader-mode")).toBe("home");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "I make complexity legible enough to act on.",
+    );
+    expect(container.querySelector(".reader-summary")).toBeNull();
+    expect(container.querySelector(".reader-kind")).toBeNull();
     expect(container.querySelector(".reader-topbar")).toBeNull();
-    expect(container.querySelector(".reader-home-content > h1")).toBeNull();
-    expect(screen.getByText("About").classList.contains("reader-kind")).toBe(true);
+    expect(
+      container.querySelector(".reader-composed-body > p")?.textContent,
+    ).toMatch(/^Hey, I'm Bradley\. I run Brain in a Vat Group/);
     expect(container.querySelector(".reader-index-group")).toBeNull();
     expect(screen.getByRole("link", { name: portfolioContact.email })).toBeTruthy();
+    expect(reader.querySelector(".portfolio-reader-footer")).toBeTruthy();
   });
 
   it("treats Bradley's own node as home rather than a titled record", () => {
@@ -39,6 +46,7 @@ describe("PortfolioReader", () => {
 
     expect(screen.getByRole("complementary", { name: "Portfolio home" })).toBeTruthy();
     expect(container.querySelector(".reader-topbar")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Bradley Berkman" })).toBeNull();
   });
 
   it("links About's first sentence to the three practices in their register", () => {
@@ -77,7 +85,23 @@ describe("PortfolioReader", () => {
     for (const row of rows) {
       expect(row.classList.contains("reader-index-row")).toBe(true);
       expect(row.querySelector("small")).toBeNull();
+      expect(row.parentElement?.tagName).toBe("LI");
     }
+  });
+
+  it("lists every row as a ul > li > control with no kind text and one mark", () => {
+    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
+
+    const rows = [...container.querySelectorAll(".reader-index-row")];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.tagName).toBe("BUTTON");
+      expect(row.parentElement?.tagName).toBe("LI");
+      expect(row.parentElement?.parentElement?.classList.contains("reader-rows")).toBe(true);
+      expect(row.querySelector("small")).toBeNull();
+      expect(row.querySelectorAll(".portfolio-node-mark")).toHaveLength(1);
+    }
+    expect(container.querySelector(".reader-kind")).toBeNull();
   });
 
   it("presents the portfolio sections in the shared editorial order", () => {
@@ -184,15 +208,15 @@ describe("PortfolioReader", () => {
     );
 
     const node = portfolioWorldNodeById.get("systems-consulting")!;
-    const title = screen.getByRole("heading", { name: node.label });
-    const kind = screen.getByText(node.kind);
+    const title = screen.getByRole("heading", { level: 1, name: node.label });
     const summary = screen.getByText(node.summary);
+    expect(screen.queryByText(node.kind)).toBeNull();
+    expect(container.querySelector(".reader-kind")).toBeNull();
+    expect(container.querySelector(".reader-path")).toBeNull();
     expect(
-      title.compareDocumentPosition(kind) & Node.DOCUMENT_POSITION_FOLLOWING,
+      title.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      kind.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(summary.classList.contains("reader-summary")).toBe(true);
     expect(container.querySelectorAll(".reader-summary")).toHaveLength(1);
     expect(container.querySelector(".reader-principle")).toBeNull();
     expect(screen.queryByText(node.principle!)).toBeNull();
@@ -316,19 +340,59 @@ describe("PortfolioReader", () => {
   });
 
   it("restores the visitor's Index scroll position after inspecting a record", () => {
-    const { rerender } = render(<PortfolioReader {...baseProps} indexOpen />);
+    const { rerender } = render(
+      <PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />,
+    );
     const reader = screen.getByRole("complementary", { name: "Portfolio index" });
-    reader.scrollTop = 420;
-    fireEvent.scroll(reader);
+    // The content area scrolls, not the aside: the footer band stays put.
+    const scroll = reader.querySelector<HTMLElement>(".reader-scroll")!;
+    expect(scroll.contains(reader.querySelector(".portfolio-reader-footer"))).toBe(false);
+    scroll.scrollTop = 420;
+    fireEvent.scroll(scroll);
 
-    rerender(<PortfolioReader {...baseProps} selectedId="dubs" />);
-    const homeButton = screen.getByRole("button", { name: "Portfolio home" });
-    expect(homeButton.closest("h1")).toBeTruthy();
-    expect(homeButton.textContent).toBe("Home");
-    expect(reader.scrollTop).toBe(0);
-    reader.scrollTop = 300;
-    rerender(<PortfolioReader {...baseProps} indexOpen />);
+    rerender(<PortfolioReader {...baseProps} onOpenIndex={() => {}} selectedId="dubs" />);
+    expect(screen.queryByRole("button", { name: "Portfolio home" })).toBeNull();
+    const indexButton = screen.getByRole("button", { name: "Portfolio index" });
+    expect(indexButton.closest("footer")).toBeTruthy();
+    expect(indexButton.textContent).toBe("Index");
+    expect(scroll.scrollTop).toBe(0);
+    scroll.scrollTop = 300;
+    rerender(<PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />);
 
-    expect(reader.scrollTop).toBe(420);
+    expect(scroll.scrollTop).toBe(420);
+  });
+
+  it("bundles a record's threads and linked records under one Related label", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} activeThreadId="philosophy" selectedId="pitching" />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Threads" })).toBeNull();
+    expect(container.querySelector(".reader-path")).toBeNull();
+    const sections = [...container.querySelectorAll(".reader-record-section")];
+    const related = sections.find((section) => section.querySelector("h2")?.textContent === "Related")!;
+    const rows = [...related.querySelectorAll(".reader-index-row")].map((row) => row.textContent);
+    const containing = portfolioThreads
+      .filter(({ members }) => members.includes("pitching"))
+      .map(({ title }) => title);
+    expect(containing.length).toBeGreaterThan(0);
+    expect(rows.slice(0, containing.length)).toEqual(containing);
+    expect(rows.length).toBeGreaterThan(containing.length);
+  });
+
+  it("draws a planned visual as a bare frame with its kind, source, and caption", () => {
+    render(<PortfolioReader {...baseProps} selectedId="music-practice" />);
+
+    const trigger = screen.getByRole("button", {
+      name: /Open gallery visual in map: Show how the service offering developed/,
+    });
+    const frame = trigger.querySelector(".reader-placeholder-frame")!;
+    expect(frame.getAttribute("data-format")).toBe("gallery");
+    expect(frame.querySelector(".reader-placeholder-label")?.textContent).toBe("Planned gallery");
+    expect(frame.querySelector(".reader-placeholder-count")?.textContent).toBe("1 / 3");
+    expect(frame.querySelector(".reader-placeholder-source")?.textContent).toMatch(/·/);
+    expect(trigger.querySelector("figcaption strong")).toBeNull();
+    expect(trigger.querySelector(".reader-placeholder-meta")).toBeNull();
+    expect(trigger.querySelector("figcaption")?.textContent).toMatch(/Show how the service offering developed/);
   });
 });

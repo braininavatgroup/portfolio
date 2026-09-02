@@ -27,6 +27,8 @@ import {
 } from "../lib/portfolio-world";
 import { editorLiveText } from "../lib/editor/editor-store";
 import { EditableText, useEditorActive } from "./editor/EditableText";
+import { PortfolioControlMark } from "./PortfolioNodeMark";
+import { ReaderPlaceholderFrame } from "./PortfolioReader";
 import type { CanvasLabelAnchor } from "./editor/CanvasLabelEditor";
 
 const CanvasLabelEditor: ComponentType<{
@@ -293,12 +295,24 @@ function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string
   return style.getPropertyValue(variable).trim() || fallback;
 }
 
+// The dossier subject a visual belongs to: the open thread when the map is
+// on its story node, otherwise the selected record.
+function visualSubjectTitle(selectedId: string | null, activeThreadId: string | null) {
+  const thread = activeThreadId ? portfolioThreadById.get(activeThreadId) : undefined;
+  if (thread && (!selectedId || selectedId === thread.nodeId)) return thread.title;
+  const node = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
+  return node?.label ?? portfolioInterfaceText["world.mast"];
+}
+
 function PortfolioVisualStage({
   block,
   onClose,
+  title,
 }: {
   block: PortfolioVisualBlock;
   onClose?: () => void;
+  /** The dossier subject the visual belongs to, shown in the stage head. */
+  title: string;
 }) {
   const format = portfolioVisualFormat(block);
   const assets =
@@ -324,16 +338,15 @@ function PortfolioVisualStage({
       <header className="portfolio-visual-stage-head">
         <div>
           <span>Map visual</span>
-          <strong>{format}</strong>
+          <strong>{title}</strong>
         </div>
-        <button
+        <PortfolioControlMark
           aria-label="Close visual in map"
+          kind="close"
+          label="Close"
           onClick={onClose}
           ref={closeButtonRef}
-          type="button"
-        >
-          ×
-        </button>
+        />
       </header>
 
       <div className="portfolio-visual-stage-frame">
@@ -362,60 +375,39 @@ function PortfolioVisualStage({
             aria-label={`Planned ${format} placeholder`}
             className="portfolio-visual-stage-placeholder"
             data-format={format}
-            data-frame={activeFrame + 1}
           >
-            {format === "video" ? (
-              <>
-                <span className="portfolio-visual-stage-play" />
-                <i className="portfolio-visual-stage-timeline" />
-              </>
-            ) : format === "gallery" ? (
-              <>
-                <span />
-                <span />
-                <span />
-              </>
-            ) : (
-              <>
-                <span />
-                <span />
-                <span />
-                <span />
-              </>
-            )}
+            <ReaderPlaceholderFrame
+              format={format}
+              frame={activeFrame + 1}
+              frameCount={frameCount}
+              sourceStatus={block.sourceStatus}
+              treatment={block.treatment}
+            />
           </div>
         )}
       </div>
 
       <footer className="portfolio-visual-stage-copy">
-        <p>{block.status === "ready" ? format : `Planned ${format}`}</p>
-        <h2>{block.purpose}</h2>
-        <span>
-          {[block.treatment, block.sourceStatus]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
+        <p>{block.caption ?? block.purpose}</p>
         {format === "gallery" ? (
           <nav aria-label="Visual frames">
-            <button
+            <PortfolioControlMark
               aria-label="Previous visual frame"
               disabled={activeFrame === 0}
+              kind="previous"
+              label="Previous"
               onClick={() => setActiveFrame((frame) => Math.max(0, frame - 1))}
-              type="button"
-            >
-              ←
-            </button>
+            />
             <span>{activeFrame + 1} / {frameCount}</span>
-            <button
+            <PortfolioControlMark
               aria-label="Next visual frame"
               disabled={activeFrame === frameCount - 1}
+              kind="next"
+              label="Next"
               onClick={() =>
                 setActiveFrame((frame) => Math.min(frameCount - 1, frame + 1))
               }
-              type="button"
-            >
-              →
-            </button>
+            />
           </nav>
         ) : null}
       </footer>
@@ -894,13 +886,6 @@ export function PortfolioWorld({
         path="interface.world.mast"
         value={portfolioInterfaceText["world.mast"]}
       />
-      <EditableText
-        aria-hidden="true"
-        as="p"
-        className="portfolio-world-hint"
-        path="interface.world.hint"
-        value={portfolioInterfaceText["world.hint"]}
-      />
       {portfolioWorldNodes.map((node) => (
         <button
           aria-label={`${node.kind} ${node.label}`}
@@ -928,6 +913,7 @@ export function PortfolioWorld({
           block={activeVisual}
           key={activeVisual.id}
           onClose={onCloseVisual}
+          title={visualSubjectTitle(selectedId, activeThreadId)}
         />
       ) : null}
       {import.meta.env.DEV && CanvasLabelEditor && labelAnchor ? (
