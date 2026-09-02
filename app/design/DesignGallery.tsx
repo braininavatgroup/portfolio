@@ -71,7 +71,6 @@ const sectionGroups = [
     blurb: "The accepted portfolio, part by part, in assembly order.",
     sections: [
       { id: "marks", label: "Marks" },
-      { id: "header", label: "Header" },
       { id: "world", label: "World" },
       { id: "reader", label: "Reader" },
       { id: "chat", label: "Chat" },

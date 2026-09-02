@@ -156,12 +156,12 @@ test("the built Worker does not register the retired preview endpoint", async ()
 
 test("the built Worker preserves local development without an asset binding", async () => {
   const response = await fetchBuiltWorker(
-    new Request("http://localhost/index"),
+    new Request("http://localhost/"),
     { ASSETS: undefined },
   );
 
   assert.equal(response.status, 200);
-  assert.match(await response.text(), />Index<\/h1>/i);
+  assert.match(await response.text(), /class=["'][^"']*portfolio-reader[^"']*["']/i);
 });
 
 test("the built Worker gates static assets before touching the asset binding", async () => {

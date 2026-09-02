@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
-import { PortfolioNodeMark } from "./PortfolioNodeMark";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
+import { PortfolioContactMark, PortfolioNodeMark } from "./PortfolioNodeMark";
+import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
 import type { AvatarTargetId } from "../lib/avatar/contracts";
+import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import {
   portfolioContact,
   portfolioInterfaceText,
@@ -22,12 +30,18 @@ import {
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 
+const HOME_NODE_ID = "bradley";
+const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
+
 type PortfolioReaderProps = {
   activeThreadId: string | null;
   onOpenVisual?: (
     block: PortfolioVisualBlock,
     trigger: HTMLButtonElement,
   ) => void;
+  /** True when the footer's Index control has opened the index state. */
+  indexOpen?: boolean;
+  onOpenIndex?: () => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
@@ -94,38 +108,38 @@ function ReaderIndex({
         value={portfolioInterfaceText["reader.indexTitle"]}
       />
       {portfolioWorldIndexSections.map((section) => {
-        if (section.type === "threads") {
-          return (
-            <section className="reader-index-group reader-thread-index" key={section.id}>
-              <EditableText
-                as="h2"
-                path={`interface.${section.titleKey}`}
-                value={section.title}
-              />
-              {portfolioThreads.map((thread) => (
-                <ThreadIndexRow
-                  key={thread.id}
-                  onSelect={onSelectThread}
-                  thread={thread}
-                />
-              ))}
-            </section>
-          );
-        }
-
-        return (
-          <section className="reader-index-group" key={section.id}>
-            <EditableText
-              as="h2"
-              path={`interface.${section.titleKey}`}
-              value={section.title}
+    if (section.type === "threads") {
+      return (
+        <section className="reader-index-group reader-thread-index" key={section.id}>
+          <EditableText
+            as="h2"
+            path={`interface.${section.titleKey}`}
+            value={section.title}
+          />
+          {portfolioThreads.map((thread) => (
+            <ThreadIndexRow
+              key={thread.id}
+              onSelect={onSelectThread}
+              thread={thread}
             />
-            {section.nodeIds.map((nodeId) => {
-              const node = portfolioWorldNodeById.get(nodeId);
-              return node ? <IndexRow key={node.id} node={node} onSelect={onSelect} /> : null;
-            })}
-          </section>
-        );
+          ))}
+        </section>
+      );
+    }
+
+    return (
+      <section className="reader-index-group" key={section.id}>
+        <EditableText
+          as="h2"
+          path={`interface.${section.titleKey}`}
+          value={section.title}
+        />
+        {section.nodeIds.map((nodeId) => {
+          const node = portfolioWorldNodeById.get(nodeId);
+          return node ? <IndexRow key={node.id} node={node} onSelect={onSelect} /> : null;
+        })}
+      </section>
+    );
       })}
     </div>
   );
@@ -225,11 +239,45 @@ function bodyWithParagraphIds(body: readonly PortfolioBodyBlock[]) {
   return entries;
 }
 
+// A paragraph's inline `[label](record:id)` links become in-dossier controls:
+// real buttons, so the cursor contract (Rule 6.7) and keyboard focus hold.
+function LinkedParagraph({
+  onSelect,
+  onSelectThread,
+  text,
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & { text: string }) {
+  return parseInlineLinks(text).map((segment, index) => {
+    if (segment.type === "text") return segment.text;
+    const { target } = segment;
+    const node = target.kind === "record" ? portfolioWorldNodeById.get(target.id) : undefined;
+    const thread = target.kind === "thread" ? portfolioThreadById.get(target.id) : undefined;
+    if (!node && !thread) return segment.text;
+    // The link wears its target's map register, so the phrase reads in the
+    // same colour as the node it opens.
+    const register = node
+      ? node.register
+      : portfolioWorldNodeById.get(thread!.nodeId)?.register;
+    return (
+      <button
+        className="reader-inline-link"
+        data-register={register}
+        key={`link-${index}`}
+        onClick={() => (node ? onSelect(node) : onSelectThread(target.id))}
+        type="button"
+      >
+        {segment.text}
+      </button>
+    );
+  });
+}
+
 function PortfolioBody({
   body,
   contentBase,
   onOpenVisual,
-}: {
+  onSelect,
+  onSelectThread,
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
   body: readonly PortfolioBodyBlock[];
   contentBase: string;
   onOpenVisual?: (
@@ -247,6 +295,13 @@ function PortfolioBody({
               key={`paragraph-${index}`}
               multiline
               path={`${contentBase}.paragraphs.${paragraphId}`}
+              render={(text) => (
+                <LinkedParagraph
+                  onSelect={onSelect}
+                  onSelectThread={onSelectThread}
+                  text={text}
+                />
+              )}
               value={block}
             />
           );
@@ -300,6 +355,7 @@ function PortfolioBody({
 function ThreadRecord({
   onOpenVisual,
   onSelect,
+  onSelectThread,
   threadId,
 }: {
   onOpenVisual?: (
@@ -307,6 +363,7 @@ function ThreadRecord({
     trigger: HTMLButtonElement,
   ) => void;
   onSelect: (node: PortfolioWorldNode) => void;
+  onSelectThread: (threadId: string) => void;
   threadId: string;
 }) {
   const thread = portfolioThreadById.get(threadId);
@@ -333,6 +390,8 @@ function ThreadRecord({
         body={thread.body}
         contentBase={`threads.${thread.id}`}
         onOpenVisual={onOpenVisual}
+        onSelect={onSelect}
+        onSelectThread={onSelectThread}
       />
       <section className="reader-record-section">
         <EditableText
@@ -349,6 +408,27 @@ function ThreadRecord({
   );
 }
 
+function ContactRow({
+  children,
+  href,
+  kind,
+  ...rest
+}: {
+  children: ReactNode;
+  href: string;
+  kind: PortfolioContactMarkKind;
+  download?: boolean;
+  rel?: string;
+  target?: string;
+}) {
+  return (
+    <a className="reader-index-row reader-contact-row" href={href} {...rest}>
+      {children}
+      <PortfolioContactMark kind={kind} />
+    </a>
+  );
+}
+
 function ContactSection() {
   return (
     <section className="reader-record-section reader-contact">
@@ -357,16 +437,22 @@ function ContactSection() {
         path="interface.reader.contactTitle"
         value={portfolioInterfaceText["reader.contactTitle"]}
       />
-      <a href={`mailto:${portfolioContact.email}`}>
+      <ContactRow href={`mailto:${portfolioContact.email}`} kind="email">
         <EditableText path="contact.email" value={portfolioContact.email} />
-      </a>
-      <a href={portfolioContact.cv.href} download>
+      </ContactRow>
+      <ContactRow download href={portfolioContact.cv.href} kind="cv">
         <EditableText path="contact.cvLabel" value={portfolioContact.cv.label} />
-      </a>
+      </ContactRow>
       {portfolioContact.socials.map(({ label, href, key }) => (
-        <a href={href} key={key} rel="noreferrer" target="_blank">
+        <ContactRow
+          href={href}
+          key={key}
+          kind={key}
+          rel="noreferrer"
+          target="_blank"
+        >
           <EditableText path={`contact.socialLabels.${key}`} value={label} />
-        </a>
+        </ContactRow>
       ))}
     </section>
   );
@@ -374,12 +460,19 @@ function ContactSection() {
 
 function WorldRecord({
   activeThreadId,
+  home = false,
   node,
   onOpenVisual,
   onSelect,
   onSelectThread,
 }: {
   activeThreadId: string | null;
+  /**
+   * The About record doubles as the home state: no title (the map mast
+   * already carries the name) and none of the record's Threads and Related
+   * sections, which the index state covers.
+   */
+  home?: boolean;
   node: PortfolioWorldNode;
   onOpenVisual?: (
     block: PortfolioVisualBlock,
@@ -401,8 +494,10 @@ function WorldRecord({
     ? portfolioThreadById.get(activeThreadId)
     : undefined;
   return (
-    <div className="reader-content reader-record-content">
-      <EditableText as="h1" path={`records.${node.id}.label`} value={node.label} />
+    <div className={`reader-content reader-record-content${home ? " reader-home-content" : ""}`}>
+      {home ? null : (
+        <EditableText as="h1" path={`records.${node.id}.label`} value={node.label} />
+      )}
       <EditableText
         as="p"
         className="reader-kind"
@@ -433,10 +528,12 @@ function WorldRecord({
           body={node.body}
           contentBase={`records.${node.id}`}
           onOpenVisual={onOpenVisual}
+          onSelect={onSelect}
+          onSelectThread={onSelectThread}
         />
       ) : null}
       {node.id === "bradley" ? <ContactSection /> : null}
-      {node.id === "bradley" || containingThreads.length > 0 ? (
+      {!home && (node.id === "bradley" || containingThreads.length > 0) ? (
         <section className="reader-record-section">
           <EditableText
             as="h2"
@@ -452,7 +549,7 @@ function WorldRecord({
           ))}
         </section>
       ) : null}
-      {relatedIds.size > 0 ? (
+      {!home && relatedIds.size > 0 ? (
         <section className="reader-record-section">
           <EditableText
             as="h2"
@@ -471,6 +568,8 @@ function WorldRecord({
 
 export function PortfolioReader({
   activeThreadId,
+  indexOpen = false,
+  onOpenIndex,
   onOpenVisual,
   onReset,
   onSelect,
@@ -480,9 +579,17 @@ export function PortfolioReader({
 }: PortfolioReaderProps) {
   const readerRef = useRef<HTMLElement | null>(null);
   const indexScrollTop = useRef(0);
-  const node = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
+  const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
+  // The About record is the home state, so selecting it lands on the index.
+  const node = selected?.id === HOME_NODE_ID ? undefined : selected;
   const thread = activeThreadId ? portfolioThreadById.get(activeThreadId) : undefined;
-  const mode = node && node.outlineType !== "why" ? "record" : thread ? "thread" : "index";
+  const mode = node && node.outlineType !== "why"
+    ? "record"
+    : thread
+      ? "thread"
+      : indexOpen
+        ? "index"
+        : "home";
   const avatarTarget: AvatarTargetId = node && isPortfolioWhatNode(node)
     ? `portfolio:record:${node.id}`
     : "portfolio:index";
@@ -497,7 +604,9 @@ export function PortfolioReader({
     ? `${node.label} record`
     : thread
       ? `${thread.title} thread`
-      : "Portfolio index";
+      : mode === "index"
+        ? "Portfolio index"
+        : "Portfolio home";
   // Not read during render: the server yields false and a client with
   // ?review=clean yields true, so reading it inline changed the className
   // between the server HTML and the first client render. The subscribe
@@ -508,11 +617,13 @@ export function PortfolioReader({
     () => false,
   );
 
+  // The index keeps its scroll position across a round trip; everything else
+  // opens at its top, so a row tapped far down the index does not open the
+  // record already scrolled past its title.
   useLayoutEffect(() => {
-    if (mode === "index" && readerRef.current) {
-      readerRef.current.scrollTop = indexScrollTop.current;
-    }
-  }, [mode]);
+    if (!readerRef.current) return;
+    readerRef.current.scrollTop = mode === "index" ? indexScrollTop.current : 0;
+  }, [activeThreadId, mode, selectedId]);
 
   return (
     <aside
@@ -524,10 +635,10 @@ export function PortfolioReader({
       }}
       ref={setReaderRef}
     >
-      {node || thread ? (
+      {mode !== "home" ? (
         <header className="reader-topbar">
           <h1>
-            <button aria-label="Portfolio index" onClick={onReset} type="button">
+            <button aria-label="Portfolio home" onClick={onReset} type="button">
               <EditableText
                 path="interface.reader.backButton"
                 value={portfolioInterfaceText["reader.backButton"]}
@@ -548,12 +659,32 @@ export function PortfolioReader({
         <ThreadRecord
           onOpenVisual={onOpenVisual}
           onSelect={onSelect}
+          onSelectThread={onSelectThread}
           threadId={thread.id}
         />
-      ) : (
+      ) : mode === "index" ? (
         <ReaderIndex onSelect={onSelect} onSelectThread={onSelectThread} />
+      ) : (
+        <WorldRecord
+          activeThreadId={null}
+          home
+          node={homeNode}
+          onOpenVisual={onOpenVisual}
+          onSelect={onSelect}
+          onSelectThread={onSelectThread}
+        />
       )}
       <footer className="portfolio-reader-footer">
+        {mode === "index" || !onOpenIndex ? (
+          <span aria-hidden="true" />
+        ) : (
+          <button aria-label="Portfolio index" onClick={onOpenIndex} type="button">
+            <EditableText
+              path="interface.reader.indexTitle"
+              value={portfolioInterfaceText["reader.indexTitle"]}
+            />
+          </button>
+        )}
         <a href="/privacy">
           <EditableText
             path="interface.reader.privacyLink"

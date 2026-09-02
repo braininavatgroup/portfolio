@@ -29,7 +29,10 @@ Nothing else exists. All authored text lives in `content/portfolio-content.json`
 and block order; and `lib/portfolio-world.ts` validates and combines them.
 Chat-only facts live in `lib/portfolio-private-grounding.ts` and are never
 rendered. Bodies may interleave authored paragraphs, Bradley-owned copy
-placeholders, and planned visual blocks. These workbench blocks intentionally
+placeholders, and planned visual blocks. A paragraph may link a phrase to
+another record or Thread inline as `[phrase](record:<id>)` or
+`[phrase](thread:<id>)`; the id must exist in the structure or the content
+document fails validation, and the assistant sees the plain phrase. These workbench blocks intentionally
 render on `main`; `?review=clean` hides them for a clean reading pass. Agents
 may refine the placeholder brief or ask its questions, but must not silently
 replace a Bradley-owned copy placeholder with invented portfolio prose.

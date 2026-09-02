@@ -11,6 +11,11 @@ and `data-register`. The `identity` family is the exception: it renders
 `currentColor` and no containing shape. Every mark shares one envelope and one
 stroke weight; the register alone varies (Rule 6.4).
 
+`PortfolioContactMark` (same module) is a Contact row's mark, one of the kinds
+in [`lib/portfolio-contact-mark.ts`](../../lib/portfolio-contact-mark.ts):
+same box and stroke, identity colour, `data-family="contact"`. GitHub and
+LinkedIn are filled silhouettes, the brain symbol's treatment.
+
 ## Props
 
 `family` and `register`, both required, both from

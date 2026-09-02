@@ -19,7 +19,6 @@ import {
 } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
-import { PortfolioHeader } from "../../components/PortfolioHeader";
 import { PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
@@ -73,16 +72,6 @@ export function PortfolioAnalyticsExample() {
       {/* The opt-out control, as /privacy renders it. */}
       <PortfolioAnalyticsPreference storage={createMemoryStorage("granted")} />
     </>
-  );
-}
-// #example-end
-
-// #example:PortfolioHeader
-export function PortfolioHeaderExample() {
-  return (
-    <div className="flat-index">
-      <PortfolioHeader />
-    </div>
   );
 }
 // #example-end

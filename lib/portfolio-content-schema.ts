@@ -23,6 +23,7 @@ import {
   portfolioThreadStructures,
   type PortfolioBodyBlockSkeleton,
 } from "./portfolio-structure";
+import { inlineLinkTargets } from "./portfolio-inline-links";
 
 export const PORTFOLIO_CONTENT_VERSION = 1;
 
@@ -68,8 +69,6 @@ export type PortfolioContentDocument = {
 // rejected; missing keys fail startup validation.
 export const portfolioInterfaceTextKeys = [
   "layout.skipLink",
-  "header.wordmark",
-  "header.mapLink",
   "index.throughline",
   "world.mast",
   "world.hint",
@@ -83,7 +82,6 @@ export const portfolioInterfaceTextKeys = [
   "reader.relatedTitle",
   "reader.copyInProgress",
   "reader.privacyLink",
-  "index.section.about",
   "index.section.threads",
   "index.section.operations",
   "index.section.campaign",
@@ -177,6 +175,24 @@ function checkString(
   }
 }
 
+const recordIds = new Set(portfolioRecordStructures.map(({ id }) => id));
+const threadIds = new Set(portfolioThreadStructures.map(({ id }) => id));
+
+// An inline `[label](record:id)` must point at a record or thread that
+// exists in the structure; a dangling one would render as dead plain text.
+function checkInlineLinks(
+  issues: ContentValidationIssue[],
+  path: string,
+  text: string,
+) {
+  for (const target of inlineLinkTargets(text)) {
+    const known = target.kind === "record" ? recordIds : threadIds;
+    if (!known.has(target.id)) {
+      issues.push({ path, message: `links to unknown ${target.kind} "${target.id}"` });
+    }
+  }
+}
+
 function checkBodyText(
   issues: ContentValidationIssue[],
   basePath: string,
@@ -208,6 +224,9 @@ function checkBodyText(
         continue;
       }
       checkString(issues, `${basePath}.paragraphs.${id}`, text);
+      if (typeof text === "string") {
+        checkInlineLinks(issues, `${basePath}.paragraphs.${id}`, text);
+      }
     }
   }
 

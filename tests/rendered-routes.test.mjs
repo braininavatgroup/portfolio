@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname) {
@@ -23,54 +23,17 @@ async function render(pathname) {
   );
 }
 
-test("the flat index lists threads and every node with its canonical page", async () => {
-  const response = await render("/index");
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /<main[^>]*data-theme=["']light["']/i);
-  assert.match(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /href=["']\/["'][^>]*>Bradley Berkman</i);
-  assert.match(html, /href=["']\/\?view=graph["'][^>]*>Map</i);
-  assert.match(html, /<h1>Index<\/h1>/i);
-  assert.doesNotMatch(html, /Evidence (available|partial|needed|undefined)/i);
-  assert.doesNotMatch(html, /Career timeline/i);
-  assert.doesNotMatch(html, /For AI product teams/i);
-  assert.doesNotMatch(html, /case stud/i);
-
-  assert.match(html, /id=["']threads["']/i);
-  for (const groupId of [
-    "about",
-    "operations",
-    "campaign",
-    "client",
-    "products",
-  ]) {
-    assert.match(html, new RegExp(`id=["']${groupId}["']`, "i"));
-  }
-  assert.match(html, /href=["']\/\?view=graph#thread\/making-work-playable["']/i);
-  assert.equal(
-    (html.match(/<li[^>]*class=["']index-entry["']/gi) ?? []).length,
-    17,
-    "the index renders four threads and thirteen nodes",
+test("canonical /index/<id> URLs redirect into the map reader", async () => {
+  // The flat /index page is gone; the dossier is the index. The per-record
+  // URLs stay as canonical addresses that land on the map with the record open.
+  const content = JSON.parse(
+    await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
   );
-  assert.equal(
-    (html.match(/<span[^>]*class=["']portfolio-node-mark["'][^>]*>/gi) ?? [])
-      .length,
-    17,
-    "every index row reuses its graph node mark",
-  );
-  assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-family=["']story["']/i);
-  assert.match(html, /class=["'][^"']*portfolio-node-mark[^"']*["'][^>]*data-register=["']warm["']/i);
+  const nodeIds = Object.keys(content.records).filter((id) => !id.startsWith("thread-"));
+  assert.equal(nodeIds.length, 13, "thirteen nodes carry canonical URLs");
 
-  // The flat index links into the map reader; canonical /index/<id> URLs do the same.
-  const nodeIds = new Set();
-  for (const [, attributes] of html.matchAll(/<a\b([^>]*)>/gi)) {
-    const nodeId = attributes.match(
-      /\bhref=["']\/\?view=graph#(?!thread\/)([\w-]+)["']/i,
-    )?.[1];
-    if (nodeId) nodeIds.add(nodeId);
-  }
-  assert.equal(nodeIds.size, 13, "every node links into the map reader");
+  const flatIndex = await render("/index");
+  assert.equal(flatIndex.status, 404, "/index is no longer a page");
 
   for (const nodeId of nodeIds) {
     const response = await render(`/index/${nodeId}`);

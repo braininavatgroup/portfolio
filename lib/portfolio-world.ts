@@ -31,6 +31,7 @@ import {
   type PortfolioWorldFamily,
   type PortfolioWorldRegister,
 } from "./portfolio-structure";
+import { stripInlineLinks } from "./portfolio-inline-links";
 
 export type {
   PortfolioOutlineType,
@@ -193,7 +194,7 @@ export function portfolioBodyText(
   body: readonly PortfolioBodyBlock[],
 ): string[] {
   return body.flatMap((block) => {
-    if (typeof block === "string") return [block];
+    if (typeof block === "string") return [stripInlineLinks(block)];
     if (block.type === "copy-placeholder") {
       return [
         `[DRAFT COPY PLACEHOLDER — not a Bradley fact] ${block.prompt}`,
@@ -403,7 +404,6 @@ const indexSection = (
     : { id, title: portfolioInterfaceText[titleKey], titleKey, type: "threads" };
 
 export const portfolioWorldIndexSections: readonly PortfolioWorldIndexSection[] = [
-  indexSection("about", "index.section.about", ["bradley"]),
   indexSection("threads", "index.section.threads"),
   indexSection("operations", "index.section.operations", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
   indexSection("campaign", "index.section.campaign", ["kickoff", "pitching", "reporting"]),

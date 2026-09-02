@@ -38,7 +38,6 @@ describe("design gallery route", () => {
       "tokens-type",
       "tokens-spacing",
       "marks",
-      "header",
       "reader",
       "world",
       "chat",
@@ -80,7 +79,7 @@ describe("design gallery route", () => {
     render(<DesignGallery />);
 
     const sections = [...document.querySelectorAll(".design-section")];
-    expect(sections).toHaveLength(13);
+    expect(sections).toHaveLength(12);
     for (const section of sections) {
       expect(section.tagName).toBe("DETAILS");
       expect((section as HTMLDetailsElement).open).toBe(true);
@@ -142,28 +141,11 @@ describe("design gallery route", () => {
     render(<DesignGallery />);
 
     expect(
-      screen.getAllByRole("complementary", { name: /Portfolio index/ }).length,
+      screen.getAllByRole("complementary", { name: /Portfolio home/ }).length,
     ).toBeGreaterThan(0);
     expect(
       document.querySelectorAll(".portfolio-world").length,
     ).toBeGreaterThan(0);
-  });
-
-  it("renders one index header on the flat index surface", () => {
-    render(<DesignGallery />);
-
-    expect(document.querySelectorAll(".flat-index > .portfolio-header")).toHaveLength(1);
-  });
-
-  /**
-   * `/index` is hard-pinned to the light prototype palette. Without the pin the
-   * gallery's dark mode rendered an `/index` header the live site never shows.
-   */
-  it("pins the index surface to light, as app/index/page.tsx does", () => {
-    render(<DesignGallery />);
-
-    const surface = document.querySelector(".flat-index");
-    expect(surface?.getAttribute("data-theme")).toBe("light");
   });
 
   /**
@@ -175,7 +157,6 @@ describe("design gallery route", () => {
 
     expect(document.querySelectorAll(".portfolio-reader")).toHaveLength(1);
     expect(document.querySelectorAll(".portfolio-world")).toHaveLength(1);
-    expect(document.querySelectorAll(".portfolio-header")).toHaveLength(1);
     expect(document.querySelectorAll(".portfolio-chat")).toHaveLength(1);
   });
 
@@ -199,7 +180,7 @@ describe("design gallery route", () => {
     render(<DesignGallery />);
 
     expect(
-      screen.getAllByRole("complementary", { name: /Portfolio index/ }),
+      screen.getAllByRole("complementary", { name: /Portfolio home/ }),
     ).toHaveLength(1);
 
     await user.click(screen.getByRole("button", { name: "Thread" }));

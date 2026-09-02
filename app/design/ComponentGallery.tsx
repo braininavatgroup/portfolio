@@ -8,8 +8,8 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { PortfolioAnalyticsPreference } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
-import { PortfolioHeader } from "../../components/PortfolioHeader";
-import { PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioContactMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { portfolioContactMarkKinds } from "../../lib/portfolio-contact-mark";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import {
@@ -49,22 +49,6 @@ function Composition({
   );
 }
 
-/**
- * `/index`'s root, including the `data-theme="light"` pin. That page is
- * hard-pinned to the light prototype palette, so without it the gallery's dark
- * mode showed an `/index` header the live site never renders.
- */
-function IndexSurface({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="flat-index"
-      data-theme="light"
-    >
-      {children}
-    </div>
-  );
-}
-
 function NodeMarkGrid() {
   return (
     <div className="portfolio-composition" style={{ background: "transparent" }}>
@@ -79,27 +63,30 @@ function NodeMarkGrid() {
             </small>
           </div>
         ))}
+        {portfolioContactMarkKinds.map((kind) => (
+          <div className="design-mark-cell" key={kind}>
+            <PortfolioContactMark kind={kind} />
+            <small>
+              contact
+              <br />
+              {kind}
+            </small>
+          </div>
+        ))}
       </div>
       <p className="design-note" style={{ marginTop: "18px" }}>
         Glyph is a function of family, colour of register, and the two axes are
         independent — the register column in the Color section carries the same
-        six values with their token names.
+        six values with their token names. The contact marks share the envelope
+        in the identity colour: node primitives for email, CV, and Instagram,
+        filled silhouettes for GitHub and LinkedIn like the brain symbol.
       </p>
     </div>
   );
 }
 
-function HeaderStates() {
-  return (
-    <Stage size="auto">
-      <IndexSurface>
-        <PortfolioHeader />
-      </IndexSurface>
-    </Stage>
-  );
-}
-
 const readerStates = [
+  { value: "home", label: "Home", activeThreadId: null, selectedId: null },
   { value: "index", label: "Index", activeThreadId: null, selectedId: null },
   { value: "record", label: "Record", activeThreadId: null, selectedId: "reporting" },
   {
@@ -117,7 +104,7 @@ const readerStates = [
 ] as const;
 
 function ReaderStates() {
-  const [state, setState] = useState<(typeof readerStates)[number]["value"]>("index");
+  const [state, setState] = useState<(typeof readerStates)[number]["value"]>("home");
   const active = readerStates.find((candidate) => candidate.value === state)!;
 
   return (
@@ -132,7 +119,9 @@ function ReaderStates() {
         <Composition>
           <PortfolioReader
             activeThreadId={active.activeThreadId}
-            onReset={() => setState("index")}
+            indexOpen={state === "index"}
+            onOpenIndex={() => setState("index")}
+            onReset={() => setState("home")}
             onSelect={noop}
             onSelectThread={noop}
             selectedId={active.selectedId}
@@ -284,15 +273,6 @@ export function CompositionSections() {
         title="Node marks"
       >
         <NodeMarkGrid />
-      </Section>
-
-      <Section
-        id="header"
-        note="The wordmark plus the single Map view control."
-        source="components/PortfolioHeader.tsx"
-        title="Header"
-      >
-        <HeaderStates />
       </Section>
 
       <Section
