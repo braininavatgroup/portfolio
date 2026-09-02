@@ -686,10 +686,19 @@ export function PortfolioReader({
             onSelectThread={onSelectThread}
           />
         )}
+        {/* Privacy is the dossier's last line: it appears only once the
+            reader has scrolled to the end, on the same 24 inset as the
+            Index control and the chat mark. */}
+        <a className="reader-privacy" href="/privacy">
+          <EditableText
+            path="interface.reader.privacyLink"
+            value={portfolioInterfaceText["reader.privacyLink"]}
+          />
+        </a>
       </div>
-      {/* One band outside the scroll area: one text control whose label the
-          state sets (Index everywhere but the index, where it is Home), then
-          Privacy. On mobile the map control sits at the band's right edge. */}
+      {/* One text control laid over the scroll area's bottom-left corner, on
+          the page's 24 inset: Index everywhere but the index, where it is
+          Home. Content scrolls beneath it. */}
       <footer className="portfolio-reader-footer">
         <nav aria-label="Dossier" className="reader-footer-links">
           {mode === "index" ? (
@@ -707,12 +716,6 @@ export function PortfolioReader({
               />
             </button>
           ) : null}
-          <a href="/privacy">
-            <EditableText
-              path="interface.reader.privacyLink"
-              value={portfolioInterfaceText["reader.privacyLink"]}
-            />
-          </a>
         </nav>
         <EditorStatusLine />
       </footer>

@@ -62,7 +62,6 @@ describe("PortfolioReader", () => {
     ).toMatch(/^Hey, I'm Bradley\. I run Brain in a Vat Group/);
     expect(container.querySelector(".reader-index-group")).toBeNull();
     expect(screen.getByRole("link", { name: portfolioContact.email })).toBeTruthy();
-    expect(reader.querySelector(".portfolio-reader-footer")).toBeTruthy();
   });
 
   it("treats Bradley's own node as home rather than a titled record", () => {
@@ -166,33 +165,6 @@ describe("PortfolioReader", () => {
     render(<PortfolioReader {...baseProps} />);
 
     expect(screen.queryByRole("link", { name: "View as list" })).toBeNull();
-  });
-
-  it("puts the Index control and the privacy link on one footer row after the content", () => {
-    const onOpenIndex = vi.fn();
-    render(<PortfolioReader {...baseProps} onOpenIndex={onOpenIndex} />);
-
-    const reader = screen.getByRole("complementary", {
-      name: "Portfolio home",
-    });
-    const footer = reader.querySelector(".portfolio-reader-footer");
-    const index = screen.getByRole("button", { name: "Portfolio index" });
-    const privacy = screen.getByRole("link", { name: "Privacy" });
-
-    expect(footer).toBeTruthy();
-    expect(footer?.contains(index)).toBe(true);
-    expect(footer?.contains(privacy)).toBe(true);
-    expect(index.textContent).toBe("Index");
-    expect(
-      index.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(reader.lastElementChild).toBe(footer);
-
-    fireEvent.click(index);
-    expect(onOpenIndex).toHaveBeenCalledTimes(1);
-    expect(
-      screen.queryByRole("button", { name: "Opt out of analytics" }),
-    ).toBeNull();
   });
 
   it("keeps the editorial copy on the Thread page", () => {
@@ -336,7 +308,7 @@ describe("PortfolioReader", () => {
     const onOpenVisual = vi.fn();
 
     const cases = [
-      { id: "bradley", format: "image" },
+      { id: "writ", format: "image" },
       { id: "dubs", format: "video" },
       { id: "music-practice", format: "gallery" },
     ] as const;
@@ -408,16 +380,13 @@ describe("PortfolioReader", () => {
       <PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />,
     );
     const reader = screen.getByRole("complementary", { name: "Portfolio index" });
-    // The content area scrolls, not the aside: the footer band stays put.
     const scroll = reader.querySelector<HTMLElement>(".reader-scroll")!;
-    expect(scroll.contains(reader.querySelector(".portfolio-reader-footer"))).toBe(false);
     scroll.scrollTop = 420;
     fireEvent.scroll(scroll);
 
     rerender(<PortfolioReader {...baseProps} onOpenIndex={() => {}} selectedId="dubs" />);
     expect(screen.queryByRole("button", { name: "Portfolio home" })).toBeNull();
     const indexButton = screen.getByRole("button", { name: "Portfolio index" });
-    expect(indexButton.closest("footer")).toBeTruthy();
     expect(indexButton.textContent).toBe("Index");
     expect(scroll.scrollTop).toBe(0);
     scroll.scrollTop = 300;

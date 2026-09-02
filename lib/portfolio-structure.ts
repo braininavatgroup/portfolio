@@ -134,7 +134,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p2"),
       para("p3"),
       para("p4"),
-      plannedVisual("about-documentary", "artifact"),
     ],
   },
   {
