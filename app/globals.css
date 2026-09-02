@@ -25,8 +25,6 @@
   --reader-paper-dark: #292625;
   --reader-ink-light: #201711;
   --reader-ink-dark: #f0e6dc;
-  --reader-summary-light: #413a35;
-  --reader-summary-dark: #ded4cb;
   --reader-body-light: #514a45;
   --reader-body-dark: #c1b7ae;
   --reader-muted-light: #6b6d6d;
@@ -34,7 +32,6 @@
   --reader-media-shadow: rgb(32 23 17 / 15%);
   --reader-gallery-shadow: rgb(32 23 17 / 10%);
   --reader-assistant-shadow: rgb(32 23 17 / 20%);
-  --reader-floating-control-shadow: rgb(23 23 23 / 14%);
   --world-lichen: #466700;
   --world-acid: #b6df5b;
   --world-hard-red: #d7191c;
@@ -95,14 +92,27 @@
   /* Active type and recurring composition dimensions. */
   --font-reader: "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --assistant-panel-width: 18rem;
-  --floating-control-size: 40px;
-  --reader-gutter: 24px;
-  --reader-label-size: 10px;
-  --reader-copy-size: 12px;
-  --reader-row-size: 15px;
-  --reader-section-title-size: 18px;
   --cursor-size: 34px;
   --world-hit-area: 34px;
+
+  /* The dossier's 8-pt spacing scale. Every gap and line-height on the
+     dossier is a multiple of 8; these are the multiples it uses. */
+  --reader-space-1: 8px;
+  --reader-space-2: 16px;
+  --reader-space-3: 24px;
+  --reader-space-4: 32px;
+  --reader-space-6: 48px;
+  --reader-space-8: 64px;
+
+  /* The dossier's type scale as font shorthands (weight size/line-height);
+     a rule reads one as `font: <token> var(--font-reader)`. Tracking, case
+     and colour travel with the rule that reads the voice. */
+  --reader-type-display: 500 36px/40px;
+  --reader-type-summary: 400 18px/24px;
+  --reader-type-row: 400 16px/24px;
+  --reader-type-body: 400 15px/24px;
+  --reader-type-caption: 400 12px/16px;
+  --reader-type-label: 500 11px/16px;
 }
 
 body {
@@ -479,23 +489,24 @@ body {
   }
 }
 
+/* One band outside the dossier's scroll area, in every state: one text
+   control whose label the state sets (Home on the index, Index elsewhere),
+   then Privacy. Desktop band is 56 (16 · 24 line · 16); mobile 72 while it
+   holds the 40px map control. */
 .portfolio-reader-footer {
-  box-sizing: border-box;
-  flex-shrink: 0;
-  line-height: 1;
-  /* Pinned to the dossier floor; the link box bottoms out on the same
-     16px line as the chat trigger. */
   align-items: flex-end;
   display: flex;
+  flex-shrink: 0;
   justify-content: space-between;
-  margin: auto auto 0;
-  padding: 2px 24px max(16px, env(safe-area-inset-bottom));
+  padding: var(--reader-space-2) var(--reader-space-4) max(var(--reader-space-2), env(safe-area-inset-bottom));
   width: 100%;
 }
 
-.portfolio-reader > .reader-topbar,
-.portfolio-reader > .reader-content {
-  flex-shrink: 0;
+.reader-footer-links {
+  display: flex;
+  flex: 1;
+  gap: var(--reader-space-2);
+  justify-content: space-between;
 }
 
 .portfolio-reader-footer a,
@@ -503,21 +514,15 @@ body {
   background: none;
   border: 0;
   color: var(--reader-muted);
-  display: inline-block;
-  font: 500 9px/1 var(--font-reader);
-  opacity: 0.48;
+  font: var(--reader-type-caption) var(--font-reader);
+  line-height: var(--reader-space-3);
   padding: 0;
   text-decoration: none;
-  vertical-align: bottom;
 }
 
 .portfolio-reader-footer a:focus-visible,
-.portfolio-reader-footer a:hover,
-.portfolio-reader-footer button:focus-visible,
-.portfolio-reader-footer button:hover {
-  opacity: 0.9;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.portfolio-reader-footer button:focus-visible {
+  color: var(--ink);
 }
 
 .privacy-page {
@@ -739,6 +744,62 @@ input:focus-visible {
   width: 15px;
 }
 
+/* A control is a node mark: the bare glyph in the node envelope, an
+   invisible 40px hit box, a caption 6 below the glyph's visual edge. No ring,
+   fill, shadow, or pictogram; disabled is opacity alone. */
+.portfolio-control-mark {
+  align-content: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: grid;
+  font: inherit;
+  gap: 6px;
+  justify-items: center;
+  margin: 0;
+  min-width: 40px;
+  padding: 0;
+}
+
+.portfolio-control-mark[hidden] {
+  display: none;
+}
+
+.portfolio-control-mark:disabled {
+  opacity: 0.28;
+}
+
+.portfolio-control-glyph {
+  display: grid;
+  height: 40px;
+  margin: -11px 0;
+  place-items: center;
+  width: 40px;
+}
+
+.portfolio-control-glyph svg {
+  fill: none;
+  height: 18px;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.45;
+  width: 18px;
+}
+
+.portfolio-control-mark[data-control="send"] .portfolio-control-glyph svg,
+.portfolio-control-mark[data-control="minimize"] .portfolio-control-glyph svg {
+  height: 14px;
+  width: 14px;
+}
+
+.portfolio-control-label {
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+
 @media (max-width: 760px) {
 }
 
@@ -776,7 +837,6 @@ input:focus-visible {
   --map-paper: var(--map-silver);
   --map-paper-near: var(--map-paper-near-light);
   --reader-paper: var(--reader-paper-light);
-  --reader-summary: var(--reader-summary-light);
   --reader-body: var(--reader-body-light);
   --reader-muted: var(--reader-muted-light);
   --map-connector: var(--map-connector-light);
@@ -789,7 +849,6 @@ input:focus-visible {
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
   --world-cool: var(--world-production-cyan);
-  --portfolio-display-title-size: clamp(25px, 2.5vw, 37px);
   --reader-width: clamp(460px, 38vw, 560px);
   background: var(--map-paper);
   color: var(--ink);
@@ -807,8 +866,7 @@ input:focus-visible {
     --map-paper: var(--map-paper-dark);
     --map-paper-near: var(--map-paper-near-dark);
     --reader-paper: var(--reader-paper-dark);
-    --reader-summary: var(--reader-summary-dark);
-    --reader-body: var(--reader-body-dark);
+      --reader-body: var(--reader-body-dark);
     --reader-muted: var(--reader-muted-dark);
     --map-connector: var(--map-connector-dark);
     --map-line: var(--map-line-dark);
@@ -831,18 +889,18 @@ input:focus-visible {
   gap: 10px;
   justify-items: start;
   min-height: 60vh;
-  padding: 12vh var(--reader-gutter) 0;
+  padding: 12vh var(--reader-space-3) 0;
 }
 
 .recovery-page h1 {
-  font-size: var(--reader-section-title-size);
+  font: var(--reader-type-summary) var(--font-reader);
   letter-spacing: -0.025em;
   margin: 0;
 }
 
 .recovery-page p {
   color: var(--reader-muted);
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   margin: 0;
   max-width: 46ch;
 }
@@ -861,7 +919,7 @@ input:focus-visible {
   border-radius: 4px;
   color: var(--ink);
   font-family: var(--font-reader);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.06em;
   padding: 8px 12px;
   text-decoration: none;
@@ -927,13 +985,16 @@ body:has(.portfolio-composition) {
 
 .portfolio-world-mast {
   color: var(--ink);
-  left: 24px;
+  font: var(--reader-type-display) var(--font-reader);
+  left: var(--reader-space-3);
+  letter-spacing: -0.055em;
   position: absolute;
-  top: 20px;
+  top: var(--reader-space-3);
 }
 
-.portfolio-world-hint,
-.portfolio-mobile-view-toggle {
+/* The phone's one view control lives in the composition, not the dossier,
+   because it has to stay on the map's band when the dossier is hidden. */
+.portfolio-mobile-view-control {
   display: none;
 }
 
@@ -962,8 +1023,7 @@ body:has(.portfolio-composition) {
 
 .portfolio-world[data-visual-open="true"] > canvas,
 .portfolio-world[data-visual-open="true"] > .portfolio-world-node,
-.portfolio-world[data-visual-open="true"] > .portfolio-world-mast,
-.portfolio-world[data-visual-open="true"] > .portfolio-world-hint {
+.portfolio-world[data-visual-open="true"] > .portfolio-world-mast {
   opacity: 0.08;
   pointer-events: none;
 }
@@ -974,7 +1034,8 @@ body:has(.portfolio-composition) {
   box-shadow: 0 24px 70px var(--map-line-light);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  inset: 56px var(--reader-gutter) var(--reader-gutter);
+  /* 24 inset; the top edge clears the mast row (24 + 40 + 24). */
+  inset: calc(var(--reader-space-8) + var(--reader-space-3)) var(--reader-space-3) var(--reader-space-3);
   min-height: 0;
   position: absolute;
   touch-action: auto;
@@ -984,59 +1045,26 @@ body:has(.portfolio-composition) {
 
 .portfolio-visual-stage-head {
   align-items: center;
-  border-bottom: 1px solid var(--map-line);
   display: flex;
   justify-content: space-between;
-  min-height: 43px;
-  padding: 0 12px 0 14px;
+  padding: var(--reader-space-2) var(--reader-space-3);
 }
 
 .portfolio-visual-stage-head div {
-  align-items: baseline;
-  display: flex;
-  gap: 8px;
-}
-
-.portfolio-visual-stage-head span,
-.portfolio-visual-stage-head strong {
-  font-size: var(--reader-label-size);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  display: grid;
 }
 
 .portfolio-visual-stage-head span {
-  color: var(--map-muted);
+  color: var(--reader-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .portfolio-visual-stage-head strong {
   color: var(--ink);
-  font-weight: 600;
-}
-
-.portfolio-visual-stage-head button,
-.portfolio-visual-stage-copy nav button {
-  appearance: none;
-  background: transparent;
-  border: 1px solid var(--map-line);
-  color: var(--ink);
-  font: inherit;
-}
-
-.portfolio-visual-stage-head button {
-  align-items: center;
-  display: flex;
-  font-size: 18px;
-  height: 27px;
-  justify-content: center;
-  line-height: 1;
-  padding: 0 0 2px;
-  width: 27px;
-}
-
-.portfolio-visual-stage-head button:focus-visible,
-.portfolio-visual-stage-copy nav button:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
+  font: var(--reader-type-caption) var(--font-reader);
+  font-weight: 500;
 }
 
 .portfolio-visual-stage-frame {
@@ -1050,7 +1078,7 @@ body:has(.portfolio-composition) {
   justify-content: center;
   min-height: 0;
   overflow: hidden;
-  padding: clamp(16px, 3vw, 34px);
+  padding: var(--reader-space-4);
 }
 
 .portfolio-visual-stage-frame img,
@@ -1062,187 +1090,43 @@ body:has(.portfolio-composition) {
   object-fit: contain;
 }
 
+/* The same draft-state frame the dossier shows, at stage width. */
 .portfolio-visual-stage-placeholder {
-  background: color-mix(in srgb, var(--reader-paper) 90%, transparent);
-  border: 1px solid var(--map-line-strong);
-  height: min(100%, 620px);
-  overflow: hidden;
-  position: relative;
+  max-height: 100%;
   width: min(100%, 920px);
 }
 
-.portfolio-visual-stage-placeholder[data-format="image"] {
-  aspect-ratio: 4 / 3;
-  height: auto;
+.portfolio-visual-stage-placeholder .reader-placeholder-frame {
   max-height: 100%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"]::before,
-.portfolio-visual-stage-placeholder[data-format="image"]::after {
-  background: var(--map-line);
-  content: "";
-  height: 1px;
-  left: -10%;
-  position: absolute;
-  top: 50%;
-  width: 120%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"]::before {
-  transform: rotate(27deg);
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"]::after {
-  transform: rotate(-27deg);
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"] > span {
-  background: var(--reader-paper);
-  border: 1px solid var(--map-line-strong);
-  height: 11px;
-  position: absolute;
-  width: 11px;
-  z-index: 1;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"] > span:nth-child(1) {
-  left: 10%;
-  top: 10%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"] > span:nth-child(2) {
-  right: 10%;
-  top: 10%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"] > span:nth-child(3) {
-  bottom: 10%;
-  left: 10%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="image"] > span:nth-child(4) {
-  bottom: 10%;
-  right: 10%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="video"] {
-  aspect-ratio: 16 / 9;
-  height: auto;
-  max-height: 100%;
-}
-
-.portfolio-visual-stage-play {
-  border: 1px solid var(--map-line-strong);
-  border-radius: 50%;
-  height: clamp(48px, 8vw, 78px);
-  left: 50%;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -58%);
-  width: clamp(48px, 8vw, 78px);
-}
-
-.portfolio-visual-stage-play::after {
-  border-bottom: 10px solid transparent;
-  border-left: 16px solid var(--map-muted);
-  border-top: 10px solid transparent;
-  content: "";
-  left: 43%;
-  position: absolute;
-  top: 50%;
-  transform: translate(-34%, -50%);
-}
-
-.portfolio-visual-stage-timeline {
-  background: var(--map-line-strong);
-  bottom: 8%;
-  height: 2px;
-  left: 7%;
-  position: absolute;
-  width: 86%;
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"] {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"] > span {
-  aspect-ratio: 4 / 3;
-  background: var(--reader-paper);
-  border: 1px solid var(--map-line-strong);
-  box-shadow: 0 8px 26px var(--reader-gallery-shadow);
-  position: absolute;
-  width: min(68%, 560px);
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"] > span:nth-child(1) {
-  transform: translate(-12%, -7%) rotate(-4deg);
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"] > span:nth-child(2) {
-  transform: translate(7%, 2%) rotate(3deg);
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"] > span:nth-child(3) {
-  transform: translate(15%, 8%);
-}
-
-.portfolio-visual-stage-placeholder[data-format="gallery"]::after {
-  bottom: 18px;
-  color: var(--map-muted);
-  content: "Frame " attr(data-frame) " of 3";
-  font-size: var(--reader-label-size);
-  letter-spacing: 0.06em;
-  position: absolute;
-  right: 20px;
-  text-transform: uppercase;
-  z-index: 2;
 }
 
 .portfolio-visual-stage-copy {
-  border-top: 1px solid var(--map-line);
-  padding: 14px;
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-3);
+  justify-content: space-between;
+  padding: var(--reader-space-2) var(--reader-space-3);
 }
 
-.portfolio-visual-stage-copy > p,
-.portfolio-visual-stage-copy > span {
-  color: var(--map-muted);
-  font-size: 9px;
-  letter-spacing: 0.07em;
+.portfolio-visual-stage-copy > p {
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
   margin: 0;
-  text-transform: uppercase;
-}
-
-.portfolio-visual-stage-copy h2 {
-  font-size: clamp(14px, 1.8vw, 20px);
-  font-weight: 500;
-  line-height: 1.25;
-  margin: 6px 0 8px;
-  max-width: 54rem;
+  max-width: 560px;
+  text-wrap: pretty;
 }
 
 .portfolio-visual-stage-copy nav {
   align-items: center;
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-.portfolio-visual-stage-copy nav button {
-  height: 26px;
-  width: 30px;
-}
-
-.portfolio-visual-stage-copy nav button:disabled {
-  opacity: 0.28;
+  flex-shrink: 0;
+  gap: var(--reader-space-2);
+  margin-left: auto;
 }
 
 .portfolio-visual-stage-copy nav span {
-  color: var(--map-muted);
-  font-size: 10px;
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
   min-width: 38px;
   text-align: center;
 }
@@ -1258,8 +1142,6 @@ body:has(.portfolio-composition) {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  overflow: auto;
-  overscroll-behavior: contain;
   position: fixed;
   right: 0;
   top: 0;
@@ -1267,171 +1149,111 @@ body:has(.portfolio-composition) {
   z-index: 6;
 }
 
-.reader-topbar {
-  background: var(--reader-paper);
-  border-bottom: 1px solid var(--map-line);
-  padding: 20px var(--reader-gutter) 18px;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-/* The h1 is sized to its button so the topbar is exactly 20 + one display
-   line + 18 + 1px tall; home's chip offset below depends on that. */
-.reader-topbar h1 {
-  font-size: var(--portfolio-display-title-size);
-  line-height: 0.98;
-  margin: 0;
-}
-
-.reader-topbar button,
-.reader-path button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  display: inline-flex;
-  font: inherit;
-  padding: 0;
+/* The content area scrolls; the footer band below it does not. */
+.reader-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .reader-content {
-  padding: 22px var(--reader-gutter) 48px;
+  padding: var(--reader-space-3) var(--reader-space-4) var(--reader-space-4);
 }
 
+/* Head stack: title → 16 → summary → 32 → body. Home and Index have no
+   summary line, so their titles carry the 32 themselves. */
 .reader-content h1 {
-  font-size: clamp(34px, 4vw, 53px);
-  font-weight: 400;
-  letter-spacing: -0.065em;
-  line-height: 0.92;
-  margin: 0 0 18px;
-  max-width: 8.5em;
-}
-
-.portfolio-world-mast,
-.reader-index-content > h1,
-.reader-topbar button {
-  font-size: var(--portfolio-display-title-size);
-  font-weight: 500;
+  color: var(--ink);
+  font: var(--reader-type-display) var(--font-reader);
   letter-spacing: -0.055em;
-  line-height: 0.98;
+  margin: 0 0 var(--reader-space-4);
+  text-wrap: balance;
 }
 
-.reader-index-content > h1 {
-  margin-bottom: 4px;
-}
-
-/* Home has no topbar and no title, but its chip sits where every record's
-   chip sits: content padding + topbar (20 + 18 + 1 border + one display-title
-   line) + one h1 line and its 18px margin. */
-.reader-home-content {
-  padding-top: calc(
-    22px + 39px + 0.98 * var(--portfolio-display-title-size) +
-      0.92 * clamp(34px, 4vw, 53px) + 18px
-  );
+.reader-content h1:has(+ .reader-summary) {
+  margin-bottom: var(--reader-space-2);
 }
 
 .reader-summary {
-  color: var(--reader-summary);
-  font-size: var(--reader-row-size);
-  letter-spacing: -0.015em;
-  line-height: 1.43;
-  margin: 0 0 28px;
+  color: var(--ink);
+  font: var(--reader-type-summary) var(--font-reader);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--reader-space-4);
+  text-wrap: pretty;
 }
 
-.reader-kind,
-.reader-path {
+.reader-summary-placeholder {
   color: var(--reader-muted);
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.025em;
-  margin: 8px 0 14px;
-}
-
-.reader-path + .reader-kind {
-  margin-top: 0;
-}
-
-/* Every record carries its map register color, so the page and its node match. */
-.reader-kind[data-register] {
-  background: var(--register, var(--world-identity));
-  color: var(--reader-paper);
-  display: inline-block;
-  font-size: var(--reader-label-size);
-  padding: 5px 7px 4px;
-}
-
-.reader-kind[data-register="identity"] { --register: var(--world-identity); }
-.reader-kind[data-register="story"] { --register: var(--world-story); }
-.reader-kind[data-register="arc"] { --register: var(--world-arc); }
-.reader-kind[data-register="warm"] { --register: var(--world-warm); }
-.reader-kind[data-register="bridge"] { --register: var(--world-bridge); }
-.reader-kind[data-register="cool"] { --register: var(--world-cool); }
-
-.reader-record-section > p + p {
-  margin-top: 10px;
-}
-
-/* Contact rows are index rows that happen to be anchors. */
-.reader-contact-row {
-  text-decoration: none;
-}
-
-.reader-contact-row:hover > span:first-child {
-  text-decoration: underline;
+  font-style: italic;
+  text-decoration: underline dotted var(--map-line-strong);
   text-underline-offset: 4px;
 }
 
-.reader-index-group,
+/* Inside a section: paragraphs 16 apart; a figure adds 8 either side. */
+.reader-composed-body {
+  display: grid;
+  gap: var(--reader-space-2);
+}
+
+.reader-composed-body > p {
+  color: var(--reader-body);
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Sections are separated by space alone: 64 above a label, 8 below it. */
 .reader-record-section {
-  margin: 0 0 31px;
+  margin: var(--reader-space-8) 0 0;
 }
 
 .reader-index-group h2,
 .reader-record-section h2 {
-  color: var(--ink);
-  font-size: var(--reader-section-title-size);
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
-  margin: 0 0 12px;
-}
-
-.reader-record-section {
-  border-top: 1px solid var(--map-line);
-  margin: 0;
-  padding: 16px 0 20px;
-}
-
-/* One label voice for every section: small caps over content, one rule above. */
-.reader-record-section h2 {
   color: var(--reader-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  margin-bottom: 8px;
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--reader-space-1);
   text-transform: uppercase;
 }
 
-/* Rows inside a section separate from each other only; the section rule
-   above and the next section's rule below bound the group with single lines. */
-.reader-record-section .reader-index-row {
-  border-top: 0;
+.reader-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.reader-record-section .reader-index-row + .reader-index-row {
-  border-top: 1px solid var(--map-line);
+/* One row rule set for index, related, explore, and contact: a 40px row,
+   the label in the row voice, the mark trailing in its register. State is
+   the outline alone; the mark never changes (Rule 6.1). */
+.reader-index-row {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  color: var(--ink);
+  display: grid;
+  font: var(--reader-type-row) var(--font-reader);
+  gap: var(--reader-space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: var(--reader-space-1) 0;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
 }
 
-.reader-record-section .reader-index-row:last-child {
-  border-bottom: 0;
+.reader-index-row:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
-.reader-record-section > p {
-  color: var(--reader-body);
-  font-size: var(--reader-copy-size);
-  line-height: 1.48;
+.reader-index-content {
+  display: grid;
+  gap: var(--reader-space-4);
+}
+
+.reader-index-content > h1 {
   margin: 0;
 }
 
@@ -1458,49 +1280,41 @@ body:has(.portfolio-composition) {
 .reader-inline-link[data-register="bridge"] { --register: var(--world-bridge); }
 .reader-inline-link[data-register="cool"] { --register: var(--world-cool); }
 
-.reader-inline-link:focus-visible,
-.reader-inline-link:hover {
+.reader-inline-link:focus-visible {
   text-decoration-color: currentColor;
-}
-
-.reader-composed-body > .reader-copy-placeholder {
-  margin: 18px 0;
 }
 
 .reader-placeholder-label {
   color: var(--reader-muted);
   display: block;
-  font-size: var(--reader-label-size);
-  font-weight: 600;
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.08em;
-  line-height: 1.2;
-  margin-bottom: 8px;
   text-transform: uppercase;
 }
 
 .reader-copy-placeholder {
   border-left: 1px dotted var(--map-line-strong);
-  color: var(--reader-body);
-  padding: 2px 0 2px 14px;
+  display: grid;
+  gap: var(--reader-space-1);
+  padding-left: var(--reader-space-2);
 }
 
-.reader-copy-placeholder strong,
-.reader-visual-placeholder strong {
+.reader-copy-placeholder strong {
   color: var(--ink);
-  display: block;
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-body) var(--font-reader);
   font-weight: 500;
-  line-height: 1.38;
 }
 
 .reader-copy-placeholder ul {
   color: var(--reader-body);
-  font-size: 11px;
-  line-height: 1.4;
-  margin: 10px 0 0;
-  padding-left: 17px;
+  display: grid;
+  font: var(--reader-type-body) var(--font-reader);
+  gap: calc(var(--reader-space-1) / 2);
+  margin: 0;
+  padding-left: var(--reader-space-2);
 }
 
+/* Figures: full text-column width; the frame, then the caption 8 below. */
 .reader-visual-trigger {
   appearance: none;
   background: transparent;
@@ -1508,152 +1322,91 @@ body:has(.portfolio-composition) {
   color: inherit;
   display: block;
   font: inherit;
-  margin: 18px 0;
+  margin: var(--reader-space-1) 0;
   padding: 0;
   text-align: left;
   width: 100%;
 }
 
-.reader-visual-trigger.reader-visual-draft {
-  background:
-    linear-gradient(135deg, transparent 0 48%, var(--map-grid) 48% 52%, transparent 52% 100%),
-    color-mix(in srgb, var(--reader-paper) 88%, var(--map-paper));
-  border: 1px solid var(--map-line-strong);
-  color: var(--reader-body);
-}
-
 .reader-visual-trigger:focus-visible {
   outline: 2px solid var(--ink);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .reader-visual-placeholder,
 .reader-visual-block {
+  display: grid;
+  gap: var(--reader-space-1);
   margin: 0;
 }
 
+.reader-placeholder-frame,
+.reader-visual-block img {
+  border: 1px solid var(--map-line-strong);
+  box-sizing: border-box;
+  padding: 12px;
+  width: 100%;
+}
+
 .reader-placeholder-frame {
-  align-items: center;
+  align-items: flex-start;
   aspect-ratio: 16 / 9;
-  border-bottom: 1px solid var(--map-line);
+  color: var(--reader-muted);
   display: flex;
-  gap: 7px;
-  justify-content: center;
-  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
   position: relative;
 }
 
-.reader-visual-trigger[data-format="image"] .reader-placeholder-frame {
+.reader-placeholder-frame[data-format="image"] {
   aspect-ratio: 4 / 3;
 }
 
-.reader-visual-trigger[data-format="image"] .reader-placeholder-frame::before,
-.reader-visual-trigger[data-format="image"] .reader-placeholder-frame::after {
-  background: var(--map-line);
-  content: "";
-  height: 1px;
-  left: 12%;
-  position: absolute;
-  top: 50%;
-  width: 76%;
-}
-
-.reader-visual-trigger[data-format="image"] .reader-placeholder-frame::before {
-  transform: rotate(24deg);
-}
-
-.reader-visual-trigger[data-format="image"] .reader-placeholder-frame::after {
-  transform: rotate(-24deg);
-}
-
-.reader-placeholder-frame span {
-  background: var(--reader-paper);
-  border: 1px solid var(--map-line-strong);
-  height: 7px;
-  position: relative;
-  width: 7px;
-  z-index: 1;
-}
-
-.reader-visual-trigger[data-format="gallery"] .reader-placeholder-frame span {
-  height: 48%;
-  position: absolute;
-  width: 54%;
-}
-
-.reader-visual-trigger[data-format="gallery"] .reader-placeholder-frame span:nth-child(1) {
-  transform: translate(-14%, -9%) rotate(-4deg);
-}
-
-.reader-visual-trigger[data-format="gallery"] .reader-placeholder-frame span:nth-child(2) {
-  transform: translate(8%, 4%) rotate(3deg);
-}
-
-.reader-visual-trigger[data-format="gallery"] .reader-placeholder-frame span:nth-child(3) {
-  transform: translate(18%, 11%);
+.reader-placeholder-source {
+  font: var(--reader-type-caption) var(--font-reader);
 }
 
 .reader-placeholder-count {
-  bottom: 9px;
-  color: var(--reader-muted);
-  font-size: 9px;
-  font-style: normal;
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.08em;
   position: absolute;
-  right: 11px;
-  z-index: 2;
+  right: 12px;
+  text-transform: uppercase;
+  top: 12px;
 }
 
 .reader-placeholder-play {
   border: 1px solid var(--map-line-strong);
   border-radius: 50%;
-  height: 30px !important;
-  position: relative;
-  width: 30px !important;
+  height: 40px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
 }
 
 .reader-placeholder-play::after {
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid var(--reader-muted);
-  border-top: 5px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid var(--reader-muted);
+  border-top: 6px solid transparent;
   content: "";
-  left: 11px;
+  left: 50%;
   position: absolute;
-  top: 9px;
-}
-
-.reader-placeholder-timeline {
-  background: var(--map-line-strong);
-  bottom: 12px;
-  height: 1px;
-  left: 10%;
-  position: absolute;
-  width: 80%;
-}
-
-.reader-visual-placeholder figcaption,
-.reader-visual-block figcaption {
-  padding: 12px 14px 14px;
-}
-
-.reader-placeholder-meta {
-  color: var(--reader-muted);
-  display: block;
-  font-size: var(--reader-label-size);
-  letter-spacing: 0.02em;
-  margin-top: 8px;
-  text-transform: capitalize;
+  top: 50%;
+  transform: translate(-35%, -50%);
 }
 
 .reader-visual-block img {
   display: block;
   height: auto;
-  width: 100%;
 }
 
+.reader-visual-placeholder figcaption,
 .reader-visual-block figcaption {
   color: var(--reader-muted);
-  font-size: var(--reader-label-size);
-  line-height: 1.4;
+  font: var(--reader-type-caption) var(--font-reader);
+  text-wrap: pretty;
 }
 
 .portfolio-reader-clean-review .reader-text-placeholder,
@@ -1661,103 +1414,34 @@ body:has(.portfolio-composition) {
   display: none;
 }
 
-.reader-summary-placeholder {
-  color: var(--reader-muted);
-  font-size: var(--reader-copy-size);
-  font-style: italic;
-  letter-spacing: 0.02em;
-  text-decoration: underline dotted var(--map-line-strong);
-  text-underline-offset: 4px;
-}
+/* Hover is fine-pointer only, and instant: rows and figures take a ring or a
+   darker frame, links a full-strength underline, footer controls ink. */
+@media (pointer: fine) {
+  .reader-index-row:hover {
+    outline: 1px solid var(--map-line-strong);
+    outline-offset: 2px;
+  }
 
-.reader-index-row {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--map-line);
-  color: var(--ink);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px 0 12px;
-  position: relative;
-  text-align: left;
-  width: 100%;
-}
+  .reader-inline-link:hover {
+    text-decoration-color: currentColor;
+  }
 
-.reader-index-row:last-child {
-  border-bottom: 1px solid var(--map-line);
-}
+  .reader-visual-trigger:hover .reader-placeholder-frame,
+  .reader-visual-trigger:hover img {
+    border-color: var(--ink);
+  }
 
-.reader-index-row > span:first-child {
-  font-size: var(--reader-row-size);
-  line-height: 1.2;
-}
-
-.reader-index-row > .portfolio-node-mark {
-  align-self: center;
-}
-
-.reader-index-row small {
-  color: var(--reader-muted);
-  font-size: var(--reader-label-size);
-  font-weight: 400;
-  grid-column: 1 / -1;
-  line-height: 1.35;
-  margin-top: 2px;
-}
-
-.reader-index-content {
-  padding-block: 18px 24px;
-}
-
-.reader-index-content .reader-index-group {
-  margin-bottom: 0;
-  padding-bottom: 10px;
-}
-
-.reader-index-content .reader-index-group + .reader-index-group {
-  border-top: 1px solid var(--map-line);
-  padding-top: 10px;
-}
-
-.reader-index-content .reader-index-group h2 {
-  color: var(--reader-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-
-.reader-index-content .reader-index-row {
-  border-top: 0;
-  border-radius: 2px;
-  padding: 5px 0 6px 12px;
-  transition: background-color 120ms ease;
-}
-
-.reader-index-content .reader-index-row:last-child {
-  border-bottom: 0;
-}
-
-.reader-index-content .reader-index-row:hover {
-  background: color-mix(in srgb, var(--ink) 5%, transparent);
-}
-
-.reader-index-content .reader-index-row > .portfolio-node-mark {
-  align-self: center;
-}
-
-.reader-index-content .reader-index-row small {
-  display: none;
+  .portfolio-reader-footer a:hover,
+  .portfolio-reader-footer button:hover {
+    color: var(--ink);
+  }
 }
 
 .experience .portfolio-chat {
   align-items: flex-end;
   background: transparent;
   border: 0;
-  bottom: 16px;
+  bottom: var(--reader-space-3);
   box-shadow: none;
   display: flex;
   font-family: var(--font-reader);
@@ -1766,14 +1450,14 @@ body:has(.portfolio-composition) {
   padding: 0;
   pointer-events: none;
   position: fixed;
-  right: 18px;
+  right: var(--reader-space-3);
   transform: none;
   width: auto;
   z-index: 8;
 }
 
 .portfolio-composition .portfolio-chat {
-  right: calc(var(--reader-width, 0px) + 18px);
+  right: calc(var(--reader-width, 0px) + var(--reader-space-3));
 }
 
 .portfolio-chat-anchor {
@@ -1843,16 +1527,23 @@ body:has(.portfolio-composition) {
   font-weight: 600;
 }
 
-.portfolio-chat-head button {
-  align-items: center;
+/* The chat's own two glyphs — minimize and send — are node controls at 14px
+   with no label, kept to the head's and composer's existing 28px box. */
+.portfolio-chat-head .portfolio-control-mark,
+.portfolio-chat .portfolio-chat-composer .portfolio-control-mark {
   background: transparent;
   border: 0;
-  color: var(--map-muted, var(--map-muted-light));
-  display: flex;
-  font-size: 14px;
-  height: 28px;
-  justify-content: center;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--ink, var(--reader-ink-light));
+  min-width: 28px;
   padding: 0;
+}
+
+.portfolio-chat-head .portfolio-control-glyph,
+.portfolio-chat .portfolio-chat-composer .portfolio-control-glyph {
+  height: 28px;
+  margin: 0;
   width: 28px;
 }
 
@@ -1934,51 +1625,6 @@ body:has(.portfolio-composition) {
   width: 100%;
 }
 
-.portfolio-chat .portfolio-chat-composer button {
-  background: var(--ink, var(--reader-ink-light));
-  border: 0;
-  border-radius: 6px;
-  color: var(--reader-paper, var(--reader-paper-light));
-  height: 25px;
-  padding: 0;
-  width: 25px;
-}
-
-.portfolio-chat-trigger {
-  align-items: center;
-  background: color-mix(in srgb, var(--reader-paper, var(--reader-paper-light)) 92%, transparent);
-  border: 1px solid var(--map-line-strong, var(--map-line-strong-light));
-  border-radius: 50%;
-  box-shadow: 0 10px 25px var(--reader-floating-control-shadow);
-  color: var(--ink, var(--reader-ink-light));
-  display: flex;
-  height: var(--floating-control-size);
-  justify-content: center;
-  padding: 0;
-  width: var(--floating-control-size);
-}
-
-.portfolio-chat-glyph {
-  border: 1.5px solid currentColor;
-  border-radius: 3px;
-  height: 12px;
-  position: relative;
-  width: 16px;
-}
-
-.portfolio-chat-glyph::after {
-  background: var(--reader-paper, var(--reader-paper-light));
-  border-bottom: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-  bottom: -4px;
-  content: "";
-  height: 5px;
-  left: 3px;
-  position: absolute;
-  rotate: 45deg;
-  width: 5px;
-}
-
 .cursor-instrument {
   height: var(--cursor-size);
   opacity: 0;
@@ -2054,73 +1700,6 @@ body:has(.portfolio-composition) {
     display: none;
   }
 
-  .reader-index-content {
-    padding-block: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-bottom));
-  }
-
-  .reader-index-content h1 {
-    margin-bottom: 12px;
-  }
-
-  .reader-index-content .reader-index-group {
-    padding-bottom: 6px;
-  }
-
-  .reader-index-content .reader-index-group + .reader-index-group {
-    padding-top: 6px;
-  }
-
-  .reader-index-content .reader-index-group h2 {
-    margin-bottom: 2px;
-  }
-
-  .reader-index-content .reader-index-row {
-    min-height: 40px;
-    padding: 6px 0 7px 10px;
-  }
-
-  .reader-record-section > p {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  .reader-summary {
-    font-size: 16px;
-  }
-}
-
-@media (max-height: 820px) and (pointer: fine) {
-  .reader-index-content {
-    padding-block: 12px 14px;
-  }
-
-  .reader-index-content h1 {
-    margin-bottom: 2px;
-  }
-
-  .reader-index-content .reader-index-group {
-    margin-bottom: 0;
-    padding-bottom: 5px;
-  }
-
-  .reader-index-content .reader-index-group + .reader-index-group {
-    padding-top: 5px;
-  }
-
-  .reader-index-content .reader-index-group h2 {
-    font-size: 14px;
-    margin-bottom: 3px;
-  }
-
-  .reader-index-content .reader-index-row {
-    padding: 4px 0 4px 10px;
-  }
-
-  .reader-index-content .reader-index-row > span:first-child {
-    font-size: 14px;
-    line-height: 1.15;
-  }
-
 }
 
 @media (max-width: 900px) {
@@ -2146,15 +1725,44 @@ body:has(.portfolio-composition) {
     border-left: 0;
     width: 100%;
   }
-  .portfolio-composition .reader-index-content {
-    box-sizing: border-box;
-    margin-inline: auto;
-    max-width: 680px;
-    padding-inline: clamp(18px, 4vw, 32px);
+  /* Page inset and gutter become the same number; nothing shrinks. */
+  .portfolio-composition .reader-content {
+    padding: var(--reader-space-3) var(--reader-space-3) var(--reader-space-4);
   }
+  /* The band is 72 while it holds the 40px map control at its right edge;
+     the control itself is fixed so it stays on the map's band when the
+     dossier is hidden. */
   .portfolio-composition .portfolio-reader-footer {
-    max-width: 680px;
-    padding-inline: clamp(18px, 4vw, 32px);
+    min-height: 72px;
+    padding: var(--reader-space-2) calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
+  }
+  .portfolio-composition .reader-footer-links {
+    justify-content: flex-start;
+  }
+  .portfolio-composition .portfolio-chat-trigger {
+    display: none;
+  }
+  .portfolio-composition .portfolio-mobile-view-control {
+    bottom: max(var(--reader-space-2), env(safe-area-inset-bottom));
+    display: grid;
+    position: fixed;
+    right: max(var(--reader-space-3), env(safe-area-inset-right));
+    z-index: 9;
+  }
+  .portfolio-composition:has(.portfolio-chat[data-open="true"]) .portfolio-mobile-view-control,
+  .portfolio-composition.portfolio-visual-open .portfolio-mobile-view-control {
+    display: none;
+  }
+  .portfolio-composition.portfolio-mobile-map-open .portfolio-world {
+    display: block;
+    inset: 0;
+  }
+  .portfolio-composition.portfolio-mobile-map-open .portfolio-reader {
+    display: none;
+  }
+  .portfolio-mobile-map-open .portfolio-world-mast {
+    left: max(var(--reader-space-3), env(safe-area-inset-left));
+    top: max(var(--reader-space-3), env(safe-area-inset-top));
   }
   .experience .portfolio-chat {
     bottom: max(14px, env(safe-area-inset-bottom)) !important;
@@ -2187,16 +1795,12 @@ body:has(.portfolio-composition) {
     width: auto;
   }
 
-  .portfolio-composition .portfolio-chat-trigger {
-    display: none;
-  }
-
   .portfolio-composition .portfolio-chat-anchor,
   .experience .portfolio-chat-panel {
     width: 100%;
   }
 
-  .portfolio-composition .portfolio-chat-panel {
+  .portfolio-composition .portfolio-chat-panel:not([hidden]) {
     border-radius: 18px;
     display: flex;
     flex-direction: column;
@@ -2294,86 +1898,15 @@ body:has(.portfolio-composition) {
     transform: translate(-50%, calc(-50% - 48px));
   }
 
-  .portfolio-composition:has(.portfolio-chat[data-open="true"]) .portfolio-mobile-view-toggle {
-    display: none;
-  }
-
-  .portfolio-composition.portfolio-mobile-map-open .portfolio-world {
-    display: block;
-    inset: 0;
-  }
-
-  .portfolio-composition.portfolio-mobile-map-open .portfolio-reader {
-    display: none;
-  }
-
   .portfolio-visual-stage {
     border: 0;
     inset: 0;
   }
 
   .portfolio-visual-stage-frame {
-    padding: 14px;
+    padding: var(--reader-space-2);
   }
 
-  .portfolio-visual-open .portfolio-mobile-view-toggle {
-    display: none;
-  }
-
-  .portfolio-mobile-view-toggle {
-    align-items: center;
-    background: color-mix(in srgb, var(--reader-paper, var(--reader-paper-light)) 92%, transparent);
-    border: 1px solid var(--map-line-strong, var(--map-line-strong-light));
-    border-radius: 50%;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    box-shadow: 0 10px 25px var(--reader-floating-control-shadow);
-    color: var(--ink, var(--reader-ink-light));
-    display: flex;
-    height: var(--floating-control-size);
-    justify-content: center;
-    min-width: var(--floating-control-size);
-    padding: 0;
-    position: fixed;
-    right: var(--mobile-controls-inline-end);
-    z-index: 9;
-  }
-
-  .portfolio-mobile-view-icon {
-    fill: none;
-    height: 16px;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.5;
-    width: 16px;
-  }
-
-  .portfolio-mobile-view-toggle:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
-  }
-
-  .portfolio-mobile-map-open .portfolio-world-mast {
-    left: max(18px, env(safe-area-inset-left));
-    top: max(18px, env(safe-area-inset-top));
-  }
-
-  .portfolio-mobile-map-open .portfolio-world-hint {
-    bottom: max(22px, env(safe-area-inset-bottom));
-    color: var(--map-muted);
-    display: block;
-    font-size: 11px;
-    left: max(18px, env(safe-area-inset-left));
-    line-height: 1;
-    margin: 0;
-    pointer-events: none;
-    position: absolute;
-    z-index: 2;
-  }
-
-  .portfolio-composition .reader-index-content {
-    padding-bottom: max(78px, env(safe-area-inset-bottom));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2401,7 +1934,6 @@ body:has(.portfolio-composition) {
   --map-paper: var(--map-silver);
   --map-paper-near: var(--map-paper-near-light);
   --reader-paper: var(--reader-paper-light);
-  --reader-summary: var(--reader-summary-light);
   --reader-body: var(--reader-body-light);
   --reader-muted: var(--reader-muted-light);
   --map-connector: var(--map-connector-light);
@@ -2425,7 +1957,6 @@ body:has(.portfolio-composition) {
   --map-paper: var(--map-paper-dark);
   --map-paper-near: var(--map-paper-near-dark);
   --reader-paper: var(--reader-paper-dark);
-  --reader-summary: var(--reader-summary-dark);
   --reader-body: var(--reader-body-dark);
   --reader-muted: var(--reader-muted-dark);
   --map-connector: var(--map-connector-dark);
@@ -2464,21 +1995,21 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   display: flex;
   flex-wrap: wrap;
   gap: 12px 24px;
-  padding: 18px var(--reader-gutter);
+  padding: 18px var(--reader-space-3);
   position: sticky;
   top: 0;
   z-index: 20;
 }
 
 .design-gallery-bar h1 {
-  font-size: var(--portfolio-display-title-size, var(--reader-section-title-size));
+  font: var(--reader-type-display) var(--font-reader);
   letter-spacing: -0.055em;
   margin: 0;
 }
 
 .design-gallery-bar p {
   color: var(--map-muted);
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   margin: 0;
   max-width: 46ch;
 }
@@ -2497,7 +2028,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   border-radius: 4px;
   color: var(--ink);
   font-family: var(--font-reader);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.06em;
   padding: 6px 10px;
   text-decoration: none;
@@ -2524,12 +2055,12 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 10px var(--reader-gutter);
+  padding: 10px var(--reader-space-3);
 }
 
 .design-state-strip-label {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.07em;
   margin-inline-end: 4px;
   text-transform: uppercase;
@@ -2539,7 +2070,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   display: flex;
   flex-wrap: wrap;
   gap: 6px 18px;
-  padding: 14px var(--reader-gutter);
+  padding: 14px var(--reader-space-3);
 }
 
 /* The nav states the grouping, so a reviewer sees the page's shape before
@@ -2553,7 +2084,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-gallery-nav-heading {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.07em;
   margin-right: 2px;
   text-transform: uppercase;
@@ -2561,7 +2092,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-group-heading {
   border-top: 1px solid var(--map-line-strong);
-  padding: 34px var(--reader-gutter) 0;
+  padding: 34px var(--reader-space-3) 0;
 }
 
 .design-group-heading h2 {
@@ -2584,7 +2115,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-section {
   border-top: 1px solid var(--map-line);
-  padding: 28px var(--reader-gutter);
+  padding: 28px var(--reader-space-3);
   scroll-margin-top: 96px;
 }
 
@@ -2624,7 +2155,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 }
 
 .design-section-summary > h2 {
-  font-size: var(--reader-section-title-size);
+  font: var(--reader-type-summary) var(--font-reader);
   grid-column: 1;
   letter-spacing: -0.025em;
   margin: 0;
@@ -2642,7 +2173,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 .design-note {
   color: var(--map-muted);
   display: block;
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   margin: 0 0 18px;
   max-width: 72ch;
 }
@@ -2665,21 +2196,20 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 }
 
 .design-specimen-head h3 {
-  font-size: var(--reader-row-size);
+  font: var(--reader-type-row) var(--font-reader);
   letter-spacing: -0.015em;
   margin: 0;
 }
 
 .design-specimen-head p {
   color: var(--map-muted);
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   margin: 0;
 }
 
 .design-section-source {
   color: var(--map-muted);
-  font-family: var(--font-prototype-mono);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-caption) var(--font-prototype-mono);
   grid-column: 1;
 }
 
@@ -2735,7 +2265,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   align-items: center;
   color: var(--map-muted);
   display: flex;
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   gap: 12px;
   justify-content: center;
   padding: 24px 14px;
@@ -2744,14 +2274,13 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-token-row code {
   color: var(--map-muted);
-  font-family: var(--font-prototype-mono);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-caption) var(--font-prototype-mono);
   word-break: break-all;
 }
 
 .design-token-table {
   border-collapse: collapse;
-  font-size: var(--reader-copy-size);
+  font: var(--reader-type-caption) var(--font-reader);
   width: 100%;
 }
 
@@ -2765,7 +2294,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-token-table th {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2791,7 +2320,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-type-specimen-label {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.07em;
   margin: 0;
   text-transform: uppercase;
@@ -2809,7 +2338,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-pose-labels small {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   line-height: 1.3;
 }
 
@@ -2836,7 +2365,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   color: var(--map-muted);
   content: attr(data-mode);
   display: block;
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   letter-spacing: 0.07em;
   margin-bottom: 8px;
   text-transform: uppercase;
@@ -2866,7 +2395,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .design-mark-cell small {
   color: var(--map-muted);
-  font-size: var(--reader-label-size);
+  font: var(--reader-type-label) var(--font-reader);
   text-align: center;
 }
 

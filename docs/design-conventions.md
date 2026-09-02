@@ -1,6 +1,7 @@
 # Design conventions
 
-Status: house rules, 31 August 2026. Read this before any UI or styling work.
+Status: house rules, 2 September 2026, restated for the dossier respec. Read
+this before any UI or styling work.
 
 This document states how styling is actually written in this repository, as
 rules you can follow without inspecting the whole stylesheet. It is a
@@ -29,15 +30,15 @@ Identify the surface first.
    the world, the dossier, the assistant, the cursor. Applied in
    `components/PortfolioExperience.tsx`. This is the client-facing portfolio
    and the only surface where new design work happens.
-2. **Supporting pages.** `/privacy` and the
+2. **Supporting pages.** `/privacy`, `/design`, and the
    graph/scene/drawer/toybox/avatar-director selectors. These predate the
    checkpoint. They are kept working, not extended.
 
 **Rule 0.1** — New work targets the composition. Do not add new
 `--prototype-*` tokens or new legacy-page selectors. The inventory only
-shrinks: a `--prototype-*` token with no `var()` reader left is not "frozen",
-it is dead, and it goes. Geist used to be named here too; it has been deleted
-outright, so there is nothing left to add.
+shrinks: a token with no `var()` reader left is not "frozen", it is dead, and
+it goes. `tests/design-tokens.test.ts` fails on an undocumented token and on a
+documented token nothing declares.
 
 **Rule 0.2** — When you must touch a legacy page, use the `--prototype-*`
 tokens already there. Do not "upgrade" it to checkpoint colors as a side
@@ -47,21 +48,23 @@ effect; that is a deliberate migration, not a drive-by.
 
 **Rule 1.1** — `app/globals.css` contains zero raw color literals outside the
 `:root` token block. No `#rrggbb`, no `rgb()`, no `rgba()`, no named colors,
-anywhere below it. Keep it that way — `tests/design-tokens.test.ts` enforces
-it, which is why this no longer quotes a line number that went stale the first
-time a token was removed.
+anywhere below it. `tests/design-tokens.test.ts` enforces it.
 
 **Rule 1.2** — To style something, reference an existing token with `var()`.
 If genuinely no token fits, add one to the correct family in `:root` and record
 it in `docs/design-tokens.md` in the same change. Adding a token is a visible
-decision; a literal is a silent one.
+decision; a literal is a silent one. The same holds for **spacing and type on
+the dossier**: every gap comes from `--reader-space-*` and every voice from
+`--reader-type-*` (§3). Geometry that is not spacing stays literal — the 18px
+mark box, the 40px control hit box, the 12px figure-frame padding, the 6px
+glyph-to-label gap, a stage maximum width.
 
 **Rule 1.3** — Derive tints and scrims with `color-mix()` over tokens rather
 than adding a near-duplicate token:
 
 ```css
 background: color-mix(in srgb, var(--reader-paper) 92%, var(--map-paper));
-background: color-mix(in srgb, var(--ink) 5%, transparent);
+text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
 ```
 
 **Rule 1.4** — Colors in rendering code (canvas, WebGL) read from the CSS
@@ -78,9 +81,9 @@ the light/dark leaf, unless you are writing the mode block itself (§4).
 
 | Family | What it is | Use for |
 | --- | --- | --- |
-| `--map-*` | The world plane and its neutrals | Canvas background, rules, grids, secondary map ink |
-| `--reader-*` | The dossier plane | Dossier paper, copy hierarchy, shadows |
-| `--world-*` | The six register colors | Node marks, register badges, anything that must match a node |
+| `--map-*` | The world plane and its neutrals | Canvas background, the dossier's left edge, figure frames, control outlines |
+| `--reader-*` | The dossier plane: its paper, copy hierarchy, spacing and type scales | Everything inside `.portfolio-reader` and the stage |
+| `--world-*` | The six register colors | Node marks, inline links, anything that must match a node |
 | `--prototype-*` | Legacy vocabulary | Legacy pages only (§0.2) |
 
 ### Semantic aliases — the ones you actually write
@@ -90,18 +93,17 @@ They are the only color names that belong in new composition CSS.
 
 | Alias | Role |
 | --- | --- |
-| `--ink` | Primary composition ink |
+| `--ink` | Primary composition ink: titles, summaries, rows, controls and their labels |
 | `--map-paper` | World background |
 | `--map-paper-near` | Near-paper world surfaces |
-| `--map-muted` | Map labels and secondary controls |
-| `--map-line` | The single neutral rule / relationship treatment |
-| `--map-line-strong` | Strong rules and control outlines |
+| `--map-muted` | Map labels and secondary map ink |
+| `--map-line` | The single neutral rule. On the dossier it draws exactly one thing: the left edge |
+| `--map-line-strong` | Figure frames, the play ring, the row hover ring, the stage border |
 | `--map-grid` | Placeholder grids |
 | `--reader-paper` | Dossier surface |
-| `--reader-summary` | Summary copy |
-| `--reader-body` | Body copy |
-| `--reader-muted` | Labels and metadata |
-| `--world-identity` | Bradley's identity mark |
+| `--reader-body` | Paragraph copy |
+| `--reader-muted` | Labels, captions, placeholder meta, footer controls at rest |
+| `--world-identity` | Bradley's identity mark and the Contact marks |
 | `--world-story` | Story register |
 | `--world-arc` | From argument to instrument register |
 | `--world-warm` | Operations register |
@@ -109,79 +111,89 @@ They are the only color names that belong in new composition CSS.
 | `--world-cool` | In Production register |
 
 The shadow tokens are *not* mode-switched — use them directly:
-`--reader-stage-shadow`, `--reader-media-shadow`, `--reader-gallery-shadow`,
-`--reader-assistant-shadow`, `--reader-floating-control-shadow`.
+`--reader-media-shadow`, `--reader-gallery-shadow`, `--reader-assistant-shadow`.
 
-### Dimension tokens
+### Spacing tokens
 
-Defined in `:root`: `--font-reader`, `--assistant-panel-width` (`18rem`),
-`--floating-control-size` (`40px`), `--reader-gutter` (`24px`),
-`--reader-label-size` (`10px`), `--reader-copy-size` (`12px`),
-`--reader-row-size` (`15px`), `--reader-section-title-size` (`18px`),
-`--cursor-size` (`34px`), `--world-hit-area` (`34px`).
+The dossier runs on an **8-pt rhythm**: every gap and every line-height is a
+multiple of 8. `:root` holds the multiples it uses — `--reader-space-1` (8),
+`-2` (16), `-3` (24), `-4` (32), `-6` (48, reserved), `-8` (64).
 
-Defined on `.portfolio-composition` because they are composition-scoped:
-`--portfolio-display-title-size` (`clamp(25px, 2.5vw, 37px)`) and
-`--reader-width` (`clamp(460px, 38vw, 560px)`, overridden to `100%` at
-900px and below). `--mobile-controls-inline-end` is defined on
-`.portfolio-composition` inside the 600px block only.
+**Rule 2.1** — Space on the dossier is written with these tokens, never with a
+number. The recurring meanings: 24 is the page inset (map mast, dossier top,
+mobile gutter, chat and stage corners); 32 is the desktop gutter, the
+summary-to-body gap, and the index group gap; 64 sits above every section
+label; 8 below it; 16 between paragraphs; a figure adds 8 either side of the
+16 grid gap.
 
-**Rule 2.1** — Reuse a dimension token before inventing a magic number. Reader
-padding uses `var(--reader-gutter)`; a floating control is
-`var(--floating-control-size)`; anything that must clear the dossier computes
-from `var(--reader-width)`.
+**Rule 2.2** — No rules inside the dossier. `--map-line` draws the dossier's
+left edge; `--map-line-strong` draws figure frames. Sections, groups, and rows
+are separated by space alone — no `border-top`, no `border-bottom`, no hover
+tint. `app/globals.test.ts` fails on a `--map-line` border inside the reader.
+
+### Other dimension tokens
+
+`--reader-width` (`clamp(460px, 38vw, 560px)`, `100%` at 900px and below) is
+composition-scoped. `--assistant-panel-width` (`18rem`), `--cursor-size` and
+`--world-hit-area` (`34px`) live in `:root`. `--mobile-controls-inline-end`
+is defined inside the 600px block only.
 
 ### Selector-local custom properties
 
-Three custom properties are set *by the markup or by a narrow selector*, not by
-the theme:
-
-- `--register` — set by `.reader-kind[data-register="…"]` to one `--world-*`
-  alias, then read as `var(--register, var(--world-identity))`. This is the
-  idiom for "this element takes its record's register color."
+- `--register` — set by `.reader-inline-link[data-register="…"]` to one
+  `--world-*` alias, then read as `var(--register, var(--world-identity))`.
+  This is the idiom for "this element takes its record's register color."
 - `--cursor-a` / `--cursor-b` — set inline by `components/CursorInstrument.tsx`
   from the hovered node's register.
 
-## 3. The two typographic voices
+## 3. One type scale
 
-Both voices are Neue Haas Grotesk. There is one family in the composition:
-`var(--font-reader)` (`"NHG portfolio"`, declared by two `@font-face` rules —
-weight 400 and 500–700 — loaded from `braininavat.systems`, with Helvetica Neue
-/ Helvetica / Arial fallbacks). It is set once on
-`.portfolio-composition` and inherits everywhere. Do not set `font-family` on a
-new composition selector.
+There is one family in the composition: `var(--font-reader)` (`"NHG
+portfolio"`, Neue Haas Grotesk, declared by two `@font-face` rules — weight 400
+and 500–700 — with Helvetica Neue / Helvetica / Arial fallbacks). The scale is
+six voices held in `:root` as `font` shorthands (`weight size/line-height`),
+and a rule reads one as:
 
-**Voice A — display and reading.** Tight tracking, near-single line height,
-large sizes.
+```css
+font: var(--reader-type-body) var(--font-reader);
+```
 
-| Use | Rule |
-| --- | --- |
-| Mast and dossier topbar | `var(--portfolio-display-title-size)`, weight 500, `letter-spacing: -0.055em`, `line-height: 0.98` (`.portfolio-world-mast`, `.reader-topbar button`) |
-| Record title | `clamp(34px, 4vw, 53px)`, weight 400, `letter-spacing: -0.065em`, `line-height: 0.92` (`.reader-content h1`) |
-| Section heading | `var(--reader-section-title-size)`, weight 500, `letter-spacing: -0.025em` (`.reader-index-group h2`) |
-| Summary | `var(--reader-row-size)`, `letter-spacing: -0.015em`, `line-height: 1.43` |
-| Body | `var(--reader-copy-size)`, `line-height: 1.48`, color `var(--reader-body)` |
+Tracking, case and colour belong to the rule that reads the voice, and are the
+same everywhere the voice appears.
 
-**Voice B — notation.** Small, uppercase, positive tracking. Used for labels,
-eyebrows, metadata, and map annotation.
+| Token | Value | With | Where |
+| --- | --- | --- | --- |
+| `--reader-type-display` | 500 36/40 | −0.055em, `--ink`, `text-wrap: balance` | The map mast and every dossier `h1`: home (the throughline), Index, thread, record. Fixed — never `clamp()` |
+| `--reader-type-summary` | 400 18/24 | −0.01em, `--ink` | Record summary, thread lede |
+| `--reader-type-row` | 400 16/24 | `--ink` | Index, related, explore, and contact rows |
+| `--reader-type-body` | 400 15/24 | `--reader-body`, `text-wrap: pretty` | Paragraphs; the copy-placeholder prompt at weight 500 in `--ink` |
+| `--reader-type-caption` | 400 12/16 | `--reader-muted`; `--ink` for control labels | Figure captions, placeholder meta, footer controls, node-control labels, the stage count and title |
+| `--reader-type-label` | 500 11/16 | +0.08em, uppercase, `--reader-muted` | Section labels, placeholder labels, the stage eyebrow |
 
-| Use | Rule |
-| --- | --- |
-| Stage / control label | `var(--reader-label-size)`, uppercase, `letter-spacing: 0.07em` |
-| Placeholder label | `var(--reader-label-size)`, weight 600, uppercase, `letter-spacing: 0.08em` |
-| Record section label | `11px`, weight 500, uppercase, `letter-spacing: 0.06em`, color `var(--reader-muted)` |
-| Kind / path metadata | `9px`, weight 400, `letter-spacing: 0.025em`, color `var(--reader-muted)` |
-| Canvas node label | `400 12.5px` (`11px` compact), the `FONT` constant in `components/PortfolioWorld.tsx`; Bradley alone uses `500 14px` on desktop through `BRADLEY_FONT` |
+**Rule 3.1** — One label voice. Every label on the dossier is
+`--reader-type-label`; there is no second small-caps style, no per-register
+label colour, no badge or kind chip. Nothing on the dossier is smaller than
+11px; `app/globals.test.ts` fails on a smaller `font-size` inside the reader.
 
-**Rule 3.1** — A new label uses Voice B at an existing size. Do not add a new
-uppercase size.
+**Rule 3.2** — The head stack is fixed: title → 16 → summary → 32 → body.
+Home and Index have no summary, so their titles carry the 32. No kind chip,
+no path line, no register mark in the dossier — the spotlighted node on the
+map carries the register.
+
+**Rule 3.3** — Nothing shrinks on mobile. The same six voices apply at 390px;
+only the gutter changes (§5.7). Do not add a coarse-pointer or short-window
+size override.
+
+**Rule 3.4** — Canvas labels are code-side constants in
+`components/PortfolioWorld.tsx`, not tokens: `FONT` paints record labels at
+`400 12.5px` (`11px` compact); `BRADLEY_FONT` paints the root at `500 14px` on
+desktop, the one deliberate hierarchy exception, so the map's root reads before
+its records. They change by hand if the scale does.
 
 **Monospace is a system stack, for data columns only.**
 `--font-prototype-mono` is `ui-monospace, SFMono-Regular, Menlo, …` — no
-download. It is used by the `/design` gallery's swatch and token tables, where
-hex values need to align, plus the toybox eyebrow, the legacy header nav and
-the editorial index meta. Do not reach for it in the composition's reading or
-notation voices; those are Voice A and Voice B above.
+download — used where the content is literally code: the `/design` gallery's
+token and swatch tables. Do not reach for it in the composition.
 
 ## 4. Light and dark, exactly
 
@@ -191,7 +203,9 @@ re-points the semantic aliases. Nothing else switches.
 **Rule 4.1** — A new composition surface **declares no mode-specific color of
 its own.** It uses semantic aliases (§2) and inherits both modes for free. If
 your new rule needs a `prefers-color-scheme` block, you have almost certainly
-used a light/dark leaf token where an alias belongs.
+used a light/dark leaf token where an alias belongs. The controls are the
+worked case: the brain mask is filled with `currentColor` and reads `--ink`
+in both modes with no extra rule.
 
 **Rule 4.2** — If you genuinely add a new mode-aware color, you add three
 things and only three:
@@ -204,15 +218,13 @@ things and only three:
 Then write `var(--thing)` at the use site, add the row in
 `docs/design-tokens.md`, and add the alias to the two `[data-theme]` blocks the
 gallery uses — otherwise `/design` will show it stuck in one mode.
-(`tests/design-tokens.test.ts` fails on an undocumented token, so the doc row
-is enforced, not a courtesy.)
 
 **Rule 4.3** — `[data-theme]` **is** a composition mechanism, but only the
 gallery drives it. `:where([data-theme="…"]) .portfolio-composition` re-points
 every semantic alias, which is how `/design` shows light and dark on one page.
 There is no user-facing theme toggle: on the live site the mode comes from
-`prefers-color-scheme` alone. Do not wire new composition styling to it — read the
-aliases.
+`prefers-color-scheme` alone. Do not wire new composition styling to it — read
+the aliases.
 
 **Rule 4.4** — Anything painted behind the composition must follow the mode
 too. `body:has(.portfolio-composition)` sets the body background to
@@ -220,8 +232,8 @@ too. `body:has(.portfolio-composition)` sets the body background to
 because iOS Safari otherwise paints default white in toolbar-resize gaps.
 
 **Rule 4.5** — Where an element can be evaluated before the composition's
-aliases resolve (the fixed floating controls and the chat panel), the live code
-uses a defensive fallback: `var(--reader-paper, var(--reader-paper-light))`,
+aliases resolve (the chat dock), the live code uses a defensive fallback:
+`var(--reader-paper, var(--reader-paper-light))`,
 `var(--ink, var(--reader-ink-light))`. Match the surrounding block; do not add
 fallbacks elsewhere.
 
@@ -231,11 +243,9 @@ fallbacks elsewhere.
 `.css` files beside components, no styled-components, and no `<style>` blocks.
 Add your rules to the section that already owns the region.
 
-**Rule 5.2** — There is **no Tailwind**. It was removed once it turned out to
-be serving two utility classes across the whole repository, one of which broke
-this rule while duplicating an inline style beside it. Every component carries
-semantic class names only. `tests/design-tokens.test.ts` fails on a
-reintroduced `@import "tailwindcss"`, `@theme`, or `@apply`.
+**Rule 5.2** — There is **no Tailwind**. Every component carries semantic
+class names only. `tests/design-tokens.test.ts` fails on a reintroduced
+`@import "tailwindcss"`, `@theme`, or `@apply`.
 
 **Rule 5.3** — Inline `style` is reserved for values only JavaScript can know:
 cursor position and colors (`CursorInstrument`) and the dragged assistant dock
@@ -250,24 +260,25 @@ position (`PortfolioChat`). Everything else is a class.
   `.portfolio-chat-head`, `.portfolio-chat-thread`, `.portfolio-chat-composer`,
   `.portfolio-chat-trigger`, `.portfolio-visual-stage`,
   `.portfolio-visual-stage-head`, `.portfolio-node-mark`,
-  `.portfolio-mobile-view-toggle`.
+  `.portfolio-control-mark`, `.portfolio-mobile-view-control`.
 - `.reader-<part>` names the dossier's interior, once you are inside
-  `.portfolio-reader`: `.reader-topbar`, `.reader-content`,
-  `.reader-index-row`, `.reader-record-section`, `.reader-kind`,
-  `.reader-summary`, `.reader-visual-trigger`, and so on. Do not prefix these
-  with `portfolio-`.
+  `.portfolio-reader`: `.reader-scroll`, `.reader-content`,
+  `.reader-summary`, `.reader-composed-body`, `.reader-record-section`,
+  `.reader-index-group`, `.reader-rows`, `.reader-index-row`,
+  `.reader-visual-trigger`, `.reader-placeholder-frame`,
+  `.reader-footer-links`, and so on. Do not prefix these with `portfolio-`.
 
 The cursor uses its own flat `.cursor-*` names. `.avatar-*` and `.scene-*` are
 shared with the legacy surface.
 
 **Rule 5.5** — Boolean state is a `data-` attribute on the element, selected as
 `[data-state="true"]`: `data-open`, `data-visible`, `data-action`, `data-held`,
-`data-has-thread`, `data-input-focused`, `data-visual-open`, `data-register`.
-A modifier class is used only when a whole region changes mode, and it is
-appended to that region's own class: `.portfolio-visual-open` and
-`.portfolio-mobile-map-open` on the composition root,
-`.portfolio-reader-clean-review` on the dossier. Never a `.is-` or `.active`
-class.
+`data-has-thread`, `data-input-focused`, `data-visual-open`, `data-register`,
+`data-control`. A modifier class is used only when a whole region changes
+mode, and it is appended to that region's own class:
+`.portfolio-visual-open` and `.portfolio-mobile-map-open` on the composition
+root, `.portfolio-reader-clean-review` on the dossier. Never a `.is-` or
+`.active` class.
 
 **Rule 5.6** — Declarations inside a rule are alphabetical. Selectors are flat;
 no CSS nesting is used. Related one-line rules may be written on a single line
@@ -275,73 +286,93 @@ where the file already does so.
 
 **Rule 5.7** — The composition's breakpoint is **900px**
 (`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
-sizing), plus a 600px block for phone-scale safe-area insets and a
-`max-height: 820px and (pointer: fine)` block for short desktop windows. The
-980px breakpoint belongs to supporting pages. The 760px breakpoint carries the
-index header and composition chat rules. Do not add a new breakpoint.
+sizing), plus a 600px block for phone-scale safe-area insets and the chat's
+phone layout. Below 900 the world is removed, the dossier is full width, its
+padding becomes `24px 24px 32px` (page inset and gutter are the same number),
+and the footer band grows to 72 to hold the map control. The 980px and 760px
+breakpoints belong to supporting pages. Do not add a new breakpoint, and do
+not add a `pointer: coarse` or `max-height` block that resizes the dossier.
 
 **Rule 5.8** — The house focus treatment is
-`outline: 2px solid var(--ink); outline-offset: 2px`, and the composition now
-supplies it by default: a zero-specificity
-`:where(.portfolio-composition) a, button, input, textarea:focus-visible` rule.
-Before that, any control without its own rule fell through to the unscoped
-legacy rules and drew a 3px olive ring — including `.reader-index-row`, the
-dossier's main navigation. Override it only to differ deliberately: floating
-controls use a 3px offset, world nodes a 1px outline. Never remove focus
-without replacing it.
+`outline: 2px solid var(--ink); outline-offset: 2px`, supplied by default
+through a zero-specificity
+`:where(.portfolio-composition) a, button, input, textarea:focus-visible`
+rule. Override it only to differ deliberately: world nodes use a 1px outline.
+Never remove focus without replacing it.
 
-**Rule 5.9** — Anything that animates gets a
-`@media (prefers-reduced-motion: reduce)` entry reducing the duration to `1ms`,
-matching the existing block at the end of the file.
+**Rule 5.9** — Hover is fine-pointer only, and instant. Every `:hover` rule in
+the dossier sits inside `@media (pointer: fine)`; coarse pointers get no hover
+state. Dossier elements have no `transition` — rows, links, figures and footer
+controls change state at once. Anything that does animate (the chat panel, the
+avatar) keeps its `@media (prefers-reduced-motion: reduce)` entry reducing the
+duration to `1ms`, matching the existing block at the end of the file.
 
-## 6. Standing constraints from the checkpoint
+## 6. Standing constraints from the checkpoint and the respec
 
 These are product decisions, not preferences. See
 `docs/portfolio-design-system-checkpoint.md` for the full grammar.
 
 **Rule 6.1 — Selection introduces no new color.** A selected, hovered, active,
 or focused mark keeps its native register color. Express state with opacity,
-weight, scale, the rule treatment, or the focus outline. There is no "selected
-blue."
+weight, scale, or the outline. There is no "selected blue."
 
-**Rule 6.2 — One label voice, one identity exception.** Labels use Voice B
-(§3) and sit below their marks. Bradley's desktop canvas label is deliberately
-larger and medium-weight so the map's root reads before its records. No
-per-register label color and no badges other than the existing
-`.reader-kind[data-register]`.
+**Rule 6.2 — One row rule set.** Index, Related, Explore this thread, and
+Contact rows are one shape: `ul > li > button` (or `a` for Contact) with class
+`.reader-index-row`, a 40px row (`padding: 8px 0` on a 24 line), the label in
+the row voice, the mark trailing right in its register, no kind text. Hover is
+a 1px `--map-line-strong` outline at `outline-offset: 2px` around the row's
+own box; focus is the house 2px `--ink` ring. No negative margins, no padding
+bleed; rows stay full text-column width. The mark never changes.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
-Silverpoint line: thin, straight, neutral, arrowless. CSS rules and borders use
-`var(--map-line)`, or `var(--map-line-strong)` when a boundary must read as an
-edge; the canvas connectors in `PortfolioWorld` use `var(--map-connector)`,
-which is opaque because that code applies its own per-link alpha. Do not encode
-link type as color, dash, thickness, or arrowhead — classifications stay
-backstage.
+Silverpoint line: thin, straight, neutral, arrowless. The canvas connectors in
+`PortfolioWorld` use `var(--map-connector)`, opaque because that code applies
+its own per-link alpha. Do not encode link type as color, dash, thickness, or
+arrowhead — classifications stay backstage.
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
 an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor` and
 `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
-symbol
-(`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png` filled with
-`currentColor` and has no containing shape. `PortfolioWorld` deliberately
-renders that same PNG at 21px for the Bradley root node; the reusable
-`PortfolioNodeMark` stays in the shared 15px envelope. A new factual mark type
-joins that envelope; it does not get its own size or weight. The Contact marks
-(`lib/portfolio-contact-mark.ts`) are the worked case: three built from the
-node primitives, two brand marks as filled silhouettes like the brain symbol,
-all in the identity colour.
+symbol (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png`
+filled with `currentColor`; `PortfolioWorld` deliberately paints that same
+PNG at 21px for the root node, while the reusable mark stays in the shared
+envelope. The Contact marks (`lib/portfolio-contact-mark.ts`) and the
+**control marks** (`lib/portfolio-control-mark.ts`) join that envelope;
+nothing else gets its own size or weight.
 
-**Rule 6.5 — One temporary floating surface.** Chat is it. Do not add a second
-overlay, popover, or navigation layer; the dossier holds Index, Story, and
-record states rather than spawning panels or routes.
+**Rule 6.5 — Controls are node marks.** Every control around the dossier —
+the mobile map/index control, the desktop chat trigger, the stage's Close /
+Previous / Next, the chat's Send and Minimize — is `PortfolioControlMark`: a
+bare glyph in the 15-unit envelope, an invisible 40px hit box, a 12/16 `--ink`
+label 6 below the glyph (none for the two chat-interior glyphs, which draw at
+14px). No ring, fill, shadow, border, or pictogram; disabled is
+`opacity: 0.28`. Do not draw a new control as a typographic glyph or a
+bordered button.
 
-**Rule 6.6 — The dossier width is fixed.** Desktop is
+**Rule 6.6 — One temporary floating surface.** Chat is it. Do not add a second
+overlay, popover, or navigation layer; the dossier holds home, Index, thread,
+and record states rather than spawning panels or routes.
+
+**Rule 6.7 — The dossier width is fixed.** Desktop is
 `clamp(460px, 38vw, 560px)`; the canvas resizes around it. Below 900px the
 world is removed and the dossier is full width.
 
-**Rule 6.7 — Cursor contract.** On `pointer: fine`, `cursor: none` is forced
+**Rule 6.8 — One page inset.** The map mast, the dossier's first line, the
+chat dock's corner, and the stage all sit 24 from the map area's edges; the
+mast and the dossier title share the display voice and the same top, so they
+sit on one baseline across the seam. The stage's top edge clears the mast row
+(24 + 40 + 24).
+
+**Rule 6.9 — The footer band.** One band outside the scroll area, in every
+dossier state: one text control in the caption voice — **Home** on the index
+(calls `onReset`), **Index** everywhere else (calls `onOpenIndex`) — and
+**Privacy**, muted at rest and `--ink` on hover. On mobile the map/index
+control sits at the band's right edge, positioned by the composition so it
+also stays on the map's band when the dossier is hidden.
+
+**Rule 6.10 — Cursor contract.** On `pointer: fine`, `cursor: none` is forced
 globally and `.cursor-instrument` is the only pointer. Consequences for new UI:
 
 - An actionable element must match
@@ -354,74 +385,66 @@ globally and `.cursor-instrument` is the only pointer. Consequences for new UI:
 - Do not set `cursor:` on a composition element — it is overridden by
   `!important` on fine pointers and the instrument is hidden on coarse ones.
 
-**Rule 6.8 — Escape and empty space reset.** Blank-space click, the Index
-control, and Escape return the world to overview. Blank-space drag does not pan
-the field. Preserve this if you touch world interaction.
+**Rule 6.11 — Escape and empty space reset.** Blank-space click, the Index
+control, and Escape return the world to overview. Blank-space drag does not
+pan the field. Preserve this if you touch world interaction.
 
 ## 7. One idiomatic example
 
-A new dossier row that carries its record's register — semantic class in the
-`.reader-*` family, alias tokens only, register via `data-register` and
-`--register`, Voice B label, focus outline. No hex, no utility class, no mode
-block:
+A new dossier section — a label in the one label voice, rows in the one row
+shape, spacing and type from tokens, no rule, no hex, no mode block:
 
 ```tsx
-<button className="reader-source-row" data-register={record.register} type="button">
-  <span className="reader-source-label">{record.kind}</span>
-  <span>{record.title}</span>
-</button>
+<section className="reader-record-section">
+  <h2>Sources</h2>
+  <ul className="reader-rows">
+    {sources.map((node) => (
+      <li key={node.id}>
+        <button className="reader-index-row" onClick={() => onSelect(node)} type="button">
+          <span>{node.label}</span>
+          <PortfolioNodeMark family={node.family} register={node.register} />
+        </button>
+      </li>
+    ))}
+  </ul>
+</section>
 ```
 
+It needs no new CSS at all: `.reader-record-section` supplies the 64 above and
+the label voice, `.reader-index-row` the 40px row, the trailing mark, the
+fine-pointer ring and the focus ring. If a section genuinely needs a rule of
+its own, it reads like this:
+
 ```css
-.reader-source-row {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--map-line);
-  color: var(--ink);
-  display: grid;
-  font-size: var(--reader-copy-size);
-  gap: 4px;
-  padding: 10px 0 12px;
-  text-align: left;
-  width: 100%;
-}
-
-.reader-source-row[data-register="story"] { --register: var(--world-story); }
-.reader-source-row[data-register="arc"] { --register: var(--world-arc); }
-
-.reader-source-label {
-  color: var(--register, var(--world-identity));
-  font-size: var(--reader-label-size);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.reader-source-row:hover .reader-source-label {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.reader-source-row:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
+.reader-source-note {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: var(--reader-space-1) 0 0;
+  text-wrap: pretty;
 }
 ```
 
 It reads correctly in dark mode without a single additional line, because every
-color is a semantic alias. Hover changes the rule, not the color (Rule 6.1).
+color is a semantic alias, and it sits on the grid because every length is a
+spacing token.
 
 ## 8. Before you open the PR
 
 - [ ] No color literal outside the `:root` block in `app/globals.css`.
 - [ ] Every new color is a semantic alias, not a `-light` / `-dark` leaf.
+- [ ] Every dossier length is a `--reader-space-*` token; every voice a
+      `--reader-type-*` token; nothing under 11px; no `clamp()`.
+- [ ] No rule inside the dossier; sections separated by space alone.
+- [ ] Any new control is a `PortfolioControlMark`.
 - [ ] No new `prefers-color-scheme` block (or, if unavoidable, all three parts
       of Rule 4.2 plus the `[data-theme]` blocks and the tokens doc row).
 - [ ] Class names follow `.portfolio-<region>-<part>` or `.reader-<part>`.
 - [ ] State is a `data-` attribute; no `.is-` classes; no Tailwind utilities.
 - [ ] Declarations alphabetized; no new breakpoint.
-- [ ] `:focus-visible` present; reduced-motion entry if it animates.
-- [ ] Selection added no new color; one label voice; one line treatment.
-- [ ] `docs/design-tokens.md` updated if you added a token.
-- [ ] Checked at 1440×900 and 390×844, in light and dark.
+- [ ] `:focus-visible` present; hover inside `@media (pointer: fine)`; no
+      `transition` on dossier elements.
+- [ ] Selection added no new color; one label voice; one row shape.
+- [ ] `docs/design-tokens.md` updated if you added or retired a token.
+- [ ] Checked at 1440×900 and 390×844, in light and dark: home, Index, a
+      thread, a record, a record with the stage open, chat open. The mast and
+      the dossier title share a top edge at 24.

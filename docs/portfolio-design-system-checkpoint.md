@@ -60,8 +60,9 @@ production-integration specification.
 
 ## AssistantModal shell
 
-- The assistant begins minimized as a 40px outlined conversation control. Its
-  open panel is 18rem / 288px wide.
+- The assistant begins minimized as the Chat node control — three dots in the
+  mark envelope with a 40px hit box, no ring — at the map area's 24/24
+  corner. Its open panel is 18rem / 288px wide.
 - The header is the only drag surface. Desktop dragging is constrained to the
   canvas; the panel cannot cross into the dossier or leave the viewport.
 - Minimizing preserves the panel position for the visit and restores the
@@ -69,8 +70,9 @@ production-integration specification.
   open, and the dossier contains no duplicate chat action.
 - At 900px and below, the graph is removed. Opening chat temporarily hides the
   dossier; minimizing chat restores it. Header dragging is disabled there.
-- The visible question, answer, evidence pills, composer, arrow control,
-  radius, and spacing remain the accepted provisional interior. This checkpoint
+- The visible question, answer, evidence pills, composer, radius, and spacing
+  remain the accepted provisional interior; its Send and Minimize glyphs are
+  node controls. This checkpoint
   does not redesign production chat or alter its transport, grounding, access,
   spend, telemetry, refusal, or failure contracts.
 

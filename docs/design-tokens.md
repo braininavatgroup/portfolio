@@ -53,15 +53,13 @@ collapsed into nearby colors.
 | `--map-line-light: rgb(32 23 17 / 18%)` | `--map-line-dark: rgb(240 230 220 / 17%)` | Silverpoint rules |
 | `--map-line-strong-light: rgb(32 23 17 / 38%)` | `--map-line-strong-dark: rgb(240 230 220 / 34%)` | Strong rules and control outlines |
 | `--map-grid-light: rgb(32 23 17 / 3.5%)` | `--map-grid-dark: rgb(240 230 220 / 3.5%)` | Placeholder grids |
-| `--reader-summary-light: #413a35` | `--reader-summary-dark: #ded4cb` | Reader summary copy |
 | `--reader-body-light: #514a45` | `--reader-body-dark: #c1b7ae` | Reader body copy |
 | `--reader-muted-light: #6b6d6d` | `--reader-muted-dark: #aaa098` | Reader labels and metadata |
 
 The live shadow tokens are not mode-switched:
 `--reader-media-shadow` `rgb(32 23 17 / 15%)`,
-`--reader-gallery-shadow` `rgb(32 23 17 / 10%)`,
-`--reader-assistant-shadow` `rgb(32 23 17 / 20%)`, and
-`--reader-floating-control-shadow` `rgb(23 23 23 / 14%)`.
+`--reader-gallery-shadow` `rgb(32 23 17 / 10%)`, and
+`--reader-assistant-shadow` `rgb(32 23 17 / 20%)`.
 
 ### Semantic aliases
 
@@ -76,7 +74,6 @@ The live shadow tokens are not mode-switched:
 | `--map-line-strong` | `--map-line-strong-light` | `--map-line-strong-dark` | Strong rule treatment |
 | `--map-grid` | `--map-grid-light` | `--map-grid-dark` | Placeholder grid |
 | `--reader-paper` | `--reader-paper-light` | `--reader-paper-dark` | Dossier surface |
-| `--reader-summary` | `--reader-summary-light` | `--reader-summary-dark` | Summary copy |
 | `--reader-body` | `--reader-body-light` | `--reader-body-dark` | Body copy |
 | `--reader-muted` | `--reader-muted-light` | `--reader-muted-dark` | Labels and metadata |
 | `--world-identity` | `--reader-ink-light` | `--reader-ink-dark` | Bradley identity mark |
@@ -86,25 +83,52 @@ The live shadow tokens are not mode-switched:
 | `--world-bridge` | `--world-violet` | `--world-violet-dark` | Bridge marks |
 | `--world-cool` | `--world-production-cyan` | `--world-production-cyan-dark` | In Production marks |
 
-`--register` is a record-local alias that selects one `--world-*` register.
+`--register` is a link-local alias that selects one `--world-*` register; `.reader-inline-link[data-register]` and the node marks set it.
 
-### Type and recurring dimensions
+### Spacing
+
+The dossier's 8-pt scale. Every gap and line-height on the dossier is a
+multiple of 8; these are the multiples it uses.
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--reader-space-1` | `8px` | Label to content; row padding; figure margin |
+| `--reader-space-2` | `16px` | Paragraph gap; title to summary; footer band padding |
+| `--reader-space-3` | `24px` | The page inset (mast, dossier top, chat and stage corners); mobile gutter |
+| `--reader-space-4` | `32px` | Desktop gutter; summary to body; index group gap; dossier bottom padding |
+| `--reader-space-6` | `48px` | Reserved; unused in the approved states |
+| `--reader-space-8` | `64px` | Above every section label |
+
+### Type
+
+One type scale, held as `font` shorthands (`weight size/line-height`) and
+written as `font: var(--reader-type-*) var(--font-reader)`. Tracking, case,
+and colour belong to the rule that reads the voice. Nothing on the dossier is
+smaller than 11px; nothing is `clamp()`ed.
+
+| Token | Value | Tracking · colour | Use |
+| --- | --- | --- | --- |
+| `--reader-type-display` | `500 36px/40px` | −0.055em · `--ink` | Map mast and every dossier `h1`: home, Index, thread, record. `text-wrap: balance` |
+| `--reader-type-summary` | `400 18px/24px` | −0.01em · `--ink` | Record summary, thread lede |
+| `--reader-type-row` | `400 16px/24px` | 0 · `--ink` | Index, related, explore, and contact rows |
+| `--reader-type-body` | `400 15px/24px` | 0 · `--reader-body` | Paragraphs. `text-wrap: pretty` |
+| `--reader-type-caption` | `400 12px/16px` | 0 · `--reader-muted` | Figure captions, placeholder meta, footer controls, control labels (`--ink`), stage count |
+| `--reader-type-label` | `500 11px/16px` | +0.08em · uppercase · `--reader-muted` | Section labels, placeholder labels, stage eyebrow |
+
+### Recurring dimensions
 
 | Token | Value | Role | Pair |
 | --- | --- | --- | --- |
 | `--font-reader` | `"NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif` | Accepted world and reader type stack | None |
-| `--portfolio-display-title-size` | `clamp(25px, 2.5vw, 37px)` | World mast and reader Index title | None |
 | `--reader-width` | `clamp(460px, 38vw, 560px)`; `100%` at 900px and below | Fixed desktop dossier width | Desktop/mobile |
-| `--reader-gutter` | `24px` | Repeated reader and visual-stage gutter | None |
-| `--reader-label-size` | `10px` | Repeated label/meta size | None |
-| `--reader-copy-size` | `12px` | Repeated reader copy size | None |
-| `--reader-row-size` | `15px` | Reader summary/index row size | None |
-| `--reader-section-title-size` | `18px` | Reader section heading size | None |
 | `--assistant-panel-width` | `18rem` | Accepted 288px assistant panel width | None |
-| `--floating-control-size` | `40px` | Assistant trigger and mobile view control | None |
 | `--world-hit-area` | `34px` | World node button hit area | None |
 | `--cursor-size` | `34px` | Segmented cursor envelope | None |
-| `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile floating-control inset | None |
+| `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile chat inset | None |
+
+Geometry that is not spacing stays literal: the 18px mark box and 15-unit
+envelope, the 40px control hit box, the 12px figure-frame padding, the 6px
+glyph-to-label gap, and the stage's 920px / 560px maxima.
 
 ## Legacy prototype tokens
 
@@ -204,8 +228,8 @@ two of the five yellow-greens and two of the near-Lichen greens below.
    and their nearby values. The checkpoint's dark world and reader are
    brown-black `#19140f` and `#292625` with warm ink `#f0e6dc`.
 5. The accepted composition contains supporting neutrals absent from the
-   checkpoint: `--map-paper-near-*`, `--map-muted-*`, `--reader-summary-*`,
-   `--reader-body-*`, `--reader-muted-*`, and the line/grid opacities. They are
+   checkpoint: `--map-paper-near-*`, `--map-muted-*`, `--reader-body-*`,
+   `--reader-muted-*`, and the line/grid opacities. They are
    documented as live extensions, not inferred checkpoint decisions.
 6. The `#fffdf8` alpha surfaces and the green-black shadow opacities differ by
    small alpha increments. The live values remain exact; they are not merged.
@@ -213,5 +237,7 @@ two of the five yellow-greens and two of the near-Lichen greens below.
    checkpoint names world-register colors, but does not specify these canvas
    label, cursor fallback, or avatar material colors.
 
-The primary accepted composition colors, desktop reader width, 40px assistant
-trigger, and 18rem assistant panel agree with the checkpoint.
+The primary accepted composition colors, desktop reader width, and 18rem
+assistant panel agree with the checkpoint. The assistant trigger is no longer
+the checkpoint's 40px outlined control; it is a node control (a bare glyph in
+the mark envelope with an invisible 40px hit box), per the dossier respec.

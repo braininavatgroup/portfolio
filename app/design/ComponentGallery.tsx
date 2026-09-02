@@ -8,7 +8,8 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { PortfolioAnalyticsPreference } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
-import { PortfolioContactMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioContactMark, PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { portfolioControlMarkKinds } from "../../lib/portfolio-control-mark";
 import { portfolioContactMarkKinds } from "../../lib/portfolio-contact-mark";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
@@ -71,6 +72,12 @@ function NodeMarkGrid() {
               <br />
               {kind}
             </small>
+          </div>
+        ))}
+        {portfolioControlMarkKinds.map((kind) => (
+          <div className="design-mark-cell" key={kind}>
+            <PortfolioControlMark aria-label={kind} kind={kind} label={kind} />
+            <small>control</small>
           </div>
         ))}
       </div>

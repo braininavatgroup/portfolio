@@ -71,12 +71,16 @@ describe("PortfolioWorld", () => {
       name: "Visual in map: Inspect a representative multi-frame system.",
     });
     expect(stage.getAttribute("data-format")).toBe("gallery");
-    expect(screen.getByText("1 / 3")).toBeTruthy();
+    // The count reads twice: in the draft frame's corner and beside the
+    // Previous / Next node controls in the copy band.
+    expect(screen.getAllByText("1 / 3")).toHaveLength(2);
+    expect(stage.querySelector(".reader-placeholder-frame")).toBeTruthy();
+    expect(stage.querySelector('.portfolio-control-mark[data-control="close"]')).toBeTruthy();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Next visual frame" }),
     );
-    expect(screen.getByText("2 / 3")).toBeTruthy();
+    expect(screen.getAllByText("2 / 3")).toHaveLength(2);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Close visual in map" }),

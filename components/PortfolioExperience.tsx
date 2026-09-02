@@ -25,6 +25,7 @@ import {
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 import { PortfolioChat } from "./PortfolioChat";
+import { PortfolioControlMark } from "./PortfolioNodeMark";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
 import { AvatarToyboxBoundary } from "./avatar-toybox/AvatarToyboxBoundary";
@@ -352,12 +353,12 @@ export function PortfolioExperience() {
         avatarDirector.stop();
         setMobileMapOpen(false);
         const returningToMobileIndex =
-          typeof window !== "undefined" && window.innerWidth <= 600;
+          typeof window !== "undefined" && window.innerWidth <= 900;
         if (returningToMobileIndex) {
           showHomeWithAvatar();
           window.setTimeout(() => {
             document
-              .querySelector<HTMLButtonElement>(".portfolio-mobile-view-toggle")
+              .querySelector<HTMLButtonElement>(".portfolio-mobile-view-control")
               ?.focus();
           }, 0);
         }
@@ -441,35 +442,17 @@ export function PortfolioExperience() {
               registerAvatarTarget={registerAvatarTarget}
               selectedId={selectedWorldId}
             />
-            <button
+            {/* The phone's one view control, drawn as a node mark at the
+                footer band's right edge: the brain opens the map with the
+                assistant; the index glyph returns to the dossier. */}
+            <PortfolioControlMark
               aria-label={mobileMapOpen ? "Show portfolio home" : "Show portfolio map"}
               aria-pressed={mobileMapOpen}
-              className="portfolio-mobile-view-toggle"
+              className="portfolio-mobile-view-control"
+              kind={mobileMapOpen ? "index" : "map"}
+              label={mobileMapOpen ? "Index" : "Map"}
               onClick={toggleMobileCombinedView}
-              type="button"
-            >
-              {mobileMapOpen ? (
-                <svg
-                  aria-hidden="true"
-                  className="portfolio-mobile-view-icon"
-                  viewBox="0 0 16 16"
-                >
-                  <circle cx="3" cy="4" r="0.75" />
-                  <circle cx="3" cy="8" r="0.75" />
-                  <circle cx="3" cy="12" r="0.75" />
-                  <path d="M6 4h7M6 8h7M6 12h7" />
-                </svg>
-              ) : (
-                <svg
-                  aria-hidden="true"
-                  className="portfolio-mobile-view-icon"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="m2.25 4 3.5-1.75L10.25 4l3.5-1.75v9.5l-3.5 1.75-4.5-1.75-3.5 1.75V4Z" />
-                  <path d="M5.75 2.25v9.5M10.25 4v9.5" />
-                </svg>
-              )}
-            </button>
+            />
         </>
         {portfolioChat}
       </section>

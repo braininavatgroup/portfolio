@@ -4,7 +4,8 @@ Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
 Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
 The portfolio assistant, and the only temporary floating surface on the site
-(Rule 6.5). Minimized it is a 40px trigger; open it is an 18rem panel whose
+(Rule 6.6). Minimized it is the Chat node control at the map area's 24/24
+corner; open it is an 18rem panel whose
 header can be dragged to re-dock it. It streams an answer from
 [`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts), renders
 evidence pills, keeps a transcript, and reports a `PoseState` on every

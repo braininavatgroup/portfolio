@@ -103,9 +103,9 @@ describe("validatePortfolioContentDocument", () => {
       expect.objectContaining({ path: "interface.not.a.key" }),
     );
     const missing = document();
-    delete missing.interface["world.hint"];
+    delete missing.interface["world.mast"];
     expect(validatePortfolioContentDocument(missing)).toContainEqual(
-      expect.objectContaining({ path: "interface.world.hint" }),
+      expect.objectContaining({ path: "interface.world.mast" }),
     );
   });
 });
@@ -130,8 +130,8 @@ describe("resolveContentPath", () => {
     expect(resolveContentPath("contact.socialLabels.github")?.read(doc)).toBe(
       "GitHub",
     );
-    expect(resolveContentPath("interface.world.hint")?.read(doc)).toBe(
-      doc.interface["world.hint"],
+    expect(resolveContentPath("interface.world.mast")?.read(doc)).toBe(
+      doc.interface["world.mast"],
     );
   });
 
@@ -237,7 +237,7 @@ describe("normalization helpers", () => {
     expect(isMultiLineContentPath("threads.making-work-playable.paragraphs.p2")).toBe(true);
     expect(isMultiLineContentPath("interface.privacy.p1")).toBe(true);
     expect(isMultiLineContentPath("records.bradley.label")).toBe(false);
-    expect(isMultiLineContentPath("interface.world.hint")).toBe(false);
+    expect(isMultiLineContentPath("interface.world.mast")).toBe(false);
   });
 
   it("normalizes carriage returns", () => {

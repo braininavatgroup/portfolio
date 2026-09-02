@@ -27,6 +27,7 @@ import {
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import { EditableText, useEditableContent } from "./editor/EditableText";
+import { PortfolioControlMark } from "./PortfolioNodeMark";
 import type {
   AvatarTargetId,
   PortfolioResponseEffects,
@@ -562,14 +563,12 @@ export function PortfolioChat({
               path="interface.chat.title"
               value={portfolioInterfaceText["chat.title"]}
             />
-            <button
+            <PortfolioControlMark
               aria-label="Minimize portfolio assistant"
+              kind="minimize"
               onClick={minimize}
               onPointerDown={(event) => event.stopPropagation()}
-              type="button"
-            >
-              ×
-            </button>
+            />
           </header>
           <div
             aria-live="polite"
@@ -677,19 +676,23 @@ export function PortfolioChat({
               rows={1}
               value={input}
             />
-            <button aria-label={pending ? "Asking…" : "Ask"} disabled={pending} type="submit">↑</button>
+            <PortfolioControlMark
+              aria-label={pending ? "Asking…" : "Ask"}
+              disabled={pending}
+              kind="send"
+              type="submit"
+            />
           </form>
         </section>
-        <button
+        <PortfolioControlMark
           aria-expanded={open}
           aria-label="Open portfolio assistant"
           className="portfolio-chat-trigger"
           hidden={open}
+          kind="chat"
+          label="Chat"
           onClick={() => setOpen(true)}
-          type="button"
-        >
-          <span aria-hidden="true" className="portfolio-chat-glyph" />
-        </button>
+        />
       </div>
     </section>
   );

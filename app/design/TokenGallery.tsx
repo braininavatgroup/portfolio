@@ -84,18 +84,9 @@ const typeSpecimens: readonly {
   render: (sample: string) => ReactNode;
 }[] = [
   {
-    label: "Mast / index title",
+    label: "Display — mast and every dossier title",
     selector: ".portfolio-world-mast",
     render: (sample) => <div className="portfolio-world-mast">{sample}</div>,
-  },
-  {
-    label: "Section heading",
-    selector: ".reader-index-group h2",
-    render: (sample) => (
-      <div className="reader-index-group">
-        <h2>{sample}</h2>
-      </div>
-    ),
   },
   {
     label: "Summary",
@@ -103,21 +94,43 @@ const typeSpecimens: readonly {
     render: (sample) => <p className="reader-summary">{sample}</p>,
   },
   {
-    label: "Body copy",
-    selector: ".reader-record-section > p",
+    label: "Row",
+    selector: ".reader-index-row",
     render: (sample) => (
-      <div className="reader-record-section">
+      <ul className="reader-rows">
+        <li>
+          <button className="reader-index-row" type="button">
+            <span>{sample}</span>
+          </button>
+        </li>
+      </ul>
+    ),
+  },
+  {
+    label: "Body copy",
+    selector: ".reader-composed-body > p",
+    render: (sample) => (
+      <div className="reader-composed-body">
         <p>{sample}</p>
       </div>
     ),
   },
   {
-    label: "Notation (Voice B)",
-    selector: ".reader-kind",
+    label: "Caption",
+    selector: ".reader-visual-block figcaption",
     render: (sample) => (
-      <span className="reader-kind" data-register="warm">
-        {sample}
-      </span>
+      <figure className="reader-visual-block">
+        <figcaption>{sample}</figcaption>
+      </figure>
+    ),
+  },
+  {
+    label: "Label",
+    selector: ".reader-record-section h2",
+    render: (sample) => (
+      <div className="reader-record-section">
+        <h2>{sample}</h2>
+      </div>
     ),
   },
 ];

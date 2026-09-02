@@ -5,9 +5,9 @@
     "bradley": {
       "label": "Bradley Berkman",
       "kind": "About",
-      "summary": "Hey, I'm Bradley. I make complexity legible enough to act on.",
+      "summary": "I make complexity legible enough to act on.",
       "paragraphs": {
-        "p1": "I run Brain in a Vat Group, which includes a [music promotions agency](record:music-practice), a [systems and AI consulting practice](record:systems-consulting), and a [product studio](record:product-studio) where I've been developing software.",
+        "p1": "Hey, I'm Bradley. I run Brain in a Vat Group, which includes a [music promotions agency](record:music-practice), a [systems and AI consulting practice](record:systems-consulting), and a [product studio](record:product-studio) where I've been developing software.",
         "p2": "Before founding BiV, I launched and led the music-promotions division at INFAMOUS PR. Prior to that, I studied Philosophy, Politics, and Law, with a Music Industry minor, at the University of Southern California.",
         "p3": "Beyond my work, I enjoy: raving, arguing about the philosophy of consciousness, trading sheep for brick over a Catan board, and the ongoing search for New York City's finest hamburger.",
         "p4": "Thanks for checking out my portfolio!"
@@ -349,14 +349,11 @@
     "layout.skipLink": "Skip to portfolio content",
     "index.throughline": "Make complexity legible enough to act on.",
     "world.mast": "Bradley Berkman",
-    "world.hint": "Tap a point to read",
     "visualStage.eyebrow": "Map visual",
     "reader.indexTitle": "Index",
     "reader.backButton": "Home",
-    "reader.threadLabel": "Thread",
     "reader.exploreThread": "Explore this thread",
     "reader.contactTitle": "Contact",
-    "reader.threadsTitle": "Threads",
     "reader.relatedTitle": "Related",
     "reader.copyInProgress": "Copy in progress",
     "reader.privacyLink": "Privacy",

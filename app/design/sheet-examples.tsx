@@ -19,7 +19,7 @@ import {
 } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
-import { PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
@@ -80,9 +80,12 @@ export function PortfolioAnalyticsExample() {
 export function PortfolioNodeMarkExample() {
   // The mark takes its shape from `family` and its color from `register`,
   // and must sit inside a `.portfolio-composition` for `--world-*` to resolve.
+  // A control is the same envelope drawn as a button: glyph, 40px hit box,
+  // and a caption; the accessible name comes from `aria-label`.
   return (
     <div className="portfolio-composition">
       <PortfolioNodeMark family="operation" register="warm" />
+      <PortfolioControlMark aria-label="Show portfolio map" kind="map" label="Map" />
     </div>
   );
 }
