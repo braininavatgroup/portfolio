@@ -273,9 +273,11 @@ describe("PortfolioWorld canvas paint", () => {
    */
   function recordingContext() {
     const record = {
+      drawImageWidths: [] as number[],
       strokeStyles: [] as string[],
       fillStyles: [] as string[],
       fillTexts: [] as string[],
+      labelFonts: new Map<string, string>(),
       labelAlphas: new Map<string, number>(),
       pathAlphas: [] as number[],
       moveToCalls: 0,
@@ -284,6 +286,9 @@ describe("PortfolioWorld canvas paint", () => {
     const target: Record<string, unknown> = {
       beginPath: () => {
         record.pathAlphas.push(Number(target.globalAlpha));
+      },
+      drawImage: (...args: unknown[]) => {
+        if (args.length === 5) record.drawImageWidths.push(Number(args[3]));
       },
       measureText: (value: string) => ({ width: value.length * 6.2 }),
       moveTo: () => {
@@ -294,6 +299,7 @@ describe("PortfolioWorld canvas paint", () => {
       },
       fillText: (value: string) => {
         record.fillTexts.push(value);
+        record.labelFonts.set(value, String(target.font));
         record.labelAlphas.set(value, Number(target.globalAlpha));
       },
     };
@@ -322,6 +328,8 @@ describe("PortfolioWorld canvas paint", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       context as unknown as CanvasRenderingContext2D,
     );
+    vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(128);
     const realComputedStyle = window.getComputedStyle.bind(window);
     vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
       const style = realComputedStyle(element as Element);
@@ -372,5 +380,20 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.pathAlphas).toContain(PAST_WORLD_ALPHA);
     expect(record.labelAlphas.get("INFAMOUS PR")).toBe(PAST_WORLD_ALPHA);
     expect(record.labelAlphas.get("Authorship")).toBe(1);
+  });
+
+  it("gives Bradley the stronger identity label while record labels stay notational", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.labelFonts.get("Bradley Berkman")).toBe(
+      '500 14px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
+    );
+    expect(record.labelFonts.get("Authorship")).toBe(
+      '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
+    );
+    expect(
+      record.drawImageWidths.some((width) => Math.abs(width - 20.58) < 0.001),
+    ).toBe(true);
   });
 });

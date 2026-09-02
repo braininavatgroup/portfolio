@@ -8,8 +8,9 @@ The one register mark. It draws the primitives
 family into an 18px SVG box with `stroke: currentColor`, carrying `data-family`
 and `data-register`. The `identity` family is the exception: it renders
 `.portfolio-node-brain`, a 15px mask of `/biv-brain-symbol.png` filled with
-`currentColor` and no containing shape. Every mark shares one envelope and one
-stroke weight; the register alone varies (Rule 6.4).
+`currentColor` and no containing shape. Every reusable mark shares one envelope
+and stroke weight; the register alone varies (Rule 6.4). `PortfolioWorld`
+deliberately paints the Bradley root with the same PNG at 21px.
 
 `PortfolioContactMark` (same module) is a Contact row's mark, one of the kinds
 in [`lib/portfolio-contact-mark.ts`](../../lib/portfolio-contact-mark.ts):

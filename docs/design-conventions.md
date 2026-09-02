@@ -171,7 +171,7 @@ eyebrows, metadata, and map annotation.
 | Placeholder label | `var(--reader-label-size)`, weight 600, uppercase, `letter-spacing: 0.08em` |
 | Record section label | `11px`, weight 500, uppercase, `letter-spacing: 0.06em`, color `var(--reader-muted)` |
 | Kind / path metadata | `9px`, weight 400, `letter-spacing: 0.025em`, color `var(--reader-muted)` |
-| Canvas node label | `400 12.5px` (`11px` compact), the `FONT` constant in `components/PortfolioWorld.tsx` |
+| Canvas node label | `400 12.5px` (`11px` compact), the `FONT` constant in `components/PortfolioWorld.tsx`; Bradley alone uses `500 14px` on desktop through `BRADLEY_FONT` |
 
 **Rule 3.1** — A new label uses Voice B at an existing size. Do not add a new
 uppercase size.
@@ -304,9 +304,11 @@ or focused mark keeps its native register color. Express state with opacity,
 weight, scale, the rule treatment, or the focus outline. There is no "selected
 blue."
 
-**Rule 6.2 — One label treatment.** Labels use a single typographic voice
-(Voice B, §3) and sit below their marks. No second label style, no per-register
-label color, no badges other than the existing `.reader-kind[data-register]`.
+**Rule 6.2 — One label voice, one identity exception.** Labels use Voice B
+(§3) and sit below their marks. Bradley's desktop canvas label is deliberately
+larger and medium-weight so the map's root reads before its records. No
+per-register label color and no badges other than the existing
+`.reader-kind[data-register]`.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
 Silverpoint line: thin, straight, neutral, arrowless. CSS rules and borders use
@@ -316,15 +318,17 @@ which is opaque because that code applies its own per-link alpha. Do not encode
 link type as color, dash, thickness, or arrowhead — classifications stay
 backstage.
 
-**Rule 6.4 — Marks share one envelope.** Register marks are authored against
+**Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
 an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor` and
 `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
 symbol
 (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png` filled with
-`currentColor` and has no containing shape. A new mark type joins that
-envelope; it does not get its own size or weight. The Contact marks
+`currentColor` and has no containing shape. `PortfolioWorld` deliberately
+renders that same PNG at 21px for the Bradley root node; the reusable
+`PortfolioNodeMark` stays in the shared 15px envelope. A new factual mark type
+joins that envelope; it does not get its own size or weight. The Contact marks
 (`lib/portfolio-contact-mark.ts`) are the worked case: three built from the
 node primitives, two brand marks as filled silhouettes like the brain symbol,
 all in the identity colour.

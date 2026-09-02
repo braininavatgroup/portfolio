@@ -34,12 +34,14 @@ production-integration specification.
 
 ## Node and relationship grammar
 
-- Bradley uses the Brain in a Vat symbol without a containing shape. Stories
-  use an Asterisk.
+- Bradley uses the Brain in a Vat symbol without a containing shape. In the
+  world overview it is a 21px identity anchor with a 14px medium label;
+  factual marks and labels remain smaller. Stories use an Asterisk.
 - Factual marks share one optical envelope and stroke weight: operation uses a
   double circle, component an open triangle, engagements an open diamond, and
   In Production work a circle with a center.
-- Labels use one typographic treatment and sit below their marks.
+- Labels use the same typographic voice and sit below their marks. Bradley's
+  larger, medium-weight label is the sole hierarchy exception.
 - Relationships use one Silverpoint treatment: thin, straight, neutral, and
   arrowless. Their internal classifications remain backstage.
 - Bradley has no Story connectors at rest. Selecting Bradley reveals the four
