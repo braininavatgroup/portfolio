@@ -2,32 +2,28 @@
 
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { avatarBehaviors, getAvatarBehavior } from "../../lib/avatar/behaviors";
 import { avatarAsset } from "../../lib/avatar/config";
-import type { AllowedAnimation } from "../../lib/avatar/contracts";
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
-import { getAvatarYaw } from "../../lib/avatar/orientation";
+import { getAvatarYaw, type AvatarFacing } from "../../lib/avatar/orientation";
 import {
-  avatarAmbientAmplitude,
-  avatarCrossfadeSeconds,
-  avatarPlaybackRate,
-} from "../../lib/avatar/render-motion";
+  avatarClips,
+  type AvatarClip,
+} from "../../lib/avatar/runtime";
 
-type AvatarPoseProps = Pick<
-  AvatarSnapshot,
-  "animation" | "facing" | "pointing" | "tone"
-> & {
+type AvatarPoseProps = {
+  animation: AvatarClip;
+  facing: AvatarFacing;
   reducedMotion: boolean;
 };
 
 type AvatarAssetAdapterProps = AvatarPoseProps & {
   anchor?: "feet" | "center";
+  swimHeadingRadians?: number | null;
   stageScale?: number;
   onAvailableAnimationsChange?: (
-    available: ReadonlySet<AllowedAnimation>,
+    available: ReadonlySet<AvatarClip>,
   ) => void;
 };
 
@@ -106,9 +102,9 @@ export function getBradleyGlbFootOriginTranslation() {
 export function getAvailableAnimationIds(clipNames: Iterable<string>) {
   const availableClips = new Set(clipNames);
   return new Set(
-    avatarBehaviors
-      .filter(({ clipName }) => availableClips.has(clipName))
-      .map(({ id }) => id),
+    (Object.entries(avatarClips) as Array<[AvatarClip, string]>)
+      .filter(([, clipName]) => availableClips.has(clipName))
+      .map(([id]) => id),
   );
 }
 
@@ -125,9 +121,60 @@ export function combineAnimationClips(
 
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
-  facing: AvatarSnapshot["facing"],
+  facing: AvatarFacing,
+  animation: AvatarClip,
+  swimHeadingRadians = 0,
 ) {
-  return getAvatarYaw(forwardAxis, facing);
+  return animation === "swim_forward"
+    ? getAvatarYaw(forwardAxis, "front") + Math.PI / 2 + swimHeadingRadians
+    : getAvatarYaw(forwardAxis, facing);
+}
+
+export function getGlbOrientation(
+  forwardAxis: typeof avatarAsset.forwardAxis,
+  facing: AvatarFacing,
+  animation: AvatarClip,
+  swimHeadingRadians = 0,
+) {
+  const yaw = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    getGlbYaw(forwardAxis, facing, animation, swimHeadingRadians),
+  );
+  if (animation !== "swim_forward") return yaw;
+
+  // Decompose the screen heading into horizontal yaw and vertical pitch. The
+  // arcsine folds pitch into [-90°, 90°], so down can point fully down while
+  // left/right reversals still turn through yaw instead of somersaulting.
+  const pitch = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(1, 0, 0),
+    Math.asin(Math.sin(swimHeadingRadians)),
+  );
+  return yaw.multiply(pitch);
+}
+
+export function makeLocomotionClipInPlace(clip: THREE.AnimationClip) {
+  const prepared = clip.clone();
+  for (const track of prepared.tracks) {
+    if (!/(^|[.\]/])Hips(?:\])?\.position$/.test(track.name)) continue;
+    const values = track.values;
+    const stride = track.getValueSize();
+    if (stride < 3 || values.length < 3) continue;
+    const originX = values[0]!;
+    const originZ = values[2]!;
+    for (let offset = 0; offset < values.length; offset += stride) {
+      values[offset] = originX;
+      values[offset + 2] = originZ;
+    }
+  }
+  return prepared;
+}
+
+export function getAvatarPlaybackRate(animation: AvatarClip) {
+  return animation === "swim_forward" ? 0.8 : avatarAsset.playbackRate;
+}
+
+export function getAvatarTurnRate(animation: AvatarClip) {
+  return animation === "swim_forward" ? 2.2 : 4.5;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -142,24 +189,42 @@ function GlbAvatar({
   motionUrl,
   onAvailableAnimationsChange,
   reducedMotion,
-  tone,
+  swimHeadingRadians,
 }: AvatarPoseProps & {
   anchor: "feet" | "center";
   modelUrl: string;
   motionUrl: string;
   onAvailableAnimationsChange?: AvatarAssetAdapterProps["onAvailableAnimationsChange"];
+  swimHeadingRadians: number | null;
 }) {
   const root = useRef<THREE.Group>(null);
+  const activeAction = useRef<THREE.AnimationAction | null>(null);
   const model = useGLTF(modelUrl);
   const scene = useMemo(() => cloneAvatarScene(model.scene), [model.scene]);
   const motionLibrary = useGLTF(motionUrl);
   const animationClips = useMemo(
-    () => combineAnimationClips(model.animations, motionLibrary.animations),
+    () =>
+      combineAnimationClips(model.animations, motionLibrary.animations).map(
+        (clip) =>
+          clip.name === avatarClips.swim_forward
+            ? makeLocomotionClipInPlace(clip)
+            : clip,
+      ),
     [model.animations, motionLibrary.animations],
   );
   const { actions } = useAnimations(animationClips, root);
-  const playbackRate = avatarPlaybackRate(tone, avatarAsset.playbackRate);
-  const ambientAmplitude = avatarAmbientAmplitude(tone, reducedMotion);
+  const playbackRate = getAvatarPlaybackRate(animation);
+  const turnRate = getAvatarTurnRate(animation);
+  const targetQuaternion = useMemo(
+    () =>
+      getGlbOrientation(
+        avatarAsset.forwardAxis,
+        facing,
+        animation,
+        swimHeadingRadians ?? 0,
+      ),
+    [animation, facing, swimHeadingRadians],
+  );
   const modelOriginY = getAvatarModelOriginY(
     anchor,
     bradleyRawMinimumY,
@@ -172,19 +237,9 @@ function GlbAvatar({
     );
   }, [animationClips, onAvailableAnimationsChange]);
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
     if (root.current) {
-      root.current.rotation.y = THREE.MathUtils.damp(
-        root.current.rotation.y,
-        getGlbYaw(avatarAsset.forwardAxis, facing),
-        9,
-        delta,
-      );
-      root.current.rotation.z =
-        Math.sin(clock.elapsedTime * 1.35) * ambientAmplitude;
-      root.current.position.y =
-        modelOriginY +
-        Math.sin(clock.elapsedTime * 1.7) * ambientAmplitude * 0.45;
+      root.current.quaternion.rotateTowards(targetQuaternion, turnRate * delta);
     }
   });
 
@@ -192,16 +247,29 @@ function GlbAvatar({
     return applyBradleySolidMaterial(scene, bradleySolidColor);
   }, [scene]);
 
-  useEffect(() => {
-    const clipName = getAvatarBehavior(animation).clipName;
+  useLayoutEffect(() => {
+    const clipName = avatarClips[animation];
     const next = actions[clipName];
     if (!next) return;
-    const crossfadeSeconds = avatarCrossfadeSeconds(tone);
+    const crossfadeSeconds = reducedMotion ? 0 : 0.24;
+    const previous = activeAction.current;
+    if (previous === next) {
+      next.setEffectiveTimeScale(playbackRate);
+      return;
+    }
     next.reset().setEffectiveTimeScale(playbackRate).fadeIn(crossfadeSeconds).play();
-    return () => {
-      next.fadeOut(crossfadeSeconds);
-    };
-  }, [actions, animation, playbackRate, tone]);
+    if (previous) previous.fadeOut(crossfadeSeconds);
+    else next.setEffectiveWeight(1);
+    activeAction.current = next;
+  }, [actions, animation, playbackRate, reducedMotion]);
+
+  useEffect(
+    () => () => {
+      activeAction.current?.stop();
+      activeAction.current = null;
+    },
+    [],
+  );
 
   return (
     <group
@@ -219,6 +287,7 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
   const {
     anchor = "feet",
     onAvailableAnimationsChange,
+    swimHeadingRadians = null,
     stageScale,
     ...pose
   } = props;
@@ -230,6 +299,7 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
         modelUrl={avatarAsset.modelUrl}
         motionUrl={avatarAsset.motionUrl}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
+        swimHeadingRadians={swimHeadingRadians}
       />
     </group>
   );

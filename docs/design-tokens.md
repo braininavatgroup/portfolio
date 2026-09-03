@@ -132,18 +132,13 @@ glyph-to-label gap, and the stage's 920px / 560px maxima.
 
 ## Legacy prototype tokens
 
-These five aliases still have readers and therefore cannot be removed. All are
-deprecated for new composition work. `--accent` and `--accent-ink` used to sit
-here; their only readers were light-theme chat rules that could never match,
-so both are gone and the lime green with them.
+Two page-level aliases remain for routes outside the accepted composition.
+They are deprecated for new composition work.
 
 | Token | Value | Current role | Pair |
 | --- | --- | --- | --- |
 | `--background` | `#f4f1e8` | Prototype page background | `--foreground` |
 | `--foreground` | `#17211e` | Prototype primary ink | `--background` |
-| `--line` | `#bdc8c1` | Prototype rules | None |
-| `--muted` | `#52645e` | Prototype secondary ink | None |
-| `--surface` | `#fffdf8` | Prototype panels | None |
 
 There is one typeface. `--font-reader` is Neue Haas Grotesk and everything
 uses it. The two Geist aliases were deleted with Geist itself, and
@@ -159,27 +154,14 @@ No light/dark pairing is implied unless both tokens appear in the same row.
 | --- | --- | --- |
 | `--prototype-highlight` | `#d7ff6f` | Prototype active/focus highlight and glow |
 | `--prototype-white` | `#ffffff` | Explicit white surface |
-| `--prototype-night-shadow-panel`; `--prototype-night-shadow-heavy` | `#07100f3d`; `#07100f6b` | Increasing prototype shadow opacities |
+| `--prototype-night-shadow-panel` | `#07100f3d` | Prototype panel shadow |
 | `--prototype-night-ink` | `#07100f` | Dark prototype ink |
-| `--prototype-stage-map`; `--prototype-stage-map-rule` | `#07110e`; `#38584d` | Avatar stage-map surface and rule |
 | `--prototype-chat-surface`; `--prototype-chat-rule` | `#091310b8`; `#29443d` | Prototype chat panel and internal rules |
 | `--prototype-input-surface`; `--prototype-input-ink` | `#101f1b`; `#f0f5f2` | Prototype chat input surface and ink |
-| `--prototype-token-ink` | `#11160a` | Ink on toybox token |
-| `--prototype-director-control`; `--prototype-director-control-rule`; `--prototype-director-control-ink` | `#11231e`; `#3e6258`; `#e7f2eb` | Avatar director control surface, rule, and ink |
-| `--prototype-director-control-active`; `--prototype-director-active-rule`; `--prototype-director-active-ink` | `#294b3f`; `#b3e36e`; `#f4ffd8` | Avatar director active control |
-| `--prototype-director-heading`; `--prototype-director-status`; `--prototype-disabled-ink` | `#c8dbd1`; `#d9e8df`; `#809088` | Avatar director heading, status, and disabled copy |
-| `--prototype-label-ink-light`; `--prototype-label-ink-light-muted` | `#263a33`; `#536d12` | Light label and green-muted label ink |
 | `--prototype-rule-dark` | `#28433c` | Repeated dark editorial rule |
-| `--prototype-error-surface`; `--prototype-error-rule`; `--prototype-error-ink` | `#2e1014`; `#ff9a9a`; `#fff0f0` | Avatar renderer failure treatment |
 | `--prototype-tool-rule` | `#496a61` | Local tool/input rule and ink |
-| `--prototype-link-hover` | `#526b00` | Prototype hover/link greens |
-| `--prototype-focus-outline-light`; `--prototype-focus-outline` | `#688500`; `#76951a` | Light and dark focus outlines |
+| `--prototype-focus-outline-light` | `#688500` | Prototype focus outline |
 | `--prototype-label-ink`; `--prototype-muted-ink` | `#8ab5a9`; `#91a49d` | Prototype labels and secondary copy |
-| `--prototype-toybox-accent`; `--prototype-toybox-focus` | `#99bd4c`; `#b8df62` | Toybox accent and focus outline |
-| `--prototype-copy-ink`; `--prototype-lede-ink` | `#a7b7b1`; `#b7c4bf` | Prototype copy, lede, and legend ink |
-| `--prototype-stage-map-target`; `--prototype-stage-map-target-rule` | `#d38f5d70`; `#e4a06d` | Avatar stage-map target |
-| `--prototype-toybox-scrim-light`; `--prototype-toybox-scrim-dark` | `rgb(197 203 208 / 10%)`; `rgb(25 20 15 / 12%)` | Toybox scrims by color scheme |
-| `--prototype-toybox-shadow`; `--prototype-toybox-drag-shadow`; `--prototype-toybox-ground-shadow` | `rgba(20, 28, 14, 0.12)`; `rgba(20, 28, 14, 0.2)`; `rgba(20, 28, 14, 0.48)` | Toybox collectible, drag, and ground shadows |
 
 ## Colors outside `globals.css`
 
@@ -194,44 +176,28 @@ not CSS declarations, so this pass records but does not rewrite them:
 - `components/CursorInstrument.tsx` uses `#201711`, `#dfe8ee`, and `#ffffff`
   as color parsing/runtime fallbacks. Its normal colors still come from the
   active `--world-*` and `--ink` values.
-- `components/avatar/ProceduralAvatar.tsx` owns material colors `#18352f`,
-  `#e7b28d`, `#14211f`, `#1b3a33`, `#102a25`, and translucent `#11251f`.
 - `components/avatar/AvatarAssetAdapter.tsx` owns the solid material color
   `#3a4954`.
 
 ## Discrepancies
 
-Inventory findings, not corrections. Four of the eight recorded here have since
-been closed; what remains is listed with why it stays.
-
-**Closed.** The lime accent is gone — `--accent` and `--accent-ink` had no
-readers left once the light-theme chat rules that referenced them turned out to
-be unreachable, so the palette no longer carries a colour the checkpoint does
-not name. Geist is gone entirely, including Geist Mono, so Neue Haas Grotesk is
-now the shared voice in fact and not only in the checkpoint. That also removes
-two of the five yellow-greens and two of the near-Lichen greens below.
+Inventory findings, not corrections.
 
 **Open, deliberately.**
 
-1. The file header still defines and uses the surviving prototype palette
-   (`--background`, `--foreground`, `--line`, `--muted`, `--surface`). Its cream
-   paper, green-black ink and green-gray neutrals do not match the checkpoint's
-   Silver world, reader paper and brown-black ink. They still have readers on
-   the legacy pages, so they stay until those pages migrate.
-2. The prototype highlight `#d7ff6f`, toybox accent `#99bd4c`, toybox focus
-   `#b8df62`, and checkpoint Acid `#b6df5b` are four separate live yellow-green
-   values. They remain separate.
-3. Prototype green link/label values `#536d12`, `#526b00` and focus values
-   `#688500` / `#76951a` sit near checkpoint Lichen `#466700` but are not equal.
-   They remain separate.
-4. The legacy dark UI uses a teal/green palette, including `#07100f`, `#28433c`
+1. The file header still defines and uses `--background` and `--foreground`.
+   Their cream paper and green-black ink do not match the checkpoint's Silver
+   world, reader paper and brown-black ink.
+2. The prototype highlight `#d7ff6f`, checkpoint Acid `#b6df5b`, and Lichen
+   `#466700` remain separate live values.
+3. The legacy dark UI uses a teal/green palette, including `#07100f`, `#28433c`
    and their nearby values. The checkpoint's dark world and reader are
    brown-black `#19140f` and `#292625` with warm ink `#f0e6dc`.
-5. The accepted composition contains supporting neutrals absent from the
+4. The accepted composition contains supporting neutrals absent from the
    checkpoint: `--map-paper-near-*`, `--map-muted-*`, `--reader-body-*`,
    `--reader-muted-*`, and the line/grid opacities. They are
    documented as live extensions, not inferred checkpoint decisions.
-6. The `#fffdf8` alpha surfaces and the green-black shadow opacities differ by
+5. The explicit white alpha surfaces and green-black shadow opacities differ by
    small alpha increments. The live values remain exact; they are not merged.
 7. Canvas/WebGL rendering still owns the code-side colors listed above. The
    checkpoint names world-register colors, but does not specify these canvas

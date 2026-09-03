@@ -2,7 +2,7 @@
 
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
+import type { AvatarSnapshot } from "../../lib/avatar/runtime";
 import { AvatarStageActor } from "./AvatarStageActor";
 
 const frame = vi.hoisted(() => vi.fn());
@@ -36,16 +36,12 @@ vi.mock("./AvatarAssetAdapter", () => ({
 
 function snapshot(overrides: Partial<AvatarSnapshot> = {}): AvatarSnapshot {
   return {
-    state: "idle",
+    phase: "idle",
     animation: "idle_3",
-    currentCommand: null,
-    target: null,
     position: { x: 800, y: 776 },
-    locomotion: "grounded",
     motion: null,
     facing: "front",
-    pointing: null,
-    tone: { energy: "medium", warmth: "warm", confidence: "neutral", mischief: "none" },
+    swimHeading: null,
     visible: true,
     failed: false,
     ...overrides,
@@ -172,6 +168,39 @@ describe("AvatarStageActor", () => {
     expect(adapter).toHaveBeenCalledTimes(1);
   });
 
+  it("moves through Brain Food without remounting the animated asset", () => {
+    const { getByTestId, rerender } = render(
+      <AvatarStageActor
+        snapshot={snapshot({
+          phase: "brain-food",
+          animation: "swim_forward",
+          position: { x: 400, y: 400 },
+          swimHeading: 0,
+        })}
+        reducedMotion={false}
+      />,
+    );
+    const asset = getByTestId("avatar-asset");
+
+    rerender(
+      <AvatarStageActor
+        snapshot={snapshot({
+          phase: "brain-food",
+          animation: "swim_forward",
+          position: { x: 412, y: 396 },
+          swimHeading: Math.PI,
+        })}
+        reducedMotion={false}
+      />,
+    );
+
+    expect(getByTestId("avatar-asset")).toBe(asset);
+    expect(adapter).toHaveBeenLastCalledWith(expect.objectContaining({
+      anchor: "center",
+      swimHeadingRadians: Math.PI,
+    }));
+  });
+
   it("uses the active segment for visual horizontal facing without changing the authored swim clip", () => {
     render(
       <AvatarStageActor
@@ -193,7 +222,8 @@ describe("AvatarStageActor", () => {
 
     expect(adapter).toHaveBeenLastCalledWith(expect.objectContaining({
       animation: "swim_forward",
-      facing: "right",
+      anchor: "center",
+      swimHeadingRadians: 0,
     }));
   });
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BRADLEY_MIN_LEAN,
@@ -67,6 +67,69 @@ describe("PortfolioWorld", () => {
     });
     expect(world.querySelector("canvas")).toBeTruthy();
     expect(world.querySelector(".world-glyph")).toBeNull();
+  });
+
+  it("turns the live map into the Brain Food field without a second overlay", async () => {
+    const onSelect = vi.fn();
+    const syncNodePositions = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        brainFood={{
+          active: true,
+          eatenIds: new Set(["dubs"]),
+          remaining: 15,
+          syncNodePositions,
+        }}
+        onReset={() => {}}
+        onSelect={onSelect}
+        selectedId={null}
+      />,
+    );
+
+    expect(
+      screen.getByText("Brain Food · 15 left · Arrows/WASD · Esc exits"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Dubs/ })).toBeNull();
+    expect(
+      screen
+        .getAllByRole("button", { name: /Bradley Berkman/ })
+        .every((button) => button.hasAttribute("disabled")),
+    ).toBe(true);
+    expect(document.querySelector(".avatar-toybox")).toBeNull();
+
+    await waitFor(() => expect(syncNodePositions).toHaveBeenCalled());
+    expect(
+      syncNodePositions.mock.calls.at(-1)?.[0],
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "bradley" }),
+        expect.objectContaining({ id: "dubs" }),
+      ]),
+    );
+  });
+
+  it("publishes live node positions before Brain Food starts", async () => {
+    const syncNodePositions = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        brainFood={{
+          active: false,
+          eatenIds: new Set(),
+          remaining: 16,
+          syncNodePositions,
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId={null}
+      />,
+    );
+
+    await waitFor(() => expect(syncNodePositions).toHaveBeenCalled());
+    expect(syncNodePositions.mock.calls.at(-1)?.[0]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "bradley" })]),
+    );
   });
 
   it("opens a gallery placeholder over the map and lets it be inspected", () => {
@@ -501,7 +564,7 @@ describe("PortfolioWorld canvas paint", () => {
     return { context, record };
   }
 
-  function paintWithConnector(connector: string) {
+  function paintWithConnector(connector: string, brainFoodActive = false) {
     const { context, record } = recordingContext();
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(915);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(787);
@@ -523,6 +586,12 @@ describe("PortfolioWorld canvas paint", () => {
       <div className="portfolio-composition">
         <PortfolioWorld
           activeThreadId={null}
+          brainFood={brainFoodActive ? {
+            active: true,
+            eatenIds: new Set(),
+            remaining: 16,
+            syncNodePositions: vi.fn(),
+          } : undefined}
           onReset={() => {}}
           onSelect={() => {}}
           selectedId={null}
@@ -551,6 +620,14 @@ describe("PortfolioWorld canvas paint", () => {
 
     expect(record.strokeStyles).toContain("rgb(9, 8, 7)");
     expect(record.strokeStyles).not.toContain("#4f585d");
+  });
+
+  it("paints floating nodes without graph connections during Brain Food", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)", true);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.translateCalls, "drawNode never ran").toBeGreaterThan(0);
+    expect(record.strokeStyles).not.toContain("rgb(1, 2, 3)");
   });
 
   it("applies the Past alpha to the INFAMOUS mark and label on top of the resting field", async () => {

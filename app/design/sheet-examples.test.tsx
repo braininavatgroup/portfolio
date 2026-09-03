@@ -11,11 +11,9 @@ import * as examples from "./sheet-examples";
 // those (see DesignGallery.test.tsx).
 
 const webglExamples = [
-  "ProceduralAvatarExample",
   "AvatarAssetAdapterExample",
   "AvatarStageActorExample",
   "AvatarOverlayExample",
-  "AvatarToyboxOverlayExample",
 ] as const;
 
 /**
@@ -44,8 +42,6 @@ beforeEach(() => {
   });
   const shell = document.body.appendChild(document.createElement("div"));
   shell.id = "app-shell";
-  const portal = document.body.appendChild(document.createElement("div"));
-  portal.id = "avatar-toybox-root";
 });
 
 afterEach(() => {
@@ -57,7 +53,7 @@ afterEach(() => {
 
 describe("cheat-sheet examples", () => {
   it("exports one example per sheet", () => {
-    expect(exampleNames).toHaveLength(22);
+    expect(exampleNames).toHaveLength(19);
   });
 
   /**
@@ -65,8 +61,8 @@ describe("cheat-sheet examples", () => {
    * can silently shrink to zero — and vitest reports `it.each([])` as a pass.
    * Pin the count so deleting a mount is a failure, not a quiet no-op.
    */
-  it("actually mounts sixteen examples", () => {
-    expect(renderable).toHaveLength(16);
+  it("actually mounts fifteen examples", () => {
+    expect(renderable).toHaveLength(15);
     expect(webglExamples.length + separatelyCovered.length + renderable.length).toBe(
       exampleNames.length,
     );

@@ -11,7 +11,7 @@
 // heading that names the import.
 
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useState } from "react";
 import { CursorInstrument } from "../../components/CursorInstrument";
 import {
   PortfolioAnalytics,
@@ -23,22 +23,18 @@ import { PortfolioControlMark, PortfolioNodeMark } from "../../components/Portfo
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
-import { AvatarDirectorConsole } from "../../components/avatar/AvatarDirectorConsole";
+import { AvatarBoundary } from "../../components/avatar/AvatarBoundary";
 import { AvatarOverlay } from "../../components/avatar/AvatarOverlay";
 import { AvatarStageActor } from "../../components/avatar/AvatarStageActor";
-import { ProceduralAvatar } from "../../components/avatar/ProceduralAvatar";
-import { AvatarToyboxBoundary } from "../../components/avatar-toybox/AvatarToyboxBoundary";
-import { AvatarToyboxOverlay } from "../../components/avatar-toybox/AvatarToyboxOverlay";
-import { useAvatarToyboxSession } from "../../components/avatar-toybox/useAvatarToyboxSession";
 import { useAvatarStage } from "../../components/useAvatarStage";
+import { useBrainFoodSession } from "../../components/useBrainFoodSession";
 import ActiveEditableText from "../../components/editor/ActiveEditableText";
 import CanvasLabelEditor from "../../components/editor/CanvasLabelEditor";
 import { ContentEditorProvider } from "../../components/editor/ContentEditorProvider";
 import DevEditorGate from "../../components/editor/DevEditorGate";
 import { EditableText, useEditableContent } from "../../components/editor/EditableText";
 import { EditorStatusLine } from "../../components/editor/EditorStatusLine";
-import { createAvatarStageServices } from "../../lib/avatar/stage-services";
-import { defaultAvatarTone } from "../../lib/avatar/contracts";
+import { AvatarRuntime } from "../../lib/avatar/runtime";
 import {
   createMemoryStorage,
   galleryAskPortfolio,
@@ -156,32 +152,8 @@ export function PortfolioChatExample() {
 
 // #example:PortfolioExperience
 export function PortfolioExperienceExample() {
-  // Takes no props and owns all of its own state. It is the whole route body;
-  // the only thing it needs from outside is `#avatar-toybox-root` in the
-  // layout, which app/layout.tsx already renders.
+  // Takes no props and owns all of its own state. It is the whole route body.
   return <PortfolioExperience />;
-}
-// #example-end
-
-// #example:ProceduralAvatar
-export function ProceduralAvatarExample() {
-  return (
-    <Canvas camera={{ fov: 30, position: [0, 0, 4] }} gl={{ alpha: true }}>
-      <ambientLight intensity={1.6} />
-      <directionalLight intensity={1.7} position={[2, 4, 3]} />
-      {/* The rig is about 1.85 units tall, ~1.71 of it above the origin, so
-          drop it to centre that mass on the camera target. */}
-      <group position={[0, -0.76, 0]}>
-        <ProceduralAvatar
-          animation="idle_3"
-          facing="front"
-          pointing={null}
-          reducedMotion={false}
-          tone={defaultAvatarTone}
-        />
-      </group>
-    </Canvas>
-  );
 }
 // #example-end
 
@@ -194,11 +166,9 @@ export function AvatarAssetAdapterExample() {
       <Suspense fallback={null}>
         <AvatarAssetAdapter
           anchor="center"
-          animation="walking"
+          animation="swim_forward"
           facing="right"
-          pointing={null}
           reducedMotion={false}
-          tone={defaultAvatarTone}
         />
       </Suspense>
     </Canvas>
@@ -229,105 +199,29 @@ export function AvatarStageActorExample() {
 
 // #example:AvatarOverlay
 export function AvatarOverlayExample() {
-  // The five services, built once, exactly as PortfolioExperience builds them.
-  const [services] = useState(() => {
-    return createAvatarStageServices();
-  });
-  const [enabled, setEnabled] = useState(true);
-  const registerStage = useCallback(
-    (element: HTMLElement | null) => {
-      if (!element) return;
-      services.registry.registerStage(element);
-      services.controller.refreshStage(true);
-    },
-    [services],
-  );
+  const [runtime] = useState(() => new AvatarRuntime(() => ({
+    dock: { x: 210, y: 396 },
+    obstacles: [],
+    viewport: { width: 420, height: 420, floorY: 396 },
+  })));
+  runtime.show();
 
   return (
-    <div className="portfolio-composition" ref={registerStage}>
-      <AvatarOverlay
-        controller={services.controller}
-        director={services.director}
-        enabled={enabled}
-        onEnabledChange={setEnabled}
-        reducedMotion={false}
-        registry={services.registry}
-      />
+    <div className="portfolio-composition">
+      <AvatarOverlay reducedMotion={false} runtime={runtime} />
     </div>
   );
 }
 // #example-end
 
-// #example:AvatarDirectorConsole
-export function AvatarDirectorConsoleExample() {
-  const [services] = useState(() => {
-    return createAvatarStageServices();
-  });
-
-  // In the composition this is reached through `AvatarOverlay`'s
-  // `development` + `debug` props, never mounted directly.
-  return (
-    <AvatarDirectorConsole
-      controller={services.controller}
-      director={services.director}
-      onEnabledChange={() => {}}
-      registry={services.registry}
-    />
-  );
-}
-// #example-end
-
-// #example:useAvatarToyboxSession
-export function UseAvatarToyboxSessionExample() {
-  const session = useAvatarToyboxSession({
-    canOpen: () => true,
-    collectibles: [{ id: "dubs", label: "Dubs" }],
-    reducedMotion: false,
-  });
-
-  // Shift+G opens it too, once `canOpen()` returns true.
-  return (
-    <button onClick={session.open} type="button">
-      Open the toybox ({session.status})
-    </button>
-  );
-}
-// #example-end
-
-// #example:AvatarToyboxOverlay
-export function AvatarToyboxOverlayExample() {
-  const session = useAvatarToyboxSession({
-    canOpen: () => true,
-    collectibles: [{ id: "dubs", label: "Dubs" }],
-    reducedMotion: false,
-  });
-
-  // Renders null until `session.isOpen`, then portals into
-  // `#avatar-toybox-root`. The boundary closes the session if WebGL fails.
-  return (
-    <>
-      <button onClick={session.open} type="button">
-        Open the toybox
-      </button>
-      <AvatarToyboxBoundary onFailure={() => session.close("Renderer failed.")}>
-        <AvatarToyboxOverlay session={session} />
-      </AvatarToyboxBoundary>
-    </>
-  );
-}
-// #example-end
-
-// #example:AvatarToyboxBoundary
-export function AvatarToyboxBoundaryExample() {
+// #example:AvatarBoundary
+export function AvatarBoundaryExample() {
   const [failed, setFailed] = useState(false);
 
-  // Catches a render-time throw from the subtree, renders nothing in its
-  // place, and calls `onFailure` once. It does not catch async or WebGL
-  // context-loss errors — those arrive through the session instead.
   return (
-    <AvatarToyboxBoundary onFailure={() => setFailed(true)}>
-      {failed ? null : <p>The toybox renderer.</p>}
-    </AvatarToyboxBoundary>
+    <AvatarBoundary onFailure={() => setFailed(true)}>
+      {failed ? null : <p>The avatar renderer.</p>}
+    </AvatarBoundary>
   );
 }
 // #example-end
@@ -353,6 +247,24 @@ export function UseAvatarStageExample() {
       <p>{avatarMounted ? "Stage ready." : "Mounting…"}</p>
     </section>
   );
+}
+// #example-end
+
+// #example:useBrainFoodSession
+export function UseBrainFoodSessionExample() {
+  const [runtime] = useState(() => new AvatarRuntime(() => ({
+    dock: { x: 800, y: 700 },
+    obstacles: [],
+    viewport: { width: 900, height: 724, floorY: 700 },
+  })));
+  const session = useBrainFoodSession({
+    avatarRuntime: runtime,
+    edibleNodeCount: 16,
+    enabled: true,
+    reducedMotion: false,
+  });
+
+  return <p>{session.active ? `${session.remaining} left` : "Press Shift+G"}</p>;
 }
 // #example-end
 

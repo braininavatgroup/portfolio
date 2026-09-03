@@ -100,21 +100,6 @@ export const portfolioInterfaceTextKeys = [
   "privacy.questionsPrefix",
   "privacy.enableAnalytics",
   "privacy.optOutAnalytics",
-  "toybox.eyebrow",
-  "toybox.title",
-  "toybox.returning",
-  "toybox.tossHint",
-  "toybox.chooseHint",
-  "toybox.closeButton",
-  "toybox.chooserPrompt",
-  "toybox.brainFoodTitle",
-  "toybox.brainFoodDescription",
-  "toybox.tossTitle",
-  "toybox.tossDescription",
-  "toybox.tossEyebrow",
-  "toybox.brainFoodEyebrow",
-  "toybox.tossResult",
-  "toybox.resultReturning",
 ] as const;
 
 export type PortfolioInterfaceTextKey =

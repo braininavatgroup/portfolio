@@ -1,64 +1,51 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AvatarTargetId } from "../lib/avatar/contracts";
-import { createAvatarStageServices } from "../lib/avatar/stage-services";
-import type { AvatarObstacleId } from "../lib/avatar/target-registry";
+import {
+  AvatarRuntime,
+  type AvatarStageGeometry,
+  type AvatarStageObstacle,
+} from "../lib/avatar/runtime";
 
-const desktopAssistantHomeDock = {
-  side: "left",
-  target: "portfolio:chat",
-} as const;
+const actorHalfWidth = 72;
+const dockGap = 16;
+const bottomInset = 24;
 
-function getAssistantHomeDock() {
-  return typeof window !== "undefined" && window.innerWidth <= 600
-    ? ({ placement: "top", target: "portfolio:chat" } as const)
-    : desktopAssistantHomeDock;
+function viewportSize() {
+  return {
+    width: typeof window === "undefined" ? 1_200 : window.innerWidth,
+    height: typeof window === "undefined" ? 800 : window.innerHeight,
+  };
 }
 
-/**
- * Which What record the assistant currently considers open, plus a turn counter
- * for discarding effects that arrive after the user has moved on. Held outside
- * React state on purpose: every reader is an event handler or an effect, and
- * re-rendering on a change here would be pure cost.
- */
-class PortfolioAvatarActionState {
-  #selectedWhatId: string | null = null;
-  #turn = 0;
-
-  beginTurn() {
-    this.#turn += 1;
-  }
-
-  getTurn() {
-    return this.#turn;
-  }
-
-  clearSelection() {
-    this.#selectedWhatId = null;
-  }
-
-  selectWhat(whatId: string) {
-    this.#selectedWhatId = whatId;
-  }
-
-  getSelectedWhatId() {
-    return this.#selectedWhatId;
-  }
-
+function viewportSizeAsStage(): AvatarStageGeometry {
+  const viewport = viewportSize();
+  const floorY = viewport.height - bottomInset;
+  return {
+    dock: { x: Math.max(actorHalfWidth, viewport.width - 80), y: floorY },
+    obstacles: [],
+    viewport: { width: viewport.width, height: viewport.height, floorY },
+  };
 }
 
-/**
- * Everything the avatar needs to stand somewhere sensible: the stage services,
- * the element registrations the children hand up through callback refs, and
- * the eight effects that keep the stage in step with the viewport, the tab's
- * visibility and the user's motion preference.
- *
- * This was interleaved through PortfolioExperience with the map and reader
- * state, which made both harder to read than either is. The render seam stays
- * at two booleans; current What selection and turn ownership live in the
- * imperative action state returned to the experience.
- */
+function obstacleFor(element: HTMLElement | null): AvatarStageObstacle | null {
+  if (!element) return null;
+  const bounds = element.getBoundingClientRect();
+  return {
+    left: bounds.left,
+    top: bounds.top,
+    right: bounds.right,
+    bottom: bounds.bottom,
+    inViewport:
+      bounds.width > 0 &&
+      bounds.height > 0 &&
+      bounds.bottom > 0 &&
+      bounds.right > 0 &&
+      bounds.left < viewportSize().width &&
+      bounds.top < viewportSize().height,
+  };
+}
+
 export function useAvatarStage({
   assistantOpen,
   reducedMotion,
@@ -66,187 +53,98 @@ export function useAvatarStage({
   assistantOpen: boolean;
   reducedMotion: boolean;
 }) {
-  const [services] = useState(createAvatarStageServices);
-  const {
-    controller: avatarController,
-    director: avatarDirector,
-    registry: avatarRegistry,
-  } = services;
-  const [avatarActionState] = useState(() => new PortfolioAvatarActionState());
+  const stageRef = useRef<HTMLElement | null>(null);
+  const chatRef = useRef<HTMLElement | null>(null);
+
+  const readStage = useCallback((): AvatarStageGeometry => {
+    const viewport = viewportSize();
+    const stageBounds = stageRef.current?.getBoundingClientRect();
+    const width =
+      stageBounds && stageBounds.width > 0
+        ? Math.max(1, Math.min(viewport.width, stageBounds.right))
+        : viewport.width;
+    const floorY = viewport.height - bottomInset;
+    const chatBounds = chatRef.current?.getBoundingClientRect();
+    const mobile = viewport.width <= 600;
+    const dock = chatBounds
+      ? mobile
+        ? { x: chatBounds.left + chatBounds.width / 2, y: chatBounds.top }
+        : {
+            x: Math.min(
+              width - actorHalfWidth,
+              Math.max(actorHalfWidth, chatBounds.left - dockGap - actorHalfWidth),
+            ),
+            y: floorY,
+          }
+      : { x: Math.max(actorHalfWidth, width - 80), y: floorY };
+    const reader =
+      typeof document === "undefined"
+        ? null
+        : document.querySelector<HTMLElement>(".portfolio-reader");
+    const obstacles = [obstacleFor(chatRef.current), obstacleFor(reader)].filter(
+      (value): value is AvatarStageObstacle => value !== null,
+    );
+    return {
+      dock,
+      obstacles,
+      viewport: { width, height: viewport.height, floorY },
+    };
+  }, []);
+
+  const [avatarRuntime] = useState(
+    () => new AvatarRuntime(viewportSizeAsStage),
+  );
   const [avatarMounted, setAvatarMounted] = useState(false);
-  const [registeredAvatarTargets] = useState(
-    () => new Map<AvatarTargetId, HTMLElement>(),
-  );
-  const [registeredAvatarObstacles] = useState(
-    () => new Map<AvatarObstacleId, HTMLElement>(),
-  );
-  const registeredAvatarStage = useRef<HTMLElement | null>(null);
 
-  // The window-level listeners below are registered once and must not re-run
-  // when these change, so they read the current value through a ref.
-  const assistantOpenRef = useRef(assistantOpen);
-  const reducedMotionRef = useRef(reducedMotion);
   useEffect(() => {
-    assistantOpenRef.current = assistantOpen;
-    reducedMotionRef.current = reducedMotion;
-  }, [assistantOpen, reducedMotion]);
+    avatarRuntime.setStageReader(readStage);
+    avatarRuntime.refreshDock();
+  }, [avatarRuntime, readStage]);
 
-  const registerAvatarTarget = useCallback(
-    (target: AvatarTargetId, element: HTMLElement | null) => {
-      const previous = registeredAvatarTargets.get(target);
-      if (previous && previous !== element) {
-        avatarRegistry.unregister(target, previous);
-        registeredAvatarTargets.delete(target);
-      }
-      if (element) {
-        avatarRegistry.register(target, element);
-        registeredAvatarTargets.set(target, element);
-      }
-    },
-    [avatarRegistry, registeredAvatarTargets],
-  );
+  const registerAvatarStage = useCallback((element: HTMLElement | null) => {
+    stageRef.current = element;
+    avatarRuntime.refreshDock();
+  }, [avatarRuntime]);
 
-  const registerAvatarObstacle = useCallback(
-    (obstacle: AvatarObstacleId, element: HTMLElement | null) => {
-      const previous = registeredAvatarObstacles.get(obstacle);
-      if (previous && previous !== element) {
-        avatarRegistry.unregisterObstacle(obstacle, previous);
-        registeredAvatarObstacles.delete(obstacle);
-      }
-      if (element) {
-        avatarRegistry.registerObstacle(obstacle, element);
-        registeredAvatarObstacles.set(obstacle, element);
-      }
-    },
-    [avatarRegistry, registeredAvatarObstacles],
-  );
+  const registerAvatarDock = useCallback((element: HTMLElement | null) => {
+    chatRef.current = element;
+    avatarRuntime.refreshDock();
+  }, [avatarRuntime]);
 
-  const registerDirectorConsoleObstacle = useCallback(
-    (element: HTMLDivElement | null) =>
-      registerAvatarObstacle("avatar:director-console", element),
-    [registerAvatarObstacle],
-  );
+  const refreshAvatarDock = useCallback(() => {
+    avatarRuntime.refreshDock();
+  }, [avatarRuntime]);
 
-  const registerAvatarStage = useCallback(
-    (element: HTMLElement | null) => {
-      const previous = registeredAvatarStage.current;
-      if (previous && previous !== element) avatarRegistry.unregisterStage(previous);
-      registeredAvatarStage.current = element;
-      if (element) {
-        avatarRegistry.registerStage(element);
-        avatarController.refreshStage(true);
-      }
-    },
-    [avatarController, avatarRegistry],
-  );
-
-  const refreshAssistantHome = useCallback(() => {
-    if (!assistantOpenRef.current) return;
-    avatarController.refreshStage(true, getAssistantHomeDock());
-  }, [avatarController]);
-
-  // Deferred a tick so the first paint is the page, not the avatar.
   useEffect(() => {
     const timer = window.setTimeout(() => setAvatarMounted(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) avatarDirector.stop();
-    avatarDirector.setReducedMotion(reducedMotion);
-  }, [avatarDirector, reducedMotion]);
-
-  useEffect(() => () => avatarDirector.dispose(), [avatarDirector]);
+    avatarRuntime.setReducedMotion(reducedMotion);
+  }, [avatarRuntime, reducedMotion]);
 
   useEffect(() => {
-    if (assistantOpen && !document.hidden && !reducedMotion) {
-      avatarDirector.startAmbient();
-      return;
-    }
-    avatarDirector.stop();
-  }, [assistantOpen, avatarDirector, reducedMotion]);
+    if (assistantOpen) avatarRuntime.show();
+    else avatarRuntime.hide();
+  }, [assistantOpen, avatarRuntime]);
 
   useEffect(() => {
-    if (!assistantOpen) return;
-    const timer = window.setTimeout(() => {
-      avatarController.refreshStage(true, getAssistantHomeDock());
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [assistantOpen, avatarController]);
-
-  useEffect(() => {
-    const refreshTarget = () => {
-      const command = avatarController.getSnapshot().currentCommand;
-      if (
-        command?.action === "walkTo" ||
-        command?.action === "lookAt" ||
-        command?.action === "pointAt"
-      ) {
-        avatarController.refreshStage(true, getAssistantHomeDock());
-        void avatarController.execute(command);
-      } else {
-        avatarController.refreshStage(true, getAssistantHomeDock());
-      }
-    };
-    const handleVisibility = () => {
-      if (
-        assistantOpenRef.current &&
-        !document.hidden &&
-        !reducedMotionRef.current
-      ) {
-        refreshTarget();
-        avatarDirector.startAmbient();
-      } else {
-        avatarDirector.stop();
-      }
-    };
-    const refreshVisibleTarget = () => {
-      if (assistantOpenRef.current) refreshTarget();
-    };
-    window.addEventListener("scroll", refreshVisibleTarget, { passive: true });
-    window.addEventListener("resize", refreshVisibleTarget);
-    document.addEventListener("visibilitychange", handleVisibility);
+    const refresh = () => avatarRuntime.refreshDock();
+    window.addEventListener("scroll", refresh, { passive: true });
+    window.addEventListener("resize", refresh);
     return () => {
-      window.removeEventListener("scroll", refreshVisibleTarget);
-      window.removeEventListener("resize", refreshVisibleTarget);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("scroll", refresh);
+      window.removeEventListener("resize", refresh);
+      avatarRuntime.cancel();
     };
-  }, [avatarController, avatarDirector]);
-
-  // Callback refs own registration; this effect owns their shared teardown.
-  useEffect(
-    () => () => {
-      avatarActionState.beginTurn();
-      for (const [target, element] of registeredAvatarTargets) {
-        avatarRegistry.unregister(target, element);
-      }
-      registeredAvatarTargets.clear();
-      for (const [obstacle, element] of registeredAvatarObstacles) {
-        avatarRegistry.unregisterObstacle(obstacle, element);
-      }
-      registeredAvatarObstacles.clear();
-      if (registeredAvatarStage.current) {
-        avatarRegistry.unregisterStage(registeredAvatarStage.current);
-        registeredAvatarStage.current = null;
-      }
-    },
-    [
-      avatarActionState,
-      avatarRegistry,
-      registeredAvatarObstacles,
-      registeredAvatarTargets,
-    ],
-  );
+  }, [avatarRuntime]);
 
   return {
-    avatarActionState,
-    avatarController,
-    avatarDirector,
     avatarMounted,
-    avatarRegistry,
-    refreshAssistantHome,
+    avatarRuntime,
+    refreshAvatarDock,
+    registerAvatarDock,
     registerAvatarStage,
-    registerAvatarTarget,
-    registerDirectorConsoleObstacle,
   };
 }

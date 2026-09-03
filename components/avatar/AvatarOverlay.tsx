@@ -3,8 +3,6 @@
 import { Canvas, type CanvasProps } from "@react-three/fiber";
 import {
   Component,
-  lazy,
-  Suspense,
   type ReactNode,
   useCallback,
   useEffect,
@@ -12,29 +10,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import * as THREE from "three";
-import { AvatarController } from "../../lib/avatar/controller";
-import { AvatarDirector } from "../../lib/avatar/director";
-import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
+import type { AvatarRuntime } from "../../lib/avatar/runtime";
 import { AvatarStageActor } from "./AvatarStageActor";
 
-const AvatarDirectorConsole = import.meta.env.DEV
-  ? lazy(() =>
-      import("./AvatarDirectorConsole").then((module) => ({
-        default: module.AvatarDirectorConsole,
-      })),
-    )
-  : null;
-
 type AvatarOverlayProps = {
-  controller: AvatarController;
-  director?: AvatarDirector;
-  enabled: boolean;
-  onEnabledChange: (enabled: boolean) => void;
-  development?: boolean;
-  debug?: boolean;
-  registry?: AvatarTargetRegistry;
+  runtime: AvatarRuntime;
   reducedMotion?: boolean;
-  onExpandedPanelChange?: (element: HTMLDivElement | null) => void;
   createRenderer?: AvatarRendererFactory;
 };
 
@@ -43,7 +24,9 @@ type CanvasRendererFactory = Extract<
   (...args: never[]) => unknown
 >;
 type AvatarRendererProps = Parameters<CanvasRendererFactory>[0];
-type AvatarRendererFactory = (props: AvatarRendererProps) => THREE.WebGLRenderer;
+type AvatarRendererFactory = (
+  props: AvatarRendererProps,
+) => THREE.WebGLRenderer;
 
 const createDefaultRenderer: AvatarRendererFactory = (props) =>
   new THREE.WebGLRenderer({ ...props, alpha: true, antialias: true });
@@ -56,9 +39,6 @@ async function initializeRenderer(
   try {
     return createRenderer(props);
   } catch {
-    // R3F awaits this factory inside an unhandled async configure call. Convert
-    // construction failure into controller state, then keep configure pending
-    // only until React removes the failed canvas on the next microtask.
     queueMicrotask(onFailure);
     return new Promise<THREE.WebGLRenderer>(() => {});
   }
@@ -69,7 +49,10 @@ type RendererBoundaryProps = {
   children: ReactNode;
 };
 
-class RendererBoundary extends Component<RendererBoundaryProps, { failed: boolean }> {
+class RendererBoundary extends Component<
+  RendererBoundaryProps,
+  { failed: boolean }
+> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -101,90 +84,51 @@ function useDocumentVisible() {
 }
 
 export function AvatarOverlay({
-  controller,
-  director,
-  enabled,
-  onEnabledChange,
-  development = false,
-  debug = false,
-  registry,
+  runtime,
   reducedMotion = false,
-  onExpandedPanelChange,
   createRenderer = createDefaultRenderer,
 }: AvatarOverlayProps) {
   const snapshot = useSyncExternalStore(
-    controller.subscribe,
-    controller.getSnapshot,
-    controller.getSnapshot,
+    runtime.subscribe,
+    runtime.getSnapshot,
+    runtime.getSnapshot,
   );
   const documentVisible = useDocumentVisible();
   const createManagedRenderer = useCallback(
     (props: AvatarRendererProps) =>
-      initializeRenderer(props, createRenderer, () => controller.markFailed()),
-    [controller, createRenderer],
+      initializeRenderer(props, createRenderer, runtime.markFailed),
+    [createRenderer, runtime],
   );
 
   useEffect(() => {
-    controller.setVisible(enabled);
-  }, [controller, enabled]);
+    if (!documentVisible && snapshot.phase !== "brain-food") runtime.cancel();
+  }, [documentVisible, runtime, snapshot.phase]);
 
-  useEffect(() => {
-    const controllerVisible = controller.getSnapshot().visible;
-    if (controllerVisible !== enabled) onEnabledChange(controllerVisible);
-  }, [controller, enabled, onEnabledChange, snapshot.visible]);
-
-  useEffect(() => {
-    if (documentVisible) return;
-    if (director) {
-      director.stop();
-    } else {
-      controller.stopMotion();
-    }
-  }, [controller, director, documentVisible]);
-
-  const isEnabled = enabled && snapshot.visible;
-  const renderAvatar = isEnabled && snapshot.visible && !snapshot.failed;
+  const renderAvatar = snapshot.visible && !snapshot.failed;
 
   return (
-    <>
-      <div
-        className="avatar-overlay"
-        data-avatar-state={snapshot.state}
-      >
-        {renderAvatar ? (
-          <RendererBoundary onFailure={() => controller.markFailed()}>
-            <Canvas
-              aria-hidden="true"
-              camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
-              className="avatar-overlay-canvas"
-              dpr={[1, 1.25]}
-              frameloop={documentVisible ? "always" : "never"}
-              gl={createManagedRenderer}
-              orthographic
-            >
-              <ambientLight intensity={1.6} />
-              <directionalLight intensity={1.7} position={[2, 4, 3]} />
-              <AvatarStageActor
-                snapshot={snapshot}
-                onAvailableAnimationsChange={controller.setAvailableAnimations}
-                reducedMotion={reducedMotion}
-              />
-            </Canvas>
-          </RendererBoundary>
-        ) : null}
-      </div>
-      {AvatarDirectorConsole && development && debug && director && registry ? (
-        <Suspense fallback={null}>
-          <AvatarDirectorConsole
-            controller={controller}
-            director={director}
-            registry={registry}
-            onEnabledChange={onEnabledChange}
-            onExpandedPanelChange={onExpandedPanelChange}
-            reducedMotion={reducedMotion}
-          />
-        </Suspense>
+    <div className="avatar-overlay" data-avatar-state={snapshot.phase}>
+      {renderAvatar ? (
+        <RendererBoundary onFailure={() => runtime.markFailed()}>
+          <Canvas
+            aria-hidden="true"
+            camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
+            className="avatar-overlay-canvas"
+            dpr={[1, 1.25]}
+            frameloop={documentVisible ? "always" : "never"}
+            gl={createManagedRenderer}
+            orthographic
+          >
+            <ambientLight intensity={1.6} />
+            <directionalLight intensity={1.7} position={[2, 4, 3]} />
+            <AvatarStageActor
+              snapshot={snapshot}
+              onAvailableAnimationsChange={runtime.setAvailableClips}
+              reducedMotion={reducedMotion}
+            />
+          </Canvas>
+        </RendererBoundary>
       ) : null}
-    </>
+    </div>
   );
 }

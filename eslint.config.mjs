@@ -78,7 +78,6 @@ const eslintConfig = defineConfig([
       "app/design/sheet-examples.tsx",
       "components/scene/**/*.tsx",
       "components/avatar/**/*.tsx",
-      "components/avatar-toybox/**/*.tsx",
     ],
     rules: {
       "react/no-unknown-property": "off",

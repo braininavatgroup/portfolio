@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useLayoutEffect,
   useRef,
   useSyncExternalStore,
@@ -11,7 +10,6 @@ import { PortfolioContactMark, PortfolioNodeMark } from "./PortfolioNodeMark";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
-import type { AvatarTargetId } from "../lib/avatar/contracts";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import {
@@ -24,7 +22,6 @@ import {
   portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
-  isPortfolioWhatNode,
   type PortfolioBodyBlock,
   type PortfolioThread,
   type PortfolioVisualBlock,
@@ -47,10 +44,6 @@ type PortfolioReaderProps = {
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
-  registerAvatarTarget?: (
-    target: AvatarTargetId,
-    element: HTMLElement | null,
-  ) => void;
   selectedId: string | null;
 };
 
@@ -597,7 +590,6 @@ export function PortfolioReader({
   onReset,
   onSelect,
   onSelectThread,
-  registerAvatarTarget,
   selectedId,
 }: PortfolioReaderProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -613,15 +605,6 @@ export function PortfolioReader({
       : indexOpen
         ? "index"
         : "home";
-  const avatarTarget: AvatarTargetId = node && isPortfolioWhatNode(node)
-    ? `portfolio:record:${node.id}`
-    : "portfolio:index";
-  const setReaderRef = useCallback(
-    (element: HTMLElement | null) => {
-      registerAvatarTarget?.(avatarTarget, element);
-    },
-    [avatarTarget, registerAvatarTarget],
-  );
   const label = node && node.outlineType !== "why"
     ? `${node.label} record`
     : thread
@@ -652,7 +635,6 @@ export function PortfolioReader({
       aria-label={label}
       className={`portfolio-reader${cleanReview ? " portfolio-reader-clean-review" : ""}`}
       data-reader-mode={mode}
-      ref={setReaderRef}
     >
       <div
         className="reader-scroll"

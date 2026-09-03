@@ -8,8 +8,8 @@ The portfolio assistant, and the only temporary floating surface on the site
 corner; open it is an 18rem panel whose
 header can be dragged to re-dock it. It streams an answer from
 [`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts), renders
-evidence pills, keeps a transcript, and reports a `PoseState` on every
-meaningful beat so the avatar can react. State shows as `data-open` and
+evidence pills, keeps a transcript, and reports turn start, first answer text,
+and the optional swim action so the avatar can react. State shows as `data-open` and
 `data-input-focused`.
 
 ## Props
@@ -17,7 +17,7 @@ meaningful beat so the avatar can react. State shows as `data-open` and
 No prop is required. `open`/`onOpenChange` make it
 controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
 and `renderTurnstile` are injection seams defaulting to the real transport and
-widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarTarget`, and
+widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarDock`, and
 `onLayoutChange` are optional.
 
 ## Requires
@@ -63,7 +63,7 @@ export function PortfolioChatExample() {
   `renderTurnstile` and the composer is permanently blocked.
 - **`open` and `onOpenChange` are a pair.** Pass `open` alone and the panel can
   never be closed from inside — the controlled value never changes.
-- **`avatarIntegration` rejections are swallowed.** Every callback runs through
+- **`avatarIntegration` rejections are swallowed.** Its callbacks run through
   `runAvatarWorkSafely`, which catches; avatar work is explicitly not allowed
   to interrupt a turn. A failing integration is silent, not a failed turn.
 - **Dragging is refused at ≤900px**, where the dock is laid out differently.

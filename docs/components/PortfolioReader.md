@@ -18,8 +18,8 @@ from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, `onSelectThread`
-required; `indexOpen`, `onOpenIndex`, `onOpenVisual`, `registerAvatarTarget`
-optional. Mode: `record` for a non-`story`, non-`bradley` `selectedId`; else
+required; `indexOpen`, `onOpenIndex`, and `onOpenVisual` optional. Mode:
+`record` for a non-`story`, non-`bradley` `selectedId`; else
 `thread` if `activeThreadId`; else `index` if `indexOpen`; else `home`.
 
 ## Requires
@@ -57,8 +57,6 @@ export function PortfolioReaderExample() {
 
 - **A `story`-family node in `selectedId` does not open a record.** Stories
   are reached through `activeThreadId`.
-- **The avatar target follows outline type**: `portfolio:record:<id>` for What
-  records, `portfolio:index` otherwise.
 - **`?review=clean` changes the rendering**, adding
   `.portfolio-reader-clean-review`; it is not the default surface.
 - **The content area (`.reader-scroll`) scrolls, not the aside.** Index scroll

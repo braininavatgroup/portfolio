@@ -15,7 +15,7 @@ describe("portfolio page", () => {
     expect(pageSource).not.toContain("avatarLab");
   });
 
-  it("keeps Director-console labels outside the production page entry", () => {
+  it("does not ship the retired Director console", () => {
     const pageSource = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const overlaySource = readFileSync(
       new URL("../components/avatar/AvatarOverlay.tsx", import.meta.url),
@@ -24,6 +24,6 @@ describe("portfolio page", () => {
 
     expect(pageSource).not.toContain("Avatar Director console");
     expect(pageSource).not.toContain("Avatar developer controls");
-    expect(overlaySource).toContain("const AvatarDirectorConsole = import.meta.env.DEV");
+    expect(overlaySource).not.toContain("AvatarDirectorConsole");
   });
 });

@@ -28,10 +28,7 @@ import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import { EditableText, useEditableContent } from "./editor/EditableText";
 import { PortfolioControlMark } from "./PortfolioNodeMark";
-import type {
-  AvatarTargetId,
-  PortfolioResponseEffects,
-} from "../lib/avatar/contracts";
+import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import type {
   PortfolioChatTurnMode,
   PortfolioChatVisitState,
@@ -42,16 +39,9 @@ type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
 ) => void | Promise<void>;
 
 export type PortfolioChatAvatarIntegration = {
-  onInputFocus?: AvatarLifecycleCallback;
-  onInputActivity?: AvatarLifecycleCallback;
-  onInputBlur?: AvatarLifecycleCallback;
   onTurnStart: AvatarLifecycleCallback;
-  onEvidence: AvatarLifecycleCallback<[PortfolioGroundingEvidence[]]>;
   onFirstText: AvatarLifecycleCallback;
   onEffects: AvatarLifecycleCallback<[PortfolioResponseEffects]>;
-  onNotice: AvatarLifecycleCallback;
-  onError: AvatarLifecycleCallback;
-  onComplete: AvatarLifecycleCallback;
 };
 
 export function PortfolioChat({
@@ -60,7 +50,7 @@ export function PortfolioChat({
   onLayoutChange,
   onOpenChange,
   open: controlledOpen,
-  registerAvatarTarget,
+  registerAvatarDock,
   askPortfolio = streamPortfolioAnswer,
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
   turnstileSiteKey,
@@ -70,10 +60,7 @@ export function PortfolioChat({
   onLayoutChange?: () => void;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
-  registerAvatarTarget?: (
-    target: AvatarTargetId,
-    element: HTMLElement | null,
-  ) => void;
+  registerAvatarDock?: (element: HTMLElement | null) => void;
   askPortfolio?: AskPortfolio;
   renderTurnstile?: TurnstileRenderer;
   turnstileSiteKey?: string;
@@ -112,7 +99,6 @@ export function PortfolioChat({
     generalTurns: 0,
     portfolioNudgeShown: false,
   });
-  const inputActivityTimer = useRef<number | null>(null);
   const compositionEndTimer = useRef<number | null>(null);
   const composing = useRef(false);
   const compositionJustEnded = useRef(false);
@@ -132,9 +118,9 @@ export function PortfolioChat({
   const setChatPanel = useCallback(
     (element: HTMLElement | null) => {
       panelRef.current = element;
-      registerAvatarTarget?.("portfolio:chat", element);
+      registerAvatarDock?.(element);
     },
-    [registerAvatarTarget],
+    [registerAvatarDock],
   );
 
   useEffect(() => {
@@ -179,9 +165,6 @@ export function PortfolioChat({
 
   useEffect(() => {
     return () => {
-      if (inputActivityTimer.current !== null) {
-        window.clearTimeout(inputActivityTimer.current);
-      }
       if (compositionEndTimer.current !== null) {
         window.clearTimeout(compositionEndTimer.current);
       }
@@ -336,7 +319,6 @@ export function PortfolioChat({
           if (!isCurrentTurn()) return;
           if (event.type === "evidence") {
             setEvidence(event.evidence);
-            scheduleAvatarWork(() => avatarIntegration?.onEvidence(event.evidence));
           }
           if (event.type === "turn_mode") turnMode = event.mode;
           if (event.type === "answer_delta") {
@@ -368,11 +350,6 @@ export function PortfolioChat({
               setInput((current) => current || question);
             }
             setMessage(event.message);
-            scheduleAvatarWork(() =>
-              event.type === "notice"
-                ? avatarIntegration?.onNotice()
-                : avatarIntegration?.onError(),
-            );
           }
           if (event.type === "done") streamCompleted = true;
         },
@@ -406,7 +383,6 @@ export function PortfolioChat({
       if (controller.signal.aborted) return;
       setAnswer("");
       setInput((current) => current || question);
-      scheduleAvatarWork(() => avatarIntegration?.onError());
       setMessage(
         error instanceof PortfolioChatClientError
           ? error.message
@@ -418,13 +394,6 @@ export function PortfolioChat({
         turnstileController.current?.reset();
       }
       await avatarWork;
-      if (isCurrentTurn()) {
-        try {
-          await avatarIntegration?.onComplete();
-        } catch {
-          // Avatar work is optional and must never interrupt chat cleanup.
-        }
-      }
       if (requestController.current === controller) {
         requestController.current = null;
         setPending(false);
@@ -432,9 +401,7 @@ export function PortfolioChat({
     }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const question = input.trim();
+  function beginQuestion(question: string) {
     if (!question) return;
     setLastQuestion(question);
     setInput("");
@@ -442,6 +409,11 @@ export function PortfolioChat({
     inputHeight.current = -1;
     inputRef.current?.blur();
     void runQuestion(question);
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    beginQuestion(input.trim());
   }
 
   function submitOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
@@ -617,6 +589,16 @@ export function PortfolioChat({
               {challengeMessage ? <p className="chat-note">{challengeMessage}</p> : null}
             </div>
           ) : null}
+          {!hasThreadContent ? (
+            <button
+              className="portfolio-chat-suggestion"
+              disabled={pending}
+              onClick={() => beginQuestion("Take a leisurely swim.")}
+              type="button"
+            >
+              Take a leisurely swim
+            </button>
+          ) : null}
           <form className="portfolio-chat-composer" id="portfolio-question-form" onSubmit={submit}>
             <label className="sr-only" htmlFor="portfolio-question">Ask a question about the portfolio</label>
             <textarea
@@ -624,11 +606,6 @@ export function PortfolioChat({
               name="question"
               onBlur={() => {
                 setInputFocused(false);
-                if (inputActivityTimer.current !== null) {
-                  window.clearTimeout(inputActivityTimer.current);
-                  inputActivityTimer.current = null;
-                }
-                void avatarIntegration?.onInputBlur?.();
               }}
               onChange={(event) => {
                 setInput(event.target.value);
@@ -644,11 +621,6 @@ export function PortfolioChat({
                   inputHeight.current = nextHeight;
                   onLayoutChange?.();
                 }
-                if (inputActivityTimer.current !== null) return;
-                void avatarIntegration?.onInputActivity?.();
-                inputActivityTimer.current = window.setTimeout(() => {
-                  inputActivityTimer.current = null;
-                }, 250);
               }}
               onCompositionEnd={() => {
                 composing.current = false;
@@ -668,7 +640,6 @@ export function PortfolioChat({
               }}
               onFocus={() => {
                 setInputFocused(true);
-                void avatarIntegration?.onInputFocus?.();
               }}
               onKeyDown={submitOnEnter}
               placeholder={composerPlaceholder}

@@ -12,7 +12,17 @@ import {
   targetSwimmingDocks,
   type AvatarStageMotion,
 } from "./stage";
-import type { AvatarTargetBounds } from "./target-registry";
+type AvatarTargetBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+  inViewport: boolean;
+};
 
 function bounds(
   left: number,

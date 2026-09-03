@@ -2,7 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 
-export class AvatarToyboxBoundary extends Component<
+export class AvatarBoundary extends Component<
   { children: ReactNode; onFailure: () => void },
   { failed: boolean }
 > {
@@ -14,7 +14,7 @@ export class AvatarToyboxBoundary extends Component<
 
   componentDidCatch(error: unknown) {
     if (process.env.NODE_ENV === "development") {
-      console.error("Avatar toybox renderer failed", error);
+      console.error("Avatar renderer failed", error);
     }
     this.props.onFailure();
   }

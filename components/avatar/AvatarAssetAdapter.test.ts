@@ -5,10 +5,14 @@ import {
   combineAnimationClips,
   getAvailableAnimationIds,
   getAvatarModelOriginY,
+  getAvatarPlaybackRate,
   getBradleyGlbFootOriginTranslation,
   getGlbFootOriginTranslation,
+  getGlbOrientation,
   getGlbYaw,
   getAvatarStageScale,
+  getAvatarTurnRate,
+  makeLocomotionClipInPlace,
 } from "./AvatarAssetAdapter";
 import {
   AnimationClip,
@@ -18,6 +22,8 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  VectorKeyframeTrack,
+  Vector3,
 } from "three";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -40,7 +46,7 @@ function rawBradleyGlbMinimumY() {
 }
 
 describe("GLB avatar configuration", () => {
-  it("centers toybox rendering while retaining foot anchoring on the full-page stage", () => {
+  it("supports centered specimens while retaining foot anchoring on the stage", () => {
     expect(getAvatarModelOriginY("feet", 0, 1.64)).toBe(0);
     expect(getAvatarModelOriginY("center", 0, 1.64)).toBe(-0.82);
   });
@@ -101,22 +107,101 @@ describe("GLB avatar configuration", () => {
     expect(second.material).toEqual([secondOriginal]);
   });
 
-  it("reports only first-class IDs whose exact clips loaded", () => {
-    // Catches the adapter guessing semantic aliases for supplied clip names.
+  it("reports only the four clips used by the shipped experience", () => {
+    // Catches a retired behavior becoming a renderer requirement again.
     expect(
-      getAvailableAnimationIds(["Idle_3", "Walking", "Joyful_Dance_with_Hand_Sway"]),
-    ).toEqual(new Set(["idle_3", "walking", "joyful_dance_with_hand_sway"]));
+      getAvailableAnimationIds([
+        "Idle_3",
+        "Agree_Gesture",
+        "Swim_Forward",
+        "Cheer_with_Both_Hands",
+        "Walking",
+      ]),
+    ).toEqual(
+      new Set([
+        "idle_3",
+        "agree_gesture",
+        "swim_forward",
+        "cheer_with_both_hands",
+      ]),
+    );
+  });
+
+  it("plays breaststroke more slowly than conversational motion", () => {
+    expect(getAvatarPlaybackRate("swim_forward")).toBeLessThan(
+      getAvatarPlaybackRate("agree_gesture"),
+    );
+  });
+
+  it("turns a swimming body more gradually than conversational poses", () => {
+    expect(getAvatarTurnRate("swim_forward")).toBeCloseTo(2.2);
+    expect(getAvatarTurnRate("agree_gesture")).toBeGreaterThan(
+      getAvatarTurnRate("swim_forward"),
+    );
   });
 
 
   it("starts camera-facing and limits ordinary left and right turns", () => {
     // Catches startup or target-facing logic rotating the avatar's back toward the visitor.
-    expect(getGlbYaw("z", "front")).toBe(0);
-    expect(getGlbYaw("z", "left")).toBe(Math.PI / 8);
-    expect(getGlbYaw("z", "right")).toBe(-Math.PI / 8);
-    expect(getGlbYaw("-z", "front")).toBe(Math.PI);
-    expect(Math.abs(getGlbYaw("z", "left"))).toBeLessThan(Math.PI / 2);
-    expect(Math.abs(getGlbYaw("z", "right"))).toBeLessThan(Math.PI / 2);
+    expect(getGlbYaw("z", "front", "idle_3")).toBe(0);
+    expect(getGlbYaw("z", "left", "idle_3")).toBe(Math.PI / 8);
+    expect(getGlbYaw("z", "right", "idle_3")).toBe(-Math.PI / 8);
+    expect(getGlbYaw("-z", "front", "idle_3")).toBe(Math.PI);
+    expect(getGlbYaw("z", "front", "swim_forward", 0)).toBe(Math.PI / 2);
+    expect(getGlbYaw("z", "front", "swim_forward", Math.PI)).toBe(
+      (Math.PI * 3) / 2,
+    );
+    expect(getGlbYaw("z", "front", "swim_forward", -Math.PI / 2)).toBe(0);
+  });
+
+  it("points a swimming body fully up or down without rolling it", () => {
+    // Catches limiting vertical steering to a cosmetic tilt, which leaves the
+    // swimmer's head level with their hips while moving through the cube.
+    const descend = getGlbOrientation(
+      "z",
+      "front",
+      "swim_forward",
+      Math.PI / 2,
+    );
+    const ascend = getGlbOrientation(
+      "z",
+      "front",
+      "swim_forward",
+      -Math.PI / 2,
+    );
+    const localForward = new Vector3(0, 0, 1);
+    const localRight = new Vector3(1, 0, 0);
+
+    expect(localForward.clone().applyQuaternion(descend).toArray()).toEqual([
+      expect.closeTo(0, 6),
+      expect.closeTo(-1, 6),
+      expect.closeTo(0, 6),
+    ]);
+    expect(localForward.clone().applyQuaternion(ascend).toArray()).toEqual([
+      expect.closeTo(0, 6),
+      expect.closeTo(1, 6),
+      expect.closeTo(0, 6),
+    ]);
+    expect(localRight.clone().applyQuaternion(descend).y).toBeCloseTo(0, 6);
+    expect(localRight.clone().applyQuaternion(ascend).y).toBeCloseTo(0, 6);
+  });
+
+  it("removes Meshy root travel from the swim clip so the controller owns position", () => {
+    const source = new AnimationClip("Swim_Forward", 1, [
+      new VectorKeyframeTrack(
+        "Hips.position",
+        [0, 0.5, 1],
+        [1, 60, 5, 2, 62, 105, 3, 61, 205],
+      ),
+    ]);
+
+    const prepared = makeLocomotionClipInPlace(source);
+    const values = Array.from(prepared.tracks[0]!.values);
+
+    expect(values).toEqual([1, 60, 5, 1, 62, 5, 1, 61, 5]);
+    expect(Array.from(source.tracks[0]!.values)).toEqual([
+      1, 60, 5, 2, 62, 105, 3, 61, 205,
+    ]);
   });
 
 

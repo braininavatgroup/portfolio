@@ -23,7 +23,6 @@ export type GallerySectionId =
   | "cursor"
   | "analytics"
   | "avatar"
-  | "toybox"
   | "composition";
 
 export type StageSize = "auto" | "short" | "medium" | "tall" | "viewport";

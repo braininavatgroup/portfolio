@@ -1,0 +1,49 @@
+# useBrainFoodSession
+
+Source: [`components/useBrainFoodSession.ts`](../../components/useBrainFoodSession.ts) · Tests: `components/useBrainFoodSession.test.tsx`
+
+Owns the visitor-triggered Brain Food session: the exact Shift+G shortcut, Arrow/WASD movement, live-node collision state, completion celebration, Escape cancellation, and restoration of the avatar's prior visibility.
+It chooses the clearest bounded spawn from the published node field and does
+not collect anything until the avatar's position actually changes.
+
+## Arguments
+
+`avatarRuntime`, `edibleNodeCount`, `enabled`, and `reducedMotion` are required.
+
+## Requires
+
+A browser and one live `.portfolio-world` surface. The map must call
+`syncNodePositions` with current viewport-projected nodes before and during play.
+
+## Example
+
+```tsx
+import { useBrainFoodSession } from "components/useBrainFoodSession";
+import { AvatarRuntime } from "lib/avatar/runtime";
+import { useState } from "react";
+
+export function UseBrainFoodSessionExample() {
+  const [runtime] = useState(() => new AvatarRuntime(() => ({
+    dock: { x: 800, y: 700 },
+    obstacles: [],
+    viewport: { width: 900, height: 724, floorY: 700 },
+  })));
+  const session = useBrainFoodSession({
+    avatarRuntime: runtime,
+    edibleNodeCount: 16,
+    enabled: true,
+    reducedMotion: false,
+  });
+
+  return <p>{session.active ? `${session.remaining} left` : "Press Shift+G"}</p>;
+}
+```
+
+## Pitfalls
+
+- It intentionally refuses to start at widths of 900px or below.
+- Bradley is never edible; `edibleNodeCount` must exclude that identity node.
+- Escape restores the avatar visibility from before the game rather than assuming chat is open.
+- Collection uses the swimmer-sized swept path between frames, not only the
+  actor origin at the end of a frame. Keep node coordinates in viewport space
+  so the visible model and collision model cannot drift apart.
