@@ -24,9 +24,6 @@ The Reading Room uses three coordination props:
 - `onThreadStateChange(hasThread)` reports whether the Guide has messages.
 - Changing `resetSignal` aborts the request and clears the entire conversation.
 
-`open`, `onOpenChange`, and `initiallyOpen` are transitional no-ops until the
-Reading Room shell replaces the old caller.
-
 ## Requires
 
 Use a `.portfolio-composition` ancestor and a slot with a definite height. The
@@ -61,3 +58,7 @@ export function PortfolioChatExample() {
 - Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
 - Output is buffered until completion, so failed partial answers stay hidden.
 - Avatar callback failures stay isolated from the text response.
+- The first server and client render both assume online. Actual
+  `navigator.onLine` state is synchronized after mount to keep hydration stable.
+- `useLocalRuntime` owns thread detach and request cancellation on unmount; the
+  Guide only clears its local timer and request reference in component cleanup.

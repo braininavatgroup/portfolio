@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import {
   afterEach,
   beforeEach,
@@ -45,9 +47,36 @@ function submit(question: string) {
 }
 
 describe("docked portfolio Guide", () => {
+  it("hydrates online-first connectivity markup before synchronizing the browser state", async () => {
+    vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+
+    const html = renderToString(
+      <PortfolioChat askPortfolio={async () => {}} resetSignal={0} />,
+    );
+    expect(html).toContain('data-offline="false"');
+    expect(html).not.toContain("The Guide is offline");
+
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.appendChild(host);
+    const hydrationErrors: string[] = [];
+    const root = hydrateRoot(
+      host,
+      <PortfolioChat askPortfolio={async () => {}} resetSignal={0} />,
+      { onRecoverableError: (error) => hydrationErrors.push(String(error)) },
+    );
+
+    await waitFor(() => {
+      expect(host.querySelector(".portfolio-chat")?.getAttribute("data-offline")).toBe("true");
+    });
+    expect(hydrationErrors.join("\n")).not.toMatch(/hydration|did not match|server rendered/i);
+    await act(async () => root.unmount());
+    host.remove();
+  });
+
   it("is always mounted through assistant-ui Thread, Message, Suggestion, and Composer primitives", async () => {
     // Catches the old minimized floating dock returning or assistant-ui becoming decorative.
-    render(<PortfolioChat open={false} askPortfolio={async () => {}} resetSignal={0} />);
+    render(<PortfolioChat askPortfolio={async () => {}} resetSignal={0} />);
 
     expect(screen.getByRole("region", { name: "Portfolio Guide" }).hidden).toBe(false);
     expect(document.querySelector('[data-guide-primitive="thread"]')).toBeTruthy();
@@ -389,6 +418,23 @@ describe("docked portfolio Guide", () => {
     const freshOptions = askPortfolio.mock.calls[1]![1];
     expect(freshOptions).not.toHaveProperty("conversation");
     expect(freshOptions.visitState).toEqual({ generalTurns: 0, portfolioNudgeShown: false });
+  });
+
+  it("lets the assistant-ui runtime abort an active request when Guide unmounts", async () => {
+    let signal: AbortSignal | undefined;
+    const askPortfolio = vi.fn<AskPortfolio>((_question, options) => {
+      signal = options.signal;
+      return new Promise(() => {});
+    });
+    const { unmount } = render(
+      <PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />,
+    );
+
+    submit("Leave this request running");
+    await waitFor(() => expect(signal).toBeDefined());
+
+    expect(() => unmount()).not.toThrow();
+    expect(signal?.aborted).toBe(true);
   });
 
   it("waits for Turnstile, forwards one token, and resets the widget after the turn", async () => {

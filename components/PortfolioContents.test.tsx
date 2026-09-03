@@ -29,7 +29,8 @@ describe("PortfolioContents", () => {
     const mast = home.closest(".portfolio-contents-mast")!;
     expect(home.textContent).toContain("Bradley Berkman");
     expect(mast.querySelector('[data-control="sidebarLeft"]')).toBeTruthy();
-    expect(home.querySelector('[data-family="identity"]')).toBeTruthy();
+    expect(home.querySelector(".portfolio-node-mark")).toBeNull();
+    expect(mast.querySelectorAll("button")).toHaveLength(2);
     expect(
       [...container.querySelectorAll(".portfolio-contents-group > h2")].map(
         (heading) => heading.textContent,
@@ -52,7 +53,7 @@ describe("PortfolioContents", () => {
     const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
     const desktopRule = stylesheet.match(/\.portfolio-contents-row\s*\{([^}]*)\}/)?.[1];
     const mobileRule = stylesheet.match(
-      /@media \(max-width: 1019px\)\s*\{[\s\S]*?\.portfolio-contents-row\s*\{([^}]*)\}/,
+      /@media \(max-width: 1019px\)\s*\{\s*\.portfolio-contents-row\s*\{([^}]*)\}/,
     )?.[1];
 
     expect(desktopRule?.match(/\bheight:\s*([^;]+);/)?.[1]).toBe("28px");
@@ -61,7 +62,7 @@ describe("PortfolioContents", () => {
 
   it("uses the Reader paper token for the embedded Reader surface", async () => {
     const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
-    const readerRule = stylesheet.match(/\.portfolio-reader\s*\{([^}]*)\}/)?.[1];
+    const readerRule = stylesheet.match(/^\.portfolio-reader\s*\{([^}]*)\}/m)?.[1];
 
     expect(readerRule?.match(/\bbackground:\s*([^;]+);/)?.[1]).toBe(
       "var(--reader-paper)",
@@ -136,5 +137,22 @@ describe("PortfolioContents", () => {
     fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
     expect(onHome).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledTimes(2);
+  });
+
+  it("lets its Reading Room owner collapse Contents without resetting selection", () => {
+    const onClose = vi.fn();
+    const onHome = vi.fn();
+    render(
+      <PortfolioContents
+        {...baseProps}
+        onClose={onClose}
+        onHome={onHome}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onHome).not.toHaveBeenCalled();
   });
 });

@@ -16,6 +16,7 @@ export type PortfolioControlMarkKind =
   | "send"
   | "minimize"
   | "sidebarLeft"
+  | "mobileSidebar"
   | "sidebarRight"
   | "panelBottom"
   | "reader"
@@ -34,6 +35,7 @@ export const portfolioControlMarkKinds: readonly PortfolioControlMarkKind[] = [
   "send",
   "minimize",
   "sidebarLeft",
+  "mobileSidebar",
   "sidebarRight",
   "panelBottom",
   "reader",
@@ -73,6 +75,12 @@ export function portfolioControlMarkPrimitives(
       return [
         stroke(
           "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M-2.5 -5.5V5.5",
+        ),
+      ];
+    case "mobileSidebar":
+      return [
+        stroke(
+          "M-6.5 -6H6.5A1 1 0 0 1 7.5 -5V5A1 1 0 0 1 6.5 6H-6.5A1 1 0 0 1 -7.5 5V-5A1 1 0 0 1 -6.5 -6Z M-2.5 -6V6",
         ),
       ];
     case "sidebarRight":

@@ -14,6 +14,7 @@ inventory, and `/design` for the same components rendered in their states.
 | Sheet | Component | Gallery |
 | --- | --- | --- |
 | [PortfolioExperience](./PortfolioExperience.md) | The whole accepted composition | `/design#composition` |
+| [PortfolioReadingRoom](./PortfolioReadingRoom.md) | The responsive workspace shell | `/design#reading-room` |
 | [PortfolioContents](./PortfolioContents.md) | Reading Room navigation | `/design#contents` |
 | [PortfolioWorld](./PortfolioWorld.md) | The spatial map (2D canvas) | `/design#world` |
 | [PortfolioReader](./PortfolioReader.md) | The fixed dossier | `/design#reader` |

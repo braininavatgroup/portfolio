@@ -104,10 +104,21 @@ export function AvatarOverlay({
     if (!documentVisible && snapshot.phase !== "brain-food") runtime.cancel();
   }, [documentVisible, runtime, snapshot.phase]);
 
-  const renderAvatar = snapshot.visible && !snapshot.failed;
+  // The canvas mounts on the first show and then stays mounted while hidden.
+  // Unmounting it mid-reconfigure (a resize followed by a hide) let
+  // react-three-fiber reconnect events into a removed wrapper. Hidden simply
+  // leaves the page and pauses the frameloop.
+  const [everVisible, setEverVisible] = useState(snapshot.visible);
+  if (snapshot.visible && !everVisible) setEverVisible(true);
+  const renderAvatar = everVisible && !snapshot.failed;
+  const runFrames = documentVisible && snapshot.visible;
 
   return (
-    <div className="avatar-overlay" data-avatar-state={snapshot.phase}>
+    <div
+      className="avatar-overlay"
+      data-avatar-state={snapshot.phase}
+      hidden={!snapshot.visible}
+    >
       {renderAvatar ? (
         <RendererBoundary onFailure={() => runtime.markFailed()}>
           <Canvas
@@ -115,7 +126,7 @@ export function AvatarOverlay({
             camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
             className="avatar-overlay-canvas"
             dpr={[1, 1.25]}
-            frameloop={documentVisible ? "always" : "never"}
+            frameloop={runFrames ? "always" : "never"}
             gl={createManagedRenderer}
             orthographic
           >

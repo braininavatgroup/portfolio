@@ -16,6 +16,7 @@ describe("portfolioControlMarkPrimitives", () => {
       "send",
       "minimize",
       "sidebarLeft",
+      "mobileSidebar",
       "sidebarRight",
       "panelBottom",
       "reader",

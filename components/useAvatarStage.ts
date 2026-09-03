@@ -7,8 +7,6 @@ import {
   type AvatarStageObstacle,
 } from "../lib/avatar/runtime";
 
-const actorHalfWidth = 72;
-const dockGap = 16;
 const bottomInset = 24;
 
 function viewportSize() {
@@ -22,7 +20,7 @@ function viewportSizeAsStage(): AvatarStageGeometry {
   const viewport = viewportSize();
   const floorY = viewport.height - bottomInset;
   return {
-    dock: { x: Math.max(actorHalfWidth, viewport.width - 80), y: floorY },
+    dock: { x: Math.max(72, viewport.width - 80), y: floorY },
     obstacles: [],
     viewport: { width: viewport.width, height: viewport.height, floorY },
   };
@@ -65,18 +63,12 @@ export function useAvatarStage({
         : viewport.width;
     const floorY = viewport.height - bottomInset;
     const chatBounds = chatRef.current?.getBoundingClientRect();
-    const mobile = viewport.width <= 600;
-    const dock = chatBounds
-      ? mobile
-        ? { x: chatBounds.left + chatBounds.width / 2, y: chatBounds.top }
-        : {
-            x: Math.min(
-              width - actorHalfWidth,
-              Math.max(actorHalfWidth, chatBounds.left - dockGap - actorHalfWidth),
-            ),
-            y: floorY,
-          }
-      : { x: Math.max(actorHalfWidth, width - 80), y: floorY };
+    const dock = chatBounds && chatBounds.width > 0 && chatBounds.height > 0
+      ? {
+          x: chatBounds.left + chatBounds.width / 2,
+          y: chatBounds.bottom,
+        }
+      : { x: Math.max(72, width - 80), y: floorY };
     const reader =
       typeof document === "undefined"
         ? null

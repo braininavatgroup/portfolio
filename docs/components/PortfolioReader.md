@@ -16,17 +16,15 @@ from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, and `onSelectThread` are
-required. `indexOpen` and `onOpenIndex` are deprecated ignored compatibility
-props until the Reading Room shell removes its old callers. `onOpenVisual` is
-optional. Mode is
+required. `onOpenVisual` is optional. Mode is
 `record` for a non-Why, non-`bradley` `selectedId`, then `thread` when
 `activeThreadId` resolves, and `about` otherwise.
 
 ## Requires
 
 A `.portfolio-composition` ancestor for tokens and a parent with a resolved
-height. The Reader fills its slot. Its scroll column stays centered at 680px
-with 24px gutters, which caps content at 632px.
+height. The Reader fills its slot. Its scroll column is centered at up to
+680px with 24px gutters, which caps content at 632px; narrower slots reflow it.
 
 ## Example
 

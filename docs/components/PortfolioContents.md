@@ -12,7 +12,8 @@ and Map through `onSelect`; thread rows use `onSelectThread`.
 
 `selectedId`, `activeThreadId`, `onHome`, `onSelect`, and `onSelectThread` are
 required. Pass `onNavigate` in the mobile shell to switch to Reader after any
-Home, record, or thread selection.
+Home, record, or thread selection. Pass optional `onClose` in the desktop shell
+to make the sidebar control collapse Contents without changing selection.
 
 ## Requires
 
@@ -49,9 +50,13 @@ export function PortfolioContentsExample() {
 ## Pitfalls
 
 - **About is not a row.** The Bradley mast is the only Home entry.
+- **The mast carries no brain.** It is the sidebar control and the name on one
+  unwrappable line; the Reader bar's brain is the only brain in the top row.
 - **Thread selection uses the thread id.** Do not send its backing Story node
   through `onSelect`.
 - **`onNavigate` runs after selection.** It is a tab handoff, not a substitute
   for updating the controlled selection.
+- **`onClose` is layout-only.** It must not call Home, reset a thread, or invoke
+  `onNavigate`.
 - **Rows have the only hover fill.** It is limited to fine pointers. Selection
   uses the row's register color and weight rather than the hover background.

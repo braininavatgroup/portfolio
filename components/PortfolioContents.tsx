@@ -13,6 +13,7 @@ import {
 
 type PortfolioContentsProps = {
   activeThreadId: string | null;
+  onClose?: () => void;
   onHome: () => void;
   onNavigate?: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
@@ -79,6 +80,7 @@ function ThreadRow({
 
 export function PortfolioContents({
   activeThreadId,
+  onClose,
   onHome,
   onNavigate,
   onSelect,
@@ -94,9 +96,9 @@ export function PortfolioContents({
     <nav aria-label="Portfolio contents" className="portfolio-contents">
       <div className="portfolio-contents-mast">
         <PortfolioControlMark
-          aria-label="Return to About"
+          aria-label={onClose ? "Hide Contents" : "Return to About"}
           kind="sidebarLeft"
-          onClick={() => navigate(onHome)}
+          onClick={() => (onClose ? onClose() : navigate(onHome))}
         />
         <button
           aria-label="Portfolio home"
@@ -108,7 +110,6 @@ export function PortfolioContents({
             path="interface.world.mast"
             value={portfolioInterfaceText["world.mast"]}
           />
-          <PortfolioNodeMark family="identity" register="identity" />
         </button>
       </div>
       <div className="portfolio-contents-scroll">

@@ -25,7 +25,10 @@ or production activation contracts.
 ## Desktop
 
 - The viewport has a paper-colored Contents panel, a main slot, and a paper
-  right column with top and bottom slots.
+  right column with top and bottom slots. Surfaces belong to slots, not views:
+  the main slot and its bar are near-paper; Contents, both side slots, and
+  their bars are paper. A swapped view takes its slot's colour. Map silver is
+  not used on desktop.
 - Contents defaults to 320/1440 of the viewport and has a 300px minimum.
   Dragging 48px past the minimum collapses it.
 - The main slot has a 720px minimum. The right column has a 360px minimum.
@@ -36,7 +39,9 @@ or production activation contracts.
 - Slot assignments, hidden views, and all three panel layouts persist under
   the Reading Room storage namespace.
 - Every slot has a 40px bar. The whole bar is the drag handle. Dropping over
-  another slot swaps the two assigned views.
+  another slot swaps the two assigned views. While dragging, nothing follows
+  the pointer and the target shows only its fill and 1px ink border; no view
+  name or other text appears.
 - The main bar carries the Bradley mast when Contents is hidden. The bottom
   bar can collapse and reopen the bottom slot. The Guide bar exposes a new
   conversation action only after a thread exists.
@@ -45,8 +50,9 @@ or production activation contracts.
 
 ## Contents
 
-- The mast is Home. It contains the sidebar control, "Bradley Berkman", and
-  the 15px brain symbol.
+- The mast is Home. It contains the sidebar control and "Bradley Berkman" on
+  one line that never wraps. It carries no brain; the Reader bar's brain is
+  the only brain in the top row.
 - Groups follow `portfolioWorldIndexSections` in this order: Threads,
   Operations, Music promotions systems, Client systems, In Production.
 - Rows are 28px on desktop and 36px on mobile. Text is 15px. Marks are 18px.
@@ -59,9 +65,11 @@ or production activation contracts.
 
 - The Reader keeps the existing authored content, inline links, Related rows,
   thread-member rows, contact rows, editor integration, and visual blocks.
-- Its pane uses near-paper. A fixed 680px column is centered inside the slot;
-  content is at most 632px with a 24px gutter.
-- Reader content does not resize with the slot.
+- Its pane takes its slot's surface. The column is centred and at most 680px
+  wide; a narrower slot reflows it to the slot width. Content is at most 632px
+  with a 24px gutter.
+- Reader content reflows only when the slot is narrower than 680px; wider
+  slots keep the 680px column centred.
 - About has no index row. The mast is its Home control.
 - The old Index/Home footer control is removed. Privacy remains the final
   in-flow line.
@@ -141,7 +149,9 @@ or production activation contracts.
   No green appears in the Reading Room.
 - Light surfaces are paper `#eff1f1`, near-paper `#d2d7db`, and map silver
   `#c5cbd0`. Dark surfaces are paper `#292625`, near-paper `#211c18`, and map
-  `#19140f`.
+  `#19140f`. Desktop uses only paper and near-paper; mobile keeps the Mobile
+  Prototype's three: paper bars, near-paper pages, map silver for the Map and
+  its composer.
 - The focus ring is 2px Acid `#b6df5b`, offset 2px, radius 6px, and
   `:focus-visible` only.
 - Desktop has no shadows. Controls, chips, and composer use 6px radius. User
@@ -159,6 +169,15 @@ or production activation contracts.
   package naming while preserving bar-as-handle slot swapping.
 - The supplied SVG is nonempty and is accepted after metadata removal and
   visual verification.
+- The README's drop-target view name and Contents-mast brain are superseded by
+  the interactive prototype (`ReadingRoomTile.dc.html` renders an empty
+  overlay; the prototype mast shows no brain) and Bradley's corrections of
+  3 September 2026.
+- The mobile Map is compact, as `Mobile Prototype.dc.html` passes
+  `compact=true`; the desktop main slot is the only non-compact Map.
+- Bradley's mockup captures of 3 September fix desktop surfaces by slot
+  (measured: main `#d2d7db`/`#211c18`, sides and Contents `#eff1f1`/`#292625`,
+  composer always near-paper); the README's per-view mapping is superseded.
 
 ## Acceptance proof
 

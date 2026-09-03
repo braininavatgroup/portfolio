@@ -33,14 +33,10 @@ const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
 
 type PortfolioReaderProps = {
   activeThreadId: string | null;
-  /** @deprecated Ignored. Task 6 removes this prop with the remaining callers. */
-  indexOpen?: boolean;
   onOpenVisual?: (
     block: PortfolioVisualBlock,
     trigger: HTMLButtonElement,
   ) => void;
-  /** @deprecated Ignored. Task 6 removes this prop with the remaining callers. */
-  onOpenIndex?: () => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;

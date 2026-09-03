@@ -11,8 +11,8 @@ import {
 } from "react";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
+import type { GuideEvidenceTarget } from "../lib/portfolio-guide-citations";
 import {
-  isPortfolioWhatNode,
   portfolioThreadById,
   portfolioWorldNodeById,
   portfolioWorldNodes,
@@ -20,7 +20,11 @@ import {
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 import { PortfolioChat } from "./PortfolioChat";
-import { PortfolioControlMark } from "./PortfolioNodeMark";
+import {
+  PortfolioReadingRoom,
+  type ReadingRoomMobileTab,
+  type ReadingRoomMobileTabRequest,
+} from "./PortfolioReadingRoom";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
 import { AvatarBoundary } from "./avatar/AvatarBoundary";
@@ -69,18 +73,17 @@ export function PortfolioExperience() {
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
-  const [mobileMapOpen, setMobileMapOpen] = useState(false);
-  // The dossier's index state, opened from the footer. Any selection, reset,
-  // or navigation closes it; it carries no URL of its own.
-  const [indexOpen, setIndexOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
+  const [guideHasThread, setGuideHasThread] = useState(false);
+  const [guideResetSignal, setGuideResetSignal] = useState(0);
+  const [mobileTabRequest, setMobileTabRequest] = useState<ReadingRoomMobileTabRequest>();
   const {
     avatarMounted,
     avatarRuntime,
     refreshAvatarDock,
     registerAvatarDock,
     registerAvatarStage,
-  } = useAvatarStage({ assistantOpen, reducedMotion });
+  } = useAvatarStage({ assistantOpen: guideVisible, reducedMotion });
   const brainFood = useBrainFoodSession({
     avatarRuntime,
     edibleNodeCount: portfolioWorldNodes.length - 1,
@@ -91,58 +94,46 @@ export function PortfolioExperience() {
   const selectedWorldNode = selectedWorldId
     ? portfolioWorldNodeById.get(selectedWorldId)
     : undefined;
-  const selectedWhatOpen = selectedWorldNode
-    ? isPortfolioWhatNode(selectedWorldNode)
-    : false;
+
+  const requestMobileTab = useCallback((tab: ReadingRoomMobileTab) => {
+    setMobileTabRequest((current) => ({ key: (current?.key ?? 0) + 1, tab }));
+  }, []);
 
   const showHome = useCallback(() => {
-    setMobileMapOpen(false);
-    setIndexOpen(false);
     setSelectedWorldId(null);
     setActiveThreadId(null);
     setActiveVisual(null);
   }, []);
 
-  const selectWorldNode = useCallback(
-    (node: PortfolioWorldNode) => {
-      setActiveVisual(null);
-      setMobileMapOpen(false);
-      setIndexOpen(false);
-      // Tapping the node that is already selected deselects it, back to home.
-      if (selectedWorldId === node.id) {
-        showHome();
-        pushWorldLocation(null, null);
-        return;
-      }
+  const navigateToWorldNode = useCallback((node: PortfolioWorldNode) => {
+    setActiveVisual(null);
+    setSelectedWorldId(node.id);
+    if (node.outlineType === "why") {
+      setActiveThreadId(node.threadId ?? null);
+      pushWorldLocation(null, node.threadId ?? null);
+      return;
+    }
+    setActiveThreadId(null);
+    pushWorldLocation(node.id, null);
+  }, []);
 
-      setSelectedWorldId(node.id);
+  const showHomeAndSyncLocation = useCallback(() => {
+    const hadComposition = Boolean(selectedWorldId || activeThreadId || activeVisual);
+    showHome();
+    requestMobileTab("reader");
+    if (hadComposition) pushWorldLocation(null, null);
+  }, [activeThreadId, activeVisual, requestMobileTab, selectedWorldId, showHome]);
 
-      // A story is addressed by its thread, not by the node id.
-      if (node.outlineType === "why") {
-        setActiveThreadId(node.threadId ?? null);
-        pushWorldLocation(null, node.threadId ?? null);
-        return;
-      }
-
-      // Every record has its own composition. Choosing a member from inside
-      // a Story leaves the Story: the four Stories are the entry point at
-      // rest, not a mode the map stays locked in.
-      setActiveThreadId(null);
-
-      if (!isPortfolioWhatNode(node)) {
-        pushWorldLocation(node.id, null);
-        return;
-      }
-
-      pushWorldLocation(node.id, null);
-    },
-    [selectedWorldId, showHome],
-  );
+  const selectWorldNode = useCallback((node: PortfolioWorldNode) => {
+    if (selectedWorldId === node.id) {
+      showHomeAndSyncLocation();
+      return;
+    }
+    navigateToWorldNode(node);
+  }, [navigateToWorldNode, selectedWorldId, showHomeAndSyncLocation]);
 
   const selectThread = useCallback((threadId: string) => {
-    const threadNode = portfolioWorldNodes.find(
-      (node) => node.threadId === threadId,
-    );
+    const threadNode = portfolioWorldNodes.find((node) => node.threadId === threadId);
     if (threadNode) selectWorldNode(threadNode);
   }, [selectWorldNode]);
 
@@ -152,43 +143,44 @@ export function PortfolioExperience() {
   ) => {
     visualTriggerRef.current = trigger;
     setActiveVisual(visual);
-    setMobileMapOpen(true);
-  }, []);
+    requestMobileTab("map");
+  }, [requestMobileTab]);
 
   const closeVisualInMap = useCallback(() => {
     const trigger = visualTriggerRef.current;
     setActiveVisual(null);
-    setMobileMapOpen(false);
+    requestMobileTab("reader");
     window.setTimeout(() => {
       if (trigger?.isConnected) trigger.focus();
       if (visualTriggerRef.current === trigger) visualTriggerRef.current = null;
     }, 0);
+  }, [requestMobileTab]);
+
+  const resetGuide = useCallback(() => {
+    setGuideResetSignal((signal) => signal + 1);
   }, []);
 
-  const showHomeAndSyncLocation = useCallback(() => {
-    const hadComposition = Boolean(selectedWorldId || activeThreadId);
-    showHome();
-    if (hadComposition) pushWorldLocation(null, null);
-  }, [activeThreadId, selectedWorldId, showHome]);
+  const escapeBeforeRoom = useCallback(() => {
+    if (brainFood.active) return true;
+    if (!activeVisual) return false;
+    closeVisualInMap();
+    return true;
+  }, [activeVisual, brainFood.active, closeVisualInMap]);
 
-  const openIndex = useCallback(() => {
-    showHomeAndSyncLocation();
-    setIndexOpen(true);
-  }, [showHomeAndSyncLocation]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (brainFood.active) return;
-      if (activeVisual) {
-        closeVisualInMap();
-        return;
-      }
+  const navigateGuideEvidence = useCallback((target: GuideEvidenceTarget) => {
+    if (target.type === "home") {
       showHomeAndSyncLocation();
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [activeVisual, brainFood.active, closeVisualInMap, showHomeAndSyncLocation]);
+      return;
+    }
+    if (target.type === "thread") {
+      const thread = portfolioThreadById.get(target.id);
+      const node = thread ? portfolioWorldNodeById.get(thread.nodeId) : undefined;
+      if (node) navigateToWorldNode(node);
+      return;
+    }
+    const node = portfolioWorldNodeById.get(target.id);
+    if (node) navigateToWorldNode(node);
+  }, [navigateToWorldNode, showHomeAndSyncLocation]);
 
   const avatarIntegration = useMemo(
     () => ({
@@ -210,12 +202,10 @@ export function PortfolioExperience() {
   useEffect(() => {
     const syncWithLocation = () => {
       showHome();
+      requestMobileTab("reader");
 
       const { nodeId, threadId } = readWorldLocation();
       const node = nodeId ? portfolioWorldNodeById.get(nodeId) : undefined;
-      // A record in the address wins: an older `#thread/<id>/<node>` link
-      // still opens the record, in its own composition. A Story node
-      // resolves to its thread either way.
       const story = node?.outlineType === "why"
         ? portfolioThreadById.get(node.threadId ?? "")
         : node
@@ -233,106 +223,72 @@ export function PortfolioExperience() {
     window.addEventListener("popstate", syncWithLocation);
     syncWithLocation();
     return () => window.removeEventListener("popstate", syncWithLocation);
-  }, [showHome]);
-
-  const setAssistantVisibility = useCallback(
-    (visible: boolean) => {
-      if (!visible) {
-        setMobileMapOpen(false);
-        const returningToMobileIndex =
-          typeof window !== "undefined" && window.innerWidth <= 900;
-        if (returningToMobileIndex) {
-          showHomeAndSyncLocation();
-          window.setTimeout(() => {
-            document
-              .querySelector<HTMLButtonElement>(".portfolio-mobile-view-control")
-              ?.focus();
-          }, 0);
-        }
-      }
-      setAssistantOpen(visible);
-    },
-    [showHomeAndSyncLocation],
-  );
-
-  const toggleMobileCombinedView = useCallback(() => {
-    if (mobileMapOpen) {
-      if (activeVisual) setActiveVisual(null);
-      setAssistantVisibility(false);
-      return;
-    }
-    setMobileMapOpen(true);
-    setAssistantVisibility(true);
-  }, [activeVisual, mobileMapOpen, setAssistantVisibility]);
+  }, [requestMobileTab, showHome]);
 
   const avatarOverlay = avatarMounted ? (
     <AvatarBoundary onFailure={() => avatarRuntime.markFailed()}>
-    <Suspense fallback={null}>
-      <AvatarOverlay
-        reducedMotion={reducedMotion}
-        runtime={avatarRuntime}
-      />
-    </Suspense>
+      <Suspense fallback={null}>
+        <AvatarOverlay reducedMotion={reducedMotion} runtime={avatarRuntime} />
+      </Suspense>
     </AvatarBoundary>
   ) : null;
-  const portfolioChat = (
+
+  const reader = (
+    <PortfolioReader
+      activeThreadId={activeThreadId}
+      onOpenVisual={openVisualInMap}
+      onReset={showHomeAndSyncLocation}
+      onSelect={selectWorldNode}
+      onSelectThread={selectThread}
+      selectedId={selectedWorldId}
+    />
+  );
+  const map = (
+    <PortfolioWorld
+      activeThreadId={activeThreadId}
+      activeVisual={activeVisual}
+      brainFood={brainFood}
+      onCloseVisual={closeVisualInMap}
+      onReset={showHomeAndSyncLocation}
+      onSelect={selectWorldNode}
+      registerAvatarStage={registerAvatarStage}
+      selectedId={selectedWorldId}
+    />
+  );
+  const guide = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
       onLayoutChange={refreshAvatarDock}
-      onOpenChange={setAssistantVisibility}
-      open={assistantOpen}
+      onNavigateEvidence={navigateGuideEvidence}
+      onThreadStateChange={setGuideHasThread}
       registerAvatarDock={registerAvatarDock}
+      resetSignal={guideResetSignal}
       turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
     />
   );
 
   return (
     <main
-      className={`experience portfolio-composition${mobileMapOpen ? " portfolio-mobile-map-open" : ""}${activeVisual ? " portfolio-visual-open" : ""}`}
+      className={`experience portfolio-composition${activeVisual ? " portfolio-visual-open" : ""}`}
       id="main-content"
       tabIndex={-1}
     >
-      <section
-        aria-label="Spatial portfolio map"
-        className={`scene-shell${selectedWhatOpen ? " scene-shell-node-open" : ""}`}
-        id="brain"
-      >
-        <PortfolioWorld
-          activeThreadId={activeThreadId}
-          activeVisual={activeVisual}
-          onCloseVisual={closeVisualInMap}
-          brainFood={brainFood}
-          onReset={showHomeAndSyncLocation}
-          onSelect={selectWorldNode}
-          registerAvatarStage={registerAvatarStage}
-          selectedId={selectedWorldId}
-        />
-
-        <>
-          <PortfolioReader
-              activeThreadId={activeThreadId}
-              indexOpen={indexOpen}
-              onOpenIndex={openIndex}
-              onOpenVisual={openVisualInMap}
-              onReset={showHomeAndSyncLocation}
-              onSelect={selectWorldNode}
-              onSelectThread={selectThread}
-              selectedId={selectedWorldId}
-            />
-            {/* The phone's one view control, drawn as a node mark at the
-                footer band's right edge: the brain opens the map with the
-                assistant; the index glyph returns to the dossier. */}
-            <PortfolioControlMark
-              aria-label={mobileMapOpen ? "Show portfolio home" : "Show portfolio map"}
-              aria-pressed={mobileMapOpen}
-              className="portfolio-mobile-view-control"
-              kind={mobileMapOpen ? "index" : "map"}
-              label={mobileMapOpen ? "Index" : "Map"}
-              onClick={toggleMobileCombinedView}
-            />
-        </>
-        {portfolioChat}
-      </section>
+      <PortfolioReadingRoom
+        activeThreadId={activeThreadId}
+        guide={guide}
+        guideHasThread={guideHasThread}
+        map={map}
+        mobileTabRequest={mobileTabRequest}
+        onEscapeBeforeRoom={escapeBeforeRoom}
+        onGuideReset={resetGuide}
+        onGuideVisibilityChange={setGuideVisible}
+        onHome={showHomeAndSyncLocation}
+        onSelect={selectWorldNode}
+        onSelectThread={selectThread}
+        reader={reader}
+        selectedId={selectedWorldId}
+        selectedSubject={selectedWorldNode ?? null}
+      />
       {avatarOverlay}
     </main>
   );

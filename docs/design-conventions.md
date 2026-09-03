@@ -135,10 +135,10 @@ exception is `.reader-copy-placeholder`, which draws a dotted
 
 ### Other dimension tokens
 
-`--assistant-panel-width` (`18rem`), `--cursor-size` and `--world-hit-area`
-(`34px`) live in `:root`. Reading Room pane dimensions belong to its persisted
-panel layout. The Reader centres a fixed 680px column with a 632px content
-maximum and 24px gutters.
+`--cursor-size` and `--world-hit-area` (`34px`) live in `:root`. Reading Room
+pane dimensions belong to its persisted panel layout. The Reader centres a
+column of at most 680px with a 632px content maximum and 24px gutters; a
+narrower slot reflows the column to its own width.
 
 ### Selector-local custom properties
 
@@ -365,8 +365,9 @@ surface. Temporary overlays remain reserved for bounded product needs.
 
 **Rule 6.7 — Pane sizes persist.** Contents, main, right, and the two side slots
 are user-resizable within their specified minimums. Persist their layouts under
-the Reading Room namespace. Reader content remains a fixed 680px column centred
-inside its slot, with a 632px content maximum and 24px gutters.
+the Reading Room namespace. Reader content is a centred column of at most
+680px inside its slot, with a 632px content maximum and 24px gutters; a slot
+narrower than 680px reflows it rather than clipping it.
 
 **Rule 6.8 — One page inset.** The map mast, the dossier's first line, the
 chat dock's corner, and the stage all sit 24 from the map area's edges; the

@@ -15,6 +15,7 @@ export const semanticAliases: readonly { token: string; role: string }[] = [
   { token: "--map-grid", role: "Placeholder grid" },
   { token: "--reader-paper", role: "Dossier surface" },
   { token: "--reader-body", role: "Body copy" },
+  { token: "--reader-drop-fill", role: "Drag-target and chrome-hover fill" },
   { token: "--reader-muted", role: "Labels and metadata" },
   { token: "--world-identity", role: "Bradley identity mark" },
   { token: "--world-story", role: "Story marks" },
@@ -32,7 +33,6 @@ export const shadowTokens: readonly string[] = [
   "--reader-assistant-shadow",
 ];
 export const dimensionTokens: readonly { token: string; role: string }[] = [
-  { token: "--reader-width", role: "Fixed desktop dossier width" },
   { token: "--reader-space-1", role: "8 — label to content, row padding, figure margin" },
   { token: "--reader-space-2", role: "16 — paragraph gap, title to summary, band padding" },
   { token: "--reader-space-3", role: "24 — the page inset; mobile gutter" },
@@ -45,7 +45,6 @@ export const dimensionTokens: readonly { token: string; role: string }[] = [
   { token: "--reader-type-body", role: "15/24 — paragraphs" },
   { token: "--reader-type-caption", role: "12/16 — captions, footer and control labels, placeholder meta" },
   { token: "--reader-type-label", role: "11/16 · 500 · uppercase — section and placeholder labels, stage eyebrow" },
-  { token: "--assistant-panel-width", role: "Accepted assistant panel width" },
   { token: "--world-hit-area", role: "World node button hit area" },
   { token: "--cursor-size", role: "Segmented cursor envelope" },
   { token: "--mobile-controls-inline-end", role: "Mobile chat inset — declared only inside the 600px block, so it is empty at desktop" },

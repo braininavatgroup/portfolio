@@ -91,13 +91,15 @@ function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {
           x="-9"
           y="-9"
         >
+          {/* The brain at 170% of the 18-unit box, centred on the origin, so
+              the outline clips a coarse fold pattern rather than one corner. */}
           <image
             height="30.6"
             href="/biv-brain-symbol.svg"
             preserveAspectRatio="xMidYMid meet"
             width="30.6"
-            x="-6.3"
-            y="-6.3"
+            x="-15.3"
+            y="-15.3"
           />
         </mask>
       </defs>
@@ -183,14 +185,20 @@ export function PortfolioControlMark({
       type={type}
       {...rest}
     >
-      <span aria-hidden="true" className="portfolio-control-glyph">
-        {kind === "map" || kind === "chat" ? (
-          <PatternedControlGlyph kind={kind} />
-        ) : (
-          <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
-        )}
-      </span>
+      <PortfolioControlGlyph kind={kind} />
       {label ? <span className="portfolio-control-label">{label}</span> : null}
     </button>
+  );
+}
+
+export function PortfolioControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
+  return (
+    <span aria-hidden="true" className="portfolio-control-glyph" data-control-glyph={kind}>
+      {kind === "map" || kind === "chat" ? (
+        <PatternedControlGlyph kind={kind} />
+      ) : (
+        <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
+      )}
+    </span>
   );
 }

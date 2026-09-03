@@ -4,9 +4,10 @@ Source: [`components/PortfolioExperience.tsx`](../../components/PortfolioExperie
 Gallery: `/design#composition` · Tests: `components/PortfolioExperience.test.tsx`
 
 The whole accepted composition in one component. It renders the
-`.experience.portfolio-composition` root and owns everything under it — world,
-reader, chat, avatar overlay, and live-map Brain Food — plus the state
-those read and the fixed avatar runtime.
+`.experience.portfolio-composition` root and supplies one Reader, Map, and Guide
+to [`PortfolioReadingRoom`](./PortfolioReadingRoom.md). It remains the sole
+owner of selection, URL/history, active visuals, citation routing, the avatar
+lifecycle, and live-map Brain Food.
 Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 `pushState`; `popstate` reads it back.
 
@@ -15,7 +16,8 @@ Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 None. Everything is internal state. See
 [`PortfolioReader`](./PortfolioReader.md),
 [`PortfolioWorld`](./PortfolioWorld.md), [`PortfolioChat`](./PortfolioChat.md)
-and [`AvatarOverlay`](./avatar/AvatarOverlay.md).
+and [`AvatarOverlay`](./avatar/AvatarOverlay.md). The Reading Room is controlled;
+do not move those ownership responsibilities into its layout state.
 
 ## Requires
 
@@ -38,6 +40,6 @@ export function PortfolioExperienceExample() {
   gallery, a test harness — means selecting a node rewrites that page's URL.
 - **Two instances fight.** Both push history and install global game controls.
   Render exactly one.
-- **Keyboard bindings are global**: Escape returns to overview and exact
-  Shift+G starts Brain Food on desktop. During the game Escape cancels and
-  restores the previous map selection.
+- **Keyboard bindings are ordered globally**: Escape first cancels Brain Food,
+  then closes a visual, then resets a Guide thread, then returns to About.
+  Exact Shift+G starts Brain Food on the live Map.

@@ -54,6 +54,7 @@ collapsed into nearby colors.
 | `--map-line-strong-light: rgb(32 23 17 / 38%)` | `--map-line-strong-dark: rgb(240 230 220 / 34%)` | Strong rules and control outlines |
 | `--map-grid-light: rgb(32 23 17 / 3.5%)` | `--map-grid-dark: rgb(240 230 220 / 3.5%)` | Placeholder grids |
 | `--reader-body-light: #514a45` | `--reader-body-dark: #c1b7ae` | Reader body copy |
+| `--reader-drop-fill-light: rgb(32 23 17 / 8%)` | `--reader-drop-fill-dark: rgb(240 230 220 / 10%)` | Drag targets and control hover fills |
 | `--reader-muted-light: #6b6d6d` | `--reader-muted-dark: #aaa098` | Reader labels and metadata |
 
 The live shadow tokens are not mode-switched:
@@ -76,6 +77,7 @@ The live shadow tokens are not mode-switched:
 | `--map-grid` | `--map-grid-light` | `--map-grid-dark` | Placeholder grid |
 | `--reader-paper` | `--reader-paper-light` | `--reader-paper-dark` | Dossier surface |
 | `--reader-body` | `--reader-body-light` | `--reader-body-dark` | Body copy |
+| `--reader-drop-fill` | `--reader-drop-fill-light` | `--reader-drop-fill-dark` | Drag-target and chrome-hover fill |
 | `--reader-muted` | `--reader-muted-light` | `--reader-muted-dark` | Labels and metadata |
 | `--world-identity` | `--reader-ink-light` | `--reader-ink-dark` | Bradley identity mark |
 | `--world-story` | `--world-hard-red` | `--world-signal-red` | Story marks; Story remains a distinct register type but shares Arc's red pair |
@@ -125,8 +127,6 @@ only voice below 11px and appears only in mobile navigation. Nothing is
 | Token | Value | Role | Pair |
 | --- | --- | --- | --- |
 | `--font-reader` | `"NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif` | Accepted world and reader type stack | None |
-| `--reader-width` | `clamp(460px, 38vw, 560px)`; `100%` at 900px and below | Fixed desktop dossier width | Desktop/mobile |
-| `--assistant-panel-width` | `18rem` | Accepted 288px assistant panel width | None |
 | `--world-hit-area` | `34px` | World node button hit area | None |
 | `--cursor-size` | `34px` | Segmented cursor envelope | None |
 | `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile chat inset | None |
@@ -200,7 +200,7 @@ Inventory findings, not corrections.
    brown-black `#19140f` and `#292625` with warm ink `#f0e6dc`.
 4. The accepted composition contains supporting neutrals absent from the
    checkpoint: `--map-paper-near-*`, `--map-muted-*`, `--reader-body-*`,
-   `--reader-muted-*`, and the line/grid opacities. They are
+   `--reader-drop-fill-*`, `--reader-muted-*`, and the line/grid opacities. They are
    documented as live extensions, not inferred checkpoint decisions.
 5. The explicit white alpha surfaces and green-black shadow opacities differ by
    small alpha increments. The live values remain exact; they are not merged.
@@ -208,7 +208,6 @@ Inventory findings, not corrections.
    checkpoint names world-register colors, but does not specify these canvas
    label, cursor fallback, or avatar material colors.
 
-The primary accepted composition colors, desktop reader width, and 18rem
-assistant panel agree with the checkpoint. The assistant trigger is no longer
-the checkpoint's 40px outlined control; it is a node control (a bare glyph in
-the mark envelope with an invisible 40px hit box), per the dossier respec.
+The primary accepted composition colors agree with the checkpoint. Reading
+Room panel dimensions now live in persisted panel state rather than root
+tokens. Chrome uses bare node-envelope glyphs with explicit hit boxes.

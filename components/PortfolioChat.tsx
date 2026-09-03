@@ -86,12 +86,6 @@ export type PortfolioChatProps = {
   askPortfolio?: AskPortfolio;
   renderTurnstile?: TurnstileRenderer;
   turnstileSiteKey?: string;
-  /** Accepted until PortfolioExperience moves to the Reading Room shell. */
-  initiallyOpen?: boolean;
-  /** Accepted until PortfolioExperience moves to the Reading Room shell. */
-  onOpenChange?: (open: boolean) => void;
-  /** The docked Guide is mounted regardless of this transitional value. */
-  open?: boolean;
 };
 
 type GuideMessageMetadata = {
@@ -107,6 +101,18 @@ const browserGuideVisitSeed = typeof window === "undefined" ? 0 : Date.now();
 const getBrowserGuideVisitSeed = () => browserGuideVisitSeed;
 const getServerGuideVisitSeed = () => 0;
 const subscribeGuideVisitSeed = () => () => {};
+
+function subscribeConnectivity(onChange: () => void) {
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
+  return () => {
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
+  };
+}
+
+const getOfflineSnapshot = () => !navigator.onLine;
+const getOfflineServerSnapshot = () => false;
 
 function GuideControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
   return (
@@ -365,8 +371,10 @@ export function PortfolioChat({
     canRetry: boolean;
   } | null>(null);
   const [notice, setNotice] = useState("");
-  const [offline, setOffline] = useState(
-    () => typeof navigator !== "undefined" && !navigator.onLine,
+  const offline = useSyncExternalStore(
+    subscribeConnectivity,
+    getOfflineSnapshot,
+    getOfflineServerSnapshot,
   );
   const [pending, setPending] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -605,10 +613,9 @@ export function PortfolioChat({
     const finish = () => {
       window.clearTimeout(compositionEndTimer.current ?? undefined);
       activeRun.current = null;
-      runtime.thread.cancelRun();
     };
     return finish;
-  }, [runtime]);
+  }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect -- resetSignal is an imperative
      new-conversation boundary; the effect must clear assistant-ui and local UI
@@ -634,16 +641,6 @@ export function PortfolioChat({
     onThreadStateChange?.(false);
   }, [onThreadStateChange, resetSignal, runtime, turnstileSiteKey, updateChallengeToken]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    const updateOnlineState = () => setOffline(!navigator.onLine);
-    window.addEventListener("online", updateOnlineState);
-    window.addEventListener("offline", updateOnlineState);
-    return () => {
-      window.removeEventListener("online", updateOnlineState);
-      window.removeEventListener("offline", updateOnlineState);
-    };
-  }, []);
 
   useEffect(() => {
     if (!onLayoutChange || !avatarElement.current) return;

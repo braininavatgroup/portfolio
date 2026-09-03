@@ -22,4 +22,23 @@ describe("CursorInstrument", () => {
     expect(cursor.style.getPropertyValue("--cursor-a")).toBe("#D0007E");
     expect(cursor.style.getPropertyValue("--cursor-b")).toBe("#2fff81");
   });
+
+  it("keeps following a pointer whose move events a drag library stops at the document", () => {
+    // dnd-kit captures the pointer on body and stops propagation of pointermove
+    // while a bar drags; the drawn cursor must still track the pointer.
+    const stop = (event: Event) => event.stopPropagation();
+    document.addEventListener("pointermove", stop);
+    const { container } = render(
+      <div className="portfolio-composition">
+        <CursorInstrument />
+      </div>,
+    );
+
+    fireEvent.pointerMove(document.body, { clientX: 640, clientY: 360 });
+
+    const cursor = container.querySelector<HTMLElement>(".cursor-instrument")!;
+    expect(cursor.style.left).toBe("640px");
+    expect(cursor.style.top).toBe("360px");
+    document.removeEventListener("pointermove", stop);
+  });
 });
