@@ -2,16 +2,16 @@
 
 Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) · Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
-The embedded dossier is the `<aside>` holding every piece of reading on the site.
-Its `data-reader-mode` is `about`, `record`, or `thread`. All share one section
-model (64 above a label, rows as `ul > li > button`), with Privacy as the final
-in-flow line. It has no kind chip, path line, index mode, or footer navigation.
-Containing threads lead a record's Related rows. Paragraphs may carry `[phrase](record:<id>)` /
-`[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
-(new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
-`ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
-from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
-A ready grouped gallery renders every slide as a separate reader visual.
+The embedded dossier is the `<aside>` holding all site reading. Its
+`data-reader-mode` is `about`, `record`, or `thread`; all share one section
+model, with Privacy as the final in-flow line and no footer navigation.
+Paragraphs support record, thread, and external inline links plus list lines.
+`ReaderPlaceholderFrame` is the draft frame reused by the visual stage. Content
+comes from `lib/portfolio-world.ts`; authored text lives in the content JSON.
+Ready galleries render every slide as a separate visual. The persistent
+`.reader-scroll` supplies attention and completion observations: time stops
+when hidden, unfocused, or idle, and completion follows nested scroll rather
+than body scroll. Actions report only safe IDs and kinds.
 
 ## Props
 
@@ -61,8 +61,8 @@ export function PortfolioReaderExample() {
 - **`?review=clean` changes the rendering,** adding
   `.portfolio-reader-clean-review`; it is not the default surface.
 - **The content area (`.reader-scroll`) scrolls, not the aside.** Each About,
-  record, or thread selection opens at the top. Moving the mounted Reader
-  between Reading Room slots preserves the scroll element itself.
+  record, or thread opens at the top. Moving the Reader preserves this element,
+  and analytics must observe it rather than document scroll.
 - **Reader has no route back to Contents.** The Reading Room mast and Contents
   panel own Home and selection navigation.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the

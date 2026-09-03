@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useSyncExternalStore,
@@ -13,6 +14,11 @@ import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
+import {
+  PortfolioAttention,
+  trackPortfolioAttention,
+  trackPortfolioInsight,
+} from "../lib/portfolio-analytics";
 import {
   portfolioContact,
   portfolioInterfaceText,
@@ -37,6 +43,11 @@ type OpenVisual = (
   trigger: HTMLButtonElement,
   initialFrame?: number,
 ) => void;
+
+type InsightContent = {
+  contentId: string;
+  contentKind: "record" | "thread";
+};
 
 type PortfolioReaderProps = {
   activeThreadId: string | null;
@@ -130,10 +141,12 @@ export function ReaderPlaceholderFrame({
 function VisualBlock({
   block,
   contentBase,
+  insightContent,
   onOpen,
 }: {
   block: PortfolioVisualBlock;
   contentBase: string;
+  insightContent: InsightContent;
   onOpen?: OpenVisual;
 }) {
   const format = portfolioVisualFormat(block);
@@ -159,9 +172,15 @@ function VisualBlock({
               data-slide-index={slideIndex}
               data-status={block.status}
               key={slide.title}
-              onClick={(event) =>
-                onOpen?.(block, event.currentTarget, initialFrame)
-              }
+              onClick={(event) => {
+                trackPortfolioInsight("evidence_open", {
+                  content_id: insightContent.contentId,
+                  content_kind: insightContent.contentKind,
+                  evidence_id: block.id,
+                  evidence_kind: format,
+                });
+                onOpen?.(block, event.currentTarget, initialFrame);
+              }}
               type="button"
             >
               <figure className="reader-visual-block" data-format={format}>
@@ -200,7 +219,15 @@ function VisualBlock({
       className={`reader-visual-trigger${ready ? "" : " reader-visual-draft"}`}
       data-format={format}
       data-status={block.status}
-      onClick={(event) => onOpen?.(block, event.currentTarget)}
+      onClick={(event) => {
+        trackPortfolioInsight("evidence_open", {
+          content_id: insightContent.contentId,
+          content_kind: insightContent.contentKind,
+          evidence_id: block.id,
+          evidence_kind: format,
+        });
+        onOpen?.(block, event.currentTarget);
+      }}
       type="button"
     >
       <figure
@@ -246,10 +273,14 @@ function bodyWithParagraphIds(body: readonly PortfolioBodyBlock[]) {
 // A paragraph's inline `[label](record:id)` links become in-dossier controls:
 // real buttons, so the cursor contract (Rule 6.7) and keyboard focus hold.
 function LinkedParagraph({
+  insightContent,
   onSelect,
   onSelectThread,
   text,
-}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & { text: string }) {
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
+  insightContent: InsightContent;
+  text: string;
+}) {
   return parseInlineLinks(text).map((segment, index) => {
     if (segment.type === "text") return segment.text;
     const { target } = segment;
@@ -262,6 +293,11 @@ function LinkedParagraph({
           data-external="true"
           href={target.href}
           key={`link-${index}`}
+          onClick={() => trackPortfolioInsight("evidence_open", {
+            content_id: insightContent.contentId,
+            content_kind: insightContent.contentKind,
+            evidence_kind: "external",
+          })}
           rel="noopener noreferrer"
           target="_blank"
         >
@@ -294,20 +330,34 @@ function LinkedParagraph({
 // One authored paragraph: a single <p>, or, when the string carries `- `
 // lines, a group of prose runs and bulleted lists.
 function ParagraphFlow({
+  insightContent,
   onSelect,
   onSelectThread,
   text,
-}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & { text: string }) {
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
+  insightContent: InsightContent;
+  text: string;
+}) {
   return parseParagraphFlow(text).map((run, index) =>
     run.type === "prose" ? (
       <p key={`run-${index}`}>
-        <LinkedParagraph onSelect={onSelect} onSelectThread={onSelectThread} text={run.text} />
+        <LinkedParagraph
+          insightContent={insightContent}
+          onSelect={onSelect}
+          onSelectThread={onSelectThread}
+          text={run.text}
+        />
       </p>
     ) : (
       <ul className="reader-list" key={`run-${index}`}>
         {run.items.map((item, itemIndex) => (
           <li key={`item-${itemIndex}`}>
-            <LinkedParagraph onSelect={onSelect} onSelectThread={onSelectThread} text={item} />
+            <LinkedParagraph
+              insightContent={insightContent}
+              onSelect={onSelect}
+              onSelectThread={onSelectThread}
+              text={item}
+            />
           </li>
         ))}
       </ul>
@@ -318,12 +368,14 @@ function ParagraphFlow({
 function PortfolioBody({
   body,
   contentBase,
+  insightContent,
   onOpenVisual,
   onSelect,
   onSelectThread,
 }: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
   body: readonly PortfolioBodyBlock[];
   contentBase: string;
+  insightContent: InsightContent;
   onOpenVisual?: OpenVisual;
 }) {
   return (
@@ -341,12 +393,14 @@ function PortfolioBody({
               render={(text) =>
                 listed ? (
                   <ParagraphFlow
+                    insightContent={insightContent}
                     onSelect={onSelect}
                     onSelectThread={onSelectThread}
                     text={text}
                   />
                 ) : (
                   <LinkedParagraph
+                    insightContent={insightContent}
                     onSelect={onSelect}
                     onSelectThread={onSelectThread}
                     text={text}
@@ -394,6 +448,7 @@ function PortfolioBody({
           <VisualBlock
             block={block}
             contentBase={contentBase}
+            insightContent={insightContent}
             key={block.id}
             onOpen={onOpenVisual}
           />
@@ -428,6 +483,7 @@ function ThreadRecord({
       <PortfolioBody
         body={thread.body}
         contentBase={`threads.${thread.id}`}
+        insightContent={{ contentId: thread.id, contentKind: "thread" }}
         onOpenVisual={onOpenVisual}
         onSelect={onSelect}
         onSelectThread={onSelectThread}
@@ -464,7 +520,14 @@ function ContactRow({
 }) {
   return (
     <li>
-      <a className="reader-index-row reader-contact-row" href={href} {...rest}>
+      <a
+        className="reader-index-row reader-contact-row"
+        href={href}
+        onClick={() => trackPortfolioInsight("contact_action", {
+          contact_kind: kind,
+        })}
+        {...rest}
+      >
         {children}
         <PortfolioContactMark kind={kind} />
       </a>
@@ -552,6 +615,7 @@ function WorldRecord({
         <PortfolioBody
           body={node.body}
           contentBase={`records.${node.id}`}
+          insightContent={{ contentId: node.id, contentKind: "record" }}
           onOpenVisual={onOpenVisual}
           onSelect={onSelect}
           onSelectThread={onSelectThread}
@@ -606,6 +670,11 @@ export function PortfolioReader({
     : thread
       ? `${thread.title} thread`
       : "Portfolio home";
+  const insightContentId = thread && (!node || node.outlineType === "why")
+    ? thread.id
+    : node?.id ?? homeNode.id;
+  const insightContentKind: InsightContent["contentKind"] =
+    thread && (!node || node.outlineType === "why") ? "thread" : "record";
   // Not read during render: the server yields false and a client with
   // ?review=clean yields true, so reading it inline changed the className
   // between the server HTML and the first client render. The subscribe
@@ -622,6 +691,78 @@ export function PortfolioReader({
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = 0;
   }, [activeThreadId, mode, selectedId]);
+
+  useEffect(() => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+
+    const now = () => performance.now();
+    const attention = new PortfolioAttention({
+      focused: document.hasFocus(),
+      now: now(),
+      visible: document.visibilityState === "visible",
+    });
+    let lastReport = "";
+    const scrollPosition = () => ({
+      clientHeight: scroll.clientHeight,
+      scrollHeight: scroll.scrollHeight,
+      scrollTop: scroll.scrollTop,
+    });
+    const report = (snapshot: ReturnType<PortfolioAttention["observe"]>) => {
+      if (snapshot.activeMilliseconds < 1_000) return;
+      const signature = `${Math.floor(snapshot.activeMilliseconds / 1_000)}:${snapshot.completionPercent}`;
+      if (signature === lastReport) return;
+      if (trackPortfolioAttention({
+        contentId: insightContentId,
+        contentKind: insightContentKind,
+      }, snapshot)) lastReport = signature;
+    };
+    const sample = () => attention.observe({ now: now(), scroll: scrollPosition() });
+    const handleScroll = () => {
+      attention.observe({ activity: true, now: now(), scroll: scrollPosition() });
+    };
+    const handleActivity = () => {
+      attention.observe({ activity: true, now: now() });
+    };
+    const handleFocus = () => {
+      attention.observe({ focused: true, now: now() });
+    };
+    const handleBlur = () => {
+      report(attention.observe({ focused: false, now: now(), scroll: scrollPosition() }));
+    };
+    const handleVisibility = () => {
+      const snapshot = attention.observe({
+        now: now(),
+        scroll: scrollPosition(),
+        visible: document.visibilityState === "visible",
+      });
+      if (document.visibilityState !== "visible") report(snapshot);
+    };
+    const handlePageHide = () => report(sample());
+    const interval = window.setInterval(() => report(sample()), 15_000);
+
+    scroll.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener("keydown", handleActivity);
+    document.addEventListener("pointerdown", handleActivity);
+    document.addEventListener("touchstart", handleActivity, { passive: true });
+
+    return () => {
+      window.clearInterval(interval);
+      scroll.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("keydown", handleActivity);
+      document.removeEventListener("pointerdown", handleActivity);
+      document.removeEventListener("touchstart", handleActivity);
+      report(sample());
+    };
+  }, [insightContentId, insightContentKind]);
 
   return (
     <aside

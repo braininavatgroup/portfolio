@@ -3,14 +3,13 @@
 Source: [`components/PortfolioAnalytics.tsx`](../../components/PortfolioAnalytics.tsx) ·
 Gallery: `/design#analytics` · Tests: `components/PortfolioAnalytics.test.tsx`
 
-Two exports for one concern: privacy-safe session replay.
-`PortfolioAnalytics` renders nothing — mounted in `app/layout.tsx`, it starts
-Clarity via
-[`lib/portfolio-analytics.ts`](../../lib/portfolio-analytics.ts) on the
-hostnames that module allows, then revokes consent if the stored preference
-says `denied`. `PortfolioAnalyticsPreference` is the visible half: the opt-out
-button `/privacy` renders, which writes `portfolio_analytics_consent` and calls
-`setPrivacySafeReplayConsent` in the same action.
+Two exports cover privacy-safe replay and insight signals. `PortfolioAnalytics`
+renders nothing and starts Clarity through
+[`lib/portfolio-analytics.ts`](../../lib/portfolio-analytics.ts) only for an
+allowed host with explicit `external` context and no opt-out. `?analytics=off`
+enrolls a Bradley-controlled browser before bootstrap. An opaque
+`?campaign=<code>` is captured for the tab. Both parameters are removed before
+Clarity starts. `PortfolioAnalyticsPreference` is the `/privacy` control.
 
 ## Props
 
@@ -52,6 +51,13 @@ export function PortfolioAnalyticsExample() {
   arrives a tick late. Do not lay out around it as if it were always there.
 - **The consent key is shared.** Passing a memory `storage` to one export and
   not the other splits the preference.
+- **Analytics fails closed without document context.** The root element must
+  carry `data-portfolio-analytics-context="external"`. The main-preview Worker
+  writes `preview`, which must remain ineligible.
+- **Personal exclusion is per browser profile.** Use `?analytics=off` and see
+  the [operator runbook](../portfolio-insights-operations.md).
+- **Re-enabling after a pre-bootstrap opt-out applies on the next page load.**
+  There is no Clarity runtime to notify on the excluded page.
 - **Storage access is wrapped in `try`/`catch`** — private modes throw. The
   in-memory preference still applies; persistence is what is lost.
 - **`storage` is an effect dependency.** A fresh object literal each render

@@ -13,6 +13,9 @@ Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 URL, so returning home pushes one entry only when one was set; an open visual
 never pushes. Opening a visual sends the Room a `viewRequest` for the Map so
 it is revealed on every breakpoint, even with the side panes collapsed.
+The same callbacks report a generic selection source with the current record
+or thread ID. Accepted Guide evidence gets its own target signal; invalid
+targets remain no-ops.
 
 ## Props
 

@@ -104,14 +104,18 @@ deployment job consumes the exact `dist/`
 artifact already proven by CI and remains dormant unless the repository
 variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to `true`.
 
-Public-domain builds enable Microsoft Clarity project `yatoiqtrjm` for
-privacy-safe behavioral analytics on every visit to `bradleyberkman.com` and
-`www.bradleyberkman.com`. The public tag ID is committed with the integration;
-it is not a credential. The integration provides a standard opt-out,
-disables advertising storage when a visitor changes their preference, masks
-the entire chat dock before replay data leaves the browser, and stays disabled
-on preview and local hostnames.
-Cloudflare supplies aggregate traffic analytics separately at the edge.
+Microsoft Clarity project `yatoiqtrjm` provides privacy-safe behavioral
+analytics only when an eligible public document carries the explicit
+`external` analytics context. Missing context, local pages, the
+password-protected preview, and opted-out browsers stay dormant. The public
+tag ID is committed with the integration; it is not a credential. The
+integration denies advertising storage whenever an explicit preference is
+applied, masks the entire chat dock, and supports first-load personal-device
+exclusion. Cloudflare supplies aggregate
+traffic analytics separately at the edge. See
+[`docs/portfolio-insights-operations.md`](docs/portfolio-insights-operations.md)
+for personal-device enrollment, opaque job-search links, private outcome
+tracking, and the citation-evidence boundary.
 Run `npm run setup:main-preview` for the repeatable four-stage setup wizard. It
 reuses an existing `gh` login, publishes the feature branch and PR, captures
 secrets through hidden prompts, creates the protected GitHub environment, and

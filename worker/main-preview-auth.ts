@@ -18,11 +18,21 @@ type WorkerSubtleCrypto = SubtleCrypto & {
 function addNoIndex(response: Response) {
   const headers = new Headers(response.headers);
   headers.set("x-robots-tag", PROTECTED_ROBOTS_TAG);
-  return new Response(response.body, {
+  const protectedResponse = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,
   });
+  if (!headers.get("content-type")?.toLowerCase().includes("text/html")) {
+    return protectedResponse;
+  }
+  return new HTMLRewriter()
+    .on("html", {
+      element(element) {
+        element.setAttribute("data-portfolio-analytics-context", "preview");
+      },
+    })
+    .transform(protectedResponse);
 }
 
 function privateResponse(

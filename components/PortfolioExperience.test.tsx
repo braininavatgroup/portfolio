@@ -3,7 +3,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarRuntime } from "../lib/avatar/runtime";
-import { portfolioWorldNodeById } from "../lib/portfolio-world";
+import { startPrivacySafeReplay } from "../lib/portfolio-analytics";
+import { portfolioWorldNodeById, portfolioWorldNodes } from "../lib/portfolio-world";
 import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./avatar/AvatarOverlay", async () => {
@@ -50,10 +51,14 @@ function mockMatchMedia({ desktop = true, reducedMotion = false } = {}) {
 function guideResponse({
   avatarAction = null,
   citation = false,
+  evidenceTarget,
 }: {
   avatarAction?: "swim_lap" | null;
   citation?: boolean;
+  evidenceTarget?: { id: string; title: string };
 } = {}) {
+  const evidenceId = evidenceTarget?.id ?? "pitching";
+  const evidenceTitle = evidenceTarget?.title ?? "Music promo campaign pitching";
   const encoder = new TextEncoder();
   const lines = [
     { type: "effects", effects: { avatarAction, issues: [] } },
@@ -62,9 +67,9 @@ function guideResponse({
       type: "evidence",
       evidence: [{
         excerpt: "A weekly curator workflow.",
-        href: "/?view=graph#pitching",
-        id: "node:pitching",
-        title: "Music promo campaign pitching",
+        href: `/?view=graph#${evidenceId}`,
+        id: `node:${evidenceId}`,
+        title: evidenceTitle,
       }],
     }] : []),
     { type: "answer_delta", delta: citation ? "The weekly workflow [E1]." : "Effect ready." },
@@ -80,9 +85,9 @@ function guideResponse({
   );
 }
 
-async function renderExperience({ desktop = true } = {}) {
+async function renderExperience({ desktop = true, url = "/?view=graph" } = {}) {
   mockMatchMedia({ desktop });
-  window.history.replaceState({}, "", "/?view=graph");
+  window.history.replaceState({}, "", url);
   render(<PortfolioExperience />);
   await act(async () => {});
 }
@@ -115,10 +120,100 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  document.head.innerHTML = "";
+  delete window.clarity;
   window.history.replaceState({}, "", "/");
 });
 
 describe("PortfolioExperience Reading Room integration", () => {
+  it("attributes a content open to the UI location that selected it", async () => {
+    const node = portfolioWorldNodes.find(
+      (candidate) => candidate.id !== "bradley" && candidate.outlineType !== "why",
+    )!;
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    window.clarity!.q = [];
+    await renderExperience();
+
+    selectContentsRecord(node.label);
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_content_id",
+      node.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_selection_source",
+      "contents",
+    ]);
+    expect(window.clarity?.q?.some((call) => call[0] === "event")).toBe(true);
+  });
+
+  it("attributes a valid deep-linked record open to the URL", async () => {
+    const node = portfolioWorldNodes.find(
+      (candidate) => candidate.id !== "bradley" && candidate.outlineType !== "why",
+    )!;
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    window.clarity!.q = [];
+
+    await renderExperience({ url: `/?view=graph#${node.id}` });
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_content_id",
+      node.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_selection_source",
+      "url",
+    ]);
+  });
+
+  it("reports accepted Guide evidence by its arbitrary target ID", async () => {
+    const node = portfolioWorldNodes.find(
+      (candidate) => candidate.id !== "bradley" && candidate.outlineType !== "why",
+    )!;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => guideResponse({
+        citation: true,
+        evidenceTarget: { id: node.id, title: node.label },
+      })),
+    );
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    window.clarity!.q = [];
+    await renderExperience();
+
+    submitGuide("Show the evidence.");
+    fireEvent.click(await screen.findByRole("button", {
+      name: `[E1] ${node.label}`,
+    }));
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_evidence_source",
+      "guide",
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_target_id",
+      node.id,
+    ]);
+  });
+
   it("renders one controlled Contents, Reader, Map, and docked Guide with the default Guide avatar visible", async () => {
     await renderExperience();
 

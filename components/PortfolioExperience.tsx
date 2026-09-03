@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
+import { trackPortfolioInsight } from "../lib/portfolio-analytics";
 import type { GuideEvidenceTarget } from "../lib/portfolio-guide-citations";
 import {
   portfolioThreadById,
@@ -116,15 +117,30 @@ export function PortfolioExperience() {
     setActiveVisual(null);
   }, []);
 
-  const navigateToWorldNode = useCallback((node: PortfolioWorldNode) => {
+  const navigateToWorldNode = useCallback((
+    node: PortfolioWorldNode,
+    selectionSource: string,
+  ) => {
     setActiveVisual(null);
     setSelectedWorldId(node.id);
     if (node.outlineType === "why") {
       setActiveThreadId(node.threadId ?? null);
+      if (node.threadId) {
+        trackPortfolioInsight("content_open", {
+          content_id: node.threadId,
+          content_kind: "thread",
+          selection_source: selectionSource,
+        });
+      }
       pushWorldLocation(null, node.threadId ?? null);
       return;
     }
     setActiveThreadId(null);
+    trackPortfolioInsight("content_open", {
+      content_id: node.id,
+      content_kind: "record",
+      selection_source: selectionSource,
+    });
     pushWorldLocation(node.id, null);
   }, []);
 
@@ -137,18 +153,42 @@ export function PortfolioExperience() {
     if (hadLocation) pushWorldLocation(null, null);
   }, [activeThreadId, requestMobileTab, selectedWorldId, showHome]);
 
-  const selectWorldNode = useCallback((node: PortfolioWorldNode) => {
+  const selectWorldNode = useCallback((
+    node: PortfolioWorldNode,
+    selectionSource: string,
+  ) => {
     if (selectedWorldId === node.id) {
       showHomeAndSyncLocation();
       return;
     }
-    navigateToWorldNode(node);
+    navigateToWorldNode(node, selectionSource);
   }, [navigateToWorldNode, selectedWorldId, showHomeAndSyncLocation]);
 
-  const selectThread = useCallback((threadId: string) => {
+  const selectThread = useCallback((threadId: string, selectionSource: string) => {
     const threadNode = portfolioWorldNodes.find((node) => node.threadId === threadId);
-    if (threadNode) selectWorldNode(threadNode);
+    if (threadNode) selectWorldNode(threadNode, selectionSource);
   }, [selectWorldNode]);
+
+  const selectFromContents = useCallback(
+    (node: PortfolioWorldNode) => selectWorldNode(node, "contents"),
+    [selectWorldNode],
+  );
+  const selectThreadFromContents = useCallback(
+    (threadId: string) => selectThread(threadId, "contents"),
+    [selectThread],
+  );
+  const selectFromMap = useCallback(
+    (node: PortfolioWorldNode) => selectWorldNode(node, "map"),
+    [selectWorldNode],
+  );
+  const selectFromReader = useCallback(
+    (node: PortfolioWorldNode) => selectWorldNode(node, "reader"),
+    [selectWorldNode],
+  );
+  const selectThreadFromReader = useCallback(
+    (threadId: string) => selectThread(threadId, "reader"),
+    [selectThread],
+  );
 
   const openVisualInMap = useCallback((
     visual: PortfolioVisualBlock,
@@ -183,17 +223,35 @@ export function PortfolioExperience() {
 
   const navigateGuideEvidence = useCallback((target: GuideEvidenceTarget) => {
     if (target.type === "home") {
+      trackPortfolioInsight("guide_evidence", {
+        evidence_source: "guide",
+        target_kind: "home",
+      });
       showHomeAndSyncLocation();
       return;
     }
     if (target.type === "thread") {
       const thread = portfolioThreadById.get(target.id);
       const node = thread ? portfolioWorldNodeById.get(thread.nodeId) : undefined;
-      if (node) navigateToWorldNode(node);
+      if (node) {
+        trackPortfolioInsight("guide_evidence", {
+          evidence_source: "guide",
+          target_id: target.id,
+          target_kind: "thread",
+        });
+        navigateToWorldNode(node, "guide");
+      }
       return;
     }
     const node = portfolioWorldNodeById.get(target.id);
-    if (node) navigateToWorldNode(node);
+    if (node) {
+      trackPortfolioInsight("guide_evidence", {
+        evidence_source: "guide",
+        target_id: target.id,
+        target_kind: "record",
+      });
+      navigateToWorldNode(node, "guide");
+    }
   }, [navigateToWorldNode, showHomeAndSyncLocation]);
 
   const avatarIntegration = useMemo(
@@ -230,8 +288,18 @@ export function PortfolioExperience() {
       if (story) {
         setActiveThreadId(story.id);
         setSelectedWorldId(story.nodeId);
+        trackPortfolioInsight("content_open", {
+          content_id: story.id,
+          content_kind: "thread",
+          selection_source: "url",
+        });
       } else if (node) {
         setSelectedWorldId(node.id);
+        trackPortfolioInsight("content_open", {
+          content_id: node.id,
+          content_kind: "record",
+          selection_source: "url",
+        });
       }
     };
     window.addEventListener("popstate", syncWithLocation);
@@ -252,8 +320,8 @@ export function PortfolioExperience() {
       activeThreadId={activeThreadId}
       onOpenVisual={openVisualInMap}
       onReset={showHomeAndSyncLocation}
-      onSelect={selectWorldNode}
-      onSelectThread={selectThread}
+      onSelect={selectFromReader}
+      onSelectThread={selectThreadFromReader}
       selectedId={selectedWorldId}
     />
   );
@@ -265,7 +333,7 @@ export function PortfolioExperience() {
       brainFood={brainFood}
       onCloseVisual={closeVisualInMap}
       onReset={showHomeAndSyncLocation}
-      onSelect={selectWorldNode}
+      onSelect={selectFromMap}
       registerAvatarStage={registerAvatarStage}
       selectedId={selectedWorldId}
     />
@@ -299,8 +367,8 @@ export function PortfolioExperience() {
         onGuideVisibilityChange={setGuideVisible}
         onHome={showHomeAndSyncLocation}
         onLayoutChange={refreshAvatarDock}
-        onSelect={selectWorldNode}
-        onSelectThread={selectThread}
+        onSelect={selectFromContents}
+        onSelectThread={selectThreadFromContents}
         reader={reader}
         selectedId={selectedWorldId}
         selectedSubject={selectedWorldNode ?? null}

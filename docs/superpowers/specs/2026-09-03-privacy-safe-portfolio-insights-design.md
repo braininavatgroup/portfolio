@@ -76,8 +76,8 @@ so client analytics stays dormant.
 The event function accepts an action name plus string dimensions rather than a
 closed event union or record registry. It validates names and values, bounds
 their length, and ignores invalid values. Callers send only IDs, content kind,
-selection source, visual format, contact kind, elapsed-second buckets, and
-completion buckets. They never send prose, Guide questions or answers, email
+selection source, visual format, contact kind, elapsed seconds, and completion
+percentage. They never send prose, Guide questions or answers, email
 addresses, URLs containing private data, feedback, or DOM text.
 
 Clarity custom tags carry the dimensions that operators need for filters. A
@@ -156,8 +156,9 @@ Test-first implementation covers:
   does not alter downstream HTML;
 - local hosts, preview documents, a stored opt-out, and the one-time personal
   device enrollment path insert no script and queue no events;
-- an explicit external context starts Clarity once and keeps advertising
-  storage denied, while a missing or unknown context stays dormant;
+- an explicit external context starts Clarity once without fabricating a
+  consent choice, explicit preferences deny advertising storage, and a
+  missing or unknown context stays dormant;
 - arbitrary content IDs and campaign codes propagate through the generic
   adapter without a record registry;
 - hidden, unfocused, and idle intervals add no active time;
