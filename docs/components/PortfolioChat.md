@@ -3,51 +3,46 @@
 Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
 Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
-The portfolio assistant, and the only temporary floating surface on the site
-(Rule 6.6). Minimized it is the Chat node control at the map area's 24/24
-corner; open it is an 18rem panel whose
-header can be dragged to re-dock it. It streams an answer from
-[`lib/portfolio-chat-client.ts`](../../lib/portfolio-chat-client.ts), renders
-evidence pills, keeps a transcript, and reports turn start, first answer text,
-and the optional swim action so the avatar can react. State shows as `data-open` and
-`data-input-focused`.
+The Reading Room's always-mounted Guide body. It adapts the existing
+`AskPortfolio` transport to an `@assistant-ui/react` local runtime without
+changing server grounding, validation, limits, or the `[E#]` wire format.
+
+Complete answers appear word by word. Valid citations become inline buttons;
+`onNavigateEvidence` selects their node, thread, or Home in Map and Reader.
 
 ## Props
 
-No prop is required. `open`/`onOpenChange` make it controlled
-(`initiallyOpen` is the uncontrolled alternative); `hidden` suppresses the
-mounted dock while another floating surface owns the page; `askPortfolio` and
-`renderTurnstile` are injection seams defaulting to the real transport and
-widget. `turnstileSiteKey`, `avatarIntegration`, `registerAvatarDock`, and
-`onLayoutChange` are optional.
+No prop is required in production. `askPortfolio` and `renderTurnstile` are
+test/gallery seams; `turnstileSiteKey` enables challenge gating.
+`avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
+narrow avatar runtime and layout callbacks. The avatar integration accepts only
+turn start, first rendered text, and the closed `swim_lap` effect contract.
+
+The Reading Room uses three coordination props:
+
+- `onNavigateEvidence(target, evidence)` receives an inline citation action.
+- `onThreadStateChange(hasThread)` reports whether the Guide has messages.
+- Changing `resetSignal` aborts the request and clears the entire conversation.
 
 ## Requires
 
-`.experience` **and** `.portfolio-composition` on an ancestor.
-`.experience .portfolio-chat` is what makes the dock `position: fixed`; under
-`.portfolio-composition` alone the base fallback remains centred and
-absolutely positioned.
+Use a `.portfolio-composition` ancestor and a slot with a definite height. The
+Guide fills the slot and adds no positioning or shadow.
 
 ## Example
 
 ```tsx
 import { galleryAskPortfolio, galleryRenderTurnstile } from "app/design/fixtures";
 import { PortfolioChat } from "components/PortfolioChat";
-import { useState } from "react";
 
 export function PortfolioChatExample() {
-  const [open, setOpen] = useState(false);
-
-  // Match the production composition so the dock uses its fixed positioning.
   return (
-    <div className="experience portfolio-composition">
-      <section className="scene-shell">
+    <div className="portfolio-composition" style={{ height: 480 }}>
+      <section style={{ height: "100%" }}>
         <PortfolioChat
           // Omit both stubs in production: the defaults are
           // `streamPortfolioAnswer` and the real Turnstile renderer.
           askPortfolio={galleryAskPortfolio}
-          onOpenChange={setOpen}
-          open={open}
           renderTurnstile={galleryRenderTurnstile}
         />
       </section>
@@ -58,13 +53,13 @@ export function PortfolioChatExample() {
 
 ## Pitfalls
 
-- **Without `askPortfolio` it hits the chat API**, which needs the worker
-  running (`npm run setup:chat`). Any fixture or test must pass a stub.
-- **`turnstileSiteKey` gates submission.** Supply it without a working
-  `renderTurnstile` and the composer is permanently blocked.
-- **`open` and `onOpenChange` are a pair.** Pass `open` alone and the panel can
-  never be closed from inside — the controlled value never changes.
-- **`avatarIntegration` rejections are swallowed.** Its callbacks run through
-  `runAvatarWorkSafely`, which catches; avatar work is explicitly not allowed
-  to interrupt a turn. A failing integration is silent, not a failed turn.
-- **Dragging is refused at ≤900px**, where the dock is laid out differently.
+- Without `askPortfolio`, the Guide calls the production route; tests need a stub.
+- A `turnstileSiteKey` without a working renderer keeps submission gated.
+- Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
+- Output is buffered until completion, so failed partial answers stay hidden.
+- A send that loses eligibility (offline, expired challenge) fails with one retry.
+- Avatar callback failures stay isolated from the text response.
+- The first server and client render both assume online. Actual
+  `navigator.onLine` state is synchronized after mount to keep hydration stable.
+- `useLocalRuntime` owns thread detach and request cancellation on unmount; the
+  Guide only clears its local timer and request reference in component cleanup.

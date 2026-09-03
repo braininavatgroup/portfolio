@@ -17,6 +17,7 @@ export type GallerySectionId =
   | "tokens-spacing"
   | "marks"
   | "header"
+  | "reading-room"
   | "reader"
   | "world"
   | "chat"
@@ -128,11 +129,10 @@ export function StateStrip<Value extends string>({
  * containing block for `position: fixed` descendants, which is what lets the
  * full-viewport composition surfaces render inside a gallery card.
  *
- * `bleed` widens it to the full window. Composition widths are viewport-derived
- * — `--reader-width` is `clamp(460px, 38vw, 560px)` and the sole breakpoint is
- * a `max-width` media query — so a stage inset by the page gutter renders the
- * dossier at the right *value* but the wrong *proportion*. Bleeding to 100vw is
- * what makes the layout the reviewer sees the layout the site ships.
+ * `bleed` widens it to the full window. The Reading Room's persisted panel
+ * proportions and minimum widths are viewport-derived, so an inset stage would
+ * render the right values at the wrong proportion. Bleeding to 100vw keeps the
+ * gallery fixture faithful to the shipped canvas.
  */
 export function Stage({
   bleed = false,

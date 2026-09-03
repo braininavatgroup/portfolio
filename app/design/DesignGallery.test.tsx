@@ -3,6 +3,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { portfolioControlMarkKinds } from "../../lib/portfolio-control-mark";
 import { DesignGallery } from "./DesignGallery";
 
 beforeEach(() => {
@@ -38,6 +39,7 @@ describe("design gallery route", () => {
       "tokens-type",
       "tokens-spacing",
       "marks",
+      "reading-room",
       "reader",
       "world",
       "chat",
@@ -48,6 +50,29 @@ describe("design gallery route", () => {
     ]) {
       expect(document.getElementById(id)).not.toBeNull();
     }
+  });
+
+  it("shows the complete control set with SVG-brain patterns in Map and Guide", () => {
+    render(<DesignGallery />);
+
+    const controls = document.querySelectorAll("#marks .portfolio-control-mark");
+    expect(controls).toHaveLength(portfolioControlMarkKinds.length);
+
+    for (const kind of ["map", "chat"]) {
+      const mark = document.querySelector(
+        `#marks .portfolio-control-mark[data-control="${kind}"]`,
+      )!;
+      const pattern = mark.querySelector<HTMLElement>('.portfolio-control-pattern[data-pattern="brain"]')!;
+
+      expect(pattern).not.toBeNull();
+      expect(pattern.style.getPropertyValue("--control-shape")).toContain("data:image/svg+xml");
+    }
+
+    expect(
+      document
+        .querySelector('#marks .portfolio-control-mark[data-control="chat"] svg > path')
+        ?.getAttribute("stroke-width"),
+    ).toBe("1.15");
   });
 
   /**
@@ -78,7 +103,7 @@ describe("design gallery route", () => {
     render(<DesignGallery />);
 
     const sections = [...document.querySelectorAll(".design-section")];
-    expect(sections).toHaveLength(11);
+    expect(sections).toHaveLength(12);
     for (const section of sections) {
       expect(section.tagName).toBe("DETAILS");
       expect((section as HTMLDetailsElement).open).toBe(true);
@@ -159,19 +184,12 @@ describe("design gallery route", () => {
     expect(document.querySelectorAll(".portfolio-chat")).toHaveLength(1);
   });
 
-  /**
-   * `--reader-width` has two live values: clamp(460px, 38vw, 560px) and, below
-   * 900px, 100%. The gallery used to force 100% on the reader and 0px on the
-   * world, rendering a layout the site cannot produce.
-   */
-  it("never overrides the dossier width", () => {
+  it("renders the Reading Room in a viewport-width stage", () => {
     render(<DesignGallery />);
 
-    const overridden = [...document.querySelectorAll<HTMLElement>("[style]")].filter(
-      (node) => node.style.getPropertyValue("--reader-width") !== "",
-    );
-
-    expect(overridden.map((node) => node.className)).toEqual([]);
+    expect(document.querySelector(
+      '.design-stage[data-bleed="true"][data-size="viewport"] .portfolio-reading-room',
+    )).not.toBeNull();
   });
 
   it("drives the reader through its states from one instance", async () => {

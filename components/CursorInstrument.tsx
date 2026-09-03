@@ -60,13 +60,16 @@ export function CursorInstrument() {
     const press = () => setState((current) => ({ ...current, held: true, visible: true }));
     const release = () => setState((current) => ({ ...current, held: false }));
     const hide = () => setState((current) => ({ ...current, visible: false, held: false }));
-    window.addEventListener("pointermove", move);
+    // Capture phase: a drag library that captures the pointer on `body` and
+    // stops propagation of its own pointermove (dnd-kit does) must not freeze
+    // the drawn cursor mid-drag. The window sees the event first this way.
+    window.addEventListener("pointermove", move, { capture: true });
     window.addEventListener("pointerdown", press, { capture: true });
     window.addEventListener("pointerup", release, { capture: true });
     window.addEventListener("pointercancel", release, { capture: true });
     window.addEventListener("blur", hide);
     return () => {
-      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", move, { capture: true });
       window.removeEventListener("pointerdown", press, { capture: true });
       window.removeEventListener("pointerup", release, { capture: true });
       window.removeEventListener("pointercancel", release, { capture: true });

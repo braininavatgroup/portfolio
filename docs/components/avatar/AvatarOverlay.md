@@ -8,7 +8,9 @@ The avatar's mount point: a pointer-events-none layer holding one orthographic
 subscribes to the controller with `useSyncExternalStore`, publishes state as
 `data-avatar-state`, drops `frameloop` to `"never"` and stops the director when
 the document is hidden, and converts a renderer construction failure or a
-render throw into `controller.markFailed()` rather than a blank crash.
+render throw into `controller.markFailed()` rather than a blank crash. The
+canvas mounts on the first `show()` and stays mounted: hiding sets `hidden` and
+pauses the frameloop, since unmounting mid-reconfigure crashed r3f's connect.
 
 ## Props
 
@@ -60,3 +62,4 @@ export function AvatarOverlayExample() {
   intercepts clicks meant for the composition beneath it.
 - **`RendererBoundary` here catches render-phase throws only.** Async and
   context-loss failures arrive through the controller instead.
+- **Hidden is not unmounted.** Only `failed` removes the canvas; read `hidden`.

@@ -2,12 +2,11 @@
 
 Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) · Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
-The fixed dossier — the `<aside>` holding every piece of reading on the site.
-Four modes, derived from props and published as `data-reader-mode`: `home`
-(About, titled by its summary), `index`, `record`, and `thread`. All share one
-section model (64 above a label, rows as `ul > li > button`), one **Index**
-(or **Home**) control laid over the scroll's bottom-left corner, and Privacy as
-the last line. No kind chip, path line, or Threads section: a record's containing threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
+The embedded dossier is the `<aside>` holding every piece of reading on the site.
+Its `data-reader-mode` is `about`, `record`, or `thread`. All share one section
+model (64 above a label, rows as `ul > li > button`), with Privacy as the final
+in-flow line. It has no kind chip, path line, index mode, or footer navigation.
+Containing threads lead a record's Related rows. Paragraphs may carry `[phrase](record:<id>)` /
 `[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
 (new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
 `ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
@@ -16,16 +15,17 @@ A ready grouped gallery renders every slide as a separate reader visual.
 
 ## Props
 
-`activeThreadId`, `selectedId`, `onReset`, `onSelect`, `onSelectThread`
-required; `indexOpen`, `onOpenIndex`, and `onOpenVisual` optional. Mode:
-`record` for a non-`story`, non-`bradley` `selectedId`; else
-`thread` if `activeThreadId`; else `index` if `indexOpen`; else `home`.
-`onOpenVisual` receives the block, trigger, and optional flattened opening frame;
-each grouped-gallery trigger opens on its own first asset.
+`activeThreadId`, `selectedId`, `onReset`, `onSelect`, and `onSelectThread` are
+required. `onOpenVisual` is optional and receives the block, trigger, and the
+flattened opening frame; each grouped-gallery trigger opens on its own first
+asset. Mode is `record` for a non-Why, non-`bradley` `selectedId`, then
+`thread` when `activeThreadId` resolves, and `about` otherwise.
 
 ## Requires
 
-A `.portfolio-composition` ancestor for the tokens and `--reader-width`.
+A `.portfolio-composition` ancestor for tokens and a parent with a resolved
+height. The Reader fills its slot. Its scroll column is centered at up to
+680px with 24px gutters, which caps content at 632px; narrower slots reflow it.
 
 ## Example
 
@@ -58,13 +58,13 @@ export function PortfolioReaderExample() {
 
 - **A `story`-family node in `selectedId` does not open a record.** Stories
   are reached through `activeThreadId`.
-- **`?review=clean` changes the rendering**, adding
+- **`?review=clean` changes the rendering,** adding
   `.portfolio-reader-clean-review`; it is not the default surface.
-- **The content area (`.reader-scroll`) scrolls, not the aside.** Index scroll
-  position is restored on it by a layout effect keyed on mode; every other
-  mode opens at its top. Remounting loses the index position.
-- **A record has no Home control.** Its footer offers Index; Home is the index
-  state's own control. Escape and blank-space click still reset.
+- **The content area (`.reader-scroll`) scrolls, not the aside.** Each About,
+  record, or thread selection opens at the top. Moving the mounted Reader
+  between Reading Room slots preserves the scroll element itself.
+- **Reader has no route back to Contents.** The Reading Room mast and Contents
+  panel own Home and selection navigation.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the
   triggers open nothing.
 - **Reader gallery groups are not stage pages.** The dossier keeps the authored groups, while the map stage advances one flattened asset at a time.

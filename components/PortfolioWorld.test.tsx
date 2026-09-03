@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BRADLEY_MIN_LEAN,
@@ -45,6 +47,18 @@ import { storyTreeJunction } from "../lib/portfolio-story-tree";
 afterEach(cleanup);
 
 describe("PortfolioWorld", () => {
+  it("fills its positioned slot without viewport-fixed geometry", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const shellRule = stylesheet.match(/^\.scene-shell\s*\{([^}]*)\}/m)?.[1];
+    const worldRule = stylesheet.match(/\.portfolio-world\s*\{([^}]*)\}/)?.[1];
+
+    expect(shellRule?.match(/\bposition:\s*([^;]+);/)?.[1]).toBe("relative");
+    expect(worldRule?.match(/\bposition:\s*([^;]+);/)?.[1]).toBe("absolute");
+    expect(worldRule?.match(/\binset:\s*([^;]+);/)?.[1]).toBe("0");
+    expect(worldRule).not.toMatch(/\bheight:\s*100%\s*;/);
+    expect(worldRule).not.toMatch(/\bposition:\s*fixed\s*;/);
+  });
+
   it("keeps the world surface free of a background grid", () => {
     render(
       <PortfolioWorld
@@ -447,25 +461,25 @@ describe("PortfolioWorld", () => {
   });
 
   it("stops every connector outside the tightest circle around each mark", () => {
-    // product: 15 × 0.49 reach + half the 1.45 stroke + 2 clearance
+    // Product: 15 × 0.5 reach + half the 1.45 stroke + 2 clearance.
     const circle = connectorSegment(
       { x: 0, y: 0, family: "product" },
       { x: 100, y: 0, family: "product" },
     )!;
-    expect(circle.start.x).toBeCloseTo(10.075, 5);
-    expect(circle.end.x).toBeCloseTo(89.925, 5);
+    expect(circle.start.x).toBeCloseTo(10.225, 5);
+    expect(circle.end.x).toBeCloseTo(89.775, 5);
     expect(circle.start.y).toBe(0);
     expect(circle.end.y).toBe(0);
 
     // The open marks used to take no inset at all, so a line ran straight
-    // into the asterisk's center. Bradley's brain is measured at its 21px.
+    // into the asterisk's center. Bradley's canvas brain keeps its 21px scale.
     const openMarks = connectorSegment(
       { x: 10, y: 20, family: "identity" },
       { x: 70, y: 20, family: "story" },
     )!;
     expect(openMarks.start.x).toBeCloseTo(10 + 21 * 0.49 + 0.725 + 2, 5);
     expect(openMarks.end.x).toBeCloseTo(
-      70 - (Math.hypot(0.43, 0.245) * 15 + 0.725 + 2),
+      70 - (15 * 0.5 + 0.725 + 2),
       5,
     );
 
@@ -475,7 +489,7 @@ describe("PortfolioWorld", () => {
       { x: 0, y: 0, family: "component" },
       { x: 0, y: 100, family: "component" },
     )!;
-    expect(triangle.start.y).toBeCloseTo(Math.hypot(0.51, 0.42) * 15 + 0.725 + 2, 5);
+    expect(triangle.start.y).toBeCloseTo(15 * 0.56 + 0.725 + 2, 5);
   });
 
   it("keeps a line off the label hanging beneath a mark, and drops one that cannot fit", () => {
@@ -497,7 +511,7 @@ describe("PortfolioWorld", () => {
       { x: 0, y: 0, family: "story", labelBox },
       { x: 200, y: 0, family: "product" },
     )!;
-    expect(across.start.x).toBeCloseTo(Math.hypot(0.43, 0.245) * 15 + 0.725 + 2, 5);
+    expect(across.start.x).toBeCloseTo(15 * 0.5 + 0.725 + 2, 5);
     // Two envelopes that touch leave nothing to draw.
     expect(
       connectorSegment(
@@ -609,6 +623,142 @@ describe("PortfolioWorld", () => {
   });
 });
 
+describe("PortfolioWorld slot sizing", () => {
+  const rect = (width: number, height: number) =>
+    ({
+      bottom: height,
+      height,
+      left: 0,
+      right: width,
+      top: 0,
+      width,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("updates its canvas from the observed world slot and disconnects on unmount", () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    const disconnect = vi.fn();
+    const observe = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeCallback = callback;
+        }
+        disconnect = disconnect;
+        observe = observe;
+        unobserve = vi.fn();
+      },
+    );
+    vi.stubGlobal("devicePixelRatio", 1);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
+      rect(640, 480),
+    );
+
+    const rendered = render(
+      <PortfolioWorld
+        activeThreadId={null}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId={null}
+      />,
+    );
+    const world = screen.getByRole("region", { name: "Spatial portfolio world" });
+    const canvas = world.querySelector("canvas")!;
+
+    expect(observe).toHaveBeenCalledWith(world);
+    expect(canvas.width).toBe(640);
+    expect(canvas.height).toBe(480);
+
+    act(() => {
+      resizeCallback?.(
+        [
+          {
+            target: world,
+            contentRect: rect(360, 240),
+          } as unknown as ResizeObserverEntry,
+        ],
+        {} as ResizeObserver,
+      );
+    });
+
+    expect(canvas.width).toBe(360);
+    expect(canvas.height).toBe(240);
+
+    rendered.unmount();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses viewport resize only when ResizeObserver is unavailable and removes the fallback", () => {
+    let bounds = rect(640, 480);
+    vi.stubGlobal("ResizeObserver", undefined);
+    vi.stubGlobal("devicePixelRatio", 1);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => bounds,
+    );
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+
+    const rendered = render(
+      <PortfolioWorld
+        activeThreadId={null}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId={null}
+      />,
+    );
+    const canvas = screen
+      .getByRole("region", { name: "Spatial portfolio world" })
+      .querySelector("canvas")!;
+
+    bounds = rect(420, 260);
+    fireEvent(window, new Event("resize"));
+
+    expect(canvas.width).toBe(420);
+    expect(canvas.height).toBe(260);
+
+    rendered.unmount();
+    expect(removeEventListener).toHaveBeenCalledWith("resize", expect.any(Function));
+  });
+
+  it("keeps semantic node buttons pointer-operable while removing them from tab order", () => {
+    const onSelect = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        nodesInTabOrder={false}
+        onReset={() => {}}
+        onSelect={onSelect}
+        selectedId={null}
+      />,
+    );
+
+    const node = screen.getByRole("button", { name: "About Bradley Berkman" });
+    expect(node.tagName).toBe("BUTTON");
+    expect(node.tabIndex).toBe(-1);
+    expect(node.hasAttribute("disabled")).toBe(false);
+
+    fireEvent.pointerDown(node, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(node, {
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+    });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+});
+
 /**
  * The canvas paint path — `drawLinks` and `drawNode`, ~150 lines — was
  * unreachable by the suite: jsdom returns null from `getContext`, so the render
@@ -631,6 +781,7 @@ describe("PortfolioWorld canvas paint", () => {
       strokeStyles: [] as string[],
       fillStyles: [] as string[],
       fillTexts: [] as string[],
+      fillTextCalls: [] as { align: CanvasTextAlign; value: string; x: number; y: number }[],
       labelFonts: new Map<string, string>(),
       labelAlphas: new Map<string, number>(),
       pathAlphas: [] as number[],
@@ -663,8 +814,14 @@ describe("PortfolioWorld canvas paint", () => {
       translate: () => {
         record.translateCalls += 1;
       },
-      fillText: (value: string) => {
+      fillText: (value: string, x: number, y: number) => {
         record.fillTexts.push(value);
+        record.fillTextCalls.push({
+          align: target.textAlign as CanvasTextAlign,
+          value,
+          x,
+          y,
+        });
         record.labelFonts.set(value, String(target.font));
         record.labelAlphas.set(value, Number(target.globalAlpha));
       },
@@ -687,9 +844,18 @@ describe("PortfolioWorld canvas paint", () => {
     return { context, record };
   }
 
-  function paintWithConnector(connector: string, brainFoodActive = false) {
+  function paintWithConnector(
+    connector: string,
+    options: {
+      brainFoodActive?: boolean;
+      compact?: boolean;
+      selectedId?: string | null;
+      width?: number;
+    } = {},
+  ) {
     const { context, record } = recordingContext();
-    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(915);
+    const width = options.width ?? 915;
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(width);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(787);
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       context as unknown as CanvasRenderingContext2D,
@@ -709,15 +875,16 @@ describe("PortfolioWorld canvas paint", () => {
       <div className="portfolio-composition">
         <PortfolioWorld
           activeThreadId={null}
-          brainFood={brainFoodActive ? {
+          brainFood={options.brainFoodActive ? {
             active: true,
             eatenIds: new Set(),
             remaining: 16,
             syncNodePositions: vi.fn(),
           } : undefined}
+          compact={options.compact}
           onReset={() => {}}
           onSelect={() => {}}
-          selectedId={null}
+          selectedId={options.selectedId ?? null}
         />
       </div>,
     );
@@ -725,7 +892,33 @@ describe("PortfolioWorld canvas paint", () => {
     return record;
   }
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("loads the supplied SVG for Bradley's canvas glyph", () => {
+    let source = "";
+    vi.stubGlobal(
+      "Image",
+      class {
+        set src(value: string) {
+          source = value;
+        }
+      },
+    );
+
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId={null}
+      />,
+    );
+
+    expect(source).toBe("/biv-brain-symbol.svg");
+  });
 
   it("actually paints, and strokes connectors with the resolved token", async () => {
     const record = paintWithConnector("rgb(1, 2, 3)");
@@ -758,7 +951,7 @@ describe("PortfolioWorld canvas paint", () => {
   });
 
   it("paints floating nodes without graph connections during Brain Food", async () => {
-    const record = paintWithConnector("rgb(1, 2, 3)", true);
+    const record = paintWithConnector("rgb(1, 2, 3)", { brainFoodActive: true });
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     expect(record.translateCalls, "drawNode never ran").toBeGreaterThan(0);
@@ -790,6 +983,42 @@ describe("PortfolioWorld canvas paint", () => {
     expect(
       record.drawImageWidths.some((width) => Math.abs(width - 20.58) < 0.001),
     ).toBe(true);
+  });
+
+  it("keeps only Bradley, every Story, the selected node, and the hovered node visible in compact slots", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)", {
+      compact: true,
+      selectedId: "dubs",
+    });
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(record.fillTexts).toContain("Bradley Berkman");
+    expect(record.fillTexts).toContain("Making work");
+    expect(record.fillTexts).toContain("From argument");
+    expect(record.fillTexts).toContain("Authorship");
+    expect(record.fillTexts).toContain("Philosophy");
+    expect(record.fillTexts).toContain("Dubs");
+    expect(record.fillTexts).not.toContain("Yoohoo");
+
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "In Production Yoohoo" }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    expect(record.fillTexts).toContain("Yoohoo");
+  });
+
+  it("places compact labels to the right of nodes left of thirty percent", async () => {
+    const width = 915;
+    const record = paintWithConnector("rgb(1, 2, 3)", { compact: true, width });
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    const node = screen.getByRole("button", {
+      name: "Thread Making work playable",
+    });
+    const nodeX = Number.parseFloat(node.style.left) / 100 * width;
+    const label = record.fillTextCalls.find(({ value }) => value === "Making work");
+
+    expect(nodeX).toBeLessThan(width * 0.3);
+    expect(label?.align).toBe("left");
+    expect(label?.x).toBeGreaterThan(nodeX);
   });
 });
 

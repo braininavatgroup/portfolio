@@ -50,7 +50,7 @@ describe("PortfolioReader", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
 
     const reader = screen.getByRole("complementary", { name: "Portfolio home" });
-    expect(reader.getAttribute("data-reader-mode")).toBe("home");
+    expect(reader.getAttribute("data-reader-mode")).toBe("about");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       portfolioWorldNodeById.get("bradley")!.summary,
     );
@@ -114,53 +114,6 @@ describe("PortfolioReader", () => {
       expect(row.querySelector("small")).toBeNull();
       expect(row.parentElement?.tagName).toBe("LI");
     }
-  });
-
-  it("lists every row as a ul > li > control with no kind text and one mark", () => {
-    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
-
-    const rows = [...container.querySelectorAll(".reader-index-row")];
-    expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect(row.tagName).toBe("BUTTON");
-      expect(row.parentElement?.tagName).toBe("LI");
-      expect(row.parentElement?.parentElement?.classList.contains("reader-rows")).toBe(true);
-      expect(row.querySelector("small")).toBeNull();
-      expect(row.querySelectorAll(".portfolio-node-mark")).toHaveLength(1);
-    }
-    expect(container.querySelector(".reader-kind")).toBeNull();
-  });
-
-  it("presents the portfolio sections in the shared editorial order", () => {
-    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
-
-    expect(
-      [...container.querySelectorAll(".reader-index-group h2")].map(
-        (heading) => heading.textContent,
-      ),
-    ).toEqual([
-      "Threads",
-      "Operations",
-      "Music promotions systems",
-      "Client systems",
-      "In Production",
-    ]);
-    expect(
-      screen.queryByText("Operations, systems, and work in production"),
-    ).toBeNull();
-  });
-
-  it("uses the same compact row contract for Threads as the rest of the Index", () => {
-    const { container } = render(<PortfolioReader {...baseProps} indexOpen />);
-
-    for (const thread of portfolioThreads) {
-      const row = screen.getByRole("button", { name: thread.title });
-      expect(row.classList.contains("reader-index-row")).toBe(true);
-      expect(screen.queryByText(thread.lede)).toBeNull();
-    }
-    expect(container.querySelector(".reader-thread-row")).toBeNull();
-    expect(container.querySelectorAll(".portfolio-node-mark")).toHaveLength(16);
-    expect(container.textContent).not.toContain("→");
   });
 
   it("does not add a redundant alternate-index link inside the reader", () => {
@@ -417,38 +370,50 @@ describe("PortfolioReader", () => {
     expect(screen.queryByText(portfolioContact.email)).toBeNull();
   });
 
-  it("hides the footer's Index control while the index is open", () => {
-    render(<PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />);
+  it("keeps Privacy as its final in-flow line with no Index or Home footer", () => {
+    const { container } = render(<PortfolioReader {...baseProps} />);
 
-    expect(screen.getByRole("complementary", { name: "Portfolio index" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 1, name: "Index" })).toBeTruthy();
+    const scroll = container.querySelector(".reader-scroll")!;
+    expect(scroll.lastElementChild).toBe(screen.getByRole("link", { name: "Privacy" }));
+    expect(container.querySelector(".portfolio-reader-footer")).toBeNull();
     expect(screen.queryByRole("button", { name: "Portfolio index" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Portfolio home" }).textContent).toBe("Home");
+    expect(screen.queryByRole("button", { name: "Portfolio home" })).toBeNull();
   });
 
-  it("restores the visitor's Index scroll position after inspecting a record", () => {
-    const { rerender } = render(
-      <PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />,
+  it("opens each new About, record, or thread selection at the top", () => {
+    const { container, rerender } = render(
+      <PortfolioReader {...baseProps} selectedId="dubs" />,
     );
-    const reader = screen.getByRole("complementary", { name: "Portfolio index" });
-    const scroll = reader.querySelector<HTMLElement>(".reader-scroll")!;
+    const scroll = container.querySelector<HTMLElement>(".reader-scroll")!;
     scroll.scrollTop = 420;
-    fireEvent.scroll(scroll);
 
-    rerender(<PortfolioReader {...baseProps} onOpenIndex={() => {}} selectedId="dubs" />);
-    expect(screen.queryByRole("button", { name: "Portfolio home" })).toBeNull();
-    const indexButton = screen.getByRole("button", { name: "Portfolio index" });
-    expect(indexButton.textContent).toBe("Index");
+    rerender(<PortfolioReader {...baseProps} selectedId="writ" />);
     expect(scroll.scrollTop).toBe(0);
     scroll.scrollTop = 300;
-    rerender(<PortfolioReader {...baseProps} indexOpen onOpenIndex={() => {}} />);
 
-    expect(scroll.scrollTop).toBe(420);
+    rerender(
+      <PortfolioReader
+        {...baseProps}
+        activeThreadId="philosophy"
+        selectedId="thread-philosophy"
+      />,
+    );
+    expect(scroll.scrollTop).toBe(0);
+    scroll.scrollTop = 200;
+
+    rerender(<PortfolioReader {...baseProps} />);
+    expect(scroll.scrollTop).toBe(0);
   });
 
   it("bundles a record's threads and linked records under one Related label", () => {
+    const onSelectThread = vi.fn();
     const { container } = render(
-      <PortfolioReader {...baseProps} activeThreadId="philosophy" selectedId="pitching" />,
+      <PortfolioReader
+        {...baseProps}
+        activeThreadId="philosophy"
+        onSelectThread={onSelectThread}
+        selectedId="pitching"
+      />,
     );
 
     expect(screen.queryByRole("heading", { name: "Threads" })).toBeNull();
@@ -462,6 +427,8 @@ describe("PortfolioReader", () => {
     expect(containing.length).toBeGreaterThan(0);
     expect(rows.slice(0, containing.length)).toEqual(containing);
     expect(rows.length).toBeGreaterThan(containing.length);
+    fireEvent.click(related.querySelectorAll(".reader-index-row")[0]);
+    expect(onSelectThread).toHaveBeenCalledWith("making-work-playable");
   });
 
   it("draws a planned visual as a bare frame with its kind, source, and caption", () => {

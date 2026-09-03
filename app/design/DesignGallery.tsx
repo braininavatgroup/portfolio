@@ -66,9 +66,10 @@ const sectionGroups = [
     blurb: "The accepted portfolio, part by part, in assembly order.",
     sections: [
       { id: "marks", label: "Marks" },
+      { id: "reading-room", label: "Reading Room" },
       { id: "world", label: "World" },
       { id: "reader", label: "Reader" },
-      { id: "chat", label: "Chat" },
+      { id: "chat", label: "Guide" },
     ],
   },
   {

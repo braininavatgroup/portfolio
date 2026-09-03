@@ -94,6 +94,7 @@ They are the only color names that belong in new composition CSS.
 | Alias | Role |
 | --- | --- |
 | `--ink` | Primary composition ink: titles, summaries, rows, controls and their labels |
+| `--focus-ring` | Acid focus ring in both modes |
 | `--map-paper` | World background |
 | `--map-paper-near` | Near-paper world surfaces |
 | `--map-muted` | Map labels and secondary map ink |
@@ -104,7 +105,7 @@ They are the only color names that belong in new composition CSS.
 | `--reader-body` | Paragraph copy |
 | `--reader-muted` | Labels, captions, placeholder meta, footer controls at rest |
 | `--world-identity` | Bradley's identity mark and the Contact marks |
-| `--world-story` | Story register |
+| `--world-story` | Story register type, painted with the Arc red pair |
 | `--world-arc` | From argument to instrument register |
 | `--world-warm` | Operations register |
 | `--world-bridge` | Bridge register |
@@ -126,20 +127,18 @@ summary-to-body gap, and the index group gap; 64 sits above every section
 label; 8 below it; 16 between paragraphs; a figure adds 8 either side of the
 16 grid gap.
 
-**Rule 2.2** — No rules inside the dossier. `--map-line` draws the dossier's
-left edge; `--map-line-strong` draws figure frames. Sections, groups, and rows
-are separated by space alone — no `border-top`, no `border-bottom`, no hover
-tint. No test enforces this yet; check it by hand in review. The one standing
+**Rule 2.2** — Each Reader, Map, and Guide pane begins with a 40px bar and a
+one-pixel `--map-line` hairline. The Reader body itself has no rules. Sections,
+groups, and Reader rows are separated by space alone. The one standing
 exception is `.reader-copy-placeholder`, which draws a dotted
-`--map-line-strong` left edge while copy is in progress (it is `display: none`
-today).
+`--map-line-strong` left edge while copy is in progress.
 
 ### Other dimension tokens
 
-`--reader-width` (`clamp(460px, 38vw, 560px)`, `100%` at 900px and below) is
-composition-scoped. `--assistant-panel-width` (`18rem`), `--cursor-size` and
-`--world-hit-area` (`34px`) live in `:root`. `--mobile-controls-inline-end`
-is defined inside the 600px block only.
+`--cursor-size` and `--world-hit-area` (`34px`) live in `:root`. Reading Room
+pane dimensions belong to its persisted panel layout. The Reader centres a
+column of at most 680px with a 632px content maximum and 24px gutters; a
+narrower slot reflows the column to its own width.
 
 ### Selector-local custom properties
 
@@ -156,7 +155,7 @@ is defined inside the 600px block only.
 There is one family in the composition: `var(--font-reader)` (`"NHG
 portfolio"`, Neue Haas Grotesk, declared by two `@font-face` rules — weight 400
 and 500–700 — with Helvetica Neue / Helvetica / Arial fallbacks). The scale is
-six voices held in `:root` as `font` shorthands (`weight size/line-height`),
+nine voices held in `:root` as `font` shorthands (`weight size/line-height`),
 and a rule reads one as:
 
 ```css
@@ -170,10 +169,13 @@ same everywhere the voice appears.
 | --- | --- | --- | --- |
 | `--reader-type-display` | 500 36/40 | −0.055em, `--ink`, `text-wrap: balance` | The map mast and every dossier `h1`: home (the throughline), Index, thread, record. Fixed — never `clamp()` |
 | `--reader-type-summary` | 400 18/24 | −0.01em, `--ink` | Record summary, thread lede |
-| `--reader-type-row` | 400 16/24 | `--ink` | Index, related, explore, and contact rows |
+| `--reader-type-row` | 400 15/24 | `--ink` | Contents, related, explore, and contact rows |
 | `--reader-type-body` | 400 15/24 | `--reader-body`, `text-wrap: pretty` | Paragraphs; the copy-placeholder prompt at weight 500 in `--ink` |
+| `--reader-type-mast` | 500 15/20 | `--ink` | Contents mast and group titles |
+| `--reader-type-secondary` | 400 13/18 | `--reader-muted` | Guide status copy |
 | `--reader-type-caption` | 400 12/16 | `--reader-muted`; `--ink` for control labels | Figure captions, placeholder meta, footer controls, node-control labels, the stage count and title |
-| `--reader-type-label` | 500 11/16 | +0.08em, uppercase, `--reader-muted` | Section labels, placeholder labels, the stage eyebrow |
+| `--reader-type-label` | 500 11/16 | +0.06em, uppercase, `--reader-muted` | Section labels, placeholder labels, the stage eyebrow |
+| `--reader-type-tab` | 400 10/12 | +0.02em | Mobile tab labels only |
 
 **Rule 3.1** — One label voice. Every label on the dossier is
 `--reader-type-label`; there is no second small-caps style, no per-register
@@ -185,9 +187,9 @@ Home and Index have no summary, so their titles carry the 32. No kind chip,
 no path line, no register mark in the dossier — the spotlighted node on the
 map carries the register.
 
-**Rule 3.3** — Nothing shrinks on mobile. The same six voices apply at 390px;
-only the gutter changes (§5.7). Do not add a coarse-pointer or short-window
-size override.
+**Rule 3.3** — Reader copy does not shrink on mobile. The 10/12 tab label is a
+navigation-only voice, not a smaller Reader voice. Do not add a coarse-pointer
+or short-window size override.
 
 **Rule 3.4** — Canvas labels are code-side constants in
 `components/PortfolioWorld.tsx`, not tokens: `FONT` paints record labels at
@@ -289,22 +291,16 @@ root, `.portfolio-reader-clean-review` on the dossier. Never a `.is-` or
 no CSS nesting is used. Related one-line rules may be written on a single line
 where the file already does so.
 
-**Rule 5.7** — The composition's breakpoint is **900px**
-(`max-width: 900px`, with `min-width: 901px` for the desktop-only assistant
-sizing), plus a 600px block for phone-scale safe-area insets and the chat's
-phone layout. Below 900 the world is removed, the dossier is full width, its
-padding becomes `24px 24px 0` (page inset and gutter are the same number) and
-the Privacy line keeps 40 clear on its right for the fixed map control. The
-980px and 760px
-breakpoints belong to supporting pages. Do not add a new breakpoint, and do
-not add a `pointer: coarse` or `max-height` block that resizes the dossier.
+**Rule 5.7** — The Reading Room breakpoint is **1020px**. At 1020px and above,
+use the desktop Contents, main, and right-column layout. Below 1020px, use the
+three-tab mobile layout at the full viewport width. The 600px block remains for
+phone safe-area insets. The 980px, 900px, 760px breakpoints belong to supporting
+or pre-Reading-Room selectors and are not the Reading Room contract.
 
 **Rule 5.8** — The house focus treatment is
-`outline: 2px solid var(--ink); outline-offset: 2px`, supplied by default
-through a zero-specificity
-`:where(.portfolio-composition) a, button, input, textarea:focus-visible`
-rule. Override it only to differ deliberately: world nodes use a 1px outline.
-Never remove focus without replacing it.
+`outline: 2px solid var(--focus-ring); outline-offset: 2px` with a 6px radius.
+`--focus-ring` is Acid `#b6df5b` in both modes. Apply it only through
+`:focus-visible`. Never remove focus without replacing it.
 
 **Rule 5.9** — Hover is fine-pointer only, and instant. Every `:hover` rule in
 the dossier sits inside `@media (pointer: fine)`; coarse pointers get no hover
@@ -322,12 +318,12 @@ These are product decisions, not preferences. See
 or focused mark keeps its native register color. Express state with opacity,
 weight, scale, or the outline. There is no "selected blue."
 
-**Rule 6.2 — One row rule set.** Index, Related, Explore this thread, and
-Contact rows are one shape: `ul > li > button` (or `a` for Contact) with class
-`.reader-index-row`, a 40px row (`padding: 8px 0` on a 24 line), the label in
-the row voice, the mark trailing right in its register, no kind text. Rows
-have no hover state; focus is the house 2px `--ink` ring. No negative margins,
-no padding bleed; rows stay full text-column width. The mark never changes.
+**Rule 6.2 — Two row contexts.** Contents rows are 28px on desktop and 36px on
+mobile. They use 15px type, an 18px trailing mark, register-coloured selected
+text at weight 500, and an eight-percent ink hover fill with a 6px radius on
+fine pointers. Related, Explore this thread, and Contact rows stay hover-free
+inside Reader. Reader rows remain full text-column width and the mark never
+changes.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
 Silverpoint line: thin, straight, neutral, arrowless. The canvas connectors in
@@ -351,32 +347,30 @@ from there; nothing draws Bradley-to-Story lines directly.
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
-an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor` and
-`stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
+an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor`, miter
+joins, and `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
-symbol (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.png`
-filled with `currentColor`; `PortfolioWorld` deliberately paints that same
-PNG at 21px for the root node, while the reusable mark stays in the shared
-envelope. The Contact marks (`lib/portfolio-contact-mark.ts`) and the
-**control marks** (`lib/portfolio-control-mark.ts`) join that envelope;
-nothing else gets its own size or weight.
+symbol (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.svg`
+filled with `currentColor`. `PortfolioWorld` loads the same SVG and paints it at
+21px for the canvas root node. Map and Guide marks clip the SVG brain pattern
+inside their supplied hexagon and bubble outlines. The Guide outline alone uses
+a 1.15 stroke. Contact and control marks join the shared envelope.
 
-**Rule 6.5 — Controls are node marks.** Every control around the dossier —
-the mobile map/index control, the desktop chat trigger, the stage's Close /
-Previous / Next, the chat's Send and Minimize — is `PortfolioControlMark`: a
-bare glyph in the 15-unit envelope, an invisible 40px hit box, a 12/16 `--ink`
-label 6 below the glyph (none for the two chat-interior glyphs, which draw at
-14px). No ring, fill, shadow, border, or pictogram; disabled is
-`opacity: 0.28`. Do not draw a new control as a typographic glyph or a
-bordered button.
+**Rule 6.5 — Controls are node marks.** Use `PortfolioControlMark` for Reading
+Room chrome and actions. Bar controls may use a 32px square hit area with a 6px
+hover fill on fine pointers. Send is the deliberate exception to bare controls,
+using a filled 28px or 32px square when text exists. Disabled controls use
+opacity alone. Do not draw a control as a typographic glyph.
 
-**Rule 6.6 — One temporary floating surface.** Chat is it. Do not add a second
-overlay, popover, or navigation layer; the dossier holds home, Index, thread,
-and record states rather than spawning panels or routes.
+**Rule 6.6 — Guide is docked.** Guide occupies a Reading Room slot on desktop
+and the lower 48 percent of the Map tab on mobile. It is not a floating chat
+surface. Temporary overlays remain reserved for bounded product needs.
 
-**Rule 6.7 — The dossier width is fixed.** Desktop is
-`clamp(460px, 38vw, 560px)`; the canvas resizes around it. Below 900px the
-world is removed and the dossier is full width.
+**Rule 6.7 — Pane sizes persist.** Contents, main, right, and the two side slots
+are user-resizable within their specified minimums. Persist their layouts under
+the Reading Room namespace. Reader content is a centred column of at most
+680px inside its slot, with a 632px content maximum and 24px gutters; a slot
+narrower than 680px reflows it rather than clipping it.
 
 **Rule 6.8 — One page inset.** The map mast, the dossier's first line, the
 chat dock's corner, and the stage all sit 24 from the map area's edges; the
@@ -384,16 +378,10 @@ mast and the dossier title share the display voice and the same top, so they
 sit on one baseline across the seam. The stage's top edge clears the mast row
 (24 + 40 + 24).
 
-**Rule 6.9 — The bottom line.** No footer band. One text control in the
-caption voice — **Home** on the index (calls `onReset`), **Index** everywhere
-else (calls `onOpenIndex`) — is laid over the scroll area's bottom-left corner
-on the page's 24 inset, with a paper halo so text scrolls beneath it legibly.
-**Privacy** is the dossier's last line, right-aligned in the caption voice, 32
-below the content, reached only by scrolling to the end. The chat mark's
-label, the Index control, and the Privacy line share one bottom edge at the
-24 inset; both controls are muted at rest and `--ink` on hover. On mobile the
-map/index control is fixed at the 16 inset, so the Index label and Privacy
-line drop to 16 and the Privacy line keeps 40 clear on its right.
+**Rule 6.9 — Privacy is the bottom line.** The former Index/Home footer control
+is removed. About has no Contents row, and the Bradley mast is its Home control.
+Privacy remains Reader's last in-flow line, right-aligned in the caption voice
+and reached by scrolling to the end.
 
 **Rule 6.10 — Cursor contract.** On `pointer: fine`, `cursor: none` is forced
 globally and `.cursor-instrument` is the only pointer. Consequences for new UI:

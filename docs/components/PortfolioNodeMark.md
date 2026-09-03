@@ -3,47 +3,43 @@
 Source: [`components/PortfolioNodeMark.tsx`](../../components/PortfolioNodeMark.tsx) ·
 Gallery: `/design#marks`
 
-The one register mark. It draws the primitives
-[`lib/portfolio-node-mark.ts`](../../lib/portfolio-node-mark.ts) returns for a
-family into an 18px SVG box with `stroke: currentColor`, carrying `data-family`
-and `data-register`. `identity` renders `.portfolio-node-brain`, a 15px mask
-of `/biv-brain-symbol.png` filled with `currentColor`. One envelope, one
-stroke weight; the register alone varies (Rule 6.4). `PortfolioWorld` alone paints the Bradley root with the same PNG at 21px.
+The shared Reading Room mark draws each family in an 18px SVG box with
+`currentColor`, round caps, miter joins, and a 1.45 stroke. `identity` is a 15px
+mask of `/biv-brain-symbol.svg` in the same envelope.
 
-Two siblings share the module and the envelope. `PortfolioContactMark` is a
-Contact row's mark, one of [`lib/portfolio-contact-mark.ts`](../../lib/portfolio-contact-mark.ts)'s
-kinds in identity colour. `PortfolioControlMark` is a control drawn as a mark:
-a `<button>` with `data-control`, a glyph from
-[`lib/portfolio-control-mark.ts`](../../lib/portfolio-control-mark.ts), an
-invisible 40px hit box, an optional 12px `label`, and every other button prop
-passed through. `map` is the brain mask; `send` and `minimize` draw at 14px.
+`PortfolioContactMark` draws identity-colour contact kinds.
+`PortfolioControlGlyph` exposes the non-interactive artwork from
+[`lib/portfolio-control-mark.ts`](../../lib/portfolio-control-mark.ts), including
+the mobile-only sidebar frame. `PortfolioControlMark` wraps it in a button.
+Map and Guide use patterned interiors; Guide alone uses a 1.15 outline.
 
 ## Props
 
-`family` and `register`, both required, both from
+`family` and `register` are required and come from
 [`lib/portfolio-world.ts`](../../lib/portfolio-world.ts). Seven families, six
-registers; a node's own fields are the intended source.
+registers. Story stays a distinct register but resolves to the Arc red pair.
 
 ## Requires
 
-An ancestor defining the `--world-*` properties — in practice
-`.portfolio-composition`. The mark is `aria-hidden`, so whatever wraps it
-carries the label.
+An ancestor defining the `--world-*` properties, normally
+`.portfolio-composition`. The mark is `aria-hidden`; its wrapper carries the label.
 
 ## Example
 
 ```tsx
-import { PortfolioControlMark, PortfolioNodeMark } from "components/PortfolioNodeMark";
+import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "components/PortfolioNodeMark";
 
 export function PortfolioNodeMarkExample() {
   // The mark takes its shape from `family` and its color from `register`,
   // and must sit inside a `.portfolio-composition` for `--world-*` to resolve.
-  // A control is the same envelope drawn as a button: glyph, 40px hit box,
-  // and a caption; the accessible name comes from `aria-label`.
+  // Patterned Map and Guide controls use the same SVG brain asset as identity.
+  // The accessible names come from `aria-label`.
   return (
     <div className="portfolio-composition">
-      <PortfolioNodeMark family="operation" register="warm" />
+      <PortfolioNodeMark family="identity" register="identity" />
+      <PortfolioControlGlyph kind="reader" />
       <PortfolioControlMark aria-label="Show portfolio map" kind="map" label="Map" />
+      <PortfolioControlMark aria-label="Open the Guide" kind="chat" label="Guide" />
     </div>
   );
 }
@@ -58,5 +54,8 @@ export function PortfolioNodeMarkExample() {
   A new family authored at 18 draws 20% oversized.
 - **This is the one composition component with no `"use client"`**, because it
   has no state. Keep it that way.
-- **A control mark needs its own `aria-label`.** The glyph is `aria-hidden`
-  and the caption is optional, so the button's name comes from the prop.
+- **A control mark needs its own `aria-label`.** The glyph is `aria-hidden`,
+  and the caption is optional.
+- **A bare glyph is not a control.** `PortfolioControlGlyph` supplies no button,
+  label, focus, or click behavior; its surrounding surface owns interaction.
+- **Map and Guide need `/biv-brain-symbol.svg`.** Without it, only the outline renders.

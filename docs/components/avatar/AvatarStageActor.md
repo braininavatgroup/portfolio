@@ -7,8 +7,9 @@ The bridge between the runtime's screen-space model of the stage and the 3D
 scene. It takes an `AvatarSnapshot` — position in CSS pixels, facing, swim
 heading, animation, motion path — converts the point through `screenPointToOrthographic`
 and places an [`AvatarAssetAdapter`](./AvatarAssetAdapter.md) there at a
-viewport-derived scale (104 desktop, 72 at 768px and below, via the exported
-`selectAvatarStageScale`). While a `motion` path is present it samples the path
+scale from `selectAvatarStageScale` (104 desktop, 72 at 768px and below,
+capped to `snapshot.fitHeight` with 16px headroom, floor 40, so a short dock
+shrinks the figure). While a `motion` path is present it samples the path
 each frame and derives heading from direction of travel. Swim heading rotates
 the rig through its horizontal pool plane and adds full pitch for vertical
 travel; straight, diagonal, and reverse paths never roll the swimmer.
@@ -16,9 +17,8 @@ travel; straight, diagonal, and reverse paths never roll the swimmer.
 ## Props
 
 `snapshot` and `reducedMotion` required; `onAvailableAnimationsChange`
-optional, normally `runtime.setAvailableClips`. See
-[`AvatarSnapshot`](../../../lib/avatar/runtime.ts) and
-[`lib/avatar/stage.ts`](../../../lib/avatar/stage.ts).
+optional, normally `runtime.setAvailableClips`. See `AvatarSnapshot` in
+[`lib/avatar/runtime.ts`](../../../lib/avatar/runtime.ts).
 
 ## Requires
 

@@ -31,10 +31,11 @@ export function portfolioNodeMarkVertices(
   size = PORTFOLIO_NODE_MARK_SIZE,
 ): readonly PortfolioNodeMarkPoint[] | undefined {
   if (family === "component") {
+    const radius = size * 0.56;
     return [
-      { x: 0, y: -size * 0.52 },
-      { x: size * 0.51, y: size * 0.42 },
-      { x: -size * 0.51, y: size * 0.42 },
+      { x: 0, y: -radius },
+      { x: Math.sin(Math.PI / 3) * radius, y: radius / 2 },
+      { x: -Math.sin(Math.PI / 3) * radius, y: radius / 2 },
     ];
   }
   if (family === "engagement") {
@@ -84,8 +85,8 @@ export function portfolioNodeMarkPrimitives(
       {
         kind: "polyline",
         points: [
-          { x: 0, y: -size * 0.49 },
-          { x: 0, y: size * 0.49 },
+          { x: 0, y: -size * 0.5 },
+          { x: 0, y: size * 0.5 },
         ],
         close: false,
         fill: false,
@@ -93,8 +94,8 @@ export function portfolioNodeMarkPrimitives(
       {
         kind: "polyline",
         points: [
-          { x: -size * 0.43, y: -size * 0.245 },
-          { x: size * 0.43, y: size * 0.245 },
+          { x: -size * 0.433, y: -size * 0.25 },
+          { x: size * 0.433, y: size * 0.25 },
         ],
         close: false,
         fill: false,
@@ -102,8 +103,8 @@ export function portfolioNodeMarkPrimitives(
       {
         kind: "polyline",
         points: [
-          { x: -size * 0.43, y: size * 0.245 },
-          { x: size * 0.43, y: -size * 0.245 },
+          { x: -size * 0.433, y: size * 0.25 },
+          { x: size * 0.433, y: -size * 0.25 },
         ],
         close: false,
         fill: false,
@@ -114,7 +115,7 @@ export function portfolioNodeMarkPrimitives(
   if (family === "operation") {
     return [
       { kind: "circle", x: 0, y: 0, radius: size * 0.5, fill: false },
-      { kind: "circle", x: 0, y: 0, radius: size * 0.28, fill: false },
+      { kind: "circle", x: 0, y: 0, radius: size * 0.25, fill: false },
     ];
   }
   if (family === "component" || family === "engagement") {
@@ -128,7 +129,7 @@ export function portfolioNodeMarkPrimitives(
     ];
   }
   return [
-    { kind: "circle", x: 0, y: 0, radius: size * 0.49, fill: false },
-    { kind: "circle", x: 0, y: 0, radius: size * 0.14, fill: true },
+    { kind: "circle", x: 0, y: 0, radius: size * 0.5, fill: false },
+    { kind: "circle", x: 0, y: 0, radius: size * (1.9 / 15), fill: true },
   ];
 }

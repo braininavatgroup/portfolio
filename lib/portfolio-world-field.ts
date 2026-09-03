@@ -27,7 +27,9 @@ export type Segment = readonly [Point, Point];
 
 export const FIELD = {
   /** Insets from the viewport edges, in pixels. */
-  inset: { x: 70, top: 60, bottom: 90 },
+  // Symmetric: nothing floats over a Reading Room slot's bottom edge, so the
+  // field uses the same headroom above and below.
+  inset: { x: 70, top: 60, bottom: 60 },
   /**
    * Room kept around a lit node: a gap beyond both labels sideways, and the
    * rows above and below its mark that a dimmed mark plus hanging label

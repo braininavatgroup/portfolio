@@ -1,4 +1,6 @@
 :root {
+  /* Set inline per patterned control (Map, Guide): the outline shape mask. */
+  --control-shape: none;
   /* Legacy prototype aliases. These remain live outside the accepted portfolio composition. */
   --background: #f4f1e8;
   --foreground: #17211e;
@@ -24,6 +26,8 @@
   --reader-ink-dark: #f0e6dc;
   --reader-body-light: #514a45;
   --reader-body-dark: #c1b7ae;
+  --reader-drop-fill-light: rgb(32 23 17 / 8%);
+  --reader-drop-fill-dark: rgb(240 230 220 / 10%);
   --reader-muted-light: #6b6d6d;
   --reader-muted-dark: #aaa098;
   --reader-media-shadow: rgb(32 23 17 / 15%);
@@ -57,7 +61,6 @@
 
   /* Active type and recurring composition dimensions. */
   --font-reader: "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --assistant-panel-width: 18rem;
   --cursor-size: 34px;
   --world-hit-area: 34px;
 
@@ -75,10 +78,13 @@
      and colour travel with the rule that reads the voice. */
   --reader-type-display: 500 36px/40px;
   --reader-type-summary: 400 18px/24px;
-  --reader-type-row: 400 16px/24px;
+  --reader-type-row: 400 15px/24px;
   --reader-type-body: 400 15px/24px;
+  --reader-type-mast: 500 15px/20px;
+  --reader-type-secondary: 400 13px/18px;
   --reader-type-caption: 400 12px/16px;
   --reader-type-label: 500 11px/16px;
+  --reader-type-tab: 400 10px/12px;
 }
 
 body {
@@ -117,20 +123,6 @@ body {
   position: relative;
 }
 
-.portfolio-chat {
-  background: var(--prototype-chat-surface);
-  border: 1px solid var(--prototype-rule-dark);
-  bottom: 1rem;
-  box-shadow: 0 1rem 2.5rem var(--prototype-night-shadow-panel);
-  left: 50%;
-  max-width: 29rem;
-  padding: 0.65rem;
-  position: absolute;
-  transform: translateX(-50%);
-  width: calc(100% - 3rem);
-  z-index: 7;
-}
-
 .avatar-overlay {
   height: 100dvh;
   inset: 0;
@@ -146,6 +138,13 @@ body {
   pointer-events: none;
 }
 
+/* A hidden avatar keeps its canvas mounted (see AvatarOverlay); the overlay
+   simply leaves the page so react-three-fiber never reconnects into a
+   removed wrapper. */
+.avatar-overlay[hidden] {
+  display: none;
+}
+
 .avatar-overlay-canvas {
   animation: assistant-avatar-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   inset: 0;
@@ -153,61 +152,27 @@ body {
   position: absolute !important;
 }
 
-/* The Index / Home control: one caption-voice label laid over the scroll
-   area's bottom-left corner on the page's 24 inset, so its bottom edge sits
-   on the same line as the chat mark's label and, at the end of the scroll,
-   the Privacy line. Content scrolls beneath it; a paper halo behind the word
-   keeps passing text legible without a band. */
-.portfolio-reader-footer {
-  align-items: flex-end;
-  bottom: 0;
-  display: flex;
-  justify-content: space-between;
-  left: 0;
-  padding: 0 var(--reader-space-4) max(var(--reader-space-3), env(safe-area-inset-bottom));
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-}
-
-.reader-footer-links {
-  display: flex;
-  flex: 1;
-  gap: var(--reader-space-2);
-}
-
-.portfolio-reader-footer button {
-  appearance: none;
-  background: var(--reader-paper);
-  border: 0;
-  box-shadow: 0 0 10px 8px var(--reader-paper);
-  color: var(--reader-muted);
-  font: var(--reader-type-caption) var(--font-reader);
-  padding: 0;
-  pointer-events: auto;
-}
-
-.portfolio-reader-footer button:focus-visible {
-  color: var(--ink);
-}
-
 /* The dossier's last line: Privacy, right-aligned in the caption voice,
-   32 below the content, reached only by scrolling to the end. It carries
-   the dossier's end inset (24, matching the Index control and chat mark)
-   so all three labels share one bottom edge. */
+   32 below the content and reached only by scrolling to the end. */
 .reader-privacy {
   color: var(--reader-muted);
   display: block;
   flex: 0 0 auto;
   font: var(--reader-type-caption) var(--font-reader);
   margin: auto 0 0;
-  padding: var(--reader-space-4) var(--reader-space-4) max(var(--reader-space-3), env(safe-area-inset-bottom));
+  padding: var(--reader-space-4) var(--reader-space-3) max(var(--reader-space-3), env(safe-area-inset-bottom));
   text-align: right;
   text-decoration: none;
 }
 
 .reader-privacy:focus-visible {
   color: var(--ink);
+}
+
+.reader-scroll > [data-editor-status] {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: var(--reader-space-4) var(--reader-space-3) 0;
 }
 
 .privacy-page {
@@ -245,69 +210,6 @@ body {
   text-underline-offset: 3px;
 }
 
-.portfolio-chat form {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: 1fr auto;
-}
-
-.portfolio-chat input {
-  background: var(--prototype-input-surface);
-  border: 1px solid var(--prototype-tool-rule);
-  color: var(--prototype-input-ink);
-  font: inherit;
-  min-width: 0;
-  padding: 0.65rem;
-}
-
-.portfolio-chat form button {
-  background: var(--prototype-highlight);
-  border: 0;
-  color: var(--prototype-night-ink);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0.65rem 0.82rem;
-}
-
-.portfolio-chat form button:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.chat-turnstile {
-  border-top: 1px solid var(--prototype-chat-rule);
-  margin-top: 0.75rem;
-  min-height: 0;
-  padding-top: 0.65rem;
-}
-
-.chat-answer {
-  margin-top: 0.85rem;
-}
-
-.chat-answer h3 {
-  color: var(--prototype-highlight);
-  font-family: var(--font-reader);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.chat-note,
-.chat-message {
-  color: var(--prototype-muted-ink);
-  font-size: 0.72rem;
-  line-height: 1.45;
-  margin: 0.75rem 0 0;
-}
-
-@media (max-width: 980px) {
-  .portfolio-chat { bottom: 0.75rem; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -318,12 +220,6 @@ body {
 }
 
 @media (max-width: 760px) {
-  .scene-shell-node-open .portfolio-chat { display: none; }
-  .portfolio-chat {
-    bottom: 0.65rem;
-    padding: 0.6rem;
-    width: calc(100% - 1.5rem);
-  }
   .avatar-director-console {
     border-bottom: 0;
     bottom: 0;
@@ -357,8 +253,6 @@ body {
   .avatar-director-console-panel > [role="tabpanel"] > span > button {
     min-height: 2.75rem;
   }
-  .portfolio-chat input { font-size: 0.78rem; padding: 0.58rem; }
-  .portfolio-chat form button { font-size: 0.78rem; padding: 0.58rem 0.7rem; }
 }
 
 a {
@@ -416,16 +310,16 @@ input:focus-visible {
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-linejoin: miter;
   stroke-width: 1.45;
   width: 18px;
 }
 
 .portfolio-node-brain {
-  -webkit-mask: url("/biv-brain-symbol.png") center / contain no-repeat;
+  -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
   background: currentColor;
   height: 15px;
-  mask: url("/biv-brain-symbol.png") center / contain no-repeat;
+  mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
   width: 15px;
 }
 
@@ -469,8 +363,30 @@ input:focus-visible {
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-linejoin: miter;
   stroke-width: 1.45;
+  width: 18px;
+}
+
+/* Map and Guide interiors: the outline shape intersected with the brain at
+   170%, in currentColor. Pure CSS, so a cloned bar keeps its pattern. */
+.portfolio-control-glyph > * {
+  grid-area: 1 / 1;
+}
+
+.portfolio-control-pattern {
+  -webkit-mask-composite: source-in;
+  -webkit-mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain, 170% 170%;
+  background: currentColor;
+  height: 18px;
+  mask-composite: intersect;
+  mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain, 170% 170%;
   width: 18px;
 }
 
@@ -499,7 +415,7 @@ input:focus-visible {
   outline-color: var(--prototype-focus-outline-light);
 }
 
-/* Accepted portfolio composition: one world, one reader, one assistant. */
+/* Accepted portfolio composition: one Reading Room, one instance of each view. */
 @font-face {
   font-display: swap;
   font-family: "NHG portfolio";
@@ -517,24 +433,25 @@ input:focus-visible {
 }
 
 .portfolio-composition {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-light);
   --map-muted: var(--map-muted-light);
   --map-paper: var(--map-silver);
   --map-paper-near: var(--map-paper-near-light);
   --reader-paper: var(--reader-paper-light);
   --reader-body: var(--reader-body-light);
+  --reader-drop-fill: var(--reader-drop-fill-light);
   --reader-muted: var(--reader-muted-light);
   --map-connector: var(--map-connector-light);
   --map-line: var(--map-line-light);
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
   --world-identity: var(--reader-ink-light);
-  --world-story: var(--world-lichen);
+  --world-story: var(--world-hard-red);
   --world-arc: var(--world-hard-red);
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
   --world-cool: var(--world-production-cyan);
-  --reader-width: clamp(460px, 38vw, 560px);
   background: var(--map-paper);
   color: var(--ink);
   font-family: var(--font-reader);
@@ -546,19 +463,21 @@ input:focus-visible {
 
 @media (prefers-color-scheme: dark) {
   .portfolio-composition {
+    --focus-ring: var(--world-acid);
     --ink: var(--reader-ink-dark);
     --map-muted: var(--map-muted-dark);
     --map-paper: var(--map-paper-dark);
     --map-paper-near: var(--map-paper-near-dark);
     --reader-paper: var(--reader-paper-dark);
-      --reader-body: var(--reader-body-dark);
+    --reader-body: var(--reader-body-dark);
+    --reader-drop-fill: var(--reader-drop-fill-dark);
     --reader-muted: var(--reader-muted-dark);
     --map-connector: var(--map-connector-dark);
     --map-line: var(--map-line-dark);
     --map-line-strong: var(--map-line-strong-dark);
     --map-grid: var(--map-grid-dark);
     --world-identity: var(--reader-ink-dark);
-    --world-story: var(--world-acid);
+    --world-story: var(--world-signal-red);
     --world-arc: var(--world-signal-red);
     --world-warm: var(--world-hot-pink);
     --world-bridge: var(--world-violet-dark);
@@ -615,17 +534,17 @@ input:focus-visible {
    this, any composition control lacking its own :focus-visible rule fell
    through to the unscoped `a, button, input:focus-visible` legacy rules above
    and drew a 3px --prototype-focus-outline-light ring — an olive that is not
-   in the checkpoint palette — on .reader-index-row and .portfolio-chat-trigger
-   among others, which also broke Rule 6.1 ("selection introduces no new
+   in the checkpoint palette — on reader and Guide controls among others,
+   which also broke Rule 6.1 ("selection introduces no new
    color"). Scoped with :where() so it carries no specificity: it beats those
-   unscoped rules on source order alone, and every composition rule that sets
-   its own treatment — the 1px world node, the 3px-offset floating controls —
-   still wins. */
+   unscoped rules on source order alone. The Reading Room uses the same Acid
+   ring for every composition control. */
 :where(.portfolio-composition) a:focus-visible,
 :where(.portfolio-composition) button:focus-visible,
 :where(.portfolio-composition) input:focus-visible,
 :where(.portfolio-composition) textarea:focus-visible {
-  outline: 2px solid var(--ink);
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -641,13 +560,13 @@ body:has(.portfolio-composition) {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1019px) {
   body:has(.portfolio-composition) {
     background: var(--reader-paper-light);
   }
 }
 
-@media (max-width: 900px) and (prefers-color-scheme: dark) {
+@media (max-width: 1019px) and (prefers-color-scheme: dark) {
   body:has(.portfolio-composition) {
     background: var(--reader-paper-dark);
   }
@@ -660,9 +579,9 @@ body:has(.portfolio-composition) {
 
 .portfolio-world {
   background: var(--map-paper);
-  inset: 0 var(--reader-width) 0 0;
+  inset: 0;
   overflow: hidden;
-  position: fixed;
+  position: absolute;
   touch-action: none;
   user-select: none;
   z-index: 1;
@@ -688,12 +607,6 @@ body:has(.portfolio-composition) {
   z-index: 3;
 }
 
-/* The phone's one view control lives in the composition, not the dossier,
-   because it has to stay on the map's band when the dossier is hidden. */
-.portfolio-mobile-view-control {
-  display: none;
-}
-
 .portfolio-world > canvas {
   inset: 0;
   position: absolute;
@@ -713,7 +626,7 @@ body:has(.portfolio-composition) {
 }
 
 .portfolio-world-node:focus-visible {
-  outline: 1px solid var(--ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -837,30 +750,725 @@ body:has(.portfolio-composition) {
   display: none;
 }
 
-.portfolio-reader {
+/* Reading Room shell ----------------------------------------------------- */
+
+.portfolio-reading-room {
+  height: 100dvh;
+  min-height: 640px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.portfolio-reading-room-desktop {
+  min-width: 1382px;
+}
+
+body:has(.portfolio-reading-room-desktop) {
+  overflow-x: auto;
+}
+
+.experience:has(> .portfolio-reading-room-desktop) {
+  min-width: 1382px;
+  overflow-x: visible;
+}
+
+.portfolio-reading-room > [data-group],
+.portfolio-reading-room [data-panel] > div {
+  min-height: 0;
+  min-width: 0;
+}
+
+.portfolio-reading-room-pane {
   background: var(--reader-paper);
-  border-left: 1px solid var(--map-line);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Desktop surfaces belong to the slot, not the view (Bradley's mockup
+   captures, 3 September): the main slot and its bar are the darker centre;
+   Contents, both side slots, and their bars are paper. A swapped view takes
+   its slot's colour, so Reader, Map, and Guide paint nothing of their own
+   here. Map silver is a mobile-only surface. */
+.portfolio-reading-room-pane[data-reading-room-slot="main"],
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar {
+  background: var(--map-paper-near);
+}
+
+.portfolio-reading-room-pane-body .portfolio-reader,
+.portfolio-reading-room-pane-body .portfolio-world,
+.portfolio-reading-room-pane-body .portfolio-chat {
+  background: transparent;
+}
+
+.portfolio-reading-room-view-bar {
+  align-items: center;
+  background: var(--reader-paper);
+  border-bottom: 1px solid var(--map-line);
+  color: var(--ink);
+  display: flex;
+  flex: 0 0 40px;
+  height: 40px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 17px 0 24px;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  z-index: 5;
+}
+
+.portfolio-reading-room-view-bar[data-mast="true"] {
+  padding-left: 17px;
+}
+
+.portfolio-reading-room-view-bar[data-mast="true"] .portfolio-reading-room-view-mark {
+  visibility: hidden;
+}
+
+/* dnd-kit moves the bar itself with the pointer and leaves a clone in place.
+   Hide the moving bar so nothing follows the pointer; the clone and the
+   React-marked source both darken. */
+.portfolio-reading-room-view-bar[data-dnd-dragging] {
+  visibility: hidden;
+}
+
+.portfolio-reading-room-view-bar[data-dnd-placeholder],
+.portfolio-reading-room-view-bar[data-dragging="true"] {
+  background: color-mix(in srgb, var(--reader-paper) 92%, var(--ink));
+}
+
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar[data-dnd-placeholder],
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar[data-dragging="true"] {
+  background: color-mix(in srgb, var(--map-paper-near) 92%, var(--ink));
+}
+
+.portfolio-reading-room-view-mark {
+  display: grid;
+  flex: 0 0 18px;
+  height: 18px;
+  place-items: center;
+  width: 18px;
+}
+
+.portfolio-reading-room-view-mark .portfolio-node-mark,
+.portfolio-reading-room-view-mark .portfolio-control-glyph {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.portfolio-reading-room-view-label {
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.portfolio-reading-room-view-controls {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  right: 17px;
+  top: 4px;
+  z-index: 7;
+}
+
+/* The top slot's own controls sit left of the global side-panes toggle that
+   occupies the viewport's top-right 32px at right 17 (prototype: new chat at
+   right 57 in a side slot, 17 in main). */
+.portfolio-reading-room-pane[data-reading-room-slot="top"] .portfolio-reading-room-view-controls,
+.portfolio-reading-room-desktop[data-right-collapsed="true"] .portfolio-reading-room-pane[data-reading-room-slot="main"] .portfolio-reading-room-view-controls {
+  right: 57px;
+}
+
+.portfolio-reading-room-view-controls .portfolio-control-mark,
+.portfolio-reading-room-global-controls .portfolio-control-mark,
+.portfolio-reading-room-main-mast > .portfolio-control-mark {
+  border-radius: 6px;
+  height: 32px;
+  min-width: 32px;
+  width: 32px;
+}
+
+.portfolio-reading-room-view-controls .portfolio-control-glyph,
+.portfolio-reading-room-global-controls .portfolio-control-glyph,
+.portfolio-reading-room-main-mast > .portfolio-control-mark .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+/* Reading Room scroll regions show no scrollbar: a gutter down the middle of
+   a slot is chrome the mockup never draws. Wheel, trackpad, and keyboard
+   scrolling are unchanged. */
+.portfolio-contents-scroll,
+.reader-scroll,
+.portfolio-chat-thread {
+  scrollbar-width: none;
+}
+
+.portfolio-contents-scroll::-webkit-scrollbar,
+.reader-scroll::-webkit-scrollbar,
+.portfolio-chat-thread::-webkit-scrollbar {
+  display: none;
+}
+
+.portfolio-reading-room-pane-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-pane-body > .portfolio-world,
+.portfolio-reading-room-mobile-map > .portfolio-world {
+  inset: 0;
+}
+
+.portfolio-reading-room-pane-body > .portfolio-world > .portfolio-world-mast,
+.portfolio-reading-room-mobile-map > .portfolio-world > .portfolio-world-mast {
+  display: none;
+}
+
+/* Each desktop view sits in one host that the shell reparents between slot
+   bodies on a bar swap, so the swap moves DOM rather than remounting React.
+   The host draws no box: the view lays out against the slot body exactly as
+   if it were the body's own child. */
+.portfolio-reading-room-view-host {
+  display: contents;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world {
+  inset: 0;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world > .portfolio-world-mast {
+  display: none;
+}
+
+.portfolio-reading-room-main-mast {
+  align-items: center;
+  display: flex;
+  gap: 3px;
+  height: 32px;
+  left: 17px;
+  position: absolute;
+  top: 4px;
+  z-index: 7;
+}
+
+.portfolio-reading-room-global-controls {
+  display: block;
+  height: 32px;
+  position: absolute;
+  right: 17px;
+  top: 4px;
+  width: 32px;
+  z-index: 20;
+}
+
+.portfolio-reading-room-home,
+.portfolio-reading-room-mobile-home {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: flex;
+  font: var(--reader-type-mast) var(--font-reader);
+  gap: 6px;
+  justify-self: start;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.portfolio-reading-room-home .portfolio-node-mark,
+.portfolio-reading-room-mobile-home .portfolio-node-mark {
+  height: 15px;
+  width: 15px;
+}
+
+.portfolio-reading-room-home > span,
+.portfolio-reading-room-mobile-home > span {
+  white-space: nowrap;
+}
+
+@media (pointer: fine) {
+  .portfolio-reading-room-view-controls .portfolio-control-mark:hover,
+  .portfolio-reading-room-global-controls .portfolio-control-mark:hover,
+  .portfolio-reading-room-main-mast > .portfolio-control-mark:hover,
+  .portfolio-contents-mast > .portfolio-control-mark:hover,
+  .portfolio-guide-copy:hover {
+    background: var(--reader-drop-fill);
+    color: var(--ink);
+  }
+}
+
+.portfolio-reading-room-separator {
+  background: var(--map-line);
+  overflow: visible;
+  position: relative;
+  z-index: 8;
+}
+
+.portfolio-reading-room-separator::before,
+.portfolio-reading-room-separator::after {
+  content: "";
+  position: absolute;
+}
+
+.portfolio-reading-room-separator::after {
+  background: transparent;
+  transition: background-color 100ms linear 150ms;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"] {
+  width: 1px !important;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"]::before {
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  top: 0;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"]::after {
+  bottom: 0;
+  left: -1px;
+  top: 0;
+  width: 3px;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"] {
+  height: 1px !important;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"]::before {
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  top: -4px;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"]::after {
+  height: 3px;
+  left: 0;
+  right: 0;
+  top: -1px;
+}
+
+.portfolio-reading-room-separator[data-separator="active"]::after {
+  background: var(--ink);
+  transition-delay: 0s;
+}
+
+@media (pointer: fine) {
+  .portfolio-reading-room-separator:hover::after {
+    background: var(--ink);
+  }
+}
+
+/* The drop target is the approved tile's overlay: fill and a 1px ink border,
+   no text. Nothing follows the pointer. */
+.portfolio-reading-room-drop-target {
+  background: var(--reader-drop-fill);
+  border: 1px solid var(--ink);
+  box-sizing: border-box;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 12;
+}
+
+.portfolio-reading-room-mobile {
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr) 56px;
+  min-height: 0;
+}
+
+.portfolio-reading-room-mobile-top {
+  align-items: center;
+  background: var(--reader-paper);
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  height: 44px;
+  padding: 0 20px;
+}
+
+.portfolio-reading-room-mobile-home {
+  padding: 0;
+}
+
+.portfolio-reading-room-mobile-page {
+  background: var(--map-paper-near);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-view {
+  background: var(--map-paper-near);
+  height: 100%;
+  inset: 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
+.portfolio-reading-room-mobile-view[hidden] {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-view > .portfolio-reader,
+.portfolio-reading-room-mobile-view > .portfolio-contents {
+  background: var(--map-paper-near);
+  height: 100%;
+}
+
+.portfolio-reading-room-mobile-view[data-mobile-view="contents"] .portfolio-contents-mast {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-map-page {
+  display: grid;
+  grid-template-rows: 52% 48%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-map,
+.portfolio-reading-room-mobile-guide {
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-map {
+  background: var(--map-paper);
+  border-bottom: 1px solid var(--map-line);
+}
+
+.portfolio-reading-room-mobile-guide {
+  background: var(--map-paper-near);
+  overflow: visible;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat {
+  background: var(--map-paper-near);
+}
+
+.portfolio-reading-room-mobile-avatar {
+  border: 1px dashed var(--map-line-strong);
+  bottom: 12px;
+  height: 96px;
+  pointer-events: none;
+  position: absolute;
+  right: 16px;
+  width: 96px;
+  z-index: 4;
+}
+
+.portfolio-composition:has(> .avatar-overlay) .portfolio-reading-room-mobile-avatar {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-avatar {
+  bottom: calc(100% + 12px);
+  flex: none;
+  height: 96px;
+  min-height: 0;
+  position: absolute;
+  right: 16px;
+  width: 96px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-thread {
+  margin-top: auto;
+}
+
+.portfolio-reading-room-read-chip {
+  align-items: center;
+  appearance: none;
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  display: flex;
+  font: var(--reader-type-secondary) var(--font-reader);
+  gap: 8px;
+  height: 32px;
+  left: 16px;
+  max-width: calc(100% - 32px);
+  padding: 0 10px 0 8px;
+  position: absolute;
+  top: 12px;
+  z-index: 7;
+}
+
+.portfolio-reading-room-read-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-reading-room-read-action {
+  align-items: center;
+  color: var(--reader-muted);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-node-mark {
+  flex: 0 0 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-node-mark svg,
+.portfolio-reading-room-read-chip .portfolio-control-glyph,
+.portfolio-reading-room-read-chip .portfolio-control-glyph svg {
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-control-glyph {
+  height: 12px;
+  margin: 0;
+  pointer-events: none;
+  width: 12px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-control-glyph svg {
+  height: 12px;
+  width: 12px;
+}
+
+.portfolio-reading-room-mobile-tabs {
+  align-items: center;
+  background: var(--reader-paper);
+  border-top: 1px solid var(--map-line);
+  display: flex;
+  height: 56px;
+  justify-content: space-around;
+  padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+}
+
+.portfolio-reading-room-mobile-tab {
+  align-items: center;
+  border-radius: 6px;
+  color: var(--reader-muted);
+  display: flex;
+  flex-direction: column;
+  font: var(--reader-type-tab) var(--font-reader);
+  gap: 4px;
+  height: 48px;
+  justify-content: center;
+  width: 88px;
+}
+
+.portfolio-reading-room-mobile-tab[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-control-glyph {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-node-mark {
+  height: 18px;
+  width: 18px;
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-node-brain {
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-reading-room-mobile-tab[aria-pressed="false"][data-control="reader"] .portfolio-node-brain,
+.portfolio-reading-room-mobile-tab[aria-pressed="false"][data-control="map"] .portfolio-control-pattern {
+  opacity: 0.45;
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-control-label {
+  color: inherit;
+  font: var(--reader-type-tab) var(--font-reader);
+}
+
+.portfolio-reading-room-mobile-new-chat {
+  bottom: 22px;
+  color: var(--reader-muted);
+  height: 32px;
+  min-width: 32px;
+  position: absolute;
+  right: 66px;
+  width: 32px;
+  z-index: 8;
+}
+
+.portfolio-reading-room-mobile-new-chat .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+.portfolio-contents {
+  background: var(--reader-paper);
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: var(--reader-width);
-  z-index: 6;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* The content area scrolls; the Index control is laid over it. A column so
-   the Privacy line can sit at the pane's end even when the content is
-   shorter than the pane. */
+.portfolio-contents-mast {
+  align-items: center;
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  flex: 0 0 40px;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 17px;
+}
+
+.portfolio-contents-mast > .portfolio-control-mark {
+  border-radius: 6px;
+  min-width: 32px;
+  width: 32px;
+}
+
+.portfolio-contents-mast > .portfolio-control-mark .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+.portfolio-contents-home {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  display: flex;
+  font: var(--reader-type-mast) var(--font-reader);
+  gap: 6px;
+  letter-spacing: -0.02em;
+  margin: 0;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* The mast never wraps: one line at every panel width, clipped before it
+   breaks. The Reader bar's brain is the only brain in the top row. */
+.portfolio-contents-home > span {
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.portfolio-contents-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px var(--reader-space-3) var(--reader-space-3);
+}
+
+.portfolio-contents-groups {
+  display: grid;
+  gap: var(--reader-space-4);
+}
+
+.portfolio-contents-group h2 {
+  color: var(--ink);
+  font: var(--reader-type-mast) var(--font-reader);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.portfolio-contents-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portfolio-contents-row {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  display: grid;
+  font: var(--reader-type-row) var(--font-reader);
+  gap: var(--reader-space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  height: 28px;
+  margin: 0 calc(var(--reader-space-1) * -1);
+  padding: 2px var(--reader-space-1);
+  text-align: left;
+  width: calc(100% + var(--reader-space-2));
+}
+
+.portfolio-contents-row[data-register="identity"] { --register: var(--world-identity); }
+.portfolio-contents-row[data-register="story"] { --register: var(--world-story); }
+.portfolio-contents-row[data-register="arc"] { --register: var(--world-arc); }
+.portfolio-contents-row[data-register="warm"] { --register: var(--world-warm); }
+.portfolio-contents-row[data-register="bridge"] { --register: var(--world-bridge); }
+.portfolio-contents-row[data-register="cool"] { --register: var(--world-cool); }
+
+.portfolio-contents-row[data-selected="true"] {
+  color: var(--register, var(--world-identity));
+  font-weight: 500;
+}
+
+.portfolio-reader {
+  background: var(--reader-paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* The centered column is at most 680px; its 24px gutters leave a 632px
+   content line. A narrower slot (a side slot, or a collapsed layout) reflows
+   the column to its own width instead of clipping it, as the mockup does. */
 .reader-scroll {
   display: flex;
   flex: 1;
   flex-direction: column;
+  margin: 0 auto;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  width: min(680px, 100%);
 }
 
 .reader-scroll > .reader-content {
@@ -868,11 +1476,11 @@ body:has(.portfolio-composition) {
 }
 
 .reader-content {
-  padding: var(--reader-space-3) var(--reader-space-4) 0;
+  padding: var(--reader-space-3) var(--reader-space-3) 0;
 }
 
-/* Head stack: title → 16 → summary → 32 → body. Home and Index have no
-   summary line, so their titles carry the 32 themselves. */
+/* Head stack: title → 16 → summary → 32 → body. About has no summary line,
+   so its title carries the 32 itself. */
 .reader-content h1 {
   color: var(--ink);
   font: var(--reader-type-display) var(--font-reader);
@@ -935,11 +1543,10 @@ body:has(.portfolio-composition) {
   margin: var(--reader-space-8) 0 0;
 }
 
-.reader-index-group h2,
 .reader-record-section h2 {
   color: var(--reader-muted);
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin: 0 0 var(--reader-space-1);
   text-transform: uppercase;
 }
@@ -950,9 +1557,9 @@ body:has(.portfolio-composition) {
   padding: 0;
 }
 
-/* One row rule set for index, related, explore, and contact: a 40px row,
-   the label in the row voice, the mark trailing in its register. State is
-   the outline alone; the mark never changes (Rule 6.1). */
+/* One row rule set for related, explore, and contact: a 40px row, the label
+   in the row voice, and the mark trailing in its register. State is the
+   outline alone; the mark never changes (Rule 6.1). */
 .reader-index-row {
   align-items: center;
   appearance: none;
@@ -971,17 +1578,8 @@ body:has(.portfolio-composition) {
 }
 
 .reader-index-row:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.reader-index-content {
-  display: grid;
-  gap: var(--reader-space-4);
-}
-
-.reader-index-content > h1 {
-  margin: 0;
 }
 
 /* Inline record links inside body copy: the paragraph's voice in the target
@@ -1017,7 +1615,7 @@ body:has(.portfolio-composition) {
   color: var(--reader-muted);
   display: block;
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -1058,7 +1656,7 @@ body:has(.portfolio-composition) {
 }
 
 .reader-visual-trigger:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -1107,7 +1705,7 @@ body:has(.portfolio-composition) {
 
 .reader-placeholder-count {
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   position: absolute;
   right: 12px;
   text-transform: uppercase;
@@ -1190,7 +1788,7 @@ body:has(.portfolio-composition) {
 }
 
 /* Hover is fine-pointer only, and instant: figures take a darker frame,
-   links a full-strength underline, the Index and Privacy controls ink. Rows
+   links a full-strength underline, and the Privacy control ink. Rows
    have no hover state. */
 @media (pointer: fine) {
   .reader-inline-link:hover {
@@ -1202,182 +1800,252 @@ body:has(.portfolio-composition) {
     border-color: var(--ink);
   }
 
-  .reader-privacy:hover,
-  .portfolio-reader-footer button:hover {
+  .reader-privacy:hover {
     color: var(--ink);
   }
+
+  .portfolio-contents-row:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+  }
 }
 
-.experience .portfolio-chat {
-  align-items: flex-end;
-  background: transparent;
+@media (max-width: 1019px) {
+  .portfolio-contents-row {
+    height: 36px;
+    padding-bottom: 6px;
+    padding-top: 6px;
+  }
+
+  .reader-scroll {
+    width: 100%;
+  }
+}
+
+.portfolio-chat {
+  background: var(--reader-paper, var(--reader-paper-light));
   border: 0;
-  bottom: var(--reader-space-3);
   box-shadow: none;
-  display: flex;
-  font-family: var(--font-reader);
-  left: auto;
-  max-width: none;
-  padding: 0;
-  pointer-events: none;
-  position: fixed;
-  right: var(--reader-space-3);
-  transform: none;
-  width: auto;
-  z-index: 8;
-}
-
-.portfolio-composition .portfolio-chat {
-  right: calc(var(--reader-width, 0px) + var(--reader-space-3));
-}
-
-.portfolio-chat-anchor {
-  align-items: flex-end;
+  color: var(--ink, var(--reader-ink-light));
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  pointer-events: auto;
-}
-
-.portfolio-chat-panel {
-  animation: assistant-panel-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  background: color-mix(in srgb, var(--reader-paper, var(--reader-paper-light)) 78%, var(--prototype-white));
-  border: 1px solid var(--map-line-strong, var(--map-line-strong-light));
-  border-radius: 15px;
-  box-shadow: 0 18px 48px var(--reader-assistant-shadow);
-  color: var(--ink, var(--reader-ink-light));
-  overflow: hidden;
-  width: var(--assistant-panel-width);
-}
-
-@media (min-width: 901px) {
-  .portfolio-composition .portfolio-chat-panel {
-    width: min(var(--assistant-panel-width), calc(100vw - var(--reader-width) - 178px));
-  }
-}
-
-@keyframes assistant-panel-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes assistant-avatar-enter {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.experience .portfolio-chat[hidden],
-.portfolio-chat-panel[hidden],
-.portfolio-chat-trigger[hidden] {
-  display: none;
-}
-
-.portfolio-chat-head {
-  align-items: center;
-  border-bottom: 1px solid var(--map-line, var(--map-line-light));
-  display: flex;
-  justify-content: space-between;
-  padding: 9px 11px;
-  touch-action: none;
-  user-select: none;
-}
-
-.portfolio-chat-head b {
-  font-size: 10px;
-  font-weight: 600;
-}
-
-/* The chat's own two glyphs — minimize and send — are node controls at 14px
-   with no label, kept to the head's and composer's existing 28px box. */
-.portfolio-chat-head .portfolio-control-mark,
-.portfolio-chat .portfolio-chat-composer .portfolio-control-mark {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  color: var(--ink, var(--reader-ink-light));
-  min-width: 28px;
+  font-family: var(--font-reader);
+  height: 100%;
+  max-width: none;
+  min-height: 0;
   padding: 0;
+  position: relative;
+  transform: none;
+  width: 100%;
 }
 
-.portfolio-chat-head .portfolio-control-glyph,
-.portfolio-chat .portfolio-chat-composer .portfolio-control-glyph {
-  height: 28px;
-  margin: 0;
-  width: 28px;
-}
-
-.portfolio-chat-mobile-nav {
-  display: none;
+.portfolio-guide-avatar {
+  flex: 1 1 auto;
+  min-height: 80px;
 }
 
 .portfolio-chat-thread {
-  max-height: 270px;
+  flex: 0 1 45%;
+  max-height: 45%;
   min-height: 0;
   overflow-y: auto;
-  padding: 11px;
+  padding: 0 var(--reader-space-3) 12px;
+}
+
+.portfolio-chat-thread > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
 }
 
 .chat-question {
   display: flex;
   justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .chat-question p {
   background: color-mix(in srgb, var(--ink, var(--reader-ink-light)) 8%, transparent);
-  border-radius: 12px 12px 3px 12px;
-  font-size: 10px;
-  line-height: 1.4;
-  margin: 0;
-  max-width: 88%;
-  padding: 7px 8px;
-}
-
-.portfolio-chat .chat-answer,
-.portfolio-chat .chat-message {
+  border-radius: 12px 12px 2px 12px;
   color: var(--ink, var(--reader-ink-light));
-  font-size: 11px;
-  line-height: 1.48;
-  margin: 11px 0 0;
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  max-width: 280px;
+  padding: var(--reader-space-1) 12px;
 }
 
-.chat-evidence-pills {
+.portfolio-guide-answer {
+  margin-top: 12px;
+  position: relative;
+}
+
+.portfolio-chat .chat-answer {
+  color: var(--reader-body, var(--reader-body-light));
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.portfolio-guide-citation {
+  --register: var(--world-identity);
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--register);
+  cursor: pointer;
+  font: inherit;
+  margin: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.portfolio-guide-citation[data-register="story"] { --register: var(--world-story); }
+.portfolio-guide-citation[data-register="arc"] { --register: var(--world-arc); }
+.portfolio-guide-citation[data-register="warm"] { --register: var(--world-warm); }
+.portfolio-guide-citation[data-register="bridge"] { --register: var(--world-bridge); }
+.portfolio-guide-citation[data-register="cool"] { --register: var(--world-cool); }
+
+.portfolio-guide-copy {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--reader-muted, var(--reader-muted-light));
+  cursor: pointer;
+  display: grid;
+  height: 24px;
+  margin: 2px 0 0 -4px;
+  padding: 0;
+  place-items: center;
+  width: 24px;
+}
+
+.portfolio-guide-copy .portfolio-control-glyph {
+  height: 24px;
+  margin: 0;
+  width: 24px;
+}
+
+.portfolio-guide-copy .portfolio-control-glyph svg {
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-guide-slow {
+  align-items: center;
+  color: var(--reader-muted, var(--reader-muted-light));
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 9px;
+  font: var(--reader-type-secondary) var(--font-reader);
+  gap: 12px;
+  margin-top: 12px;
 }
 
-.chat-evidence-pills a {
-  border: 1px solid var(--map-line, var(--map-line-light));
-  border-radius: 999px;
-  color: var(--map-muted, var(--map-muted-light));
-  font-size: 8px;
-  padding: 4px 6px;
-  text-decoration: none;
+.portfolio-guide-twirl {
+  -webkit-mask: url("/biv-twirl-sprite.png") 0 0 / 2268px 18px no-repeat;
+  animation: portfolio-guide-twirl 3s steps(126, end) infinite;
+  background: currentColor;
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  mask: url("/biv-twirl-sprite.png") 0 0 / 2268px 18px no-repeat;
+  width: 18px;
+}
+
+@keyframes portfolio-guide-twirl {
+  to {
+    -webkit-mask-position: -2268px 0;
+    mask-position: -2268px 0;
+  }
+}
+
+.portfolio-guide-error,
+.portfolio-guide-notice {
+  color: var(--reader-body, var(--reader-body-light));
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 12px 0 0;
+}
+
+.portfolio-guide-error button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink, var(--reader-ink-light));
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.portfolio-guide-suggestions {
+  display: grid;
+  margin-top: 12px;
+}
+
+.portfolio-guide-suggestion {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink, var(--reader-ink-light));
+  cursor: pointer;
+  display: flex;
+  font: var(--reader-type-row) var(--font-reader);
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 0;
+  text-align: left;
+  width: 100%;
+}
+
+.portfolio-guide-suggestion-mark {
+  -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
+  background: currentColor;
+  display: block;
+  flex: 0 0 15px;
+  height: 15px;
+  mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
+  width: 15px;
+}
+
+.portfolio-guide-suggestion .portfolio-control-glyph {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.portfolio-guide-suggestion .portfolio-control-glyph svg {
+  height: 18px;
+  width: 18px;
+}
+
+.chat-turnstile {
+  margin: 0 var(--reader-space-3) 12px;
+  min-height: 0;
+}
+
+.chat-note {
+  color: var(--reader-muted, var(--reader-muted-light));
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin: var(--reader-space-1) 0 0;
 }
 
 .portfolio-chat-composer {
-  align-items: center;
+  background: var(--map-paper-near, var(--map-paper-near-light));
   border: 1px solid var(--map-line, var(--map-line-light));
-  border-radius: 9px;
-  display: grid;
-  gap: 5px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin: 0 8px 8px;
-  padding: 6px;
+  border-radius: 6px;
+  display: block;
+  height: 78px;
+  margin: 12px var(--reader-space-3) var(--reader-space-3);
+  padding: 0;
+  position: relative;
+}
+
+.portfolio-chat[data-offline="true"] .portfolio-chat-composer {
+  opacity: 0.6;
 }
 
 .portfolio-chat-suggestion {
@@ -1402,18 +2070,86 @@ body:has(.portfolio-composition) {
 .portfolio-chat .portfolio-chat-composer textarea {
   background: transparent;
   border: 0;
-  box-sizing: border-box;
   color: var(--ink, var(--reader-ink-light));
-  font: inherit;
-  font-size: 9px;
-  line-height: 1.4;
+  font: var(--reader-type-body) var(--font-reader);
+  height: 76px;
+  max-height: 192px;
   min-width: 0;
   outline: 0;
-  overflow-x: hidden;
-  overflow-y: hidden;
-  padding: 0;
+  overflow-y: auto;
+  padding: 12px 48px 40px 14px;
   resize: none;
   width: 100%;
+}
+
+.portfolio-guide-send {
+  align-items: center;
+  appearance: none;
+  background: var(--ink, var(--reader-ink-light));
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper, var(--reader-paper-light));
+  cursor: pointer;
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  width: 28px;
+}
+
+.portfolio-guide-send:disabled {
+  background: transparent;
+  color: var(--reader-muted, var(--reader-muted-light));
+  cursor: default;
+}
+
+.portfolio-guide-send .portfolio-control-glyph {
+  height: 28px;
+  margin: 0;
+  width: 28px;
+}
+
+.portfolio-guide-send .portfolio-control-glyph svg {
+  height: 18px;
+  width: 18px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-composer {
+  background: var(--map-paper);
+  height: 44px;
+  margin: 0 var(--reader-space-3) var(--reader-space-2);
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-composer textarea {
+  height: 42px;
+  max-height: 42px;
+  padding: 9px 44px 9px 12px;
+}
+
+.portfolio-reading-room-mobile-guide[data-has-thread="true"] .portfolio-chat-composer textarea {
+  padding-right: 80px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send {
+  bottom: auto;
+  color: var(--map-paper-near);
+  height: 32px;
+  right: 6px;
+  top: 6px;
+  width: 32px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send:disabled {
+  color: var(--reader-muted);
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send .portfolio-control-glyph {
+  height: 32px;
+  width: 32px;
 }
 
 .cursor-instrument {
@@ -1486,205 +2222,21 @@ body:has(.portfolio-composition) {
 
 @media (pointer: coarse) {
   .cursor-instrument { display: none; }
-
-  .portfolio-composition:has(.portfolio-chat[data-open="false"]) > .avatar-overlay {
-    display: none;
-  }
-
 }
 
-@media (max-width: 900px) {
-  .portfolio-composition { --reader-width: 100%; }
-  .portfolio-composition .avatar-director-console {
-    left: 0;
-    max-width: 100vw;
-  }
-  .portfolio-composition .portfolio-world { display: none; }
-  .portfolio-composition.portfolio-visual-open .portfolio-world {
-    display: block;
-    inset: 0;
-  }
-  .portfolio-composition.portfolio-visual-open .portfolio-reader {
-    display: none;
-  }
-  .portfolio-composition .scene-shell:has(.portfolio-chat[data-open="true"]) .portfolio-world {
-    display: block;
-    inset: 0;
-  }
-  .portfolio-composition .portfolio-reader {
-    border-left: 0;
-    width: 100%;
-  }
+@media (max-width: 1019px) {
   /* Page inset and gutter become the same number; nothing shrinks. */
-  /* The mobile map/index control is fixed at the 16 inset, so the Index
-     label and the Privacy line drop to that inset too, and the content
-     keeps 40 clear at the end for the control's box. */
   .portfolio-composition .reader-content {
     padding: var(--reader-space-3) var(--reader-space-3) 0;
   }
   .portfolio-composition .reader-privacy {
-    padding: var(--reader-space-4) calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
-  }
-  .portfolio-composition .portfolio-reader-footer {
-    padding: 0 calc(var(--reader-space-3) + 40px + var(--reader-space-2)) max(var(--reader-space-2), env(safe-area-inset-bottom)) var(--reader-space-3);
-  }
-  .portfolio-composition .portfolio-chat-trigger {
-    display: none;
-  }
-  .portfolio-composition .portfolio-mobile-view-control {
-    bottom: max(var(--reader-space-2), env(safe-area-inset-bottom));
-    display: grid;
-    position: fixed;
-    right: max(var(--reader-space-3), env(safe-area-inset-right));
-    z-index: 9;
-  }
-  .portfolio-composition:has(.portfolio-chat[data-open="true"]) .portfolio-mobile-view-control,
-  .portfolio-composition.portfolio-visual-open .portfolio-mobile-view-control {
-    display: none;
-  }
-  .portfolio-composition.portfolio-mobile-map-open .portfolio-world {
-    display: block;
-    inset: 0;
-  }
-  .portfolio-composition.portfolio-mobile-map-open .portfolio-reader {
-    display: none;
-  }
-  .portfolio-mobile-map-open .portfolio-world-mast {
-    left: max(var(--reader-space-3), env(safe-area-inset-left));
-    top: max(var(--reader-space-3), env(safe-area-inset-top));
-  }
-  .experience .portfolio-chat {
-    bottom: max(14px, env(safe-area-inset-bottom)) !important;
-    left: auto !important;
-    right: max(14px, env(safe-area-inset-right)) !important;
-    top: auto !important;
-  }
-  .experience .portfolio-chat-panel {
-    width: min(var(--assistant-panel-width), calc(100vw - 84px));
-  }
-  .experience .portfolio-chat-thread {
-    max-height: min(52vh, 360px);
-  }
-  .portfolio-composition .scene-shell:has(.portfolio-chat[data-open="true"]) .portfolio-reader {
-    display: none;
-  }
-  .portfolio-composition .portfolio-chat-head {
-    touch-action: auto;
+    padding: var(--reader-space-4) var(--reader-space-3) max(var(--reader-space-2), env(safe-area-inset-bottom));
   }
 }
 
 @media (max-width: 600px) {
   .portfolio-composition {
     --mobile-controls-inline-end: max(14px, env(safe-area-inset-right));
-  }
-
-  .portfolio-composition .portfolio-chat {
-    left: max(14px, env(safe-area-inset-left)) !important;
-    right: var(--mobile-controls-inline-end) !important;
-    width: auto;
-  }
-
-  .portfolio-composition .portfolio-chat-anchor,
-  .experience .portfolio-chat-panel {
-    width: 100%;
-  }
-
-  .portfolio-composition .portfolio-chat-panel:not([hidden]) {
-    border-radius: 18px;
-    display: flex;
-    flex-direction: column;
-    max-height: min(54dvh, 420px);
-  }
-
-  .portfolio-composition .portfolio-chat-head {
-    display: none;
-  }
-
-  .portfolio-composition .portfolio-chat-mobile-nav:not([hidden]) {
-    align-items: center;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    left: max(18px, env(safe-area-inset-left));
-    pointer-events: auto;
-    position: fixed;
-    right: max(18px, env(safe-area-inset-right));
-    top: max(16px, env(safe-area-inset-top));
-    z-index: 11;
-  }
-
-  .portfolio-chat-mobile-nav button {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    color: var(--ink, var(--reader-ink-light));
-    display: inline-flex;
-    font: inherit;
-    font-size: 13px;
-    gap: 5px;
-    justify-self: start;
-    padding: 8px 0;
-  }
-
-  .portfolio-chat-mobile-nav b {
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .portfolio-chat-mobile-nav span {
-    width: 1px;
-  }
-
-  .portfolio-composition .portfolio-chat-thread {
-    flex: 1 1 auto;
-    max-height: min(44dvh, 340px);
-    min-height: 0;
-    overscroll-behavior: contain;
-    padding: 14px 14px 10px;
-  }
-
-  .portfolio-composition .portfolio-chat-composer {
-    border: 0;
-    border-radius: 0;
-    display: block;
-    flex: 0 0 auto;
-    margin: 0;
-    padding: 13px 52px 13px 14px;
-    position: relative;
-  }
-
-  .portfolio-composition .portfolio-chat[data-has-thread="true"] .portfolio-chat-composer {
-    border-top: 1px solid var(--map-line, var(--map-line-light));
-  }
-
-  .portfolio-composition .portfolio-chat-composer textarea {
-    box-sizing: border-box;
-    display: block;
-    font-size: 16px;
-    line-height: 1.35;
-    max-height: 65px;
-    min-height: 24px;
-    overflow-y: hidden;
-    width: 100%;
-  }
-
-  .portfolio-composition .portfolio-chat-composer button {
-    bottom: 9px;
-    height: 34px;
-    position: absolute;
-    right: 9px;
-    width: 34px;
-  }
-
-  .portfolio-composition .scene-shell:has(.portfolio-chat[data-open="true"]) .portfolio-world-mast {
-    display: none;
-  }
-
-  .portfolio-composition .scene-shell:has(.portfolio-chat[data-input-focused="true"]) .portfolio-world > canvas {
-    transform: translateY(-48px);
-  }
-
-  .portfolio-composition .scene-shell:has(.portfolio-chat[data-input-focused="true"]) .portfolio-world-node {
-    transform: translate(-50%, calc(-50% - 48px));
   }
 
   .portfolio-visual-stage {
@@ -1714,7 +2266,7 @@ body:has(.portfolio-composition) {
 
 @media (prefers-reduced-motion: reduce) {
   .avatar-overlay-canvas,
-  .portfolio-chat-panel {
+  .portfolio-guide-twirl {
     animation-duration: 1ms;
   }
 
@@ -1732,19 +2284,21 @@ body:has(.portfolio-composition) {
 :where([data-theme="light"]) .portfolio-composition,
 .portfolio-composition[data-theme="light"],
 .design-gallery[data-theme="light"] {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-light);
   --map-muted: var(--map-muted-light);
   --map-paper: var(--map-silver);
   --map-paper-near: var(--map-paper-near-light);
   --reader-paper: var(--reader-paper-light);
   --reader-body: var(--reader-body-light);
+  --reader-drop-fill: var(--reader-drop-fill-light);
   --reader-muted: var(--reader-muted-light);
   --map-connector: var(--map-connector-light);
   --map-line: var(--map-line-light);
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
   --world-identity: var(--reader-ink-light);
-  --world-story: var(--world-lichen);
+  --world-story: var(--world-hard-red);
   --world-arc: var(--world-hard-red);
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
@@ -1755,19 +2309,21 @@ body:has(.portfolio-composition) {
 :where([data-theme="dark"]) .portfolio-composition,
 .portfolio-composition[data-theme="dark"],
 .design-gallery[data-theme="dark"] {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-dark);
   --map-muted: var(--map-muted-dark);
   --map-paper: var(--map-paper-dark);
   --map-paper-near: var(--map-paper-near-dark);
   --reader-paper: var(--reader-paper-dark);
   --reader-body: var(--reader-body-dark);
+  --reader-drop-fill: var(--reader-drop-fill-dark);
   --reader-muted: var(--reader-muted-dark);
   --map-connector: var(--map-connector-dark);
   --map-line: var(--map-line-dark);
   --map-line-strong: var(--map-line-strong-dark);
   --map-grid: var(--map-grid-dark);
   --world-identity: var(--reader-ink-dark);
-  --world-story: var(--world-acid);
+  --world-story: var(--world-signal-red);
   --world-arc: var(--world-signal-red);
   --world-warm: var(--world-hot-pink);
   --world-bridge: var(--world-violet-dark);
@@ -2048,12 +2604,8 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   max-width: 420px;
 }
 
-/* Composition widths are viewport-derived — --reader-width is
-   clamp(460px, 38vw, 560px), and the sole composition breakpoint is a
-   max-width media query. A stage inset by the page gutter therefore renders
-   the dossier at the right value but the wrong proportion, which is what the
-   old --reader-width overrides were papering over. Bleeding to the full window
-   makes the specimen's layout the layout the site actually ships. */
+/* Full Reading Room specimens bleed to the viewport so all panel constraints
+   are evaluated against the same width as the shipped route. */
 .design-stage[data-bleed="true"] {
   margin-inline: calc(50% - 50vw);
   width: 100vw;

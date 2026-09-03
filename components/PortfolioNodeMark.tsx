@@ -15,7 +15,7 @@ import type {
   PortfolioWorldFamily,
   PortfolioWorldRegister,
 } from "../lib/portfolio-world";
-import type { ComponentPropsWithRef } from "react";
+import type { ComponentPropsWithRef, CSSProperties } from "react";
 
 function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimitive[] }) {
   const halfViewBox = PORTFOLIO_NODE_MARK_SIZE * 0.6;
@@ -61,6 +61,37 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
         return null;
       })}
     </svg>
+  );
+}
+
+function shapeMask(d: string) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='-9 -9 18 18'><path d='${d}' fill='#000'/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+// The brain pattern is a CSS mask (the outline shape intersected with the
+// brain at 170%), exactly as the prototype draws it. It references no SVG ids,
+// so a cloned bar — dnd-kit copies the bar while it drags — keeps its
+// pattern instead of resolving a duplicate id to a hidden element.
+function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {
+  const [outline] = portfolioControlMarkPrimitives(kind);
+  if (outline.kind !== "path") return null;
+
+  return (
+    <>
+      <span
+        className="portfolio-control-pattern"
+        data-pattern="brain"
+        style={{ "--control-shape": shapeMask(outline.d) } as CSSProperties}
+      />
+      <svg focusable="false" viewBox="-9 -9 18 18">
+        <path
+          d={outline.d}
+          fill="none"
+          strokeWidth={kind === "chat" ? 1.15 : undefined}
+        />
+      </svg>
+    </>
   );
 }
 
@@ -111,7 +142,8 @@ type PortfolioControlMarkProps = Omit<ComponentPropsWithRef<"button">, "children
 
 // A control drawn as a node mark: the glyph alone in the node envelope, an
 // invisible 40px hit box around it, a caption below, and nothing else — no
-// ring, fill, shadow, or pictogram. `map` renders the brain symbol mask.
+// ring, fill, shadow, or pictogram. Map and Guide clip the SVG brain pattern
+// inside their supplied outlines.
 export function PortfolioControlMark({
   className,
   kind,
@@ -126,14 +158,20 @@ export function PortfolioControlMark({
       type={type}
       {...rest}
     >
-      <span aria-hidden="true" className="portfolio-control-glyph">
-        {kind === "map" ? (
-          <span className="portfolio-node-brain" />
-        ) : (
-          <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
-        )}
-      </span>
+      <PortfolioControlGlyph kind={kind} />
       {label ? <span className="portfolio-control-label">{label}</span> : null}
     </button>
+  );
+}
+
+export function PortfolioControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
+  return (
+    <span aria-hidden="true" className="portfolio-control-glyph" data-control-glyph={kind}>
+      {kind === "map" || kind === "chat" ? (
+        <PatternedControlGlyph kind={kind} />
+      ) : (
+        <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
+      )}
+    </span>
   );
 }

@@ -97,6 +97,33 @@ describe("AvatarOverlay", () => {
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
   });
 
+  it("mounts no canvas before the avatar first shows", () => {
+    render(<AvatarOverlay runtime={runtime()} />);
+
+    expect(screen.queryByTestId("avatar-canvas")).toBeNull();
+  });
+
+  it("keeps the canvas mounted while hidden and pauses its frameloop", () => {
+    const avatar = runtime();
+    avatar.show();
+    render(<AvatarOverlay runtime={avatar} />);
+    const canvas = screen.getByTestId("avatar-canvas");
+    const overlay = canvas.closest(".avatar-overlay")!;
+    expect(overlay.hasAttribute("hidden")).toBe(false);
+
+    act(() => avatar.hide());
+
+    expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
+    expect(canvas.getAttribute("data-frameloop")).toBe("never");
+    expect(overlay.hasAttribute("hidden")).toBe(true);
+
+    act(() => avatar.show());
+
+    expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
+    expect(canvas.getAttribute("data-frameloop")).toBe("always");
+    expect(overlay.hasAttribute("hidden")).toBe(false);
+  });
+
   it("renders no public avatar controls", () => {
     const avatar = runtime();
     avatar.show();

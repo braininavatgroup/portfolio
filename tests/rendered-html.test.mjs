@@ -63,8 +63,8 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.match(html, /id=["']cursorInstrument["']/i);
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
   assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
-  assert.match(html, /data-reader-mode=["']home["']/i);
+  assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
+  assert.match(html, /data-reader-mode=["']about["']/i);
   assert.doesNotMatch(html, /<h1>Index<\/h1>/i);
   assert.doesNotMatch(html, />Enter map</i);
   assert.match(html, /aria-label=["']Portfolio home["']/i);
@@ -80,8 +80,10 @@ test("server-renders the accepted composition as the landing state", async () =>
     html,
     /placeholder=["']Ask a follow-up["']/i,
   );
-  assert.match(html, /aria-label=["']Open portfolio assistant["']/i);
-  assert.match(html, /class=["'][^"']*portfolio-chat-panel[^"']*["'][^>]*hidden/i);
+  assert.match(html, /aria-label=["']Portfolio reading room["']/i);
+  assert.match(html, /data-reading-room-slot=["']main["']/i);
+  assert.match(html, /aria-label=["']Portfolio Guide["']/i);
+  assert.doesNotMatch(html, /Open portfolio assistant|portfolio-chat-panel/i);
   assert.doesNotMatch(html, /Try one of the rotating questions/i);
   assert.doesNotMatch(html, /No external model is called/i);
   assert.doesNotMatch(html, /Local tool/i);
@@ -96,14 +98,14 @@ test("the homepage opens directly on the map with About as the untitled home", a
 
   assert.match(html, /class=["'][^"']*portfolio-composition[^"']*["']/i);
   assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
-  assert.match(html, /data-reader-mode=["']home["']/i);
+  assert.match(html, /data-reader-mode=["']about["']/i);
   assert.doesNotMatch(html, /<h1>Index<\/h1>/i);
   assert.doesNotMatch(html, /<h1>Bradley Berkman<\/h1>/i);
-  assert.match(html, /aria-label=["']Spatial portfolio map["']/i);
   assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
   assert.match(html, /aria-label=["']Portfolio home["']/i);
-  // The footer's Index control and the inline practice links ship in the HTML.
-  assert.match(html, /aria-label=["']Portfolio index["']/i);
+  // The Contents column and the inline practice links ship in the HTML.
+  assert.match(html, /aria-label=["']Portfolio contents["']/i);
+  assert.doesNotMatch(html, /aria-label=["']Portfolio index["']/i);
   assert.match(html, /class=["']reader-inline-link["'][^>]*data-register=["']warm["']/i);
   // Every record label and thread title from the content document ships in
   // the HTML, whatever the copy currently says.

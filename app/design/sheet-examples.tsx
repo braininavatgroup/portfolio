@@ -18,8 +18,10 @@ import {
   PortfolioAnalyticsPreference,
 } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
+import { PortfolioContents } from "../../components/PortfolioContents";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
-import { PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioReadingRoom } from "../../components/PortfolioReadingRoom";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
@@ -76,12 +78,86 @@ export function PortfolioAnalyticsExample() {
 export function PortfolioNodeMarkExample() {
   // The mark takes its shape from `family` and its color from `register`,
   // and must sit inside a `.portfolio-composition` for `--world-*` to resolve.
-  // A control is the same envelope drawn as a button: glyph, 40px hit box,
-  // and a caption; the accessible name comes from `aria-label`.
+  // Patterned Map and Guide controls use the same SVG brain asset as identity.
+  // The accessible names come from `aria-label`.
   return (
     <div className="portfolio-composition">
-      <PortfolioNodeMark family="operation" register="warm" />
+      <PortfolioNodeMark family="identity" register="identity" />
+      <PortfolioControlGlyph kind="reader" />
       <PortfolioControlMark aria-label="Show portfolio map" kind="map" label="Map" />
+      <PortfolioControlMark aria-label="Open the Guide" kind="chat" label="Guide" />
+    </div>
+  );
+}
+// #example-end
+
+// #example:PortfolioReadingRoom
+export function PortfolioReadingRoomExample() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [guideHasThread, setGuideHasThread] = useState(false);
+
+  return (
+    <div className="portfolio-composition">
+      <PortfolioReadingRoom
+        activeThreadId={activeThreadId}
+        guide={(
+          <PortfolioChat
+            askPortfolio={galleryAskPortfolio}
+            onThreadStateChange={setGuideHasThread}
+            renderTurnstile={galleryRenderTurnstile}
+          />
+        )}
+        guideHasThread={guideHasThread}
+        map={(
+          <PortfolioWorld
+            activeThreadId={activeThreadId}
+            onReset={() => setSelectedId(null)}
+            onSelect={(node) => setSelectedId(node.id)}
+            selectedId={selectedId}
+          />
+        )}
+        onGuideReset={() => setGuideHasThread(false)}
+        onHome={() => {
+          setSelectedId(null);
+          setActiveThreadId(null);
+        }}
+        onSelect={(node) => setSelectedId(node.id)}
+        onSelectThread={setActiveThreadId}
+        reader={(
+          <PortfolioReader
+            activeThreadId={activeThreadId}
+            onReset={() => setSelectedId(null)}
+            onSelect={(node) => setSelectedId(node.id)}
+            onSelectThread={setActiveThreadId}
+            selectedId={selectedId}
+          />
+        )}
+        selectedId={selectedId}
+        selectedSubject={null}
+      />
+    </div>
+  );
+}
+// #example-end
+
+// #example:PortfolioContents
+export function PortfolioContentsExample() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+
+  return (
+    <div className="portfolio-composition">
+      <PortfolioContents
+        activeThreadId={activeThreadId}
+        onHome={() => {
+          setSelectedId(null);
+          setActiveThreadId(null);
+        }}
+        onSelect={(node) => setSelectedId(node.id)}
+        onSelectThread={setActiveThreadId}
+        selectedId={selectedId}
+      />
     </div>
   );
 }
@@ -118,6 +194,8 @@ export function PortfolioWorldExample() {
       <section className="scene-shell">
         <PortfolioWorld
           activeThreadId={null}
+          compact
+          nodesInTabOrder={false}
           onReset={() => setSelectedId(null)}
           onSelect={(node) => setSelectedId(node.id)}
           selectedId={selectedId}
@@ -130,18 +208,13 @@ export function PortfolioWorldExample() {
 
 // #example:PortfolioChat
 export function PortfolioChatExample() {
-  const [open, setOpen] = useState(false);
-
-  // Match the production composition so the dock uses its fixed positioning.
   return (
-    <div className="experience portfolio-composition">
-      <section className="scene-shell">
+    <div className="portfolio-composition" style={{ height: 480 }}>
+      <section style={{ height: "100%" }}>
         <PortfolioChat
           // Omit both stubs in production: the defaults are
           // `streamPortfolioAnswer` and the real Turnstile renderer.
           askPortfolio={galleryAskPortfolio}
-          onOpenChange={setOpen}
-          open={open}
           renderTurnstile={galleryRenderTurnstile}
         />
       </section>

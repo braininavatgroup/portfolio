@@ -24,6 +24,20 @@ if (typeof document !== "undefined") {
     configurable: true,
     value: () => null,
   });
+
+  // jsdom also omits ResizeObserver. Browser components may subscribe to it
+  // while mounting even when a test does not need to drive a resize event.
+  if (typeof globalThis.ResizeObserver === "undefined") {
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+      writable: true,
+    });
+  }
 }
 
 export {};

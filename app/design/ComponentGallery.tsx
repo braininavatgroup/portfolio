@@ -12,6 +12,7 @@ import { PortfolioContactMark, PortfolioControlMark, PortfolioNodeMark } from ".
 import { portfolioControlMarkKinds } from "../../lib/portfolio-control-mark";
 import { portfolioContactMarkKinds } from "../../lib/portfolio-contact-mark";
 import { PortfolioReader } from "../../components/PortfolioReader";
+import { PortfolioReadingRoom } from "../../components/PortfolioReadingRoom";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import {
   createMemoryStorage,
@@ -26,10 +27,9 @@ import { Section, Specimen, Stage, StateStrip } from "./gallery-ui";
 const noop = () => {};
 
 /**
- * The composition root, exactly as `PortfolioExperience` writes it. No
- * `--reader-width` override: the live value is `clamp(460px, 38vw, 560px)` on
- * desktop and `100%` below 900px, and forcing a third value rendered a layout
- * the site cannot produce.
+ * The composition root, exactly as `PortfolioExperience` writes it. Full
+ * Reading Room specimens use a viewport-width stage so panel constraints are
+ * exercised at their shipped size.
  */
 function Composition({
   children,
@@ -83,10 +83,9 @@ function NodeMarkGrid() {
       </div>
       <p className="design-note" style={{ marginTop: "18px" }}>
         Glyph is a function of family, colour of register, and the two axes are
-        independent — the register column in the Color section carries the same
-        six values with their token names. The contact marks share the envelope
-        in the identity colour: node primitives for email, CV, and Instagram,
-        filled silhouettes for GitHub and LinkedIn like the brain symbol.
+        independent. Story keeps its register type while sharing Arc red. Map
+        and Guide clip the SVG brain pattern inside their outlines. Contact
+        marks share the envelope in the identity colour.
       </p>
     </div>
   );
@@ -94,7 +93,6 @@ function NodeMarkGrid() {
 
 const readerStates = [
   { value: "home", label: "Home", activeThreadId: null, selectedId: null },
-  { value: "index", label: "Index", activeThreadId: null, selectedId: null },
   { value: "record", label: "Record", activeThreadId: null, selectedId: "reporting" },
   {
     value: "thread",
@@ -126,8 +124,6 @@ function ReaderStates() {
         <Composition>
           <PortfolioReader
             activeThreadId={active.activeThreadId}
-            indexOpen={state === "index"}
-            onOpenIndex={() => setState("index")}
             onReset={() => setState("home")}
             onSelect={noop}
             onSelectThread={noop}
@@ -194,15 +190,13 @@ function WorldStates() {
 }
 
 function ChatStates() {
-  const [open, setOpen] = useState(true);
-
   return (
     <>
       <div className="design-lazy">
         <span>
           Live, against a stub — asking a question never reaches the chat API.
-          The trigger minimises it; the dock is inset by{" "}
-          <code>--reader-width</code>, as on the live page.
+          The Guide is always docked; its Reading Room bar owns collapse and
+          new-chat controls on the live page.
         </span>
       </div>
       <Stage bleed>
@@ -210,14 +204,55 @@ function ChatStates() {
           <section className="scene-shell">
             <PortfolioChat
               askPortfolio={galleryAskPortfolio}
-              onOpenChange={setOpen}
-              open={open}
               renderTurnstile={galleryRenderTurnstile}
             />
           </section>
         </Composition>
       </Stage>
     </>
+  );
+}
+
+function ReadingRoomMap({
+  compact,
+  nodesInTabOrder,
+}: {
+  compact?: boolean;
+  nodesInTabOrder?: boolean;
+}) {
+  return (
+    <div
+      className="design-reading-room-map"
+      data-compact={compact}
+      data-tab-order={nodesInTabOrder}
+    >
+      Map
+    </div>
+  );
+}
+
+function ReadingRoomState() {
+  const [storage] = useState(() => createMemoryStorage());
+
+  return (
+    <Stage bleed size="viewport">
+      <Composition>
+        <PortfolioReadingRoom
+          activeThreadId={null}
+          guide={<div className="design-reading-room-guide">Guide</div>}
+          guideHasThread={false}
+          map={<ReadingRoomMap />}
+          onGuideReset={noop}
+          onHome={noop}
+          onSelect={noop}
+          onSelectThread={noop}
+          reader={<div className="design-reading-room-reader">Reader</div>}
+          selectedId={null}
+          selectedSubject={null}
+          storage={storage}
+        />
+      </Composition>
+    </Stage>
   );
 }
 
@@ -283,6 +318,15 @@ export function CompositionSections() {
       </Section>
 
       <Section
+        id="reading-room"
+        note="The responsive Contents, main, and stacked-side workspace. Drag any pane bar onto another to exchange their views."
+        source="components/PortfolioReadingRoom.tsx"
+        title="Reading Room"
+      >
+        <ReadingRoomState />
+      </Section>
+
+      <Section
         id="world"
         note="A 2D canvas, not Three.js, sized around the dossier. It renders eagerly."
         source="components/PortfolioWorld.tsx"
@@ -302,9 +346,9 @@ export function CompositionSections() {
 
       <Section
         id="chat"
-        note="The only temporary floating surface. Minimised it is a 40px control; open it is an 18rem panel."
+        note="The docked Guide body. The Reading Room bar owns its visibility and new-chat control."
         source="components/PortfolioChat.tsx"
-        title="Chat"
+        title="Guide"
       >
         <ChatStates />
       </Section>
