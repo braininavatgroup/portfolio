@@ -20,6 +20,11 @@ const KEYCHAIN_SERVICE = "biv-portfolio-feedback";
 const KEYCHAIN_ACCOUNT = "admin-token";
 const ADMIN_PATH = "/_portfolio-feedback/admin/notes";
 const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
+// Mirrors PLACEHOLDER_REVIEWER_CODES in worker/portfolio-feedback-store.ts.
+const PLACEHOLDER_CODES = new Set([
+  "name", "your-name", "yourname", "first-name", "firstname", "their-name",
+  "code", "reviewer", "reviewer-code", "person", "guest",
+]);
 
 function parseArguments(argv) {
   const options = { site: DEFAULT_SITE, json: false, link: null };
@@ -53,6 +58,9 @@ export function reviewerLink(site, raw) {
   const code = normalizeReviewerCode(raw);
   if (!code) {
     throw new Error("A reviewer code needs at least two letters or digits, e.g. alice or \"Sarah Smith\".");
+  }
+  if (PLACEHOLDER_CODES.has(code)) {
+    throw new Error(`"${raw}" looks like a placeholder; put the person's actual name in the link.`);
   }
   const url = new URL(site);
   url.pathname = "/";

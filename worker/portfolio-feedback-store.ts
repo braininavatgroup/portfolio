@@ -22,6 +22,8 @@ export type FeedbackTarget = {
 
 export type FeedbackNoteInput = {
   reviewer: string;
+  /** What the reviewer typed when their link carried a placeholder code. */
+  reviewerName?: string;
   path: string;
   /** May be empty when `suggestion` carries the feedback. */
   note: string;
@@ -55,6 +57,30 @@ export const MAX_FIELD_LENGTH = 600;
 export const MAX_QUOTE_LENGTH = 600;
 export const MAX_CONTEXT_LENGTH = 80;
 export const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
+export const MAX_REVIEWER_NAME_LENGTH = 80;
+
+/**
+ * Codes a link ends up with when a message template was sent unedited
+ * (`?r=[name]`, `?r=<code>`). Such a link still works, but the widget asks the
+ * reviewer for their name so the digest can tell people apart.
+ */
+const PLACEHOLDER_REVIEWER_CODES = new Set([
+  "name",
+  "your-name",
+  "yourname",
+  "first-name",
+  "firstname",
+  "their-name",
+  "code",
+  "reviewer",
+  "reviewer-code",
+  "person",
+  "guest",
+]);
+
+export function isPlaceholderReviewerCode(code: string) {
+  return PLACEHOLDER_REVIEWER_CODES.has(code);
+}
 
 /**
  * Turns whatever Bradley typed into a link into a canonical reviewer code, so
@@ -150,6 +176,8 @@ export function readFeedbackNoteInput(
   if (!path || !path.startsWith("/")) return { error: "path" };
 
   const input: FeedbackNoteInput = { reviewer, path, note: note ?? "" };
+  const reviewerName = shortString(Reflect.get(body, "reviewerName"), MAX_REVIEWER_NAME_LENGTH);
+  if (reviewerName) input.reviewerName = reviewerName;
   const pageTitle = shortString(Reflect.get(body, "pageTitle"), 200);
   if (pageTitle) input.pageTitle = pageTitle;
   const target = readTarget(Reflect.get(body, "target"));
@@ -267,9 +295,12 @@ export function feedbackNotesToMarkdown(notes: FeedbackNote[]) {
     byReviewer.set(note.reviewer, [...(byReviewer.get(note.reviewer) ?? []), note]);
   }
   for (const [reviewer, reviewerNotes] of byReviewer) {
-    lines.push(`## ${reviewer} (${reviewerNotes.length})`, "");
+    const names = [...new Set(reviewerNotes.map((note) => note.reviewerName).filter(Boolean))];
+    const heading = names.length > 0 ? `${reviewer} — ${names.map((name) => `“${name}”`).join(", ")}` : reviewer;
+    lines.push(`## ${heading} (${reviewerNotes.length})`, "");
     for (const note of reviewerNotes) {
       lines.push(`### ${dateFormatter.format(note.createdAt)} UTC · \`${note.path}\``, "");
+      if (note.reviewerName && names.length > 1) lines.push(`- Name: ${note.reviewerName}`);
       if (note.note) {
         for (const paragraph of note.note.split(/\n+/u)) lines.push(`> ${paragraph}`);
         lines.push("");

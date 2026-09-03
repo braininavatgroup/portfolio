@@ -62,4 +62,6 @@ export function PortfolioFeedbackExample() {
 - **Pins anchor to elements, not to quotes.** A quote's pin sits on the
   containing paragraph and follows pane scrolls through a capture-phase
   `scroll` listener; a hidden element gets no pin.
+- **A placeholder code asks for a name.** `?r=[name]` lands as `name`; the panel
+  then requires "Your name" and sends it as `reviewerName` on every note.
 - **No `/design` section**: fixed to the viewport corner, it would float over every other specimen.
