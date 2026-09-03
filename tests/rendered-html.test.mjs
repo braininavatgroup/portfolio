@@ -57,7 +57,7 @@ test("server-renders the accepted composition as the landing state", async () =>
   );
   assert.match(html, /href=["']#main-content["'][^>]*>Skip to portfolio content</i);
   assert.match(html, /<div[^>]*id=["']app-shell["']/i);
-  assert.match(html, /<div[^>]*id=["']avatar-toybox-root["']/i);
+  assert.doesNotMatch(html, /avatar-toybox-root/i);
   assert.match(html, /<main[^>]*id=["']main-content["']/i);
   assert.match(html, /<main[^>]*tabindex=["']-1["']/i);
   assert.match(html, /id=["']cursorInstrument["']/i);

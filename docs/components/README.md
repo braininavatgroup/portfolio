@@ -28,17 +28,9 @@ inventory, and `/design` for the same components rendered in their states.
 | [AvatarOverlay](./avatar/AvatarOverlay.md) | The avatar's mount point and renderer lifecycle | `/design#avatar` |
 | [AvatarStageActor](./avatar/AvatarStageActor.md) | Screen-pixel placement in an orthographic canvas | `/design#avatar` |
 | [AvatarAssetAdapter](./avatar/AvatarAssetAdapter.md) | The rigged GLB plus its motion library | `/design#avatar` |
-| [ProceduralAvatar](./avatar/ProceduralAvatar.md) | The primitive-built fallback rig | `/design#avatar` |
-| [AvatarDirectorConsole](./avatar/AvatarDirectorConsole.md) | Development-only control room | `/design#avatar` |
-| [useAvatarStage](./useAvatarStage.md) | Stage services, registrations and viewport effects | `/design#avatar` |
-
-## Avatar toybox
-
-| Sheet | Module | Gallery |
-| --- | --- | --- |
-| [useAvatarToyboxSession](./avatar-toybox/useAvatarToyboxSession.md) | All toybox state and physics | `/design#toybox` |
-| [AvatarToyboxOverlay](./avatar-toybox/AvatarToyboxOverlay.md) | The portalled full-screen renderer | `/design#toybox` |
-| [AvatarToyboxBoundary](./avatar-toybox/AvatarToyboxBoundary.md) | Error boundary around the toybox renderer | `/design#toybox` |
+| [AvatarBoundary](./avatar/AvatarBoundary.md) | Contains renderer and lazy-load failures | `/design#avatar` |
+| [useAvatarStage](./useAvatarStage.md) | Runtime, registrations and viewport effects | `/design#avatar` |
+| [useBrainFoodSession](./useBrainFoodSession.md) | Live-map Brain Food controls and state | `/design#composition` |
 
 ## Writing mode
 

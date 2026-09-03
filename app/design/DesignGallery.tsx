@@ -14,11 +14,6 @@ import { TokenGallery } from "./TokenGallery";
 const AvatarFixtures = lazy(() =>
   import("./three-fixtures").then((module) => ({ default: module.AvatarFixtures })),
 );
-const AvatarToyboxFixture = lazy(() =>
-  import("./three-fixtures").then((module) => ({
-    default: module.AvatarToyboxFixture,
-  })),
-);
 const PortfolioExperience = lazy(() =>
   import("../../components/PortfolioExperience").then((module) => ({
     default: module.PortfolioExperience,
@@ -52,8 +47,8 @@ function CompositionFixture() {
  * composition taken apart, four are ambient, and the last is the whole thing
  * running. The groups are the page's argument, so the nav states them.
  *
- * Order is deliberate. Composition runs last because it contains the avatar and
- * the toybox, and seeing the parts before the assembly is the only order that
+ * Order is deliberate. Composition runs last because it contains the avatar,
+ * and seeing the parts before the assembly is the only order that
  * explains anything.
  */
 const sectionGroups = [
@@ -82,7 +77,6 @@ const sectionGroups = [
     sections: [
       { id: "cursor", label: "Cursor" },
       { id: "avatar", label: "Avatar" },
-      { id: "toybox", label: "Toybox" },
       { id: "analytics", label: "Analytics" },
     ],
   },
@@ -116,16 +110,6 @@ export function DesignGallery() {
   const [chosen, setChosen] = useState<Theme | null>(null);
   const theme: Theme = chosen ?? (systemDark ? "dark" : "light");
   const setTheme = setChosen;
-
-  // The toybox portals to a host outside this subtree, so the gallery mirrors
-  // its mode onto that host too.
-  useEffect(() => {
-    const host = document.getElementById("avatar-toybox-root");
-    host?.setAttribute("data-theme", theme);
-    return () => {
-      host?.removeAttribute("data-theme");
-    };
-  }, [theme]);
 
   // Sections are collapsible, so the nav has to be able to reopen one. Without
   // this, following a link to a section a reviewer had folded away scrolls to
@@ -196,20 +180,11 @@ export function DesignGallery() {
 
       <Section
         id="avatar"
-        note="Three.js. Loaded and given a WebGL context only when mounted here. The Director console is compiled into development builds only."
+        note="Three.js. Loaded and given a WebGL context only when mounted here."
         source="components/avatar/"
         title="Avatar"
       >
         <LazyFixture as={AvatarFixtures} label="the avatar fixtures" />
-      </Section>
-
-      <Section
-        id="toybox"
-        note="A full-screen modal that portals out of this page, exactly as it does on the live site."
-        source="components/avatar-toybox/AvatarToyboxOverlay.tsx"
-        title="Avatar toybox"
-      >
-        <LazyFixture as={AvatarToyboxFixture} label="the toybox" />
       </Section>
 
       <AnalyticsSection />
@@ -217,7 +192,7 @@ export function DesignGallery() {
       <GroupHeading group={sectionGroups[3]} />
       <Section
         id="composition"
-        note="The whole route as it ships: world, reader, chat, avatar and toybox. Selecting a node here also writes to this page's history entry."
+        note="The whole route as it ships: world, reader, chat, avatar and Brain Food. Selecting a node here also writes to this page's history entry."
         source="components/PortfolioExperience.tsx"
         title="Full composition"
       >

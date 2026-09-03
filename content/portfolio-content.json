@@ -445,21 +445,6 @@
     "privacy.p3": "You can opt out or back in below. Your preference is stored in this browser.",
     "privacy.questionsPrefix": "Questions? Email",
     "privacy.enableAnalytics": "Enable anonymous analytics",
-    "privacy.optOutAnalytics": "Opt out of analytics",
-    "toybox.eyebrow": "Secret avatar toybox",
-    "toybox.title": "Avatar toybox",
-    "toybox.returning": "Returning to portfolio...",
-    "toybox.tossHint": "Drag + release · R reset · Esc exits",
-    "toybox.chooseHint": "Press 1 or 2 · Esc exits",
-    "toybox.closeButton": "Close game",
-    "toybox.chooserPrompt": "You found the toybox. Pick a tiny diversion.",
-    "toybox.brainFoodTitle": "Brain Food",
-    "toybox.brainFoodDescription": "Steer Bradley through the work.",
-    "toybox.tossTitle": "Toss Bradley",
-    "toybox.tossDescription": "Pick him up and let cartoon gravity take over.",
-    "toybox.tossEyebrow": "Toss complete",
-    "toybox.brainFoodEyebrow": "Round complete",
-    "toybox.tossResult": "Bradley stuck the landing",
-    "toybox.resultReturning": "Returning to the portfolio in five seconds."
+    "privacy.optOutAnalytics": "Opt out of analytics"
   }
 }

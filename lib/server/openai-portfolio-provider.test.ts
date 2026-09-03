@@ -544,6 +544,7 @@ describe("OpenAI portfolio provider", () => {
       onEffects,
     })) {
       // Consume the complete response.
+      void _chunk;
     }
 
     expect(onEffects).toHaveBeenCalledWith({ avatarAction: null, issues: [] });

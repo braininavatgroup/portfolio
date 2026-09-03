@@ -24,6 +24,23 @@ const evidence = {
 };
 
 describe("portfolio chat", () => {
+  it("offers a leisurely swim as a visitor-triggered chat suggestion", async () => {
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "Taking a lap." });
+      onEvent({ type: "done" });
+    });
+    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Take a leisurely swim" }));
+
+    await waitFor(() =>
+      expect(askPortfolio).toHaveBeenCalledWith(
+        "Take a leisurely swim.",
+        expect.any(Object),
+      ),
+    );
+  });
+
   it("reports controlled open-state changes to its parent", () => {
     // Catches the dock returning to local state while the paired avatar remains parent-controlled.
     const onOpenChange = vi.fn();
@@ -289,68 +306,6 @@ describe("portfolio chat", () => {
     ).toBeTruthy();
   });
 
-  it("reports focus, typing activity, and blur to the avatar director", () => {
-    // Catches a chat input that the actor cannot notice until after submission.
-    const attention: string[] = [];
-    render(
-      <PortfolioChat
-        initiallyOpen
-        avatarIntegration={{
-          onInputFocus: () => { attention.push("focus"); },
-          onInputActivity: () => { attention.push("activity"); },
-          onInputBlur: () => { attention.push("blur"); },
-          onTurnStart: () => {},
-          onEvidence: () => {},
-          onFirstText: () => {},
-          onEffects: () => {},
-          onNotice: () => {},
-          onError: () => {},
-          onComplete: () => {},
-        }}
-        askPortfolio={async () => {}}
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: "Tell me about Dubs" } });
-    fireEvent.blur(input);
-
-    expect(attention).toEqual(["focus", "activity", "blur"]);
-  });
-
-  it("throttles typing direction without delaying the first activity", async () => {
-    // Catches every keystroke restarting the same listening sequence.
-    vi.useFakeTimers();
-    const onInputActivity = vi.fn();
-    render(
-      <PortfolioChat
-        initiallyOpen
-        avatarIntegration={{
-          onInputActivity,
-          onTurnStart: () => {},
-          onEvidence: () => {},
-          onFirstText: () => {},
-          onEffects: () => {},
-          onNotice: () => {},
-          onError: () => {},
-          onComplete: () => {},
-        }}
-        askPortfolio={async () => {}}
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-
-    fireEvent.change(input, { target: { value: "T" } });
-    fireEvent.change(input, { target: { value: "Te" } });
-    fireEvent.change(input, { target: { value: "Tell" } });
-    expect(onInputActivity).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(250);
-    fireEvent.change(input, { target: { value: "Tell me" } });
-    expect(onInputActivity).toHaveBeenCalledTimes(2);
-  });
-
   it("holds effects behind the first rendered answer delta", async () => {
     // Catches safe effects running site or avatar work before text becomes the primary response.
     const lifecycle: string[] = [];
@@ -358,7 +313,7 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          avatarSequence: [{ action: "play", animation: "big_wave_hello" }],
+          avatarAction: "swim_lap",
           issues: [],
         },
       });
@@ -371,7 +326,6 @@ describe("portfolio chat", () => {
       onTurnStart: () => {
         lifecycle.push("turn-start");
       },
-      onEvidence: () => {},
       onFirstText: () => {
         lifecycle.push("talking");
       },
@@ -381,11 +335,6 @@ describe("portfolio chat", () => {
             ? "effects-after-text"
             : "effects-before-text",
         );
-      },
-      onNotice: () => {},
-      onError: () => {},
-      onComplete: () => {
-        lifecycle.push("done");
       },
     };
 
@@ -401,13 +350,12 @@ describe("portfolio chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(lifecycle.at(-1)).toBe("done"));
+    await waitFor(() => expect(lifecycle.at(-1)).toBe("effects-after-text"));
     expect(lifecycle).toEqual([
       "turn-start",
       "effects-received",
       "talking",
       "effects-after-text",
-      "done",
     ]);
   });
 
@@ -418,7 +366,7 @@ describe("portfolio chat", () => {
       onEvent({
         type: "effects",
         effects: {
-          avatarSequence: [],
+          avatarAction: null,
           issues: [],
         },
       });
@@ -430,15 +378,9 @@ describe("portfolio chat", () => {
         initiallyOpen
         avatarIntegration={{
           onTurnStart: () => {},
-          onEvidence: () => {},
           onFirstText: () => {},
           onEffects: () => {
             effects.push("effect");
-          },
-          onNotice: () => {},
-          onError: () => {},
-          onComplete: () => {
-            effects.push("done");
           },
         }}
         askPortfolio={askPortfolio}
@@ -449,8 +391,8 @@ describe("portfolio chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(effects).toContain("done"));
-    expect(effects).toEqual(["done"]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Ask" })).toBeTruthy());
+    expect(effects).toEqual([]);
   });
 
   it.each([
@@ -468,12 +410,8 @@ describe("portfolio chat", () => {
         initiallyOpen
         avatarIntegration={{
           onTurnStart,
-          onEvidence: () => {},
           onFirstText: () => {},
           onEffects: () => {},
-          onNotice: () => {},
-          onError: () => {},
-          onComplete: () => {},
         }}
         askPortfolio={askPortfolio}
       />,
@@ -496,7 +434,7 @@ describe("portfolio chat", () => {
       onEvent({ type: "answer_delta", delta: "[E1]" });
       onEvent({
         type: "effects",
-        effects: { avatarSequence: [], issues: [] },
+        effects: { avatarAction: null, issues: [] },
       });
       onEvent({
         type: "error",
@@ -509,23 +447,11 @@ describe("portfolio chat", () => {
       onTurnStart: () => {
         lifecycle.push("submit");
       },
-      onEvidence: () => {
-        lifecycle.push("evidence");
-      },
       onFirstText: () => {
         lifecycle.push("first-text");
       },
       onEffects: () => {
         lifecycle.push("effects");
-      },
-      onNotice: () => {
-        lifecycle.push("notice");
-      },
-      onError: () => {
-        lifecycle.push("error");
-      },
-      onComplete: () => {
-        lifecycle.push("done");
       },
     };
 
@@ -541,14 +467,11 @@ describe("portfolio chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(lifecycle.at(-1)).toBe("done"));
+    await waitFor(() => expect(lifecycle).toContain("effects"));
     expect(lifecycle).toEqual([
       "submit",
-      "evidence",
       "first-text",
       "effects",
-      "error",
-      "done",
     ]);
   });
 
@@ -564,14 +487,10 @@ describe("portfolio chat", () => {
     const observedText: boolean[] = [];
     const avatarIntegration = {
       onTurnStart: () => {},
-      onEvidence: () => {},
       onFirstText: () => {
         observedText.push(Boolean(screen.queryByText("Text stays primary.")));
       },
       onEffects: () => {},
-      onNotice: () => {},
-      onError: () => {},
-      onComplete: () => {},
     };
 
     render(

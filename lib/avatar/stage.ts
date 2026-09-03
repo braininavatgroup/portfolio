@@ -1,5 +1,3 @@
-import type { AvatarTargetBounds } from "./target-registry";
-
 export type AvatarStagePoint = { x: number; y: number };
 export type AvatarLocomotion = "grounded" | "swimming";
 
@@ -17,15 +15,18 @@ export type AvatarStageViewport = {
   floorY: number;
 };
 
-type StageBounds = Pick<
-  AvatarTargetBounds,
-  "left" | "top" | "right" | "bottom"
-> & { inViewport?: boolean };
+type StageBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  inViewport?: boolean;
+};
 
 type GroundedDockInput = {
   current: AvatarStagePoint;
-  target: AvatarTargetBounds;
-  obstacles: readonly AvatarTargetBounds[];
+  target: StageBounds;
+  obstacles: readonly StageBounds[];
   viewport: AvatarStageViewport;
   actorHalfWidth: number;
   gap: number;
@@ -77,9 +78,9 @@ export function groundedFloorY(
 }
 
 export function inflateStageBounds(
-  bounds: AvatarTargetBounds,
+  bounds: StageBounds,
   padding: number,
-): AvatarTargetBounds {
+) {
   const left = bounds.left - padding;
   const top = bounds.top - padding;
   const right = bounds.right + padding;

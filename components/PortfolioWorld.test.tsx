@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BRADLEY_MIN_LEAN,
@@ -67,6 +67,46 @@ describe("PortfolioWorld", () => {
     });
     expect(world.querySelector("canvas")).toBeTruthy();
     expect(world.querySelector(".world-glyph")).toBeNull();
+  });
+
+  it("turns the live map into the Brain Food field without a second overlay", async () => {
+    const onSelect = vi.fn();
+    const syncNodePositions = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        brainFood={{
+          active: true,
+          eatenIds: new Set(["dubs"]),
+          remaining: 15,
+          syncNodePositions,
+        }}
+        onReset={() => {}}
+        onSelect={onSelect}
+        selectedId={null}
+      />,
+    );
+
+    expect(
+      screen.getByText("Brain Food · 15 left · Arrows/WASD · Esc exits"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Dubs/ })).toBeNull();
+    expect(
+      screen
+        .getAllByRole("button", { name: /Bradley Berkman/ })
+        .every((button) => button.hasAttribute("disabled")),
+    ).toBe(true);
+    expect(document.querySelector(".avatar-toybox")).toBeNull();
+
+    await waitFor(() => expect(syncNodePositions).toHaveBeenCalled());
+    expect(
+      syncNodePositions.mock.calls.at(-1)?.[0],
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "bradley" }),
+        expect.objectContaining({ id: "dubs" }),
+      ]),
+    );
   });
 
   it("opens a gallery placeholder over the map and lets it be inspected", () => {

@@ -84,6 +84,7 @@ import {
   portfolioNodeMarkPrimitives,
   portfolioNodeMarkRadius,
 } from "../lib/portfolio-node-mark";
+import type { BrainFoodNodePosition } from "../lib/avatar/brain-food";
 
 type Point = { x: number; y: number };
 type Camera = {
@@ -112,6 +113,12 @@ type RuntimeNode = PortfolioWorldNode & {
 type PortfolioWorldProps = {
   activeThreadId: string | null;
   activeVisual?: PortfolioVisualBlock | null;
+  brainFood?: {
+    active: boolean;
+    eatenIds: ReadonlySet<string>;
+    remaining: number;
+    syncNodePositions: (nodes: readonly BrainFoodNodePosition[]) => void;
+  };
   selectedId: string | null;
   onCloseVisual?: () => void;
   onReset: () => void;
@@ -670,6 +677,7 @@ function PortfolioVisualStage({
 export function PortfolioWorld({
   activeThreadId,
   activeVisual,
+  brainFood,
   onCloseVisual,
   onReset,
   onSelect,
@@ -679,6 +687,7 @@ export function PortfolioWorld({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const worldRef = useRef<HTMLElement>(null);
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const brainFoodRef = useRef(brainFood);
   const runtime = useRef(createRuntimeNodes());
   const size = useRef({ width: 0, height: 0, dpr: 1 });
   const camera = useRef<Camera>({
@@ -724,6 +733,10 @@ export function PortfolioWorld({
   );
 
   useEffect(() => {
+    brainFoodRef.current = brainFood;
+  }, [brainFood]);
+
+  useEffect(() => {
     focusRef.current = focusIds;
     linksRef.current = links;
   }, [focusIds, links]);
@@ -748,6 +761,18 @@ export function PortfolioWorld({
     const activeStory = activeThreadId
       ? portfolioThreadById.get(activeThreadId)
       : undefined;
+
+    if (brainFood?.active) {
+      applyRestGoals(
+        nodes,
+        false,
+        size.current,
+        camera.current,
+        measureRef.current,
+      );
+      for (const node of nodes) node.goalAlpha = 1;
+      return;
+    }
 
     if (activeStory) {
       // A Story is its own composition: Bradley's tree with the members
@@ -786,7 +811,7 @@ export function PortfolioWorld({
       measureRef.current,
       byId.get("bradley")?.goal,
     );
-  }, [activeThreadId, focusIds, selectedId]);
+  }, [activeThreadId, brainFood?.active, focusIds, selectedId]);
 
   useEffect(() => {
     const world = worldRef.current;
@@ -797,6 +822,7 @@ export function PortfolioWorld({
     let disposed = false;
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
     let reduceMotion = motion?.matches ?? false;
+    let worldOrigin = { x: 0, y: 0 };
 
     const measure = (value: string) => {
       if (!context) return value.length * 6.2;
@@ -846,6 +872,7 @@ export function PortfolioWorld({
 
     const resize = () => {
       const bounds = world.getBoundingClientRect();
+      worldOrigin = { x: bounds.left, y: bounds.top };
       const width = Math.max(1, bounds.width || world.clientWidth || 1);
       const height = Math.max(1, bounds.height || world.clientHeight || 1);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -948,16 +975,45 @@ export function PortfolioWorld({
           // Every drawn node is a target, the dimmed field included: a click
           // on any record lands on that record instead of falling through to
           // the surface and resetting the map.
+          button.style.pointerEvents = brainFoodRef.current?.active ? "none" : "auto";
         }
+      }
+
+      if (brainFoodRef.current?.active) {
+        brainFoodRef.current.syncNodePositions(
+          nodes.flatMap((node) =>
+            node.screen
+              ? [{
+                  id: node.id,
+                  x: worldOrigin.x + node.screen.x,
+                  y: worldOrigin.y + node.screen.y,
+                  radius: Math.max(22, markRadius(node.family)),
+                }]
+              : [],
+          ),
+        );
       }
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, palette, connectorMemory);
+        const eaten = brainFoodRef.current?.active
+          ? brainFoodRef.current.eatenIds
+          : new Set<string>();
+        drawLinks(
+          context,
+          nodes,
+          linksRef.current.filter(
+            (link) => !eaten.has(link.from) && !eaten.has(link.to),
+          ),
+          active.selectedId,
+          palette,
+          connectorMemory,
+        );
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
         for (const node of sorted) {
+          if (eaten.has(node.id)) continue;
           drawNode(context, node, palette, brainImage.current, brainCache.current);
         }
       }
@@ -978,7 +1034,7 @@ export function PortfolioWorld({
     event: ReactPointerEvent<HTMLButtonElement>,
     node: PortfolioWorldNode,
   ) {
-    if (event.button !== 0) return;
+    if (brainFoodRef.current?.active || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -992,6 +1048,7 @@ export function PortfolioWorld({
   }
 
   function movePointer(event: ReactPointerEvent<HTMLElement>) {
+    if (brainFoodRef.current?.active) return;
     const active = drag.current;
     if (!active || event.pointerId !== active.pointerId) return;
     const dx = event.clientX - active.last.x;
@@ -1085,6 +1142,7 @@ export function PortfolioWorld({
   }
 
   function endPointer(event: ReactPointerEvent<HTMLElement>) {
+    if (brainFoodRef.current?.active) return;
     const active = drag.current;
     if (active && active.pointerId === event.pointerId) {
       drag.current = null;
@@ -1119,11 +1177,13 @@ export function PortfolioWorld({
       data-active-thread={activeThreadId ?? undefined}
       data-editing-label={labelAnchor?.nodeId}
       data-selected-node={selectedId ?? undefined}
+      data-brain-food={brainFood?.active ? "true" : "false"}
       data-visual-open={activeVisual ? "true" : "false"}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
         if (
           activeVisual ||
+          brainFood?.active ||
           event.button !== 0 ||
           !target.hasAttribute("data-world-surface")
         ) return;
@@ -1144,7 +1204,14 @@ export function PortfolioWorld({
         path="interface.world.mast"
         value={portfolioInterfaceText["world.mast"]}
       />
-      {portfolioWorldNodes.map((node) => (
+      {brainFood?.active ? (
+        <p aria-live="polite" className="portfolio-world-brain-food-status">
+          Brain Food · {brainFood.remaining} left · Arrows/WASD · Esc exits
+        </p>
+      ) : null}
+      {portfolioWorldNodes.filter(
+        (node) => !brainFood?.active || !brainFood.eatenIds.has(node.id),
+      ).map((node) => (
         <button
           aria-label={`${node.kind} ${node.label}`}
           aria-pressed={selectedId === node.id}
@@ -1153,7 +1220,7 @@ export function PortfolioWorld({
           data-family={node.family}
           data-status={node.status}
           data-world-node={node.id}
-          disabled={Boolean(activeVisual)}
+          disabled={Boolean(activeVisual || brainFood?.active)}
           key={node.id}
           onClick={(event) => {
             if (event.detail === 0) onSelect(node);

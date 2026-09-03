@@ -43,6 +43,7 @@ export type AvatarSnapshot = {
   position: AvatarStagePoint;
   motion: AvatarStageMotion | null;
   facing: AvatarFacing;
+  swimHeading: number | null;
   visible: boolean;
   failed: boolean;
 };
@@ -95,6 +96,7 @@ export class AvatarRuntime {
       position: readStage().dock,
       motion: null,
       facing: "front",
+      swimHeading: null,
       visible: false,
       failed: false,
     };
@@ -107,21 +109,25 @@ export class AvatarRuntime {
     return () => this.#listeners.delete(listener);
   };
 
+  setStageReader(readStage: () => AvatarStageGeometry) {
+    this.#readStage = readStage;
+  }
+
   setReducedMotion(reducedMotion: boolean) {
     this.#reducedMotion = reducedMotion;
     if (reducedMotion && this.#snapshot.phase === "swimming") this.cancel();
   }
 
-  setAvailableClips(available: ReadonlySet<AvatarClip>) {
+  setAvailableClips = (available: ReadonlySet<AvatarClip>) => {
     const failed = (Object.keys(avatarClips) as AvatarClip[]).some(
       (clip) => !available.has(clip),
     );
     if (failed !== this.#snapshot.failed) this.#update({ failed });
-  }
+  };
 
-  markFailed() {
+  markFailed = () => {
     this.#update({ failed: true });
-  }
+  };
 
   show() {
     const { dock } = this.#readStage();
@@ -131,6 +137,7 @@ export class AvatarRuntime {
       position: dock,
       motion: null,
       facing: "front",
+      swimHeading: null,
       visible: true,
     });
   }
@@ -189,6 +196,7 @@ export class AvatarRuntime {
         position: stage.dock,
         motion,
         facing: facingForPath(points),
+        swimHeading: null,
       });
       await wait(motion.durationMs);
       if (!this.#isCurrent(generation)) return;
@@ -204,13 +212,14 @@ export class AvatarRuntime {
       position,
       motion: null,
       facing: "right",
+      swimHeading: 0,
       visible: true,
     });
   }
 
-  setBrainFoodPosition(position: AvatarStagePoint, facing: AvatarFacing) {
+  setBrainFoodPosition(position: AvatarStagePoint, swimHeading: number) {
     if (this.#snapshot.phase !== "brain-food") return;
-    this.#update({ position, facing });
+    this.#update({ position, swimHeading });
   }
 
   completeBrainFood() {
@@ -220,6 +229,8 @@ export class AvatarRuntime {
       phase: "celebrating",
       animation: "cheer_with_both_hands",
       motion: null,
+      facing: "front",
+      swimHeading: null,
     });
     return wait(BRAIN_FOOD_CELEBRATION_MS).then(() => {
       if (this.#isCurrent(generation)) this.#idleAtDock();
@@ -250,6 +261,7 @@ export class AvatarRuntime {
       position: this.#readStage().dock,
       motion: null,
       facing: "front",
+      swimHeading: null,
     });
   }
 
@@ -266,6 +278,7 @@ export class AvatarRuntime {
       position: this.#readStage().dock,
       motion: null,
       facing: "front",
+      swimHeading: null,
       visible,
     });
   }

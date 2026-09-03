@@ -3,27 +3,19 @@
 Source: [`components/useAvatarStage.ts`](../../components/useAvatarStage.ts) ·
 Gallery: `/design#composition` (via `PortfolioExperience`) · Tests: `components/PortfolioExperience.test.tsx`
 
-Owns everything the avatar needs in order to stand somewhere sensible: the
-stage services (controller, director, registry, sequence runner), the element
-registrations that children hand up through callback refs, and the effects
-keeping the stage in step with scroll, resize, tab visibility and the user's
-motion preference. Also owns `PortfolioAvatarActionState` — which What record
-the assistant considers open, plus a turn counter for discarding effects that
-arrive after the user has moved on.
+Owns the fixed avatar runtime, the map and chat element registrations, and the
+effects that keep its dock in step with scroll, resize, chat visibility, and the
+visitor's motion preference.
 
 ## Arguments
 
-`assistantOpen` and `reducedMotion`, both required. What selection and turn
-ownership are tracked through the returned imperative action state, not as
-render inputs. See the return type in
+`assistantOpen` and `reducedMotion`, both required. See the return type in
 [`components/useAvatarStage.ts`](../../components/useAvatarStage.ts).
 
 ## Requires
 
 A browser. Every effect touches `window` or `document`, so it must run under a
-client component — the hook carries `"use client"`. Nothing else: the services
-are constructed lazily on first render, and an unregistered target simply makes
-the matching command a no-op rather than an error.
+client component. The map and chat callback refs provide the runtime geometry.
 
 ## Example
 
@@ -56,14 +48,9 @@ export function UseAvatarStageExample() {
 
 ## Pitfalls
 
-- **Call it once per page.** Each call constructs its own services, so a second
-  caller gets a second director animating a second avatar over the same DOM.
+- **Call it once per page.** Each call constructs a separate runtime.
 - **`avatarMounted` is false on the first paint** — deliberately, so the page
   paints before the avatar does. Gate the overlay on it or the stage measures
   a layout that has not settled.
 - **Registration is by callback ref, not by effect.** Passing a `useRef` object
   instead of the returned function registers nothing and fails silently.
-- **Registry teardown is its own effect** and must stay that way. It used to
-  ride on the listener effect's cleanup, which tore down registrations that
-  effect never created; adding one reactive dep there would wipe the registry
-  mid-session with the children's refs already fired.

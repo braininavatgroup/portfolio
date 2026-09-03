@@ -96,13 +96,13 @@ export function AvatarOverlay({
   const documentVisible = useDocumentVisible();
   const createManagedRenderer = useCallback(
     (props: AvatarRendererProps) =>
-      initializeRenderer(props, createRenderer, runtime.markFailed.bind(runtime)),
+      initializeRenderer(props, createRenderer, runtime.markFailed),
     [createRenderer, runtime],
   );
 
   useEffect(() => {
-    if (!documentVisible) runtime.cancel();
-  }, [documentVisible, runtime]);
+    if (!documentVisible && snapshot.phase !== "brain-food") runtime.cancel();
+  }, [documentVisible, runtime, snapshot.phase]);
 
   const renderAvatar = snapshot.visible && !snapshot.failed;
 
@@ -123,7 +123,7 @@ export function AvatarOverlay({
             <directionalLight intensity={1.7} position={[2, 4, 3]} />
             <AvatarStageActor
               snapshot={snapshot}
-              onAvailableAnimationsChange={runtime.setAvailableClips.bind(runtime)}
+              onAvailableAnimationsChange={runtime.setAvailableClips}
               reducedMotion={reducedMotion}
             />
           </Canvas>

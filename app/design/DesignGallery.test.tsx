@@ -44,7 +44,6 @@ describe("design gallery route", () => {
       "cursor",
       "analytics",
       "avatar",
-      "toybox",
       "composition",
     ]) {
       expect(document.getElementById(id)).not.toBeNull();
@@ -79,7 +78,7 @@ describe("design gallery route", () => {
     render(<DesignGallery />);
 
     const sections = [...document.querySelectorAll(".design-section")];
-    expect(sections).toHaveLength(12);
+    expect(sections).toHaveLength(11);
     for (const section of sections) {
       expect(section.tagName).toBe("DETAILS");
       expect((section as HTMLDetailsElement).open).toBe(true);
@@ -133,7 +132,7 @@ describe("design gallery route", () => {
   it("leaves every Three.js fixture unmounted until it is asked for", () => {
     render(<DesignGallery />);
 
-    expect(screen.getAllByRole("button", { name: "Mount" })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: "Mount" })).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /Unmount/ })).toBeNull();
   });
 
@@ -208,18 +207,4 @@ describe("design gallery route", () => {
     expect(unstaged.map((node) => node.className)).toEqual([]);
   });
 
-  it("mirrors the mode onto the toybox portal host", async () => {
-    const user = userEvent.setup();
-    const host = document.createElement("div");
-    host.id = "avatar-toybox-root";
-    document.body.appendChild(host);
-
-    render(<DesignGallery />);
-    expect(host.getAttribute("data-theme")).toBe("light");
-
-    await user.click(screen.getByRole("button", { name: "dark" }));
-    expect(host.getAttribute("data-theme")).toBe("dark");
-
-    host.remove();
-  });
 });

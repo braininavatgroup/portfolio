@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { avatarAsset, avatarStateBehaviors } from "./config";
-import { avatarBehaviors } from "./behaviors";
+import { avatarAsset } from "./config";
+import { avatarClips } from "./runtime";
 
 function sha256(file: Buffer) {
   return createHash("sha256").update(file).digest("hex");
@@ -29,23 +29,6 @@ describe("production avatar asset", () => {
     expect(avatarAsset.scale).toBeGreaterThanOrEqual(0.5);
     expect(avatarAsset.scale).toBeLessThanOrEqual(2);
     expect(avatarAsset.playbackRate).toBe(1);
-  });
-
-  it("maps every lifecycle state to one exact registered behavior", () => {
-    // Catches reintroducing a fallback list or an unregistered semantic alias.
-    expect(avatarStateBehaviors).toEqual({
-      hidden: "idle_3",
-      entering: "walking",
-      idle: "idle_3",
-      listening: "alert",
-      thinking: "wake_up_and_look_up",
-      tool_use: "indoor_play",
-      talking: "agree_gesture",
-      success: "cheer_with_both_hands",
-      confused: "shrug",
-      error: "groan_holding_stomach_in_sleep",
-      exiting: "walking",
-    });
   });
 
   it("ships the exact Meshy GLB as the rendered model", () => {
@@ -98,7 +81,7 @@ describe("production avatar asset", () => {
         .filter((name: string | undefined): name is string => Boolean(name)),
     );
 
-    expect(avatarBehaviors.map(({ clipName }) => shippedNames.has(clipName)))
-      .toEqual(Array.from({ length: 20 }, () => true));
+    expect(Object.values(avatarClips).map((clipName) => shippedNames.has(clipName)))
+      .toEqual([true, true, true, true]);
   });
 });

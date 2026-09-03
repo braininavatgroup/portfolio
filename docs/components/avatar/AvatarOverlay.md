@@ -28,34 +28,20 @@ at full width instead of on the intended element.
 
 ```tsx
 import { AvatarOverlay } from "components/avatar/AvatarOverlay";
-import { createAvatarStageServices } from "lib/avatar/stage-services";
-import { useCallback, useState } from "react";
+import { AvatarRuntime } from "lib/avatar/runtime";
+import { useState } from "react";
 
 export function AvatarOverlayExample() {
-  // The five services, built once, exactly as PortfolioExperience builds them.
-  const [services] = useState(() => {
-    return createAvatarStageServices();
-  });
-  const [enabled, setEnabled] = useState(true);
-  const registerStage = useCallback(
-    (element: HTMLElement | null) => {
-      if (!element) return;
-      services.registry.registerStage(element);
-      services.controller.refreshStage(true);
-    },
-    [services],
-  );
+  const [runtime] = useState(() => new AvatarRuntime(() => ({
+    dock: { x: 210, y: 396 },
+    obstacles: [],
+    viewport: { width: 420, height: 420, floorY: 396 },
+  })));
+  runtime.show();
 
   return (
-    <div className="portfolio-composition" ref={registerStage}>
-      <AvatarOverlay
-        controller={services.controller}
-        director={services.director}
-        enabled={enabled}
-        onEnabledChange={setEnabled}
-        reducedMotion={false}
-        registry={services.registry}
-      />
+    <div className="portfolio-composition">
+      <AvatarOverlay reducedMotion={false} runtime={runtime} />
     </div>
   );
 }

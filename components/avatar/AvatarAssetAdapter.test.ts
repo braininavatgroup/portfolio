@@ -10,6 +10,7 @@ import {
   getGlbFootOriginTranslation,
   getGlbYaw,
   getAvatarStageScale,
+  makeLocomotionClipInPlace,
 } from "./AvatarAssetAdapter";
 import {
   AnimationClip,
@@ -19,6 +20,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  VectorKeyframeTrack,
 } from "three";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -41,7 +43,7 @@ function rawBradleyGlbMinimumY() {
 }
 
 describe("GLB avatar configuration", () => {
-  it("centers toybox rendering while retaining foot anchoring on the full-page stage", () => {
+  it("supports centered specimens while retaining foot anchoring on the stage", () => {
     expect(getAvatarModelOriginY("feet", 0, 1.64)).toBe(0);
     expect(getAvatarModelOriginY("center", 0, 1.64)).toBe(-0.82);
   });
@@ -131,12 +133,33 @@ describe("GLB avatar configuration", () => {
 
   it("starts camera-facing and limits ordinary left and right turns", () => {
     // Catches startup or target-facing logic rotating the avatar's back toward the visitor.
-    expect(getGlbYaw("z", "front")).toBe(0);
-    expect(getGlbYaw("z", "left")).toBe(Math.PI / 8);
-    expect(getGlbYaw("z", "right")).toBe(-Math.PI / 8);
-    expect(getGlbYaw("-z", "front")).toBe(Math.PI);
-    expect(Math.abs(getGlbYaw("z", "left"))).toBeLessThan(Math.PI / 2);
-    expect(Math.abs(getGlbYaw("z", "right"))).toBeLessThan(Math.PI / 2);
+    expect(getGlbYaw("z", "front", "idle_3")).toBe(0);
+    expect(getGlbYaw("z", "left", "idle_3")).toBe(Math.PI / 8);
+    expect(getGlbYaw("z", "right", "idle_3")).toBe(-Math.PI / 8);
+    expect(getGlbYaw("-z", "front", "idle_3")).toBe(Math.PI);
+    expect(getGlbYaw("z", "front", "swim_forward", 0)).toBe(Math.PI / 2);
+    expect(getGlbYaw("z", "front", "swim_forward", Math.PI)).toBe(
+      (Math.PI * 3) / 2,
+    );
+    expect(getGlbYaw("z", "front", "swim_forward", -Math.PI / 2)).toBe(0);
+  });
+
+  it("removes Meshy root travel from the swim clip so the controller owns position", () => {
+    const source = new AnimationClip("Swim_Forward", 1, [
+      new VectorKeyframeTrack(
+        "Hips.position",
+        [0, 0.5, 1],
+        [1, 60, 5, 2, 62, 105, 3, 61, 205],
+      ),
+    ]);
+
+    const prepared = makeLocomotionClipInPlace(source);
+    const values = Array.from(prepared.tracks[0]!.values);
+
+    expect(values).toEqual([1, 60, 5, 1, 62, 5, 1, 61, 5]);
+    expect(Array.from(source.tracks[0]!.values)).toEqual([
+      1, 60, 5, 2, 62, 105, 3, 61, 205,
+    ]);
   });
 
 

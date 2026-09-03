@@ -91,7 +91,7 @@ describe("AvatarOverlay", () => {
 
     act(() => {
       avatar.beginBrainFood({ x: 500, y: 400 });
-      avatar.setBrainFoodPosition({ x: 520, y: 390 }, "right");
+      avatar.setBrainFoodPosition({ x: 520, y: 390 }, 0);
     });
 
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
@@ -144,5 +144,20 @@ describe("AvatarOverlay", () => {
 
     expect(screen.getByTestId("avatar-canvas").getAttribute("data-frameloop")).toBe("never");
     expect(avatar.getSnapshot().phase).toBe("idle");
+  });
+
+  it("pauses Brain Food without discarding the live game state", () => {
+    const avatar = runtime();
+    avatar.beginBrainFood({ x: 500, y: 400 });
+    render(<AvatarOverlay runtime={avatar} />);
+
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+
+    expect(screen.getByTestId("avatar-canvas").getAttribute("data-frameloop")).toBe("never");
+    expect(avatar.getSnapshot().phase).toBe("brain-food");
   });
 });

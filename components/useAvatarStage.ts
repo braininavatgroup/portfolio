@@ -18,6 +18,16 @@ function viewportSize() {
   };
 }
 
+function viewportSizeAsStage(): AvatarStageGeometry {
+  const viewport = viewportSize();
+  const floorY = viewport.height - bottomInset;
+  return {
+    dock: { x: Math.max(actorHalfWidth, viewport.width - 80), y: floorY },
+    obstacles: [],
+    viewport: { width: viewport.width, height: viewport.height, floorY },
+  };
+}
+
 function obstacleFor(element: HTMLElement | null): AvatarStageObstacle | null {
   if (!element) return null;
   const bounds = element.getBoundingClientRect();
@@ -46,48 +56,50 @@ export function useAvatarStage({
   const stageRef = useRef<HTMLElement | null>(null);
   const chatRef = useRef<HTMLElement | null>(null);
 
+  const readStage = useCallback((): AvatarStageGeometry => {
+    const viewport = viewportSize();
+    const stageBounds = stageRef.current?.getBoundingClientRect();
+    const width =
+      stageBounds && stageBounds.width > 0
+        ? Math.max(1, Math.min(viewport.width, stageBounds.right))
+        : viewport.width;
+    const floorY = viewport.height - bottomInset;
+    const chatBounds = chatRef.current?.getBoundingClientRect();
+    const mobile = viewport.width <= 600;
+    const dock = chatBounds
+      ? mobile
+        ? { x: chatBounds.left + chatBounds.width / 2, y: chatBounds.top }
+        : {
+            x: Math.min(
+              width - actorHalfWidth,
+              Math.max(actorHalfWidth, chatBounds.left - dockGap - actorHalfWidth),
+            ),
+            y: floorY,
+          }
+      : { x: Math.max(actorHalfWidth, width - 80), y: floorY };
+    const reader =
+      typeof document === "undefined"
+        ? null
+        : document.querySelector<HTMLElement>(".portfolio-reader");
+    const obstacles = [obstacleFor(chatRef.current), obstacleFor(reader)].filter(
+      (value): value is AvatarStageObstacle => value !== null,
+    );
+    return {
+      dock,
+      obstacles,
+      viewport: { width, height: viewport.height, floorY },
+    };
+  }, []);
+
   const [avatarRuntime] = useState(
-    () =>
-      new AvatarRuntime((): AvatarStageGeometry => {
-        const viewport = viewportSize();
-        const stageBounds = stageRef.current?.getBoundingClientRect();
-        const width =
-          stageBounds && stageBounds.width > 0
-            ? Math.max(1, Math.min(viewport.width, stageBounds.right))
-            : viewport.width;
-        const floorY = viewport.height - bottomInset;
-        const chatBounds = chatRef.current?.getBoundingClientRect();
-        const mobile = viewport.width <= 600;
-        const dock = chatBounds
-          ? mobile
-            ? { x: chatBounds.left + chatBounds.width / 2, y: chatBounds.top }
-            : {
-                x: Math.min(
-                  width - actorHalfWidth,
-                  Math.max(
-                    actorHalfWidth,
-                    chatBounds.left - dockGap - actorHalfWidth,
-                  ),
-                ),
-                y: floorY,
-              }
-          : { x: Math.max(actorHalfWidth, width - 80), y: floorY };
-        const reader =
-          typeof document === "undefined"
-            ? null
-            : document.querySelector<HTMLElement>(".portfolio-reader");
-        const obstacles = [
-          obstacleFor(chatRef.current),
-          obstacleFor(reader),
-        ].filter((value): value is AvatarStageObstacle => value !== null);
-        return {
-          dock,
-          obstacles,
-          viewport: { width, height: viewport.height, floorY },
-        };
-      }),
+    () => new AvatarRuntime(viewportSizeAsStage),
   );
   const [avatarMounted, setAvatarMounted] = useState(false);
+
+  useEffect(() => {
+    avatarRuntime.setStageReader(readStage);
+    avatarRuntime.refreshDock();
+  }, [avatarRuntime, readStage]);
 
   const registerAvatarStage = useCallback((element: HTMLElement | null) => {
     stageRef.current = element;

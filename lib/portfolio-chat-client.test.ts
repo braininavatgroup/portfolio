@@ -125,10 +125,8 @@ describe("portfolio chat client", () => {
       {
         type: "effects",
         effects: {
-          avatarSequence: [],
-          issues: [
-            "avatarSequence[0].animation must be an allowed animation",
-          ],
+          avatarAction: null,
+          issues: ["effects has unknown key: avatarSequence"],
         },
       },
       { type: "turn_mode", mode: "portfolio" },

@@ -1,8 +1,7 @@
 // Canned data and stubs for the /design gallery. Fixtures live here rather
 // than in components/ so no production component grows a gallery-only branch.
 
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
-import { defaultAvatarTone } from "../../lib/avatar/contracts";
+import type { AvatarSnapshot } from "../../lib/avatar/runtime";
 import type { AskPortfolio } from "../../lib/portfolio-chat-client";
 import type { PortfolioGroundingEvidence } from "../../lib/portfolio-grounding";
 import type { TurnstileRenderer } from "../../lib/portfolio-chat-turnstile";
@@ -102,16 +101,12 @@ export function galleryAvatarSnapshot(
   overrides: Partial<AvatarSnapshot> = {},
 ): AvatarSnapshot {
   return {
-    state: "idle",
+    phase: "idle",
     animation: "idle_3",
-    currentCommand: null,
-    target: null,
     position: { x: 0, y: 0 },
-    locomotion: "grounded",
     motion: null,
     facing: "front",
-    pointing: null,
-    tone: defaultAvatarTone,
+    swimHeading: null,
     visible: true,
     failed: false,
     ...overrides,

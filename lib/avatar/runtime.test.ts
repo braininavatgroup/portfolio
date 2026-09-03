@@ -90,13 +90,13 @@ describe("minimal avatar runtime", () => {
     const avatar = runtime();
     avatar.show();
     avatar.beginBrainFood({ x: 500, y: 400 });
-    avatar.setBrainFoodPosition({ x: 420, y: 280 }, "left");
+    avatar.setBrainFoodPosition({ x: 420, y: 280 }, Math.PI);
 
     expect(avatar.getSnapshot()).toMatchObject({
       phase: "brain-food",
       animation: "swim_forward",
       position: { x: 420, y: 280 },
-      facing: "left",
+      swimHeading: Math.PI,
     });
 
     const completion = avatar.completeBrainFood();

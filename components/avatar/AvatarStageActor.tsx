@@ -59,6 +59,25 @@ function motionFacing(
   return fallback;
 }
 
+function motionHeading(
+  motion: AvatarStageMotion,
+  progress: number,
+  fallback: number,
+) {
+  const targetDistance = stagePathLength(motion.points) * progress;
+  let travelled = 0;
+  for (let index = 1; index < motion.points.length; index += 1) {
+    const from = motion.points[index - 1]!;
+    const to = motion.points[index]!;
+    const distance = Math.hypot(to.x - from.x, to.y - from.y);
+    if (travelled + distance >= targetDistance) {
+      return distance === 0 ? fallback : Math.atan2(to.y - from.y, to.x - from.x);
+    }
+    travelled += distance;
+  }
+  return fallback;
+}
+
 function visualState(
   snapshot: AvatarSnapshot,
   reducedMotion: boolean,
@@ -77,17 +96,22 @@ function StageMotionFrame({
   actor,
   motion,
   onFacingChange,
+  onHeadingChange,
   fallbackFacing,
+  fallbackHeading,
   viewport,
 }: {
   actor: React.RefObject<THREE.Group | null>;
   motion: AvatarStageMotion;
   onFacingChange: (facing: AvatarFacing) => void;
+  onHeadingChange: (heading: number) => void;
   fallbackFacing: AvatarFacing;
+  fallbackHeading: number;
   viewport: { width: number; height: number };
 }) {
   const startedAt = useRef<number | null>(null);
   const facing = useRef(motionFacing(motion, 0, fallbackFacing));
+  const heading = useRef(motionHeading(motion, 0, fallbackHeading));
   const currentPointRef = useRef(motionPoint(motion, 0));
 
   useLayoutEffect(() => {
@@ -119,6 +143,11 @@ function StageMotionFrame({
       facing.current = nextFacing;
       onFacingChange(nextFacing);
     }
+    const nextHeading = motionHeading(motion, progress, fallbackHeading);
+    if (nextHeading !== heading.current) {
+      heading.current = nextHeading;
+      onHeadingChange(nextHeading);
+    }
   });
 
   return null;
@@ -133,6 +162,11 @@ function AvatarStageVisual({
   const actor = useRef<THREE.Group>(null);
   const initialVisual = visualState(snapshot, reducedMotion);
   const [facing, setFacing] = useState(initialVisual.facing);
+  const [motionSwimHeading, setMotionSwimHeading] = useState(() =>
+    snapshot.motion
+      ? motionHeading(snapshot.motion, reducedMotion ? 1 : 0, snapshot.swimHeading ?? 0)
+      : snapshot.swimHeading ?? 0,
+  );
 
   useLayoutEffect(() => {
     const orthographicCamera = camera as THREE.OrthographicCamera;
@@ -162,16 +196,28 @@ function AvatarStageVisual({
           actor={actor}
           key={snapshot.motion.id}
           fallbackFacing={snapshot.facing}
+          fallbackHeading={snapshot.swimHeading ?? 0}
           motion={snapshot.motion}
           onFacingChange={setFacing}
+          onHeadingChange={setMotionSwimHeading}
           viewport={size}
         />
       ) : null}
       <AvatarAssetAdapter
+        anchor={snapshot.animation === "swim_forward" ? "center" : "feet"}
         animation={snapshot.animation}
-        facing={facing}
+        facing={snapshot.motion && !reducedMotion ? facing : snapshot.facing}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
         reducedMotion={reducedMotion}
+        swimHeadingRadians={
+          snapshot.animation === "swim_forward"
+            ? snapshot.motion && !reducedMotion
+              ? motionSwimHeading
+              : snapshot.motion
+                ? motionHeading(snapshot.motion, 1, snapshot.swimHeading ?? 0)
+                : snapshot.swimHeading ?? 0
+            : null
+        }
         stageScale={selectAvatarStageScale(size.width)}
       />
     </group>
@@ -182,7 +228,7 @@ export function AvatarStageActor(props: AvatarStageActorProps) {
   const { reducedMotion, snapshot } = props;
   const visualKey = snapshot.motion
     ? `motion:${snapshot.motion.id}:${reducedMotion}`
-    : `stable:${snapshot.position.x}:${snapshot.position.y}:${snapshot.facing}:${reducedMotion}`;
+    : `stable:${reducedMotion}`;
 
   return <AvatarStageVisual key={visualKey} {...props} />;
 }

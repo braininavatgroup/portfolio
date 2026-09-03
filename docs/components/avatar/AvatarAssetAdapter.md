@@ -7,15 +7,18 @@ The shipped avatar. It reads
 [`lib/avatar/config.ts`](../../../lib/avatar/config.ts) and, for the current
 `gltf` configuration, loads `/avatars/bradley-meshy-rigged.glb` plus the
 separate motion library `/avatars/bradley-motion-library.glb`, merges the clip
-sets, and drives them through `useAnimations` with a tone-derived playback rate
-and crossfade. The module also exports the pure helpers its test pins.
+sets, and drives the four supported clips through `useAnimations`. The Meshy
+swim clip is converted to in-place locomotion when loaded: its Hips Y motion is
+preserved, while Hips X/Z travel is removed so the controller is the sole owner
+of stage position. The module also exports the pure helpers its test pins.
 
 ## Props
 
-The four pose fields (`animation`, `facing`, `pointing`, `tone`) plus
-`reducedMotion` required; `anchor` (`"feet"` default, or `"center"`),
-`stageScale` and `onAvailableAnimationsChange` optional. See
-[`AvatarAssetAdapterProps`](../../../components/avatar/AvatarAssetAdapter.tsx).
+`animation`, `facing`, and `reducedMotion` are required; `anchor` (`"feet"`
+default, or `"center"`), `swimHeadingRadians`, `stageScale`, and
+`onAvailableAnimationsChange` are optional. A swim heading is measured in the
+screen/map plane: right is `0`, down is `Math.PI / 2`, and left is `Math.PI`.
+See [`AvatarAssetAdapterProps`](../../../components/avatar/AvatarAssetAdapter.tsx).
 
 ## Requires
 
@@ -28,7 +31,6 @@ present in `public/avatars/`.
 ```tsx
 import { Canvas } from "@react-three/fiber";
 import { AvatarAssetAdapter } from "components/avatar/AvatarAssetAdapter";
-import { defaultAvatarTone } from "lib/avatar/contracts";
 import { Suspense } from "react";
 
 export function AvatarAssetAdapterExample() {
@@ -39,11 +41,9 @@ export function AvatarAssetAdapterExample() {
       <Suspense fallback={null}>
         <AvatarAssetAdapter
           anchor="center"
-          animation="walking"
+          animation="swim_forward"
           facing="right"
-          pointing={null}
           reducedMotion={false}
-          tone={defaultAvatarTone}
         />
       </Suspense>
     </Canvas>
@@ -56,12 +56,13 @@ export function AvatarAssetAdapterExample() {
 - **No `<Suspense>` means the whole canvas subtree suspends**, and with nothing
   to catch it the surrounding tree throws instead of showing a fallback.
 - **`anchor` moves the origin.** `"feet"` stands the model on the floor — right
-  for the stage actor; `"center"` centres it in frame — right for a specimen
-  card. The wrong one looks like a broken camera.
-- **A missing clip tears the avatar down, loudly.** The previous effect's
-  cleanup has already faded the old clip out, so nothing holds the pose; and in
-  the live wiring `onAvailableAnimationsChange` is
-  `controller.setAvailableAnimations`, which sets `failed` when any allowed
-  animation is absent — stopping the avatar rendering and blocking the toybox.
+  for standing; `"center"` centres it in frame and is required for swimming.
+  Turning a prone model around a foot origin makes the whole body jump.
+- **Do not restore Meshy's Hips X/Z travel while also moving the stage group.**
+  Two translation owners make the body drift away from its hit area and snap
+  backward whenever the five-second clip loops.
+- **A missing required clip removes only the avatar.** In the live wiring,
+  `onAvailableAnimationsChange` marks the runtime failed when any of the four
+  supported clips is absent.
 - **The scene is cloned per instance** (`cloneSkeleton`) while `useGLTF` caches
   the source: two adapters share the download, not the skeleton.

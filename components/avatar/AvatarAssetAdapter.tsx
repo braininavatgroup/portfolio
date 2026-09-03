@@ -2,7 +2,7 @@
 
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { avatarAsset } from "../../lib/avatar/config";
@@ -20,6 +20,7 @@ type AvatarPoseProps = {
 
 type AvatarAssetAdapterProps = AvatarPoseProps & {
   anchor?: "feet" | "center";
+  swimHeadingRadians?: number | null;
   stageScale?: number;
   onAvailableAnimationsChange?: (
     available: ReadonlySet<AvatarClip>,
@@ -121,12 +122,33 @@ export function combineAnimationClips(
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
   facing: AvatarFacing,
+  animation: AvatarClip,
+  swimHeadingRadians = 0,
 ) {
-  return getAvatarYaw(forwardAxis, facing);
+  return animation === "swim_forward"
+    ? getAvatarYaw(forwardAxis, "front") + Math.PI / 2 + swimHeadingRadians
+    : getAvatarYaw(forwardAxis, facing);
+}
+
+export function makeLocomotionClipInPlace(clip: THREE.AnimationClip) {
+  const prepared = clip.clone();
+  for (const track of prepared.tracks) {
+    if (!/(^|[.\]/])Hips(?:\])?\.position$/.test(track.name)) continue;
+    const values = track.values;
+    const stride = track.getValueSize();
+    if (stride < 3 || values.length < 3) continue;
+    const originX = values[0]!;
+    const originZ = values[2]!;
+    for (let offset = 0; offset < values.length; offset += stride) {
+      values[offset] = originX;
+      values[offset + 2] = originZ;
+    }
+  }
+  return prepared;
 }
 
 export function getAvatarPlaybackRate(animation: AvatarClip) {
-  return animation === "swim_forward" ? 0.55 : avatarAsset.playbackRate;
+  return animation === "swim_forward" ? 0.8 : avatarAsset.playbackRate;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -141,22 +163,44 @@ function GlbAvatar({
   motionUrl,
   onAvailableAnimationsChange,
   reducedMotion,
+  swimHeadingRadians,
 }: AvatarPoseProps & {
   anchor: "feet" | "center";
   modelUrl: string;
   motionUrl: string;
   onAvailableAnimationsChange?: AvatarAssetAdapterProps["onAvailableAnimationsChange"];
+  swimHeadingRadians: number | null;
 }) {
   const root = useRef<THREE.Group>(null);
+  const activeAction = useRef<THREE.AnimationAction | null>(null);
   const model = useGLTF(modelUrl);
   const scene = useMemo(() => cloneAvatarScene(model.scene), [model.scene]);
   const motionLibrary = useGLTF(motionUrl);
   const animationClips = useMemo(
-    () => combineAnimationClips(model.animations, motionLibrary.animations),
+    () =>
+      combineAnimationClips(model.animations, motionLibrary.animations).map(
+        (clip) =>
+          clip.name === avatarClips.swim_forward
+            ? makeLocomotionClipInPlace(clip)
+            : clip,
+      ),
     [model.animations, motionLibrary.animations],
   );
   const { actions } = useAnimations(animationClips, root);
   const playbackRate = getAvatarPlaybackRate(animation);
+  const targetQuaternion = useMemo(
+    () =>
+      new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(0, 1, 0),
+        getGlbYaw(
+          avatarAsset.forwardAxis,
+          facing,
+          animation,
+          swimHeadingRadians ?? 0,
+        ),
+      ),
+    [animation, facing, swimHeadingRadians],
+  );
   const modelOriginY = getAvatarModelOriginY(
     anchor,
     bradleyRawMinimumY,
@@ -171,12 +215,7 @@ function GlbAvatar({
 
   useFrame((_, delta) => {
     if (root.current) {
-      root.current.rotation.y = THREE.MathUtils.damp(
-        root.current.rotation.y,
-        getGlbYaw(avatarAsset.forwardAxis, facing),
-        9,
-        delta,
-      );
+      root.current.quaternion.rotateTowards(targetQuaternion, 4.5 * delta);
     }
   });
 
@@ -184,16 +223,29 @@ function GlbAvatar({
     return applyBradleySolidMaterial(scene, bradleySolidColor);
   }, [scene]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const clipName = avatarClips[animation];
     const next = actions[clipName];
     if (!next) return;
     const crossfadeSeconds = reducedMotion ? 0 : 0.24;
+    const previous = activeAction.current;
+    if (previous === next) {
+      next.setEffectiveTimeScale(playbackRate);
+      return;
+    }
     next.reset().setEffectiveTimeScale(playbackRate).fadeIn(crossfadeSeconds).play();
-    return () => {
-      next.fadeOut(crossfadeSeconds);
-    };
+    if (previous) previous.fadeOut(crossfadeSeconds);
+    else next.setEffectiveWeight(1);
+    activeAction.current = next;
   }, [actions, animation, playbackRate, reducedMotion]);
+
+  useEffect(
+    () => () => {
+      activeAction.current?.stop();
+      activeAction.current = null;
+    },
+    [],
+  );
 
   return (
     <group
@@ -211,6 +263,7 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
   const {
     anchor = "feet",
     onAvailableAnimationsChange,
+    swimHeadingRadians = null,
     stageScale,
     ...pose
   } = props;
@@ -222,6 +275,7 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
         modelUrl={avatarAsset.modelUrl}
         motionUrl={avatarAsset.motionUrl}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
+        swimHeadingRadians={swimHeadingRadians}
       />
     </group>
   );
