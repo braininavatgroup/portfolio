@@ -22,7 +22,10 @@ meaningful handoff artifact.
 
 ## Presentation contract
 
-- Use Apple Frames for complete device presentation.
+- Use Apple Frames for complete device presentation: the Black iPhone bezel
+  at 794x1600, via `scripts/frame-portfolio-visual.sh <capture> <group> <name>`
+  (the `frames` CLI default colour for iPhones is Black in
+  `~/.config/frames/config.json`). Every screen in a story uses that one frame.
 - Never crop a screenshot to manufacture a detail view.
 - Never duplicate the screenshot inside explanatory zoom panels.
 - Keep captions short and subordinate to the interface evidence.
