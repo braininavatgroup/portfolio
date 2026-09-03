@@ -5,6 +5,7 @@ import {
   combineAnimationClips,
   getAvailableAnimationIds,
   getAvatarModelOriginY,
+  getAvatarPlaybackRate,
   getBradleyGlbFootOriginTranslation,
   getGlbFootOriginTranslation,
   getGlbYaw,
@@ -101,11 +102,30 @@ describe("GLB avatar configuration", () => {
     expect(second.material).toEqual([secondOriginal]);
   });
 
-  it("reports only first-class IDs whose exact clips loaded", () => {
-    // Catches the adapter guessing semantic aliases for supplied clip names.
+  it("reports only the four clips used by the shipped experience", () => {
+    // Catches a retired behavior becoming a renderer requirement again.
     expect(
-      getAvailableAnimationIds(["Idle_3", "Walking", "Joyful_Dance_with_Hand_Sway"]),
-    ).toEqual(new Set(["idle_3", "walking", "joyful_dance_with_hand_sway"]));
+      getAvailableAnimationIds([
+        "Idle_3",
+        "Agree_Gesture",
+        "Swim_Forward",
+        "Cheer_with_Both_Hands",
+        "Walking",
+      ]),
+    ).toEqual(
+      new Set([
+        "idle_3",
+        "agree_gesture",
+        "swim_forward",
+        "cheer_with_both_hands",
+      ]),
+    );
+  });
+
+  it("plays breaststroke more slowly than conversational motion", () => {
+    expect(getAvatarPlaybackRate("swim_forward")).toBeLessThan(
+      getAvatarPlaybackRate("agree_gesture"),
+    );
   });
 
 

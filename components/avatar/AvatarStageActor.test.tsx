@@ -2,7 +2,7 @@
 
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
+import type { AvatarSnapshot } from "../../lib/avatar/runtime";
 import { AvatarStageActor } from "./AvatarStageActor";
 
 const frame = vi.hoisted(() => vi.fn());
@@ -36,16 +36,11 @@ vi.mock("./AvatarAssetAdapter", () => ({
 
 function snapshot(overrides: Partial<AvatarSnapshot> = {}): AvatarSnapshot {
   return {
-    state: "idle",
+    phase: "idle",
     animation: "idle_3",
-    currentCommand: null,
-    target: null,
     position: { x: 800, y: 776 },
-    locomotion: "grounded",
     motion: null,
     facing: "front",
-    pointing: null,
-    tone: { energy: "medium", warmth: "warm", confidence: "neutral", mischief: "none" },
     visible: true,
     failed: false,
     ...overrides,

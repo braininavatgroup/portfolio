@@ -1,4 +1,3 @@
-import type { AvatarTone } from "./contracts";
 import type { AvatarTargetBounds } from "./target-registry";
 
 export type AvatarStagePoint = { x: number; y: number };
@@ -327,7 +326,7 @@ export function sampleStagePath(
 
 export function stageTravelDuration(
   distance: number,
-  energy: AvatarTone["energy"],
+  energy: "low" | "medium" | "high",
   locomotion: AvatarLocomotion = "grounded",
 ) {
   const pixelsPerSecond = locomotion === "swimming"

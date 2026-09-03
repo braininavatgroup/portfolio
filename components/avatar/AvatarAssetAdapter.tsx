@@ -5,21 +5,16 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { avatarBehaviors, getAvatarBehavior } from "../../lib/avatar/behaviors";
 import { avatarAsset } from "../../lib/avatar/config";
-import type { AllowedAnimation } from "../../lib/avatar/contracts";
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
-import { getAvatarYaw } from "../../lib/avatar/orientation";
+import { getAvatarYaw, type AvatarFacing } from "../../lib/avatar/orientation";
 import {
-  avatarAmbientAmplitude,
-  avatarCrossfadeSeconds,
-  avatarPlaybackRate,
-} from "../../lib/avatar/render-motion";
+  avatarClips,
+  type AvatarClip,
+} from "../../lib/avatar/runtime";
 
-type AvatarPoseProps = Pick<
-  AvatarSnapshot,
-  "animation" | "facing" | "pointing" | "tone"
-> & {
+type AvatarPoseProps = {
+  animation: AvatarClip;
+  facing: AvatarFacing;
   reducedMotion: boolean;
 };
 
@@ -27,7 +22,7 @@ type AvatarAssetAdapterProps = AvatarPoseProps & {
   anchor?: "feet" | "center";
   stageScale?: number;
   onAvailableAnimationsChange?: (
-    available: ReadonlySet<AllowedAnimation>,
+    available: ReadonlySet<AvatarClip>,
   ) => void;
 };
 
@@ -106,9 +101,9 @@ export function getBradleyGlbFootOriginTranslation() {
 export function getAvailableAnimationIds(clipNames: Iterable<string>) {
   const availableClips = new Set(clipNames);
   return new Set(
-    avatarBehaviors
-      .filter(({ clipName }) => availableClips.has(clipName))
-      .map(({ id }) => id),
+    (Object.entries(avatarClips) as Array<[AvatarClip, string]>)
+      .filter(([, clipName]) => availableClips.has(clipName))
+      .map(([id]) => id),
   );
 }
 
@@ -125,9 +120,13 @@ export function combineAnimationClips(
 
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
-  facing: AvatarSnapshot["facing"],
+  facing: AvatarFacing,
 ) {
   return getAvatarYaw(forwardAxis, facing);
+}
+
+export function getAvatarPlaybackRate(animation: AvatarClip) {
+  return animation === "swim_forward" ? 0.55 : avatarAsset.playbackRate;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -142,7 +141,6 @@ function GlbAvatar({
   motionUrl,
   onAvailableAnimationsChange,
   reducedMotion,
-  tone,
 }: AvatarPoseProps & {
   anchor: "feet" | "center";
   modelUrl: string;
@@ -158,8 +156,7 @@ function GlbAvatar({
     [model.animations, motionLibrary.animations],
   );
   const { actions } = useAnimations(animationClips, root);
-  const playbackRate = avatarPlaybackRate(tone, avatarAsset.playbackRate);
-  const ambientAmplitude = avatarAmbientAmplitude(tone, reducedMotion);
+  const playbackRate = getAvatarPlaybackRate(animation);
   const modelOriginY = getAvatarModelOriginY(
     anchor,
     bradleyRawMinimumY,
@@ -172,7 +169,7 @@ function GlbAvatar({
     );
   }, [animationClips, onAvailableAnimationsChange]);
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
     if (root.current) {
       root.current.rotation.y = THREE.MathUtils.damp(
         root.current.rotation.y,
@@ -180,11 +177,6 @@ function GlbAvatar({
         9,
         delta,
       );
-      root.current.rotation.z =
-        Math.sin(clock.elapsedTime * 1.35) * ambientAmplitude;
-      root.current.position.y =
-        modelOriginY +
-        Math.sin(clock.elapsedTime * 1.7) * ambientAmplitude * 0.45;
     }
   });
 
@@ -193,15 +185,15 @@ function GlbAvatar({
   }, [scene]);
 
   useEffect(() => {
-    const clipName = getAvatarBehavior(animation).clipName;
+    const clipName = avatarClips[animation];
     const next = actions[clipName];
     if (!next) return;
-    const crossfadeSeconds = avatarCrossfadeSeconds(tone);
+    const crossfadeSeconds = reducedMotion ? 0 : 0.24;
     next.reset().setEffectiveTimeScale(playbackRate).fadeIn(crossfadeSeconds).play();
     return () => {
       next.fadeOut(crossfadeSeconds);
     };
-  }, [actions, animation, playbackRate, tone]);
+  }, [actions, animation, playbackRate, reducedMotion]);
 
   return (
     <group

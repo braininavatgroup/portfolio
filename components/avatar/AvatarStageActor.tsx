@@ -3,8 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useRef, useState } from "react";
 import type * as THREE from "three";
-import type { AllowedAnimation } from "../../lib/avatar/contracts";
-import type { AvatarSnapshot } from "../../lib/avatar/controller";
+import type { AvatarClip, AvatarSnapshot } from "../../lib/avatar/runtime";
 import type { AvatarFacing } from "../../lib/avatar/orientation";
 import {
   sampleStagePath,
@@ -18,7 +17,7 @@ import { AvatarAssetAdapter } from "./AvatarAssetAdapter";
 type AvatarStageActorProps = {
   snapshot: AvatarSnapshot;
   reducedMotion: boolean;
-  onAvailableAnimationsChange?: (available: ReadonlySet<AllowedAnimation>) => void;
+  onAvailableAnimationsChange?: (available: ReadonlySet<AvatarClip>) => void;
 };
 
 const desktopAvatarStageScale = 104;
@@ -172,10 +171,8 @@ function AvatarStageVisual({
         animation={snapshot.animation}
         facing={facing}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
-        pointing={snapshot.pointing}
         reducedMotion={reducedMotion}
         stageScale={selectAvatarStageScale(size.width)}
-        tone={snapshot.tone}
       />
     </group>
   );

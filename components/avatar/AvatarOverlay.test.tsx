@@ -2,8 +2,7 @@
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AvatarController } from "../../lib/avatar/controller";
-import { AvatarTargetRegistry } from "../../lib/avatar/target-registry";
+import { AvatarRuntime } from "../../lib/avatar/runtime";
 import { AvatarOverlay } from "./AvatarOverlay";
 
 type CanvasMockProps = {
@@ -13,18 +12,11 @@ type CanvasMockProps = {
   frameloop?: string;
   gl?: unknown;
   orthographic?: boolean;
-  style?: React.CSSProperties;
 };
 
-const avatarDirectorConsoleLoad = vi.hoisted(() => vi.fn());
 const canvasMockState = vi.hoisted(() => ({
   gl: null as null | ((props: unknown) => Promise<unknown>),
 }));
-
-vi.mock("./AvatarDirectorConsole", () => {
-  avatarDirectorConsoleLoad();
-  return { AvatarDirectorConsole: () => <h2>Director console</h2> };
-});
 
 vi.mock("./AvatarStageActor", () => ({
   AvatarStageActor: () => <div data-testid="avatar-stage-actor" />,
@@ -34,10 +26,18 @@ vi.mock("@react-three/fiber", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@react-three/fiber")>();
   return {
     ...actual,
-    Canvas: ({ children, "aria-hidden": ariaHidden, camera, frameloop, gl, orthographic, style }: CanvasMockProps) => {
-      canvasMockState.gl = typeof gl === "function"
-        ? gl as (props: unknown) => Promise<unknown>
-        : null;
+    Canvas: ({
+      children,
+      "aria-hidden": ariaHidden,
+      camera,
+      frameloop,
+      gl,
+      orthographic,
+    }: CanvasMockProps) => {
+      canvasMockState.gl =
+        typeof gl === "function"
+          ? (gl as (props: unknown) => Promise<unknown>)
+          : null;
       return (
         <div
           aria-hidden={ariaHidden}
@@ -45,7 +45,6 @@ vi.mock("@react-three/fiber", async (importOriginal) => {
           data-frameloop={String(frameloop)}
           data-orthographic={String(orthographic)}
           data-testid="avatar-canvas"
-          style={style}
         >
           {children}
         </div>
@@ -54,149 +53,96 @@ vi.mock("@react-three/fiber", async (importOriginal) => {
   };
 });
 
-function rect(left: number, top: number, width: number, height: number): DOMRect {
-  return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) } as DOMRect;
+function runtime() {
+  return new AvatarRuntime(() => ({
+    dock: { x: 900, y: 776 },
+    obstacles: [],
+    viewport: { width: 1_000, height: 800, floorY: 776 },
+  }));
 }
 
 beforeEach(() => {
-  vi.stubGlobal("innerWidth", 1_000);
-  Object.defineProperty(document, "hidden", { configurable: true, value: false });
-  avatarDirectorConsoleLoad.mockClear();
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    value: false,
+  });
   canvasMockState.gl = null;
 });
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(() => cleanup());
 
 describe("AvatarOverlay", () => {
-  it("keeps one pointer-transparent orthographic canvas in a fixed full-stage wrapper", () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    const { container } = render(
-      <AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />,
-    );
+  it("renders one pointer-transparent orthographic canvas for a visible avatar", () => {
+    const avatar = runtime();
+    avatar.show();
+    const { container } = render(<AvatarOverlay runtime={avatar} />);
 
-    const overlay = container.querySelector<HTMLElement>(".avatar-overlay");
-    const canvas = screen.getByTestId("avatar-canvas");
-    // pointer-events lives in globals.css now (Rule 5.3: inline style is for
-    // values only JavaScript can know). Assert the class that carries it.
-    expect(overlay?.className).toContain("avatar-overlay");
-    expect(overlay?.style.left).toBe("");
-    expect(overlay?.className).toContain("avatar-overlay");
-    expect(canvas.getAttribute("data-orthographic")).toBe("true");
-    // Some authored clips move hundreds of world units along their root Z track.
-    // Keep the orthographic camera beyond them so those poses cannot cross its plane.
-    expect(Number(canvas.getAttribute("data-camera-z"))).toBeGreaterThan(400);
-    expect(canvas.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector(".avatar-overlay")).toBeTruthy();
+    expect(screen.getByTestId("avatar-canvas").getAttribute("data-orthographic")).toBe("true");
+    expect(Number(screen.getByTestId("avatar-canvas").getAttribute("data-camera-z"))).toBeGreaterThan(400);
+    expect(screen.getByTestId("avatar-canvas").getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("keeps the canvas mounted when controller travel changes", () => {
-    const registry = new AvatarTargetRegistry();
-    registry.register("portfolio:record:dubs", { getBoundingClientRect: () => rect(80, 100, 120, 80) } as HTMLElement);
-    const controller = new AvatarController(registry);
-    render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
+  it("keeps the canvas mounted when Brain Food moves the avatar", () => {
+    const avatar = runtime();
+    avatar.show();
+    render(<AvatarOverlay runtime={avatar} />);
     const canvas = screen.getByTestId("avatar-canvas");
 
-    act(() => { void controller.execute({ action: "walkTo", target: "portfolio:record:dubs" }); });
+    act(() => {
+      avatar.beginBrainFood({ x: 500, y: 400 });
+      avatar.setBrainFoodPosition({ x: 520, y: 390 }, "right");
+    });
 
     expect(screen.getByTestId("avatar-canvas")).toBe(canvas);
   });
 
-  it("reports controller visibility changes to the shared assistant state", async () => {
-    // Catches an exit command hiding the avatar while the chat panel stays open.
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    const onEnabledChange = vi.fn();
-    render(
-      <AvatarOverlay
-        controller={controller}
-        enabled
-        onEnabledChange={onEnabledChange}
-      />,
-    );
+  it("renders no public avatar controls", () => {
+    const avatar = runtime();
+    avatar.show();
+    render(<AvatarOverlay runtime={avatar} />);
 
-    act(() => controller.setVisible(false));
-
-    await waitFor(() => expect(onEnabledChange).toHaveBeenCalledWith(false));
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("renders no public avatar visibility or recovery control", () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
-
-    expect(screen.queryByRole("button", { name: "Hide assistant" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Show assistant" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
-  });
-
-  it("leaves toggle visibility to the Director console in development debug mode", async () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    render(
-      <AvatarOverlay
-        controller={controller}
-        director={{} as never}
-        enabled
-        development
-        debug
-        onEnabledChange={() => {}}
-        registry={new AvatarTargetRegistry()}
-      />,
-    );
-
-    expect(await screen.findByRole("heading", { name: "Director console" })).toBeTruthy();
-    expect(document.querySelector(".avatar-overlay-toggle")).toBeNull();
-  });
-
-  it("removes a failed renderer without adding a public recovery pill", () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    controller.markFailed();
-    render(<AvatarOverlay controller={controller} enabled onEnabledChange={() => {}} />);
+  it("removes only the failed avatar renderer", () => {
+    const avatar = runtime();
+    avatar.show();
+    avatar.markFailed();
+    render(<AvatarOverlay runtime={avatar} />);
 
     expect(screen.queryByTestId("avatar-canvas")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
   });
 
-  it("turns renderer construction failure into recoverable failed state", async () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
+  it("turns renderer construction failure into runtime failure", async () => {
+    const avatar = runtime();
+    avatar.show();
     const createRenderer = vi.fn(() => {
       throw new Error("WebGL context unavailable");
     });
-    render(
-      <AvatarOverlay
-        controller={controller}
-        createRenderer={createRenderer}
-        enabled
-        onEnabledChange={() => {}}
-      />,
-    );
+    render(<AvatarOverlay createRenderer={createRenderer} runtime={avatar} />);
 
-    expect(screen.getByTestId("avatar-canvas")).toBeTruthy();
     await act(async () => {
       void canvasMockState.gl?.({ canvas: document.createElement("canvas") });
       await Promise.resolve();
     });
 
     await waitFor(() => expect(screen.queryByTestId("avatar-canvas")).toBeNull());
-    expect(controller.getSnapshot().failed).toBe(true);
-    expect(screen.queryByRole("button", { name: "Reset assistant" })).toBeNull();
+    expect(avatar.getSnapshot().failed).toBe(true);
   });
 
-  it("stops directed travel and pauses the renderer when the document is hidden", () => {
-    const controller = new AvatarController(new AvatarTargetRegistry());
-    const director = { stop: vi.fn() };
-    render(
-      <AvatarOverlay
-        controller={controller}
-        director={director as never}
-        enabled
-        onEnabledChange={() => {}}
-      />,
-    );
+  it("pauses the canvas and cancels travel while the document is hidden", () => {
+    const avatar = runtime();
+    avatar.show();
+    render(<AvatarOverlay runtime={avatar} />);
 
-    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
     act(() => document.dispatchEvent(new Event("visibilitychange")));
 
-    expect(director.stop).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("avatar-canvas").getAttribute("data-frameloop")).toBe("never");
+    expect(avatar.getSnapshot().phase).toBe("idle");
   });
 });
