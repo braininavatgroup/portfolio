@@ -149,12 +149,14 @@ optional pointer at one element on the page, and Send. Notes go to the
 the widget keeps only the current visit's notes in memory so a reviewer can
 take one back.
 
-Read everything with `PORTFOLIO_FEEDBACK_ADMIN_TOKEN=… npm run feedback`
-(add `-- --json` for raw notes). The admin route sits outside the password
-gate and accepts only that bearer token, so it never needs the preview
-password; the token is a required Worker secret of at least 32 characters,
-set with `wrangler secret put PORTFOLIO_FEEDBACK_ADMIN_TOKEN --config
-wrangler.main-preview.jsonc`. The whole feature is dormant unless
+Run `npm run setup:feedback` once from your own terminal: it mints the admin
+token, sets it as the required Worker secret `PORTFOLIO_FEEDBACK_ADMIN_TOKEN`
+through your Wrangler login, and stores it in your login Keychain. Re-running
+rotates it. Then `npm run feedback` prints the digest (add `-- --json` for raw
+notes), reading the token from the Keychain or from
+`PORTFOLIO_FEEDBACK_ADMIN_TOKEN` if set. The admin route sits outside the
+password gate and accepts only that bearer token, so it never needs the
+preview password. The whole feature is dormant unless
 `PORTFOLIO_FEEDBACK_ENABLED` is `"true"`, which only the main preview sets.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service. `npm run eval:chat -- --model <id>` runs it against a live provider — real, billable calls, so it is deliberately not in CI.

@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 // Pull reviewer notes off the password-protected preview, or mint a reviewer link.
 //
-//   PORTFOLIO_FEEDBACK_ADMIN_TOKEN=… node scripts/portfolio-feedback.mjs            # markdown digest
-//   PORTFOLIO_FEEDBACK_ADMIN_TOKEN=… node scripts/portfolio-feedback.mjs --json     # raw notes
-//   node scripts/portfolio-feedback.mjs --link alice                                  # https://…/?r=alice
+//   node scripts/portfolio-feedback.mjs                 # markdown digest
+//   node scripts/portfolio-feedback.mjs --json          # raw notes
+//   node scripts/portfolio-feedback.mjs --link alice    # https://…/?r=alice
 //
-// `--site <origin>` overrides the default https://bradleyberkman.com. The admin
-// route sits outside the password gate and authenticates with the token alone,
-// so this never needs the preview password.
+// The admin token comes from PORTFOLIO_FEEDBACK_ADMIN_TOKEN if set, otherwise
+// from the macOS login Keychain entry `scripts/setup-portfolio-feedback.sh`
+// writes. `--site <origin>` overrides the default https://bradleyberkman.com.
+// The admin route sits outside the password gate and authenticates with the
+// token alone, so this never needs the preview password.
 
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 const DEFAULT_SITE = "https://bradleyberkman.com";
+const KEYCHAIN_SERVICE = "biv-portfolio-feedback";
+const KEYCHAIN_ACCOUNT = "admin-token";
 const ADMIN_PATH = "/_portfolio-feedback/admin/notes";
 const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 
@@ -35,6 +43,26 @@ export function reviewerLink(site, code) {
   return url.href;
 }
 
+async function resolveAdminToken() {
+  const explicit = process.env.PORTFOLIO_FEEDBACK_ADMIN_TOKEN?.trim();
+  if (explicit) return explicit;
+  if (process.platform === "darwin") {
+    try {
+      const { stdout } = await execFileAsync(
+        "/usr/bin/security",
+        ["find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_ACCOUNT, "-w"],
+        { encoding: "utf8" },
+      );
+      if (stdout.trim()) return stdout.trim();
+    } catch {
+      // The setup message below is the useful error for every Keychain failure.
+    }
+  }
+  throw new Error(
+    "No admin token. Run `npm run setup:feedback` once, or set PORTFOLIO_FEEDBACK_ADMIN_TOKEN.",
+  );
+}
+
 async function fetchNotes(site, token, json) {
   const url = new URL(ADMIN_PATH, site);
   if (!json) url.searchParams.set("format", "markdown");
@@ -51,9 +79,7 @@ async function main() {
     process.stdout.write(`${reviewerLink(options.site, options.link)}\n`);
     return;
   }
-  const token = process.env.PORTFOLIO_FEEDBACK_ADMIN_TOKEN;
-  if (!token) throw new Error("Set PORTFOLIO_FEEDBACK_ADMIN_TOKEN to the Worker's admin secret.");
-  process.stdout.write(await fetchNotes(options.site, token, options.json));
+  process.stdout.write(await fetchNotes(options.site, await resolveAdminToken(), options.json));
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
