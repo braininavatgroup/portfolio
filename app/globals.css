@@ -2340,6 +2340,91 @@ body:has(.portfolio-reading-room-mobile) {
   z-index: 899;
 }
 
+/* Quoting: the selected run, then which region holds it, then the mode. */
+.portfolio-feedback-quote {
+  border-left: 1px solid var(--map-line-strong);
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+  max-height: 64px;
+  overflow: hidden;
+  padding: 0 0 0 12px;
+}
+
+.portfolio-feedback-modes {
+  display: flex;
+  gap: 12px;
+}
+
+.portfolio-feedback-mode {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0;
+}
+
+.portfolio-feedback-mode[aria-pressed="true"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portfolio-feedback-why {
+  background: transparent;
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 32px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.portfolio-feedback-why::placeholder { color: var(--reader-muted); }
+
+/* The control that appears under a text selection. */
+.portfolio-feedback-select {
+  appearance: none;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  padding: 0 12px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 901;
+}
+
+/* Pins mark where this visit's notes point. They live only in memory. */
+.portfolio-feedback-pin {
+  appearance: none;
+  background: var(--ink);
+  border: 1px solid var(--reader-paper);
+  border-radius: 50%;
+  color: var(--reader-paper);
+  display: grid;
+  font: var(--reader-type-label) var(--font-reader);
+  height: 18px;
+  padding: 0;
+  place-items: center;
+  position: fixed;
+  width: 18px;
+  z-index: 898;
+}
+
+.portfolio-feedback-pin[data-focused="true"] { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.portfolio-feedback-sent-index {
+  color: var(--ink);
+  flex: 0 0 auto;
+}
+
+.portfolio-feedback-sent-row[data-focused="true"] .portfolio-feedback-sent-note { color: var(--ink); }
+
 @media (pointer: fine) {
   .portfolio-feedback-trigger:hover,
   .portfolio-feedback-point:hover {

@@ -5,10 +5,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FeedbackNote } from "../worker/portfolio-feedback-store";
 import {
   describeElement,
+  describeSelection,
   PortfolioFeedback,
   readReviewerCookie,
   type PortfolioFeedbackTransport,
 } from "./PortfolioFeedback";
+
+function selectText(element: Element, start: number, end: number) {
+  const textNode = element.firstChild!;
+  const range = document.createRange();
+  range.setStart(textNode, start);
+  range.setEnd(textNode, end);
+  const live = document.getSelection()!;
+  live.removeAllRanges();
+  live.addRange(range);
+  fireEvent(document, new Event("selectionchange"));
+  return range;
+}
 
 function transport() {
   let sequence = 0;
@@ -63,6 +76,25 @@ describe("describeElement", () => {
     expect(target.selector).toBe('div.portfolio-world > canvas[data-world-node="brain-food"]');
     expect(target.component).toBe("portfolio-world");
     expect(target.text).toBeUndefined();
+  });
+});
+
+describe("describeSelection", () => {
+  it("quotes the selected run with context on each side", () => {
+    document.body.innerHTML =
+      '<main class="portfolio-composition"><p class="reader-summary">Hey, I run Brain in a Vat Group, which includes a music promotions agency.</p></main>';
+    const paragraph = document.querySelector("p")!;
+    const range = selectText(paragraph, 10, 32);
+
+    const target = describeSelection(range)!;
+
+    expect(target.quote).toEqual({
+      text: "Brain in a Vat Group,",
+      prefix: "Hey, I run",
+      suffix: "which includes a music promotions agency",
+    });
+    expect(target.component).toBe("reader-summary");
+    expect(target.selector).toMatch(/p\.reader-summary$/u);
   });
 });
 
@@ -147,6 +179,70 @@ describe("PortfolioFeedback", () => {
       component: "reader-summary",
       text: "Make complexity legible",
     });
+  });
+
+  it("offers to comment on a text selection, quotes it, and can send a suggested edit", async () => {
+    const api = transport();
+    document.body.innerHTML =
+      '<main class="portfolio-composition"><p class="reader-summary">Make complexity legible enough to act on.</p></main>';
+    const paragraph = document.querySelector("p")!;
+    const { container } = render(<PortfolioFeedback reviewer="alice" transport={api} />, {
+      container: document.querySelector("main")!.appendChild(document.createElement("div")),
+    });
+
+    selectText(paragraph, 5, 23);
+    const control = screen.getByRole("button", { name: "Comment on selection" });
+    fireEvent.click(control);
+
+    expect(screen.getByRole("dialog", { name: "Note for Bradley" })).toBeTruthy();
+    expect(screen.getByText("“complexity legible”")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Comment", pressed: true })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Suggest an edit" }));
+    const replacement = screen.getByLabelText("Suggested replacement") as HTMLTextAreaElement;
+    expect(replacement.value).toBe("complexity legible");
+    expect((screen.getByRole("button", { name: "Send edit" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(replacement, { target: { value: "complexity readable" } });
+    fireEvent.change(screen.getByLabelText("Why, optionally"), { target: { value: "Plainer." } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send edit" }));
+    });
+
+    expect(api.send.mock.calls[0][0]).toMatchObject({
+      note: "Plainer.",
+      suggestion: "complexity readable",
+      target: {
+        component: "reader-summary",
+        quote: { text: "complexity legible", prefix: "Make", suffix: "enough to act on." },
+      },
+    });
+    expect(screen.getByText("Edit: complexity readable")).toBeTruthy();
+    expect(container.querySelectorAll(".portfolio-feedback-pin")).toHaveLength(0);
+  });
+
+  it("pins this visit's notes to their elements and focuses one from its pin", async () => {
+    const api = transport();
+    const summary = document.body.appendChild(document.createElement("p"));
+    summary.className = "reader-summary";
+    summary.textContent = "Make complexity legible";
+    summary.getBoundingClientRect = () => ({ top: 100, left: 40, right: 240, bottom: 124, width: 200, height: 24, x: 40, y: 100, toJSON: () => ({}) });
+    render(<PortfolioFeedback reviewer="alice" transport={api} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Leave a note" }));
+    fireEvent.click(screen.getByRole("button", { name: "Point at something on the page" }));
+    fireEvent.click(summary, { clientX: 50, clientY: 110 });
+    fireEvent.change(screen.getByLabelText("Your note"), { target: { value: "Too wide." } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Close notes" }));
+
+    const pin = await screen.findByRole("button", { name: "Your note 1" });
+    expect(pin.style.top).toBe("91px");
+    expect(pin.style.left).toBe("231px");
+    fireEvent.click(pin);
+    expect(screen.getByRole("dialog", { name: "Note for Bradley" })).toBeTruthy();
+    expect(screen.getByText("Too wide.").closest("li")!.getAttribute("data-focused")).toBe("true");
   });
 
   it("cancels picking with Escape and closes with the control", () => {

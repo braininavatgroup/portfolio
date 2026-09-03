@@ -112,6 +112,41 @@ describe("readFeedbackNoteInput", () => {
     expect(readFeedbackNoteInput(body, "alice")).toEqual({ error });
   });
 
+  it("keeps a quote with its context and a suggestion that replaces it", () => {
+    const read = readFeedbackNoteInput(
+      {
+        note: "",
+        suggestion: "Make complexity legible enough to act on.",
+        path: "/",
+        target: {
+          selector: "p.reader-summary",
+          quote: { text: "Make complexity legible.", prefix: "I ", suffix: " Hey," },
+        },
+      },
+      "alice",
+    );
+    expect(read).toEqual({
+      input: {
+        reviewer: "alice",
+        path: "/",
+        note: "",
+        suggestion: "Make complexity legible enough to act on.",
+        target: {
+          selector: "p.reader-summary",
+          quote: { text: "Make complexity legible.", prefix: "I", suffix: "Hey," },
+        },
+      },
+    });
+  });
+
+  it.each([
+    [{ suggestion: "new", path: "/", target: { selector: "p" } }, "quote"],
+    [{ suggestion: "same", path: "/", target: { selector: "p", quote: { text: "same" } } }, "suggestion"],
+    [{ note: "", path: "/", target: { selector: "p", quote: { text: "q" } } }, "note"],
+  ])("rejects a suggestion without a differing quote: %j", (body, error) => {
+    expect(readFeedbackNoteInput(body, "alice")).toEqual({ error });
+  });
+
   it("rejects a reviewer code the cookie could never carry", () => {
     expect(readFeedbackNoteInput({ note: "hi", path: "/" }, "Not Valid")).toEqual({
       error: "reviewer",
@@ -207,9 +242,23 @@ describe("feedbackNotesToMarkdown", () => {
         viewport: { width: 1440, height: 900 },
       },
       { id: "b1", createdAt: Date.UTC(2026, 8, 3, 15), reviewer: "bob", path: "/", note: "Lovely." },
+      {
+        id: "b2",
+        createdAt: Date.UTC(2026, 8, 3, 15, 5),
+        reviewer: "bob",
+        path: "/",
+        note: "",
+        suggestion: "trading sheep for bricks",
+        target: {
+          selector: "p.reader-composed-body",
+          component: "reader-composed-body",
+          text: "trading sheep for brick over a Catan board",
+          quote: { text: "trading sheep for brick", prefix: "consciousness, ", suffix: " over a Catan" },
+        },
+      },
     ]);
 
-    expect(markdown).toBe(`# Portfolio feedback — 2 notes
+    expect(markdown).toBe(`# Portfolio feedback — 3 notes
 
 ## alice (1)
 
@@ -224,13 +273,27 @@ describe("feedbackNotesToMarkdown", () => {
 - Viewport: 1440×900
 - Note id: \`a1\`
 
-## bob (1)
+## bob (2)
 
 ### 3 Sept 2026, 15:00 UTC · \`/\`
 
 > Lovely.
 
 - Note id: \`b1\`
+
+### 3 Sept 2026, 15:05 UTC · \`/\`
+
+- Suggested edit:
+
+\`\`\`diff
+- trading sheep for brick
++ trading sheep for bricks
+\`\`\`
+
+- Quote: “trading sheep for brick”
+- Around: …consciousness, ⟨trading sheep for brick⟩ over a Catan…
+- Target: \`p.reader-composed-body\` in \`reader-composed-body\`
+- Note id: \`b2\`
 `);
   });
 });
