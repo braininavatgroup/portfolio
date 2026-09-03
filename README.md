@@ -143,7 +143,10 @@ each other's, and without a note ever persisting into their own later visits.
 Any link with `?r=<code>` works; codes are not predefined. Type one by hand when
 you send the site to someone (`https://bradleyberkman.com/?r=Sarah Smith` counts
 as `sarah-smith`: the worker lowercases, hyphenates, and trims to 32
-characters), or mint the canonical form with `npm run feedback -- --link alice`. Opening it (after the shared password) sets a signed,
+characters), or mint the canonical form with `npm run feedback -- --link alice`.
+A link sent with its placeholder still in it (`?r=[name]`) lands as the code
+`name`; the panel then asks the reviewer for their name and every note carries
+it, so the digest still tells people apart. Opening it (after the shared password) sets a signed,
 90-day `portfolio_reviewer` cookie and redirects to the clean URL. From then
 on a "Leave a note" control sits in the bottom-left corner: a note, an
 optional pointer at one element on the page, and Send. Notes go to the

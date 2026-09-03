@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   feedbackNotesToMarkdown,
+  isPlaceholderReviewerCode,
   MAX_NOTES_PER_REVIEWER,
   normalizeReviewerCode,
   PortfolioFeedbackObject,
   readFeedbackNoteInput,
 } from "./portfolio-feedback-store";
+
+describe("isPlaceholderReviewerCode", () => {
+  it("recognises the codes an unedited message template produces", () => {
+    for (const raw of ["[name]", "<name>", "{Name}", "your-name", "CODE", "[reviewer]"]) {
+      expect(isPlaceholderReviewerCode(normalizeReviewerCode(raw)!)).toBe(true);
+    }
+    for (const raw of ["mom", "sarah-smith", "acme-team", "nameless"]) {
+      expect(isPlaceholderReviewerCode(normalizeReviewerCode(raw)!)).toBe(false);
+    }
+  });
+});
 
 describe("normalizeReviewerCode", () => {
   it.each([
@@ -147,6 +159,14 @@ describe("readFeedbackNoteInput", () => {
     expect(readFeedbackNoteInput(body, "alice")).toEqual({ error });
   });
 
+  it("keeps the name a reviewer typed on a placeholder link", () => {
+    const read = readFeedbackNoteInput(
+      { note: "Lovely.", path: "/", reviewerName: "  Mom  " },
+      "name",
+    );
+    expect(read).toEqual({ input: { reviewer: "name", reviewerName: "Mom", path: "/", note: "Lovely." } });
+  });
+
   it("rejects a reviewer code the cookie could never carry", () => {
     expect(readFeedbackNoteInput({ note: "hi", path: "/" }, "Not Valid")).toEqual({
       error: "reviewer",
@@ -242,6 +262,8 @@ describe("feedbackNotesToMarkdown", () => {
         viewport: { width: 1440, height: 900 },
       },
       { id: "b1", createdAt: Date.UTC(2026, 8, 3, 15), reviewer: "bob", path: "/", note: "Lovely." },
+      { id: "n1", createdAt: Date.UTC(2026, 8, 3, 16), reviewer: "name", reviewerName: "Mom", path: "/", note: "So proud." },
+      { id: "n2", createdAt: Date.UTC(2026, 8, 3, 16, 5), reviewer: "name", reviewerName: "Uncle Ray", path: "/", note: "Nice map." },
       {
         id: "b2",
         createdAt: Date.UTC(2026, 8, 3, 15, 5),
@@ -258,7 +280,7 @@ describe("feedbackNotesToMarkdown", () => {
       },
     ]);
 
-    expect(markdown).toBe(`# Portfolio feedback — 3 notes
+    expect(markdown).toBe(`# Portfolio feedback — 5 notes
 
 ## alice (1)
 
@@ -294,6 +316,22 @@ describe("feedbackNotesToMarkdown", () => {
 - Around: …consciousness, ⟨trading sheep for brick⟩ over a Catan…
 - Target: \`p.reader-composed-body\` in \`reader-composed-body\`
 - Note id: \`b2\`
+
+## name — “Mom”, “Uncle Ray” (2)
+
+### 3 Sept 2026, 16:00 UTC · \`/\`
+
+- Name: Mom
+> So proud.
+
+- Note id: \`n1\`
+
+### 3 Sept 2026, 16:05 UTC · \`/\`
+
+- Name: Uncle Ray
+> Nice map.
+
+- Note id: \`n2\`
 `);
   });
 });

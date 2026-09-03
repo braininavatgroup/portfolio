@@ -19,11 +19,12 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type {
-  FeedbackNote,
-  FeedbackNoteInput,
-  FeedbackQuote,
-  FeedbackTarget,
+import {
+  isPlaceholderReviewerCode,
+  type FeedbackNote,
+  type FeedbackNoteInput,
+  type FeedbackQuote,
+  type FeedbackTarget,
 } from "../worker/portfolio-feedback-store";
 import { PortfolioControlMark } from "./PortfolioNodeMark";
 
@@ -260,6 +261,7 @@ export function PortfolioFeedback({
   const [mode, setMode] = useState<Mode>("comment");
   const [text, setText] = useState("");
   const [replacement, setReplacement] = useState("");
+  const [reviewerName, setReviewerName] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<{ kind: "sent" | "error"; message: string } | null>(null);
   const [sent, setSent] = useState<FeedbackNote[]>([]);
@@ -270,6 +272,9 @@ export function PortfolioFeedback({
   const rangeRef = useRef<Range | null>(null);
   const textareaId = useId();
   const suggesting = mode === "suggest" && Boolean(target?.quote);
+  // A link sent with its placeholder still in it (`?r=[name]`) lands here as
+  // "name"; the panel then asks who is writing instead of guessing.
+  const needsName = Boolean(reviewer) && isPlaceholderReviewerCode(reviewer!);
 
   useEffect(() => {
     if (open && !picking) textareaRef.current?.focus();
@@ -402,9 +407,12 @@ export function PortfolioFeedback({
     setReplacement("");
   }, []);
 
-  const canSend = suggesting
-    ? replacement.trim().length > 0 && replacement.trim() !== target?.quote?.text
-    : text.trim().length > 0;
+  const named = !needsName || reviewerName.trim().length > 0;
+  const canSend =
+    named &&
+    (suggesting
+      ? replacement.trim().length > 0 && replacement.trim() !== target?.quote?.text
+      : text.trim().length > 0);
 
   const submit = useCallback(
     async (event: FormEvent) => {
@@ -415,6 +423,7 @@ export function PortfolioFeedback({
       try {
         const saved = await transport.send({
           note: text.trim(),
+          ...(needsName ? { reviewerName: reviewerName.trim() } : {}),
           ...(suggesting ? { suggestion: replacement.trim() } : {}),
           path: currentPath(),
           pageTitle: document.title || undefined,
@@ -434,7 +443,7 @@ export function PortfolioFeedback({
         setPending(false);
       }
     },
-    [canSend, pending, replacement, suggesting, target, text, transport],
+    [canSend, needsName, pending, replacement, reviewerName, suggesting, target, text, transport],
   );
 
   const remove = useCallback(
@@ -470,10 +479,26 @@ export function PortfolioFeedback({
         >
           <div className="portfolio-feedback-head">
             <p className="portfolio-feedback-eyebrow">
-              Note for Bradley · as {reviewer}
+              {needsName
+                ? reviewerName.trim()
+                  ? `Note for Bradley · from ${reviewerName.trim()}`
+                  : "Note for Bradley"
+                : `Note for Bradley · as ${reviewer}`}
             </p>
             <PortfolioControlMark aria-label="Close notes" kind="close" onClick={close} />
           </div>
+
+          {needsName ? (
+            <input
+              aria-label="Your name"
+              className="portfolio-feedback-why"
+              onChange={(event) => setReviewerName(event.target.value)}
+              onKeyDown={escapeCloses}
+              placeholder="Your name, so Bradley knows who this is from"
+              type="text"
+              value={reviewerName}
+            />
+          ) : null}
 
           {target?.quote ? (
             <>

@@ -245,6 +245,24 @@ describe("PortfolioFeedback", () => {
     expect(screen.getByText("Too wide.").closest("li")!.getAttribute("data-focused")).toBe("true");
   });
 
+  it("asks for a name when the link carried a placeholder code and sends it with each note", async () => {
+    const api = transport();
+    render(<PortfolioFeedback reviewer="name" transport={api} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Leave a note" }));
+    expect(screen.getByText("Note for Bradley")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Your note"), { target: { value: "So proud." } });
+    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: " Mom " } });
+    expect(screen.getByText("Note for Bradley · from Mom")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    });
+    expect(api.send.mock.calls[0][0]).toMatchObject({ note: "So proud.", reviewerName: "Mom" });
+    expect(screen.queryByLabelText("Your name")).toBeTruthy();
+  });
+
   it("cancels picking with Escape and closes with the control", () => {
     render(<PortfolioFeedback reviewer="alice" transport={transport()} />);
     fireEvent.click(screen.getByRole("button", { name: "Leave a note" }));
