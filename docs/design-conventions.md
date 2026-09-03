@@ -129,7 +129,10 @@ label; 8 below it; 16 between paragraphs; a figure adds 8 either side of the
 **Rule 2.2** — No rules inside the dossier. `--map-line` draws the dossier's
 left edge; `--map-line-strong` draws figure frames. Sections, groups, and rows
 are separated by space alone — no `border-top`, no `border-bottom`, no hover
-tint. `app/globals.test.ts` fails on a `--map-line` border inside the reader.
+tint. No test enforces this yet; check it by hand in review. The one standing
+exception is `.reader-copy-placeholder`, which draws a dotted
+`--map-line-strong` left edge while copy is in progress (it is `display: none`
+today).
 
 ### Other dimension tokens
 
@@ -175,7 +178,7 @@ same everywhere the voice appears.
 **Rule 3.1** — One label voice. Every label on the dossier is
 `--reader-type-label`; there is no second small-caps style, no per-register
 label colour, no badge or kind chip. Nothing on the dossier is smaller than
-11px; `app/globals.test.ts` fails on a smaller `font-size` inside the reader.
+11px. No test enforces this yet; check it by hand in review.
 
 **Rule 3.2** — The head stack is fixed: title → 16 → summary → 32 → body.
 Home and Index have no summary, so their titles carry the 32. No kind chip,
@@ -330,7 +333,14 @@ no padding bleed; rows stay full text-column width. The mark never changes.
 Silverpoint line: thin, straight, neutral, arrowless. The canvas connectors in
 `PortfolioWorld` use `var(--map-connector)`, opaque because that code applies
 its own per-link alpha. Do not encode link type as color, dash, thickness, or
-arrowhead — classifications stay backstage.
+arrowhead — classifications stay backstage. Every connector stops outside each
+endpoint's envelope: the mark's tightest circle (`portfolioNodeMarkRadius`)
+plus its painted label box (`lib/portfolio-node-envelope.ts`), with
+`CONNECTOR_CLEARANCE` of 2px. A line whose envelopes touch is dropped
+(`connectorSegment` returns `null`), and each end eases its inset so the clip
+never snaps mid-motion. The tree at rest is one trunk from Bradley to a
+junction (`lib/portfolio-story-tree.ts`) and branches from there; nothing
+draws Bradley-to-Story lines directly.
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
@@ -385,15 +395,48 @@ globally and `.cursor-instrument` is the only pointer. Consequences for new UI:
   `button, a, input, textarea, select, [role='button'], [role='link'],
   [data-world-node]` or the cursor will not invert over it. Prefer a real
   `<button>`; add `role` only if you cannot.
-- A draggable world node carries `data-world-node` and
-  `data-cursor-color="--world-<register>"`, naming the custom property the
-  cursor reads.
+- A world node — draggable while held, springing back on release — carries
+  `data-world-node` and `data-cursor-color="--world-<register>"`, naming the
+  custom property the cursor reads.
 - Do not set `cursor:` on a composition element — it is overridden by
   `!important` on fine pointers and the instrument is hidden on coarse ones.
 
 **Rule 6.11 — Escape and empty space reset.** Blank-space click, the Index
 control, and Escape return the world to overview. Blank-space drag does not
-pan the field. Preserve this if you touch world interaction.
+pan the field. A held node follows the pointer and springs back on release;
+nothing about a drag is persisted. Preserve this if you touch world
+interaction.
+
+**Rule 6.12 — One map grammar: spine, zones, field, seed.** Every map state
+is one composition and the camera never moves.
+
+- **Spine.** Bradley at twelve o'clock; the spotlit node (a Story or any
+  record) beneath him on the trunk; its relations around it. Rest is the case
+  where the four Stories hang from the junction. There is no thread lock —
+  any click lands on that node's own composition.
+- **Zones** (`lib/portfolio-world-zones.ts`). Place is a rule, coordinates
+  are not. A zone is a sector (screen degrees) and a band (world units) with
+  members in order; members take equal slots, alternate near and far, and
+  jitter inside their slot. `AUTHORED_ZONES` holds the two large Stories;
+  `looseZones` seats up to four relations and hangs from the trunk's tilt,
+  rotated by the record's signature so siblings differ; `starZones` seats
+  more, grouped by family and split at the family boundary nearest the
+  middle. `clearTrunkCone` keeps every relation out of the trunk's cone,
+  wider for wide labels. `MAX_SPOTLIGHT_LEAN`, `BRADLEY_MIN_LEAN`, and
+  `MIN_SHIFT` keep the spotlit node beneath Bradley and make every click a
+  legible move. Author a new composition as zones; never as pixel offsets.
+- **Field** (`lib/portfolio-world-field.ts`). Records outside the composition
+  are dimmed, deeper, and dispersed evenly through the composition's own
+  footprint, never under a lit label or on a lit line, and never closer than
+  `FIELD.spacing`. The region grows outward only when the footprint lacks
+  room. The lit nodes settle in the overlap solver first; the field seats
+  around the settled positions and stays out of the solver. Pass every drawn
+  lit line to `fieldGoals`, or the field may sit on it.
+- **Seed.** One seed per page load (`setWorldSeed`), mixed with the
+  composition's id, so a record keeps its pose within a visit and takes a new
+  one after reload. `?seed=<n>` pins it in dev. Tests pass an explicit rng
+  (`stillRng`, `createRng`) and assert the rules — sector, band, order,
+  clearance, spacing — not coordinates.
 
 ## 7. One idiomatic example
 

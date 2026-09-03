@@ -48,6 +48,33 @@ export function portfolioNodeMarkVertices(
   return undefined;
 }
 
+/**
+ * The tightest circle around a mark, measured from its center: the furthest
+ * any of its ink reaches, including half the stroke. Relationship lines stop
+ * at this circle, never inside it, so a line cannot bleed through the open
+ * arms of an asterisk or the gaps in a triangle.
+ */
+export const PORTFOLIO_NODE_MARK_STROKE = 1.45;
+
+export function portfolioNodeMarkRadius(
+  family: PortfolioWorldFamily,
+  size = PORTFOLIO_NODE_MARK_SIZE,
+): number {
+  let reach = 0;
+  for (const primitive of portfolioNodeMarkPrimitives(family, size)) {
+    if (primitive.kind === "brain") {
+      reach = Math.max(reach, size * 0.49);
+    } else if (primitive.kind === "circle") {
+      reach = Math.max(reach, Math.hypot(primitive.x, primitive.y) + primitive.radius);
+    } else if (primitive.kind === "polyline") {
+      for (const { x, y } of primitive.points) reach = Math.max(reach, Math.hypot(x, y));
+    } else {
+      throw new Error("portfolioNodeMarkRadius cannot measure a path primitive");
+    }
+  }
+  return reach + PORTFOLIO_NODE_MARK_STROKE / 2;
+}
+
 export function portfolioNodeMarkPrimitives(
   family: PortfolioWorldFamily,
   size = PORTFOLIO_NODE_MARK_SIZE,

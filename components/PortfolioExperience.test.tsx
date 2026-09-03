@@ -446,18 +446,29 @@ describe("spatial self-portrait", () => {
       .getAttribute("aria-pressed"),
     ).toBe("true");
 
+    // A member chosen from inside the Story opens its own composition; the
+    // Story is an entry point, not a mode the map stays locked in.
     fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
-    expect(window.location.hash).toBe("#thread/making-work-playable/dubs");
+    expect(window.location.hash).toBe("#dubs");
     expect(
       screen.getByRole("complementary", { name: "Dubs record" }),
     ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Thread Making work playable" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
 
     fireEvent.click(screen.getByRole("button", { name: "In Production Dubs" }));
-    expect(window.location.hash).toBe("#thread/making-work-playable");
+    expect(window.location.hash).toBe("");
     expect(
-      screen.getByRole("complementary", { name: `${portfolioThreadById.get("making-work-playable")!.title} thread` }),
+      screen.getByRole("complementary", { name: "Portfolio home" }),
     ).toBeTruthy();
 
+    fireEvent.click(
+      screen.getByRole("button", { name: "Thread Making work playable" }),
+    );
+    expect(window.location.hash).toBe("#thread/making-work-playable");
     fireEvent.click(
       screen.getByRole("button", { name: "Thread Making work playable" }),
     );
@@ -503,7 +514,7 @@ describe("spatial self-portrait", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("restores a direct thread and node state from the canonical thread link", async () => {
+  it("opens the record from an older thread-scoped link, in its own composition", async () => {
     window.history.replaceState(
       {},
       "",

@@ -141,7 +141,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "where",
     family: "operation",
     register: "warm",
-    position: { x: 9.34, y: 71.43, z: 762.31 },
+    position: { x: -3.77, y: 53.24, z: 860 },
     status: "past",
     body: [
       para("p1"),
@@ -157,7 +157,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "where",
     family: "operation",
     register: "warm",
-    position: { x: 25.41, y: 79.45, z: 822.3 },
+    position: { x: -2.73, y: 63.03, z: 890 },
     status: "active",
     body: [
       para("p1"),
@@ -180,7 +180,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "where",
     family: "operation",
     register: "warm",
-    position: { x: 47.11, y: 81.46, z: 882.3 },
+    position: { x: 40.83, y: 88.28, z: 920 },
     status: "active",
     body: [
       draft("consulting-bridge"),
@@ -196,7 +196,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "where",
     family: "operation",
     register: "warm",
-    position: { x: 53.6, y: 58.4, z: 812.3 },
+    position: { x: 84.51, y: 79.99, z: 920 },
     status: "active",
     summaryStatus: "placeholder",
     body: [
@@ -209,7 +209,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "component",
     register: "bridge",
-    position: { x: 81.31, y: 42.68, z: 838.89 },
+    position: { x: 2.66, y: 72.39, z: 920 },
     body: [
       draft("kickoff-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("kickoff-sequence", "comparison", "capture"),
@@ -220,7 +220,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "component",
     register: "bridge",
-    position: { x: 92.13, y: 54.87, z: 939.23 },
+    position: { x: 14.1, y: 78.85, z: 860 },
     summaryStatus: "placeholder",
     body: [
       draft("pitching-rewrite", ["q1", "q2", "q3", "q4", "q5"]),
@@ -232,7 +232,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "component",
     register: "bridge",
-    position: { x: 70.78, y: 60.84, z: 902.14 },
+    position: { x: 26.28, y: 84.77, z: 890 },
     summaryStatus: "placeholder",
     body: [
       draft("reporting-rewrite", ["q1", "q2", "q3", "q4"]),
@@ -244,7 +244,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "engagement",
     register: "bridge",
-    position: { x: 76.49, y: 82.38, z: 919.84 },
+    position: { x: 56.21, y: 86.84, z: 860 },
     body: [
       draft("real-estate-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("real-estate-operation-map", "comparison", "recreate"),
@@ -255,7 +255,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "engagement",
     register: "bridge",
-    position: { x: 93.41, y: 72.24, z: 990.31 },
+    position: { x: 71.04, y: 84.77, z: 890 },
     summaryStatus: "placeholder",
     body: [
       draft("touring-rewrite", ["q1", "q2", "q3", "q4"]),
@@ -267,7 +267,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "product",
     register: "cool",
-    position: { x: 18.73, y: 41.17, z: 859.1 },
+    position: { x: 93.03, y: 71.52, z: 860 },
     summaryStatus: "placeholder",
     body: [
       draft("dubs-rewrite", ["q1", "q2", "q3", "q4"]),
@@ -279,7 +279,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "product",
     register: "cool",
-    position: { x: 21.19, y: 55.82, z: 898.83 },
+    position: { x: 100.06, y: 63.03, z: 890 },
     summaryStatus: "placeholder",
     body: [
       draft("writ-rewrite", ["q1", "q2", "q3", "q4"]),
@@ -291,7 +291,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "what",
     family: "product",
     register: "cool",
-    position: { x: 52.43, y: 67.85, z: 881.72 },
+    position: { x: 103.06, y: 53.44, z: 920 },
     body: [
       draft("yoohoo-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("yoohoo-state", "sequence", "recreate"),
@@ -302,7 +302,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "why",
     family: "story",
     register: "story",
-    position: { x: 35.34, y: 32.79, z: 698.43 },
+    position: { x: 20.62, y: 43.99, z: 700 },
     body: [para("p1")],
   },
   {
@@ -310,7 +310,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "why",
     family: "story",
     register: "arc",
-    position: { x: 11.29, y: 53.66, z: 721.38 },
+    position: { x: 38.83, y: 52.08, z: 700 },
     body: [para("p1")],
   },
   {
@@ -318,7 +318,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "why",
     family: "story",
     register: "story",
-    position: { x: 63.3, y: 34.67, z: 719.72 },
+    position: { x: 58.82, y: 52.08, z: 700 },
     summaryStatus: "placeholder",
     body: [draft("authorship-record")],
   },
@@ -327,7 +327,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     outlineType: "why",
     family: "story",
     register: "story",
-    position: { x: 34.29, y: 60.66, z: 797.65 },
+    position: { x: 77.04, y: 43.99, z: 700 },
     summaryStatus: "placeholder",
     body: [draft("philosophy-record")],
   },

@@ -5,18 +5,19 @@ Gallery: `/design#world` · Tests: `components/PortfolioWorld.test.tsx`
 
 The spatial map. One 2D `<canvas>` — not Three.js — paints the rules, labels
 and marks under a hand-rolled projection, with every node also a real
-`<button>` positioned over it so the map stays keyboard-reachable. Selecting a
-node or thread recomposes the field and eases the camera. Colours are read off
-the enclosing `.portfolio-composition` with `getComputedStyle` (`cssColor`), so
-the canvas follows light, dark and `[data-theme]` without a second palette.
+`<button>` over it so the map stays keyboard-reachable. Selecting a node or
+thread recomposes the map under one fixed camera: the spotlit node hangs
+beneath Bradley, relations land in zones, the rest disperses into the field
+behind (design-conventions §6.12). Colours come from the enclosing
+`.portfolio-composition` via `getComputedStyle`, so dark and `[data-theme]` work.
 
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect` required; `activeVisual`,
-`onCloseVisual`, `registerAvatarStage` optional — see
-[`PortfolioWorldProps`](../../components/PortfolioWorld.tsx). It also exports
-the pure `connectorSegment` helper; projection helpers live in
-[`lib/portfolio-world-projection.ts`](../../lib/portfolio-world-projection.ts).
+`onCloseVisual`, `registerAvatarStage` optional — see `PortfolioWorldProps`.
+Pure helpers: `connectorSegment`, `composeSpotlightGoals`; the rules live in
+`lib/portfolio-world-{zones,field,projection}.ts`, `portfolio-story-tree.ts`,
+and `portfolio-node-envelope.ts`.
 
 ## Requires
 
@@ -52,16 +53,15 @@ export function PortfolioWorldExample() {
 - **Escape is not handled here.** Blank-space click calls `onReset` (under a
   7px movement threshold); the Escape binding lives in `PortfolioExperience`.
 - **It sizes itself from the viewport, not its parent.** `.portfolio-world` is
-  `position: fixed; inset: 0 var(--reader-width) 0 0`. It only shrinks to a box
-  when an ancestor establishes a containing block — which is what
-  `.design-stage`'s `transform` does in the gallery.
-- **`activeVisual` disables every node button**, and `.portfolio-visual-open`
-  belongs on the composition root — the component does not add it.
-- **A dragged node persists as `userPlaced` only at rest**, with no selection
-  and no active thread.
+  `position: fixed`; it shrinks to a box only inside a containing block.
+- **`activeVisual` disables every node button**; `.portfolio-visual-open`
+  belongs on the composition root.
+- **A dragged node springs back.** Nothing persists, and a drag never selects.
+- **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it in
+  dev). Tests pass `stillRng` or `createRng` and assert rules, not coordinates.
+- **The field seats after the lit nodes settle**, outside the overlap solver.
+  Pass every drawn lit line to `fieldGoals` or the field may sit on it.
 - **Canvas type and size are code-side.** `FONT` paints 12.5px record labels;
-  `BRADLEY_FONT` paints Bradley at 14px medium, with his PNG at 21px rather
-  than the factual marks' `PORTFOLIO_NODE_MARK_SIZE` (15px).
-- **Past changes opacity, not color.** `PAST_WORLD_ALPHA` applies to the canvas
-  mark and label in both modes. The node keeps its native register token, and
-  the reader index remains full strength.
+  `BRADLEY_FONT` paints Bradley at 14px medium with his PNG at 21px. Label
+  widths are cached per wrap; do not measure in the frame.
+- **Past changes opacity, not color** (`PAST_WORLD_ALPHA`); the register stays.

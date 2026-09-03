@@ -6,6 +6,12 @@ export type RelaxNode = {
   id: string;
   label: string;
   pinned: boolean;
+  /**
+   * A node that gives way: against a non-yielding node it takes the whole
+   * push, so a dimmed record steps out from under a spotlighted one rather
+   * than nudging it.
+   */
+  yielding?: boolean;
 };
 
 export type RelaxOptions<Node extends RelaxNode> = {
@@ -130,7 +136,9 @@ export function relaxWorldOverlaps<Node extends RelaxNode>({
           padding;
         if (overlapX <= 0 || overlapY <= 0) continue;
         moved = true;
-        const aShare = aNode.pinned ? 0 : bNode.pinned ? 1 : 0.5;
+        const aYields = Boolean(aNode.yielding) && !bNode.yielding;
+        const bYields = Boolean(bNode.yielding) && !aNode.yielding;
+        const aShare = aNode.pinned ? 0 : bNode.pinned ? 1 : aYields ? 1 : bYields ? 0 : 0.5;
         const bShare = 1 - aShare;
         if (overlapX < overlapY) {
           const direction = b.x >= a.x ? 1 : -1;
