@@ -13,7 +13,7 @@ threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
 `[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
 (new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
 `ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
-from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
+from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`. A ready grouped gallery renders every slide as a separate reader visual.
 
 ## Props
 

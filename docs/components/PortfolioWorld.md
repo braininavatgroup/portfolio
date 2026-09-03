@@ -56,6 +56,8 @@ export function PortfolioWorldExample() {
   `position: fixed`; it shrinks to a box only inside a containing block.
 - **`activeVisual` and Brain Food disable node buttons**; otherwise dimmed nodes
   stay clickable. Brain Food hides links; `.portfolio-visual-open` goes on the root.
+  All visual formats share `data-media-field="silver-studio"`; galleries show
+  complete assets, not crops.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it in
   dev). Tests pass `stillRng` or `createRng` and assert rules, not coordinates.

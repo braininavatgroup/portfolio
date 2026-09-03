@@ -278,6 +278,7 @@ export function PortfolioExperience() {
   const portfolioChat = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
+      hidden={activeVisual !== null}
       onLayoutChange={refreshAvatarDock}
       onOpenChange={setAssistantVisibility}
       open={assistantOpen}

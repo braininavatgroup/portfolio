@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { PortfolioContactMark, PortfolioNodeMark } from "./PortfolioNodeMark";
@@ -182,6 +183,42 @@ function VisualBlock({
   const thumbnailAlt = block.alt ?? "";
   const ready = isPortfolioVisualReady(block);
   const captionField = block.caption !== undefined ? "caption" : "purpose";
+
+  if (ready && format === "gallery" && block.slides?.length) {
+    return (
+      <div className="reader-visual-gallery">
+        {block.slides.map((slide, slideIndex) => (
+          <button
+            aria-label={`Open gallery visual in map: ${slide.title}. ${block.purpose}`}
+            className="reader-visual-trigger"
+            data-format={format}
+            data-slide-index={slideIndex}
+            data-status={block.status}
+            key={slide.title}
+            onClick={(event) => onOpen?.(block, event.currentTarget)}
+            type="button"
+          >
+            <figure className="reader-visual-block" data-format={format}>
+              <div
+                className="reader-visual-slide"
+                data-asset-count={slide.assets.length}
+                data-media-field="silver-studio"
+                style={{ "--visual-asset-count": slide.assets.length } as CSSProperties}
+              >
+                {slide.assets.map((asset) => (
+                  <img alt={asset.alt} key={asset.src} loading="lazy" src={asset.src} />
+                ))}
+              </div>
+              <figcaption>
+                <strong>{slide.title}</strong>
+                <span>{slide.caption}</span>
+              </figcaption>
+            </figure>
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <button

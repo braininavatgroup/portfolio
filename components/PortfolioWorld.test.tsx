@@ -201,6 +201,124 @@ describe("PortfolioWorld", () => {
     ).toBe(true);
   });
 
+  it("gives every visual format the same silver studio media field", () => {
+    const { rerender } = render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "ready-gallery",
+          status: "ready",
+          purpose: "Inspect the finished system.",
+          format: "gallery",
+          src: "/visuals/finished-system.jpg",
+          alt: "Finished system",
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    expect(
+      document.querySelector(".portfolio-visual-stage-frame")?.getAttribute(
+        "data-media-field",
+      ),
+    ).toBe("silver-studio");
+
+    rerender(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "ready-video",
+          status: "ready",
+          purpose: "Watch the system in use.",
+          format: "video",
+          src: "/visuals/finished-system.mp4",
+          poster: "/visuals/finished-system.jpg",
+          captionsSrc: "/visuals/finished-system.vtt",
+          alt: "Finished system in use",
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    expect(
+      document.querySelector(".portfolio-visual-stage-frame")?.getAttribute(
+        "data-media-field",
+      ),
+    ).toBe("silver-studio");
+  });
+
+  it("presents a gallery slide as a complete group of uncropped assets", () => {
+    const visualWithSlides = {
+      type: "visual",
+      id: "dubs-loop",
+      status: "ready",
+      purpose: "See how Dubs carries a reaction into agent context.",
+      format: "gallery",
+      treatment: "sequence",
+      slides: [
+        {
+          title: "Capture loop",
+          caption: "Catch the thought where it happens.",
+          assets: [
+            { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls", label: "Available mid-stride" },
+            { src: "/visuals/dubs/reader.png", alt: "Reading and listening in Dubs", label: "Read and listen" },
+            { src: "/visuals/dubs/note.png", alt: "Writing an inline note", label: "Capture the reaction" },
+            { src: "/visuals/dubs/markup.png", alt: "Markup attached to its passage", label: "Keep the context" },
+          ],
+        },
+        {
+          title: "What accumulates",
+          caption: "A linked library becomes useful context.",
+          assets: [
+            { src: "/visuals/dubs/library.png", alt: "Dubs library", label: "A linked library" },
+            { src: "/visuals/dubs/tags.png", alt: "Tagged Dubs", label: "Recorded taste" },
+            { src: "/visuals/dubs/perspective.png", alt: "Dubs Perspective rules", label: "A chosen perspective" },
+          ],
+        },
+        {
+          title: "Connect your agent",
+          caption: "The library becomes context an agent can use.",
+          assets: [
+            { src: "/visuals/dubs/mcp.png", alt: "Dubs MCP setup and authorization", label: "MCP connection" },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={visualWithSlides as never}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    const stage = screen.getByRole("region", {
+      name: "Visual in map: See how Dubs carries a reaction into agent context.",
+    });
+    expect(stage.querySelectorAll("img")).toHaveLength(4);
+    expect(screen.getByText("Capture loop")).toBeTruthy();
+    expect(screen.getByText("Catch the thought where it happens.")).toBeTruthy();
+    expect(screen.getByText("Available mid-stride")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next visual frame" }));
+    expect(stage.querySelectorAll("img")).toHaveLength(3);
+    expect(screen.getByText("What accumulates")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next visual frame" }));
+    expect(stage.querySelectorAll("img")).toHaveLength(1);
+    expect(screen.getByText("Connect your agent")).toBeTruthy();
+    expect(screen.getByAltText("Dubs MCP setup and authorization")).toBeTruthy();
+  });
+
   it("keeps a ready video in placeholder state until captions exist", () => {
     render(
       <PortfolioWorld

@@ -170,6 +170,39 @@ describe("PortfolioExperience", () => {
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
   });
 
+  it("hides the mounted chat dock while a reader visual is open", async () => {
+    await renderExperience();
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+
+    const visualTrigger = screen.getByRole("button", {
+      name: /Open gallery visual in map: Catch the thought where it happens/,
+    });
+    const chatDock = screen.getByRole("region", {
+      name: "Portfolio assistant dock",
+    });
+
+    visualTrigger.focus();
+    fireEvent.click(visualTrigger);
+
+    expect(chatDock.hidden).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "Open portfolio assistant" }),
+    ).toBeNull();
+
+    const closeButton = screen.getByRole("button", {
+      name: "Close visual in map",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(closeButton));
+    fireEvent.click(closeButton);
+
+    expect(chatDock.hidden).toBe(false);
+    expect(
+      screen.getByRole("region", { name: "Portfolio assistant dock" }),
+    ).toBe(chatDock);
+    await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
+  });
+
   it("exposes neither the old toybox nor the Director shortcut", async () => {
     await renderExperience();
     fireEvent.keyDown(document, { key: "A", shiftKey: true });

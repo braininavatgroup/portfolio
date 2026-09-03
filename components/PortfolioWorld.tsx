@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ComponentType,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -574,14 +575,18 @@ function PortfolioVisualStage({
   title: string;
 }) {
   const format = portfolioVisualFormat(block);
-  const assets =
+  const standaloneAssets =
     block.src && format !== "video"
       ? [{ src: block.src, alt: block.alt ?? "" }]
       : [];
-  const frameCount = format === "gallery" ? assets.length || 3 : 1;
+  const slides = format === "gallery" ? block.slides ?? [] : [];
+  const frameCount = format === "gallery"
+    ? slides.length || standaloneAssets.length || 3
+    : 1;
   const [activeFrame, setActiveFrame] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const asset = assets[activeFrame];
+  const slide = slides[activeFrame];
+  const asset = standaloneAssets[activeFrame];
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -596,8 +601,8 @@ function PortfolioVisualStage({
     >
       <header className="portfolio-visual-stage-head">
         <div>
-          <span>Map visual</span>
-          <strong>{title}</strong>
+          <span>{slide ? title : "Map visual"}</span>
+          <strong>{slide?.title ?? title}</strong>
         </div>
         <PortfolioControlMark
           aria-label="Close visual in map"
@@ -608,7 +613,10 @@ function PortfolioVisualStage({
         />
       </header>
 
-      <div className="portfolio-visual-stage-frame">
+      <div
+        className="portfolio-visual-stage-frame"
+        data-media-field="silver-studio"
+      >
         {format === "video" && block.src && block.captionsSrc ? (
           <video
             aria-label={block.alt ?? block.purpose}
@@ -624,6 +632,19 @@ function PortfolioVisualStage({
               srcLang="en"
             />
           </video>
+        ) : slide ? (
+          <div
+            className="portfolio-visual-slide"
+            data-asset-count={slide.assets.length}
+            style={{ "--visual-asset-count": slide.assets.length } as CSSProperties}
+          >
+            {slide.assets.map((slideAsset) => (
+              <figure className="portfolio-visual-slide-asset" key={slideAsset.src}>
+                <img alt={slideAsset.alt} src={slideAsset.src} />
+                {slideAsset.label ? <figcaption>{slideAsset.label}</figcaption> : null}
+              </figure>
+            ))}
+          </div>
         ) : asset ? (
           <img
             alt={asset.alt}
@@ -647,7 +668,7 @@ function PortfolioVisualStage({
       </div>
 
       <footer className="portfolio-visual-stage-copy">
-        <p>{block.caption ?? block.purpose}</p>
+        <p>{slide?.caption ?? block.caption ?? block.purpose}</p>
         {format === "gallery" ? (
           <nav aria-label="Visual frames">
             <PortfolioControlMark

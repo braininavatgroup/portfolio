@@ -293,6 +293,22 @@ describe("PortfolioReader", () => {
     expect(visual.querySelector(".reader-visual-placeholder")).toBeTruthy();
   });
 
+  it("shows every Dubs gallery moment as a separate reader visual", () => {
+    render(<PortfolioReader {...baseProps} selectedId="dubs" />);
+
+    const visuals = document.querySelectorAll(".reader-visual-gallery .reader-visual-trigger");
+    expect(visuals).toHaveLength(3);
+    expect([...visuals].map((visual) => visual.querySelectorAll("img").length)).toEqual([
+      4,
+      3,
+      1,
+    ]);
+    expect(visuals[0].textContent).toContain("Catch the thought where it happens");
+    expect(visuals[1].textContent).toContain("What accumulates");
+    expect(visuals[2].textContent).toContain("Connect your agent");
+    expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
+  });
+
   it("marks an in-progress summary as placeholder text", () => {
     const id = [...portfolioWorldNodeById.values()].find(
       (node) => node.summaryStatus === "placeholder",
@@ -304,12 +320,12 @@ describe("PortfolioReader", () => {
     expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
   });
 
-  it("opens image, video, and gallery blocks through the same map control", () => {
+  it("opens image and gallery blocks through the same map control", () => {
     const onOpenVisual = vi.fn();
 
     const cases = [
       { id: "writ", format: "image" },
-      { id: "dubs", format: "video" },
+      { id: "dubs", format: "gallery" },
       { id: "music-practice", format: "gallery" },
     ] as const;
 
@@ -321,9 +337,13 @@ describe("PortfolioReader", () => {
           selectedId={id}
         />,
       );
-      const trigger = screen.getByRole("button", {
-        name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
-      });
+      const trigger = id === "dubs"
+        ? screen.getAllByRole("button", {
+            name: /Open gallery visual in map:/,
+          })[0]
+        : screen.getByRole("button", {
+            name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
+          });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
       expect(onOpenVisual).toHaveBeenLastCalledWith(
