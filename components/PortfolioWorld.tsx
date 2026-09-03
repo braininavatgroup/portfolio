@@ -161,61 +161,74 @@ function markRadius(family: PortfolioWorldFamily) {
 }
 
 /**
- * While nodes travel, a line's inset can jump the moment its ray starts or
- * stops crossing a label box. Each end remembers its last inset and eases
- * toward the new one, so the envelope takes hold smoothly rather than
- * snapping; a line may cross a label for a few frames mid-motion, which is
- * accepted.
+ * While nodes travel, a line's start can jump the moment its ray starts or
+ * stops crossing a label box. Each end remembers where it last started and
+ * eases toward the new point, so the envelope takes hold smoothly rather
+ * than snapping; a line may cross a label for a few frames mid-motion, which
+ * is accepted.
  */
-export type InsetMemory = Map<string, number>;
-const INSET_EASE = 0.18;
+export type ConnectorMemory = Map<string, Point>;
+const ANCHOR_EASE = 0.18;
 
-function easeInset(memory: InsetMemory | undefined, key: string, inset: number) {
-  if (!memory) return inset;
+function easeAnchor(memory: ConnectorMemory | undefined, key: string, point: Point): Point {
+  if (!memory) return point;
   const previous = memory.get(key);
-  const next = previous === undefined ? inset : previous + (inset - previous) * INSET_EASE;
+  const next = previous
+    ? {
+        x: previous.x + (point.x - previous.x) * ANCHOR_EASE,
+        y: previous.y + (point.y - previous.y) * ANCHOR_EASE,
+      }
+    : point;
   memory.set(key, next);
   return next;
+}
+
+/**
+ * Where a line leaves a node, heading for `toward`. Past the mark along the
+ * ray when the ray clears the label; from under the label's centre — the way
+ * the trunk leaves Bradley — when the ray would run through the label
+ * hanging beneath the mark, so a wide or two-line label never pushes the
+ * line's start far from the mark. A compact label sits beside its mark, and
+ * a run that would climb back into the label from below is not allowed, so
+ * there the line still starts past the label's far edge.
+ */
+function lineStart(node: ConnectorAnchor, toward: Point): Point {
+  const dx = toward.x - node.x;
+  const dy = toward.y - node.y;
+  const distance = Math.hypot(dx, dy);
+  if (!distance) return { x: node.x, y: node.y };
+  const direction = { x: dx / distance, y: dy / distance };
+  const radius = markRadius(node.family);
+  const label = node.labelBox ?? null;
+  const inset = envelopeInset(node, radius, label, direction, CONNECTOR_CLEARANCE);
+  const alongRay = { x: node.x + direction.x * inset, y: node.y + direction.y * inset };
+  if (!label || inset <= radius + CONNECTOR_CLEARANCE || label.y < node.y) return alongRay;
+  const bottom = label.y + label.height;
+  if (toward.y < bottom) return alongRay;
+  return { x: node.x, y: bottom + CONNECTOR_CLEARANCE };
 }
 
 /** The visible run of a line between two envelopes, or null when they touch. */
 export function connectorSegment(
   from: ConnectorAnchor,
   to: ConnectorAnchor,
-  memory?: InsetMemory,
+  memory?: ConnectorMemory,
   key = "",
 ) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
   if (!distance) return null;
-  const direction = { x: dx / distance, y: dy / distance };
-  const fromInset = easeInset(
-    memory,
-    `${key}:from`,
-    envelopeInset(from, markRadius(from.family), from.labelBox ?? null, direction, CONNECTOR_CLEARANCE),
-  );
-  const toInset = easeInset(
-    memory,
-    `${key}:to`,
-    envelopeInset(
-      to,
-      markRadius(to.family),
-      to.labelBox ?? null,
-      { x: -direction.x, y: -direction.y },
-      CONNECTOR_CLEARANCE,
-    ),
-  );
-  if (fromInset + toInset >= distance) return null;
+  // Each end starts toward where the other actually starts, not toward its
+  // mark, so a run from under one label still meets the other's envelope
+  // where it is; one more pass settles the first end against the second.
+  const end = lineStart(to, lineStart(from, to));
+  const start = lineStart(from, end);
+  const along = ((end.x - start.x) * dx + (end.y - start.y) * dy) / distance;
+  if (along <= 0) return null;
   return {
-    start: {
-      x: from.x + direction.x * fromInset,
-      y: from.y + direction.y * fromInset,
-    },
-    end: {
-      x: to.x - direction.x * toInset,
-      y: to.y - direction.y * toInset,
-    },
+    start: easeAnchor(memory, `${key}:from`, start),
+    end: easeAnchor(memory, `${key}:to`, end),
   };
 }
 
@@ -883,7 +896,7 @@ export function PortfolioWorld({
     motion?.addEventListener?.("change", updateMotion);
 
     let lastLabelWidth = -1;
-    const insetMemory: InsetMemory = new Map();
+    const connectorMemory: ConnectorMemory = new Map();
     const render = () => {
       // Read before the node buttons are written below, so the reads land on
       // clean style instead of forcing a recalculation per node.
@@ -932,13 +945,15 @@ export function PortfolioWorld({
         if (button && node.screen) {
           button.style.left = `${(node.screen.x / width) * 100}%`;
           button.style.top = `${(node.screen.y / height) * 100}%`;
-          button.style.pointerEvents = node.alpha < 0.22 ? "none" : "auto";
+          // Every drawn node is a target, the dimmed field included: a click
+          // on any record lands on that record instead of falling through to
+          // the surface and resetting the map.
         }
       }
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, palette, insetMemory);
+        drawLinks(context, nodes, linksRef.current, active.selectedId, palette, connectorMemory);
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
@@ -1459,7 +1474,7 @@ function drawLinks(
   links: ReturnType<typeof getVisibleWorldLinks>,
   selectedId: string | null,
   palette: WorldPalette,
-  insets: InsetMemory,
+  memory: ConnectorMemory,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const color = palette.connector;
@@ -1497,7 +1512,7 @@ function drawLinks(
     const segment = connectorSegment(
       anchor(from, from.screen),
       anchor(to, to.screen),
-      insets,
+      memory,
       `${link.from}->${link.to}`,
     );
     if (segment) stroke(segment.start, segment.end, alpha, active);
@@ -1521,7 +1536,7 @@ function drawLinks(
   const trunkStart = connectorSegment(
     anchor(root, root.screen),
     { x: root.screen.x, y: root.screen.y + 10000, family: root.family },
-    insets,
+    memory,
     "trunk",
   )?.start ?? { x: root.screen.x, y: root.screen.y };
   const junction = storyTreeJunction(trunkStart, branches.map(({ screen }) => screen));
@@ -1535,7 +1550,7 @@ function drawLinks(
     const branch = connectorSegment(
       { x: junction.x, y: junction.y, family: root.family },
       anchor(node, screen),
-      insets,
+      memory,
       `root->${node.id}`,
     );
     if (branch) {

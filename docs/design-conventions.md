@@ -336,9 +336,13 @@ its own per-link alpha. Do not encode link type as color, dash, thickness, or
 arrowhead — classifications stay backstage. Every connector stops outside each
 endpoint's envelope: the mark's tightest circle (`portfolioNodeMarkRadius`)
 plus its painted label box (`lib/portfolio-node-envelope.ts`), with
-`CONNECTOR_CLEARANCE` of 2px. A line whose envelopes touch is dropped
-(`connectorSegment` returns `null`), and each end eases its inset so the clip
-never snaps mid-motion. The tree at rest is one trunk from Bradley to a
+`CONNECTOR_CLEARANCE` of 2px. A line whose ray clears the label starts past
+the mark; a line whose ray would run through the label hanging beneath the
+mark leaves from under the label's centre instead, the way the trunk leaves
+Bradley, so a wide or two-line label never pushes a line's start far from its
+mark (compact labels sit beside the mark and keep the far-edge clip). A line
+whose envelopes touch is dropped (`connectorSegment` returns `null`), and each
+end eases toward its new start so the clip never snaps mid-motion. The tree at rest is one trunk from Bradley to a
 junction (`lib/portfolio-story-tree.ts`) and branches from there; nothing
 draws Bradley-to-Story lines directly.
 
