@@ -18,14 +18,18 @@ import {
 } from "react-resizable-panels";
 import {
   cloneElement,
+  createRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from "react";
 import {
   DEFAULT_READING_ROOM_LAYOUT,
@@ -47,6 +51,15 @@ const DESKTOP_QUERY = "(min-width: 1020px)";
 // avatar area, the 78px composer, and its 12/24 margins (Bradley, 3 September;
 // the README's 160 left only the avatar and the composer's top edge).
 const SIDE_SLOT_MIN_HEIGHT = 240;
+const READING_ROOM_SLOTS: readonly ReadingRoomSlot[] = ["main", "top", "bottom"];
+// React renders each view once, in the slot it occupies on first run, and
+// never moves it: React cannot carry a subtree between parents, so rendering a
+// swapped view under its new slot would remount it and drop the Guide thread
+// and the Map's state. A swap instead moves the view's DOM host between slot
+// bodies (see the layout effect in PortfolioReadingRoom). The first-run
+// composition is also what the server renders, so SSR puts each view inside
+// its slot.
+const HOME_SLOTS = DEFAULT_READING_ROOM_LAYOUT.slots;
 
 // Nothing follows the pointer and no text appears: dnd-kit's Feedback plugin
 // must keep running (it supplies the operation's shape for collisions), so it
@@ -69,6 +82,13 @@ export type ReadingRoomMobileTabRequest = {
   tab: ReadingRoomMobileTab;
 };
 
+/** Asks the shell to reveal a view: expand a collapsed column or lower slot on
+ *  desktop, or switch to the tab that hosts it below 1020px. */
+export type ReadingRoomViewRequest = {
+  key: number;
+  view: ReadingRoomView;
+};
+
 export type PortfolioReadingRoomProps = {
   activeThreadId: string | null;
   guide: ReactNode;
@@ -88,6 +108,7 @@ export type PortfolioReadingRoomProps = {
   selectedId: string | null;
   selectedSubject: PortfolioWorldNode | null;
   storage?: Pick<Storage, "getItem" | "setItem">;
+  viewRequest?: ReadingRoomViewRequest;
 };
 
 function subscribeDesktop(listener: () => void) {
@@ -238,11 +259,15 @@ function DesktopViewBar({
 
 function DesktopSlot({
   activeDragView,
+  bodyRef,
   children,
   collapsed,
   ...barProps
 }: {
   activeDragView: ReadingRoomView | null;
+  /** The body only ever holds one view host, and the shell reparents hosts
+   *  between bodies; a React sibling inside the body would break that. */
+  bodyRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
   collapsed: boolean;
   guideHasThread: boolean;
@@ -294,7 +319,7 @@ function DesktopSlot({
       {isDropTarget && activeDragView ? (
         <span aria-hidden="true" className="portfolio-reading-room-drop-target" />
       ) : null}
-      <div className="portfolio-reading-room-pane-body" hidden={collapsed}>
+      <div className="portfolio-reading-room-pane-body" hidden={collapsed} ref={bodyRef}>
         {children}
       </div>
     </section>
@@ -363,6 +388,7 @@ export function PortfolioReadingRoom({
   selectedId,
   selectedSubject,
   storage,
+  viewRequest,
 }: PortfolioReadingRoomProps) {
   const isDesktop = useSyncExternalStore(
     subscribeDesktop,
@@ -382,6 +408,16 @@ export function PortfolioReadingRoom({
   const contentsPanelRef = usePanelRef();
   const rightPanelRef = usePanelRef();
   const bottomPanelRef = usePanelRef();
+  const [viewHosts] = useState(() => ({
+    guide: createRef<HTMLDivElement>(),
+    map: createRef<HTMLDivElement>(),
+    reader: createRef<HTMLDivElement>(),
+  }));
+  const [slotBodies] = useState(() => ({
+    bottom: createRef<HTMLDivElement>(),
+    main: createRef<HTMLDivElement>(),
+    top: createRef<HTMLDivElement>(),
+  }));
 
   const outerPersistence = useDefaultLayout({
     id: "reading-room-outer",
@@ -436,6 +472,26 @@ export function PortfolioReadingRoom({
     onGuideVisibilityChange?.(guideVisible);
   }, [guideVisible, onGuideVisibilityChange]);
 
+  // Put each view's DOM host in the slot the layout assigns it. Hosts are the
+  // sole child of every slot body, so React never inserts beside or removes a
+  // moved host; it only ever updates the view inside it. Focus is restored
+  // because moving an element blurs it.
+  useLayoutEffect(() => {
+    if (!isDesktop) return;
+    const focused = document.activeElement;
+    let moved = false;
+    for (const slot of READING_ROOM_SLOTS) {
+      const body = slotBodies[slot].current;
+      const host = viewHosts[layout.slots[slot]].current;
+      if (!body || !host || host.parentNode === body) continue;
+      body.appendChild(host);
+      moved = true;
+    }
+    if (!moved) return;
+    if (focused instanceof HTMLElement && focused !== document.activeElement) focused.focus();
+    notifyLayout();
+  }, [isDesktop, layout.slots, notifyLayout, slotBodies, viewHosts]);
+
   /* eslint-disable react-hooks/set-state-in-effect -- mobileTabRequest is an
      imperative navigation request from the controlled Experience owner. */
   useEffect(() => {
@@ -482,31 +538,50 @@ export function PortfolioReadingRoom({
     rightPanelRef.current?.collapse();
     notifyLayout();
   }, [notifyLayout, rightPanelRef, updateLayout]);
-  const toggleRight = useCallback(() => {
-    if (rightCollapsed) {
-      setRightCollapsed(false);
-      updateLayout((current) => ({
-        ...current,
-        hidden: current.hidden.filter((view) => (
-          view !== current.slots.top && view !== current.slots.bottom
-        )),
-      }));
-      rightPanelRef.current?.expand();
-      notifyLayout();
+  const expandRight = useCallback(() => {
+    setRightCollapsed(false);
+    updateLayout((current) => ({
+      ...current,
+      hidden: current.hidden.filter((view) => (
+        view !== current.slots.top && view !== current.slots.bottom
+      )),
+    }));
+    rightPanelRef.current?.expand();
+    notifyLayout();
+  }, [notifyLayout, rightPanelRef, updateLayout]);
+  const toggleRight = rightCollapsed ? expandRight : collapseRight;
+  const expandLower = useCallback(() => {
+    setViewHidden(layout.slots.bottom, false);
+    bottomPanelRef.current?.expand();
+    notifyLayout();
+  }, [bottomPanelRef, layout.slots.bottom, notifyLayout, setViewHidden]);
+  const collapseLower = useCallback(() => {
+    setViewHidden(layout.slots.bottom, true);
+    bottomPanelRef.current?.collapse();
+    notifyLayout();
+  }, [bottomPanelRef, layout.slots.bottom, notifyLayout, setViewHidden]);
+  const toggleLower = lowerCollapsed ? expandLower : collapseLower;
+
+  const revealView = useCallback((view: ReadingRoomView) => {
+    if (!isDesktop) {
+      setMobileTab(view === "reader" ? "reader" : "map");
       return;
     }
-    collapseRight();
-  }, [collapseRight, notifyLayout, rightCollapsed, rightPanelRef, updateLayout]);
-  const toggleLower = useCallback(() => {
-    if (lowerCollapsed) {
-      setViewHidden(layout.slots.bottom, false);
-      bottomPanelRef.current?.expand();
-    } else {
-      setViewHidden(layout.slots.bottom, true);
-      bottomPanelRef.current?.collapse();
-    }
-    notifyLayout();
-  }, [bottomPanelRef, layout.slots.bottom, lowerCollapsed, notifyLayout, setViewHidden]);
+    const slot = READING_ROOM_SLOTS.find((candidate) => layout.slots[candidate] === view);
+    if (!slot || slot === "main") return;
+    if (rightCollapsed) expandRight();
+    if (slot === "bottom" && (lowerCollapsed || rightCollapsed)) expandLower();
+  }, [expandLower, expandRight, isDesktop, layout.slots, lowerCollapsed, rightCollapsed]);
+  const revealViewRef = useRef(revealView);
+  useEffect(() => {
+    revealViewRef.current = revealView;
+  });
+  // Keyed on the request alone: re-running on layout changes would reopen a
+  // view the visitor just closed.
+  useEffect(() => {
+    if (!viewRequest) return;
+    revealViewRef.current(viewRequest.view);
+  }, [viewRequest]);
 
   const selectFromContents = useCallback((node: PortfolioWorldNode) => {
     onSelect(node);
@@ -523,11 +598,18 @@ export function PortfolioReadingRoom({
 
   const renderMap = useCallback((compact: boolean, nodesInTabOrder: boolean) =>
     cloneElement(map, { compact, nodesInTabOrder }), [map]);
-  const viewNode = useCallback((view: ReadingRoomView, slot: ReadingRoomSlot) => {
-    if (view === "reader") return reader;
-    if (view === "guide") return guide;
-    return renderMap(slot !== "main", slot === "main");
-  }, [guide, reader, renderMap]);
+  const mapInMain = layout.slots.main === "map";
+  const viewHost = useCallback((view: ReadingRoomView) => (
+    <div
+      className="portfolio-reading-room-view-host"
+      data-reading-room-view={view}
+      ref={viewHosts[view]}
+    >
+      {view === "reader" ? reader : null}
+      {view === "guide" ? guide : null}
+      {view === "map" ? renderMap(!mapInMain, mapInMain) : null}
+    </div>
+  ), [guide, mapInMain, reader, renderMap, viewHosts]);
 
   const barProps = useCallback((slot: ReadingRoomSlot) => ({
     contentsCollapsed,
@@ -704,10 +786,11 @@ export function PortfolioReadingRoom({
               <Panel defaultSize={`${DEFAULT_READING_ROOM_LAYOUT.split * 100}%`} id="main" minSize={720}>
                 <DesktopSlot
                   activeDragView={activeDragView}
-                  collapsed={layout.hidden.includes(layout.slots.main)}
+                  bodyRef={slotBodies.main}
+                  collapsed={false}
                   {...barProps("main")}
                 >
-                  {viewNode(layout.slots.main, "main")}
+                  {viewHost(HOME_SLOTS.main)}
                 </DesktopSlot>
               </Panel>
               <Separator
@@ -741,10 +824,11 @@ export function PortfolioReadingRoom({
                   <Panel defaultSize="40%" id="top" minSize={SIDE_SLOT_MIN_HEIGHT}>
                     <DesktopSlot
                       activeDragView={activeDragView}
+                      bodyRef={slotBodies.top}
                       collapsed={layout.hidden.includes(layout.slots.top)}
                       {...barProps("top")}
                     >
-                      {viewNode(layout.slots.top, "top")}
+                      {viewHost(HOME_SLOTS.top)}
                     </DesktopSlot>
                   </Panel>
                   <Separator aria-label="Resize stacked side panes" className="portfolio-reading-room-separator" />
@@ -764,10 +848,11 @@ export function PortfolioReadingRoom({
                   >
                     <DesktopSlot
                       activeDragView={activeDragView}
+                      bodyRef={slotBodies.bottom}
                       collapsed={lowerCollapsed}
                       {...barProps("bottom")}
                     >
-                      {viewNode(layout.slots.bottom, "bottom")}
+                      {viewHost(HOME_SLOTS.bottom)}
                     </DesktopSlot>
                   </Panel>
                 </Group>

@@ -13,6 +13,7 @@ export type ReadingRoomLayoutState = {
 
 const READING_ROOM_VIEWS = new Set<ReadingRoomView>(["reader", "map", "guide"]);
 const READING_ROOM_SLOTS: readonly ReadingRoomSlot[] = ["main", "top", "bottom"];
+const SIDE_SLOTS: readonly ReadingRoomSlot[] = ["top", "bottom"];
 
 export const DEFAULT_READING_ROOM_LAYOUT: ReadingRoomLayoutState = {
   slots: { main: "reader", top: "map", bottom: "guide" },
@@ -63,13 +64,20 @@ function parseSize(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function enforceSideSlotVisibility(state: ReadingRoomLayoutState): ReadingRoomLayoutState {
-  const topView = state.slots.top;
-  const bottomView = state.slots.bottom;
+/**
+ * Hidden-ness belongs to a slot, not a view: `hidden` lists the views that
+ * currently occupy collapsed slots. Main is never collapsed (nothing could
+ * reopen it), and the upper side slot cannot collapse alone while the lower
+ * one stays open.
+ */
+function normalizeHidden(state: ReadingRoomLayoutState): ReadingRoomLayoutState {
+  const { main: mainView, top: topView, bottom: bottomView } = state.slots;
+  const topAlone = state.hidden.includes(topView) && !state.hidden.includes(bottomView);
+  const hidden = state.hidden.filter((view) => (
+    view !== mainView && (!topAlone || view !== topView)
+  ));
 
-  if (!state.hidden.includes(topView) || state.hidden.includes(bottomView)) return state;
-
-  return { ...state, hidden: state.hidden.filter((view) => view !== topView) };
+  return hidden.length === state.hidden.length ? state : { ...state, hidden };
 }
 
 /** Parses persisted slot state and resets only invalid fields to their defaults. */
@@ -80,7 +88,7 @@ export function parseReadingRoomLayout(value: string | null | undefined): Readin
     const parsed: unknown = JSON.parse(value);
     if (!isRecord(parsed)) return defaultLayout();
 
-    return enforceSideSlotVisibility({
+    return normalizeHidden({
       slots: parseSlots(parsed.slots),
       hidden: parseHidden(parsed.hidden),
       split: parseSize(parsed.split, DEFAULT_READING_ROOM_LAYOUT.split),
@@ -94,14 +102,18 @@ export function parseReadingRoomLayout(value: string | null | undefined): Readin
 
 /** Serializes the persistent state owned by the Reading Room shell. */
 export function serializeReadingRoomLayout(state: ReadingRoomLayoutState): string {
-  return JSON.stringify(enforceSideSlotVisibility({
+  return JSON.stringify(normalizeHidden({
     ...state,
     slots: { ...state.slots },
     hidden: [...state.hidden],
   }));
 }
 
-/** Moves the view assignments between two visible layout slots. */
+/**
+ * Moves the view assignments between two layout slots. A collapsed slot stays
+ * collapsed with its new view; a view arriving in main is always shown, so a
+ * bar dragged out of a collapsed slot reopens its view rather than hiding main.
+ */
 export function swapReadingRoomSlots(
   state: ReadingRoomLayoutState,
   first: ReadingRoomSlot,
@@ -109,15 +121,16 @@ export function swapReadingRoomSlots(
 ): ReadingRoomLayoutState {
   if (first === second) return state;
 
-  return enforceSideSlotVisibility({
-    ...state,
-    slots: {
-      ...state.slots,
-      [first]: state.slots[second],
-      [second]: state.slots[first],
-    },
-    hidden: [...state.hidden],
-  });
+  const slots = {
+    ...state.slots,
+    [first]: state.slots[second],
+    [second]: state.slots[first],
+  };
+  const hidden = SIDE_SLOTS
+    .filter((slot) => state.hidden.includes(state.slots[slot]))
+    .map((slot) => slots[slot]);
+
+  return normalizeHidden({ ...state, slots, hidden });
 }
 
 /** Hides or reopens a view while keeping a visible lower side slot above water. */
@@ -130,7 +143,7 @@ export function setReadingRoomViewHidden(
     ? [...new Set([...state.hidden, view])]
     : state.hidden.filter((hiddenView) => hiddenView !== view);
 
-  return enforceSideSlotVisibility({ ...state, hidden: nextHidden });
+  return normalizeHidden({ ...state, hidden: nextHidden });
 }
 
 /** Returns the slots that retain a rendered body after collapse state is applied. */

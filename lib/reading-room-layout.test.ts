@@ -81,6 +81,49 @@ describe("Reading Room layout state", () => {
     expect(swapReadingRoomSlots(DEFAULT_READING_ROOM_LAYOUT, first, second).slots).toEqual(slots);
   });
 
+  it("keeps a collapsed lower slot collapsed when its view is dragged into main", () => {
+    const lowerHidden = setReadingRoomViewHidden(DEFAULT_READING_ROOM_LAYOUT, "guide", true);
+    const swapped = swapReadingRoomSlots(lowerHidden, "main", "bottom");
+
+    expect(swapped.slots).toEqual({ main: "guide", top: "map", bottom: "reader" });
+    expect(swapped.hidden).toEqual(["reader"]);
+    expect(visibleReadingRoomSlots(swapped)).toEqual(["main", "top"]);
+    expect(visibleReadingRoomSlots(swapReadingRoomSlots(swapped, "bottom", "main"))).toEqual([
+      "main",
+      "top",
+    ]);
+  });
+
+  it("keeps a hidden right column hidden when its upper view is dragged into main", () => {
+    const rightHidden = setReadingRoomViewHidden(
+      setReadingRoomViewHidden(DEFAULT_READING_ROOM_LAYOUT, "guide", true),
+      "map",
+      true,
+    );
+    const swapped = swapReadingRoomSlots(rightHidden, "top", "main");
+
+    expect(swapped.slots).toEqual({ main: "map", top: "reader", bottom: "guide" });
+    expect(swapped.hidden).toEqual(["reader", "guide"]);
+    expect(visibleReadingRoomSlots(swapped)).toEqual(["main"]);
+  });
+
+  it("never lets the main view hide, whether persisted or requested", () => {
+    const stored = JSON.stringify({
+      slots: { main: "guide", top: "reader", bottom: "map" },
+      hidden: ["guide", "map"],
+      split: 0.6,
+      vsplit: 0.4,
+      side: 0.2,
+    });
+
+    expect(parseReadingRoomLayout(stored).hidden).toEqual(["map"]);
+    expect(visibleReadingRoomSlots(parseReadingRoomLayout(stored))).toEqual(["main", "top"]);
+    expect(setReadingRoomViewHidden(DEFAULT_READING_ROOM_LAYOUT, "reader", true).hidden).toEqual([]);
+    expect(
+      JSON.parse(serializeReadingRoomLayout({ ...DEFAULT_READING_ROOM_LAYOUT, hidden: ["reader"] })).hidden,
+    ).toEqual([]);
+  });
+
   it("hides and reopens both views in the right column", () => {
     const bottomHidden = setReadingRoomViewHidden(DEFAULT_READING_ROOM_LAYOUT, "guide", true);
     const rightHidden = setReadingRoomViewHidden(bottomHidden, "map", true);

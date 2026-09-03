@@ -9,7 +9,10 @@ to [`PortfolioReadingRoom`](./PortfolioReadingRoom.md). It remains the sole
 owner of selection, URL/history, active visuals, citation routing, the avatar
 lifecycle, and live-map Brain Food.
 Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
-`pushState`; `popstate` reads it back.
+`pushState`; `popstate` reads it back. Only a selection or thread is in the
+URL, so returning home pushes one entry only when one was set; an open visual
+never pushes. Opening a visual sends the Room a `viewRequest` for the Map so
+it is revealed on every breakpoint, even with the side panes collapsed.
 
 ## Props
 

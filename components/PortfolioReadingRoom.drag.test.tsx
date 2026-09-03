@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseReadingRoomLayout } from "../lib/reading-room-layout";
 import { portfolioWorldNodeById } from "../lib/portfolio-world";
@@ -62,6 +62,54 @@ class MemoryStorage implements Pick<Storage, "getItem" | "setItem"> {
 
 function MapProbe() {
   return <section>Map body</section>;
+}
+
+function StatefulGuideProbe() {
+  const [turns, setTurns] = useState(1);
+  return (
+    <button
+      data-testid="stateful-guide"
+      onClick={() => setTurns((current) => current + 1)}
+      type="button"
+    >
+      Guide turns: {turns}
+    </button>
+  );
+}
+
+function StatefulMapProbe({ compact }: { compact?: boolean }) {
+  const [visits, setVisits] = useState(1);
+  return (
+    <button
+      data-compact={compact ? "true" : "false"}
+      data-testid="stateful-map"
+      onClick={() => setVisits((current) => current + 1)}
+      type="button"
+    >
+      Map visits: {visits}
+    </button>
+  );
+}
+
+function swap(from: "main" | "top" | "bottom", to: "main" | "top" | "bottom") {
+  const provider = dndHarness.providerProps!;
+  act(() => provider.onDragStart?.({
+    operation: { source: { id: `reading-room-drag-${from}` } },
+  }));
+  act(() => provider.onDragEnd?.({
+    operation: {
+      source: { id: `reading-room-drag-${from}` },
+      target: { id: `reading-room-slot-${to}` },
+    },
+  }));
+}
+
+function slot(container: HTMLElement, name: "main" | "top" | "bottom") {
+  return container.querySelector<HTMLElement>(`[data-reading-room-slot="${name}"]`)!;
+}
+
+function slotBody(container: HTMLElement, name: "main" | "top" | "bottom") {
+  return slot(container, name).querySelector<HTMLElement>(".portfolio-reading-room-pane-body")!;
 }
 
 function roomProps(storage: MemoryStorage) {
@@ -140,4 +188,61 @@ describe("PortfolioReadingRoom drag operation adapter", () => {
       expect(screen.queryByText(/^Move /)).toBeNull();
     },
   );
+
+  it("keeps Guide and Map component state alive across slot swaps", () => {
+    const { container } = render(
+      <PortfolioReadingRoom
+        {...roomProps(new MemoryStorage())}
+        guide={<StatefulGuideProbe />}
+        map={<StatefulMapProbe />}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("stateful-guide"));
+    fireEvent.click(screen.getByTestId("stateful-guide"));
+    fireEvent.click(screen.getByTestId("stateful-map"));
+    expect(within(slotBody(container, "bottom")).getByText("Guide turns: 3")).toBeTruthy();
+    expect(within(slotBody(container, "top")).getByText("Map visits: 2")).toBeTruthy();
+    expect(screen.getByTestId("stateful-map").getAttribute("data-compact")).toBe("true");
+
+    swap("main", "bottom");
+    expect(within(slotBody(container, "main")).getByText("Guide turns: 3")).toBeTruthy();
+    expect(within(slotBody(container, "bottom")).getByText("Reader body")).toBeTruthy();
+
+    swap("top", "main");
+    expect(within(slotBody(container, "main")).getByText("Map visits: 2")).toBeTruthy();
+    expect(within(slotBody(container, "top")).getByText("Guide turns: 3")).toBeTruthy();
+    expect(screen.getByTestId("stateful-map").getAttribute("data-compact")).toBe("false");
+
+    fireEvent.click(screen.getByTestId("stateful-guide"));
+    swap("top", "bottom");
+    expect(within(slotBody(container, "bottom")).getByText("Guide turns: 4")).toBeTruthy();
+    expect(within(slotBody(container, "top")).getByText("Reader body")).toBeTruthy();
+    expect(container.querySelectorAll('[data-testid="stateful-guide"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-testid="stateful-map"]')).toHaveLength(1);
+    expect(container.querySelectorAll(".portfolio-reading-room-pane-body > *")).toHaveLength(3);
+  });
+
+  it("moves a collapsed lower view into main without hiding main", () => {
+    const storage = new MemoryStorage();
+    const { container } = render(<PortfolioReadingRoom {...roomProps(storage)} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide lower view" }));
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("true");
+
+    swap("bottom", "main");
+
+    expect(slot(container, "main").getAttribute("data-view")).toBe("guide");
+    expect(slot(container, "main").getAttribute("data-collapsed")).toBe("false");
+    expect(slotBody(container, "main").hasAttribute("hidden")).toBe(false);
+    expect(within(slotBody(container, "main")).getByText("Guide body")).toBeTruthy();
+    expect(slot(container, "bottom").getAttribute("data-view")).toBe("reader");
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("true");
+    expect(within(slotBody(container, "bottom")).getByText("Reader body")).toBeTruthy();
+    expect(parseReadingRoomLayout(storage.getItem("reading-room-slots")).hidden).toEqual(["reader"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show lower view" }));
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("false");
+    expect(parseReadingRoomLayout(storage.getItem("reading-room-slots")).hidden).toEqual([]);
+  });
 });

@@ -427,7 +427,21 @@ export function PortfolioChat({
           challengeRequired: Boolean(turnstileSiteKey),
           challengeToken: challengeTokenRef.current,
           online: typeof navigator === "undefined" || navigator.onLine,
-        })) return;
+        })) {
+          // Eligibility lapsed between the UI check and the send. assistant-ui
+          // has already committed the user message, so mark the turn failed
+          // (with its retry intact) rather than leave an unanswered bubble.
+          retryAttempt.current = false;
+          if (turnstileSiteKey && !challengeTokenRef.current) {
+            setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
+          }
+          setFailedQuestion({ question, canRetry: true });
+          yield {
+            content: [],
+            status: { type: "incomplete", reason: "error" },
+          };
+          return;
+        }
 
         const run = Symbol("portfolio-guide-run");
         activeRun.current = run;

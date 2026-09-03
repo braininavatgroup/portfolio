@@ -942,6 +942,22 @@ body:has(.portfolio-reading-room-desktop) {
   display: none;
 }
 
+/* Each desktop view sits in one host that the shell reparents between slot
+   bodies on a bar swap, so the swap moves DOM rather than remounting React.
+   The host draws no box: the view lays out against the slot body exactly as
+   if it were the body's own child. */
+.portfolio-reading-room-view-host {
+  display: contents;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world {
+  inset: 0;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world > .portfolio-world-mast {
+  display: none;
+}
+
 .portfolio-reading-room-main-mast {
   align-items: center;
   display: flex;

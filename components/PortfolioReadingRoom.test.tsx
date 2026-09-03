@@ -189,6 +189,15 @@ describe("PortfolioReadingRoom desktop", () => {
     expect(DEFAULT_READING_ROOM_LAYOUT.vsplit).toBe(0.4);
   });
 
+  it("renders every view inside its default slot in server HTML", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<PortfolioReadingRoom {...roomProps()} />);
+
+    expect(slot(host, "main").querySelector('.portfolio-reading-room-pane-body > [data-reading-room-view="reader"] > [data-view="reader"]')).not.toBeNull();
+    expect(slot(host, "top").querySelector('.portfolio-reading-room-pane-body > [data-reading-room-view="map"] > [data-view="map"]')).not.toBeNull();
+    expect(slot(host, "bottom").querySelector('.portfolio-reading-room-pane-body > [data-reading-room-view="guide"] > [data-view="guide"]')).not.toBeNull();
+  });
+
   it("hydrates the default server composition before restoring client persistence", async () => {
     const serverStorage = new MemoryStorage();
     const clientStorage = new MemoryStorage();
@@ -220,6 +229,10 @@ describe("PortfolioReadingRoom desktop", () => {
       expect(slot(host, "main").dataset.view).toBe("guide");
       expect(host.querySelector('#main')?.getAttribute("style")).toContain("flex: 64 1 0px");
     });
+    expect(slot(host, "main").querySelector('[data-view="guide"]')).not.toBeNull();
+    expect(slot(host, "top").querySelector('[data-view="reader"]')).not.toBeNull();
+    expect(slot(host, "bottom").querySelector('[data-view="map"]')).not.toBeNull();
+    expect(host.querySelectorAll(".portfolio-reading-room-pane-body > *")).toHaveLength(3);
 
     expect(hydrationErrors.join("\n")).not.toMatch(/hydration|did not match|server rendered/i);
     await act(async () => root.unmount());
@@ -367,6 +380,53 @@ describe("PortfolioReadingRoom desktop", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show side panes" }));
     expect(screen.getByRole("button", { name: "Guide turns: 2" })).toBeTruthy();
+  });
+
+  it("reveals a requested view by reopening the side column or the lower slot", () => {
+    const onLayoutChange = vi.fn();
+    const props = roomProps();
+    const { container, rerender } = render(
+      <PortfolioReadingRoom {...props} onLayoutChange={onLayoutChange} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide side panes" }));
+    expect(slot(container, "top").querySelector(".portfolio-reading-room-pane-body")?.hasAttribute("hidden")).toBe(true);
+    onLayoutChange.mockClear();
+
+    rerender(
+      <PortfolioReadingRoom
+        {...props}
+        onLayoutChange={onLayoutChange}
+        viewRequest={{ key: 1, view: "map" }}
+      />,
+    );
+    expect(container.querySelector('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')?.hasAttribute("hidden")).toBe(false);
+    expect(screen.getByRole("button", { name: "Hide side panes" })).toBeTruthy();
+    expect(onLayoutChange).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide lower view" }));
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("true");
+    rerender(
+      <PortfolioReadingRoom
+        {...props}
+        onLayoutChange={onLayoutChange}
+        viewRequest={{ key: 2, view: "guide" }}
+      />,
+    );
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("false");
+    expect(screen.getByRole("button", { name: "Hide lower view" })).toBeTruthy();
+
+    // A stale request must not reopen what the visitor closes afterwards.
+    fireEvent.click(screen.getByRole("button", { name: "Hide lower view" }));
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("true");
+    rerender(
+      <PortfolioReadingRoom
+        {...props}
+        onLayoutChange={onLayoutChange}
+        viewRequest={{ key: 3, view: "reader" }}
+      />,
+    );
+    expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("true");
   });
 
   it("collapses side panels on release only after a sash crosses 48px past its minimum", async () => {
@@ -597,6 +657,18 @@ describe("PortfolioReadingRoom mobile", () => {
     expect(slot(container, "main").querySelector('[data-view="map"]')).not.toBeNull();
     expect(slot(container, "top").querySelector('[data-view="guide"]')).not.toBeNull();
     expect(slot(container, "bottom").querySelector('[data-view="reader"]')).not.toBeNull();
+  });
+
+  it("switches to the tab that hosts a requested view", () => {
+    const props = roomProps();
+    const { rerender } = render(<PortfolioReadingRoom {...props} />);
+
+    rerender(<PortfolioReadingRoom {...props} viewRequest={{ key: 1, view: "guide" }} />);
+    expect(screen.getByRole("button", { name: "Map tab" }).getAttribute("aria-pressed")).toBe("true");
+    rerender(<PortfolioReadingRoom {...props} viewRequest={{ key: 2, view: "reader" }} />);
+    expect(screen.getByRole("button", { name: "Reader tab" }).getAttribute("aria-pressed")).toBe("true");
+    rerender(<PortfolioReadingRoom {...props} viewRequest={{ key: 3, view: "map" }} />);
+    expect(screen.getByRole("button", { name: "Map tab" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("keeps the docked Guide mounted when another mobile tab is active", () => {

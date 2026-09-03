@@ -356,6 +356,92 @@ describe("docked portfolio Guide", () => {
     },
   );
 
+  it.each(["offline", "missing challenge token"] as const)(
+    "marks a question that loses eligibility at send time as failed instead of orphaning it while %s",
+    async (blockedBy) => {
+      // Catches the adapter's silent return leaving a user bubble with no answer,
+      // no error, and no place in later turns' conversation history.
+      let online = true;
+      vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+      let deliverToken: ((token: string) => void) | undefined;
+      let expireToken: (() => void) | undefined;
+      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
+        deliverToken = callbacks.onToken;
+        expireToken = callbacks.onExpired;
+        return { remove: vi.fn(), reset: vi.fn() };
+      };
+      const askPortfolio = vi.fn<AskPortfolio>(async (question, { onEvent }) => {
+        onEvent({ type: "answer_delta", delta: `${question} answered.` });
+        onEvent({ type: "done" });
+      });
+      render(
+        <PortfolioChat
+          askPortfolio={askPortfolio}
+          renderTurnstile={renderTurnstile}
+          resetSignal={0}
+          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
+        />,
+      );
+      if (blockedBy === "missing challenge token") {
+        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
+        deliverToken?.("challenge-token");
+      }
+      const input = screen.getByLabelText("Ask a question about the portfolio");
+      fireEvent.change(input, { target: { value: "Was this lost?" } });
+      const send = screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement;
+      await waitFor(() => expect(send.disabled).toBe(false));
+
+      // Eligibility lapses after the UI check passed: the browser drops
+      // offline without firing an event, or the challenge token expires in
+      // the same tick as the click, before React can disable the control.
+      act(() => {
+        if (blockedBy === "offline") online = false;
+        else expireToken?.();
+        fireEvent.click(send);
+      });
+
+      const retry = await screen.findByRole("button", { name: "Try again" });
+      expect(askPortfolio).not.toHaveBeenCalled();
+      expect(screen.getByText("Something went wrong.")).toBeTruthy();
+      expect(screen.getAllByText("Was this lost?")).toHaveLength(1);
+      expect(
+        screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending"),
+      ).toBe("false");
+
+      if (blockedBy === "offline") {
+        fireEvent(window, new Event("offline"));
+        await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
+        expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
+        online = true;
+        fireEvent(window, new Event("online"));
+      } else {
+        expect((retry as HTMLButtonElement).disabled).toBe(true);
+        expect(screen.getByText("Complete verification before asking.")).toBeTruthy();
+        deliverToken?.("challenge-token");
+      }
+      await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(retry);
+      await screen.findByText("Was this lost? answered.");
+      await waitFor(() =>
+        expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("false"),
+      );
+      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+      expect(screen.getAllByText("Was this lost?")).toHaveLength(1);
+
+      if (blockedBy === "missing challenge token") deliverToken?.("second-token");
+      submit("Next question");
+      await screen.findByText("Next question answered.");
+
+      expect(askPortfolio).toHaveBeenCalledTimes(2);
+      expect(askPortfolio.mock.calls[0]![0]).toBe("Was this lost?");
+      expect(askPortfolio.mock.calls[0]![1]).not.toHaveProperty("conversation");
+      expect(askPortfolio.mock.calls[1]![1].conversation).toEqual([
+        { role: "user", content: "Was this lost?" },
+        { role: "assistant", content: "Was this lost? answered." },
+      ]);
+    },
+  );
+
   it("sends with Enter, preserves Shift+Enter, and ignores the Enter that commits IME text", async () => {
     // Catches assistant-ui's default Enter handling bypassing the Guide's IME guard.
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {

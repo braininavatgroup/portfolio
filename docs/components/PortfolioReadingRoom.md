@@ -5,10 +5,9 @@ Tests: `components/PortfolioReadingRoom.test.tsx`, `components/PortfolioReadingR
 
 The controlled responsive shell. At 1020px and above, Contents sits beside a
 main view and two stacked side views; dragging a 40px bar swaps Reader, Map, or
-Guide. Below 1020px it becomes Contents, Reader, and Map tabs; Map holds Guide at 52/48.
-
-Panel sizes persist through `react-resizable-panels`; slot assignments and
-hidden views persist separately through `lib/reading-room-layout.ts`.
+Guide. Below 1020px it becomes Contents, Reader, and Map tabs; Map holds Guide at
+52/48. Panel sizes persist through `react-resizable-panels`; slots and collapsed
+slots persist separately through `lib/reading-room-layout.ts`.
 
 ## Props
 
@@ -16,10 +15,10 @@ Pass one controlled `reader`, `map`, and `guide`; `map` accepts optional `compac
 and `nodesInTabOrder`. Selection uses `selectedId`, `selectedSubject`,
 `activeThreadId`, `onSelect`, and `onSelectThread`. Home and Guide coordination
 use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
-`onLayoutChange` fires after every panel resize, collapse, or reopen.
-
-`mobileTabRequest` reveals Reader or Map; `onEscapeBeforeRoom` can consume Escape
-before Guide reset/Home. `storage` is a test/gallery seam; omit it in production.
+`onLayoutChange` fires after every resize, collapse, reopen, or swap.
+`viewRequest` reveals a view (reopens its column or slot; switches tab below
+1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
+Escape before Guide reset/Home. `storage` is a test seam.
 
 ## Requires
 
@@ -96,7 +95,8 @@ export function PortfolioReadingRoomExample() {
   non-interactive `PortfolioControlGlyph`; every button is a positioned sibling.
 - **Dragging adds no ghost and no text.** dnd-kit feedback is `clone` with the
   moving bar hidden; the in-place bar darkens and the target shows fill and border.
-- **Hidden views stay mounted.** Collapse and tab changes use `hidden`, so the
-  Guide runtime and view state survive.
-- **Pointer DnD needs a real browser.** Unit tests cover the three pairs;
-  `/design#reading-room` is the pointer fixture.
+- **A swap moves DOM, not React.** Each view renders once in its first-run slot
+  and its host is reparented, so the Guide thread and Map state survive a drag.
+- **Collapse belongs to the slot.** `hidden` names the views in collapsed slots;
+  a swap re-derives it, main never collapses, and hidden views stay mounted.
+- **Pointer DnD needs a real browser.** Unit tests cover the pairs; `/design#reading-room` is the pointer fixture.

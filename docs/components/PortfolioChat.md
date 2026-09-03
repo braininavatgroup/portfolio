@@ -57,6 +57,7 @@ export function PortfolioChatExample() {
 - A `turnstileSiteKey` without a working renderer keeps submission gated.
 - Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
 - Output is buffered until completion, so failed partial answers stay hidden.
+- A send that loses eligibility (offline, expired challenge) fails with one retry.
 - Avatar callback failures stay isolated from the text response.
 - The first server and client render both assume online. Actual
   `navigator.onLine` state is synchronized after mount to keep hydration stable.

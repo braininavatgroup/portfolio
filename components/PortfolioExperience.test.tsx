@@ -3,6 +3,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarRuntime } from "../lib/avatar/runtime";
+import { portfolioWorldNodeById } from "../lib/portfolio-world";
 import { PortfolioExperience } from "./PortfolioExperience";
 
 vi.mock("./avatar/AvatarOverlay", async () => {
@@ -272,6 +273,58 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     expect(screen.getByRole("region", { name: "Portfolio Guide" })).toBe(guide);
     await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
+  });
+
+  it("reveals the collapsed desktop Map when a Reader visual opens", async () => {
+    await renderExperience();
+    fireEvent.click(screen.getByRole("button", { name: "Hide side panes" }));
+    const mapPane = document.querySelector('[data-reading-room-slot][data-view="map"]')!;
+    expect(mapPane.querySelector<HTMLElement>(".portfolio-reading-room-pane-body")!.hidden).toBe(true);
+    selectContentsRecord("Dubs");
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
+
+    expect(document.querySelector('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')).not.toBeNull();
+    await waitFor(() => expect(
+      document.querySelector<HTMLElement>('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')!.hidden,
+    ).toBe(false));
+    expect(screen.getByRole("region", { name: /Visual in map:/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Hide side panes" })).toBeTruthy();
+  });
+
+  it("does not push history when a visual closes at the home URL", async () => {
+    // The About body carries no visual today; lend it one so the home state
+    // can open a visual without first selecting a record.
+    const home = portfolioWorldNodeById.get("bradley")!;
+    const visual = portfolioWorldNodeById.get("dubs")!.body.find((block) => (
+      typeof block === "object" && block.type === "visual"
+    ))!;
+    const homeBody = home.body as unknown[];
+    homeBody.push(visual);
+    try {
+      await renderExperience();
+      const pushState = vi.spyOn(window.history, "pushState");
+      fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
+      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
+      expect(screen.getByRole("region", { name: /Visual in map:/ })).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Return to About" }));
+
+      expect(screen.queryByRole("region", { name: /Visual in map:/ })).toBeNull();
+      expect(pushState).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Show Contents" }));
+      selectContentsRecord("Dubs");
+      expect(pushState).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
+      fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
+      fireEvent.click(screen.getByRole("button", { name: "Return to About" }));
+
+      expect(pushState).toHaveBeenCalledTimes(2);
+      expect(window.location.hash).toBe("");
+    } finally {
+      homeBody.pop();
+    }
   });
 
   it("opens a Dubs gallery group at its own first image", async () => {

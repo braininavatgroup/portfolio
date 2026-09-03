@@ -19,11 +19,13 @@ import {
   type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
+import type { ReadingRoomView } from "../lib/reading-room-layout";
 import { PortfolioChat } from "./PortfolioChat";
 import {
   PortfolioReadingRoom,
   type ReadingRoomMobileTab,
   type ReadingRoomMobileTabRequest,
+  type ReadingRoomViewRequest,
 } from "./PortfolioReadingRoom";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
@@ -80,6 +82,7 @@ export function PortfolioExperience() {
   const [guideHasThread, setGuideHasThread] = useState(false);
   const [guideResetSignal, setGuideResetSignal] = useState(0);
   const [mobileTabRequest, setMobileTabRequest] = useState<ReadingRoomMobileTabRequest>();
+  const [viewRequest, setViewRequest] = useState<ReadingRoomViewRequest>();
   const {
     avatarMounted,
     avatarRuntime,
@@ -102,6 +105,10 @@ export function PortfolioExperience() {
     setMobileTabRequest((current) => ({ key: (current?.key ?? 0) + 1, tab }));
   }, []);
 
+  const requestView = useCallback((view: ReadingRoomView) => {
+    setViewRequest((current) => ({ key: (current?.key ?? 0) + 1, view }));
+  }, []);
+
   const showHome = useCallback(() => {
     setSelectedWorldId(null);
     setActiveThreadId(null);
@@ -121,11 +128,13 @@ export function PortfolioExperience() {
   }, []);
 
   const showHomeAndSyncLocation = useCallback(() => {
-    const hadComposition = Boolean(selectedWorldId || activeThreadId || activeVisual);
+    // Only a selection or thread is mirrored into the URL; an open visual is
+    // not, so closing one from home must not push a second home entry.
+    const hadLocation = Boolean(selectedWorldId || activeThreadId);
     showHome();
     requestMobileTab("reader");
-    if (hadComposition) pushWorldLocation(null, null);
-  }, [activeThreadId, activeVisual, requestMobileTab, selectedWorldId, showHome]);
+    if (hadLocation) pushWorldLocation(null, null);
+  }, [activeThreadId, requestMobileTab, selectedWorldId, showHome]);
 
   const selectWorldNode = useCallback((node: PortfolioWorldNode) => {
     if (selectedWorldId === node.id) {
@@ -147,8 +156,8 @@ export function PortfolioExperience() {
   ) => {
     visualTriggerRef.current = trigger;
     setActiveVisual({ block: visual, initialFrame });
-    requestMobileTab("map");
-  }, [requestMobileTab]);
+    requestView("map");
+  }, [requestView]);
 
   const closeVisualInMap = useCallback(() => {
     const trigger = visualTriggerRef.current;
@@ -294,6 +303,7 @@ export function PortfolioExperience() {
         reader={reader}
         selectedId={selectedWorldId}
         selectedSubject={selectedWorldNode ?? null}
+        viewRequest={viewRequest}
       />
       {avatarOverlay}
     </main>
