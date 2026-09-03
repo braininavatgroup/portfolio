@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BRADLEY_MIN_LEAN,
@@ -39,6 +41,18 @@ import {
 afterEach(cleanup);
 
 describe("PortfolioWorld", () => {
+  it("fills its positioned slot without viewport-fixed geometry", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const shellRule = stylesheet.match(/^\.scene-shell\s*\{([^}]*)\}/m)?.[1];
+    const worldRule = stylesheet.match(/\.portfolio-world\s*\{([^}]*)\}/)?.[1];
+
+    expect(shellRule?.match(/\bposition:\s*([^;]+);/)?.[1]).toBe("relative");
+    expect(worldRule?.match(/\bposition:\s*([^;]+);/)?.[1]).toBe("absolute");
+    expect(worldRule?.match(/\binset:\s*([^;]+);/)?.[1]).toBe("0");
+    expect(worldRule).not.toMatch(/\bheight:\s*100%\s*;/);
+    expect(worldRule).not.toMatch(/\bposition:\s*fixed\s*;/);
+  });
+
   it("keeps the world surface free of a background grid", () => {
     render(
       <PortfolioWorld

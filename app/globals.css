@@ -637,13 +637,11 @@ body:has(.portfolio-composition) {
 
 .portfolio-world {
   background: var(--map-paper);
-  height: 100%;
-  min-height: 0;
+  inset: 0;
   overflow: hidden;
-  position: relative;
+  position: absolute;
   touch-action: none;
   user-select: none;
-  width: 100%;
   z-index: 1;
 }
 

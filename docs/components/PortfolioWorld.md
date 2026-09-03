@@ -54,8 +54,8 @@ export function PortfolioWorldExample() {
 
 - **Escape is not handled here.** Blank-space click calls `onReset` (under a
   7px movement threshold); the Escape binding lives in `PortfolioExperience`.
-- **It sizes itself from its own slot.** Give the containing slot a definite
-  size. `ResizeObserver` owns sizing; viewport resize is only the fallback.
+- **It fills its positioned slot.** Allocate the slot and give it `position:
+  relative`. `ResizeObserver` owns sizing; viewport resize is only the fallback.
 - **Compactness is explicit.** A narrow slot does not infer `compact`; its
   owner passes the flag. Labels on nodes left of 30 percent of the slot sit to
   the right, and all other compact labels sit to the left.
