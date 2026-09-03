@@ -55,7 +55,7 @@ READBACK="$(/usr/bin/security find-generic-password -s "$KEYCHAIN_SERVICE" -a "$
 [[ "$READBACK" == "$TOKEN" ]] || fail "Keychain readback did not match."
 done_ "Keychain entry written and read back"
 
-say "Checking the digest route on $SITE…"
+say "Checking the digest route on ${SITE}…"
 STATUS="$(curl -s -o /dev/null -w '%{http_code}' \
   -H "authorization: Bearer $TOKEN" "$SITE/_portfolio-feedback/admin/notes" || true)"
 unset TOKEN READBACK
