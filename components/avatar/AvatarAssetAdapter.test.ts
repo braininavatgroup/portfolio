@@ -8,8 +8,10 @@ import {
   getAvatarPlaybackRate,
   getBradleyGlbFootOriginTranslation,
   getGlbFootOriginTranslation,
+  getGlbOrientation,
   getGlbYaw,
   getAvatarStageScale,
+  getAvatarTurnRate,
   makeLocomotionClipInPlace,
 } from "./AvatarAssetAdapter";
 import {
@@ -21,6 +23,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   VectorKeyframeTrack,
+  Vector3,
 } from "three";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -130,6 +133,13 @@ describe("GLB avatar configuration", () => {
     );
   });
 
+  it("turns a swimming body more gradually than conversational poses", () => {
+    expect(getAvatarTurnRate("swim_forward")).toBeCloseTo(2.2);
+    expect(getAvatarTurnRate("agree_gesture")).toBeGreaterThan(
+      getAvatarTurnRate("swim_forward"),
+    );
+  });
+
 
   it("starts camera-facing and limits ordinary left and right turns", () => {
     // Catches startup or target-facing logic rotating the avatar's back toward the visitor.
@@ -142,6 +152,38 @@ describe("GLB avatar configuration", () => {
       (Math.PI * 3) / 2,
     );
     expect(getGlbYaw("z", "front", "swim_forward", -Math.PI / 2)).toBe(0);
+  });
+
+  it("points a swimming body fully up or down without rolling it", () => {
+    // Catches limiting vertical steering to a cosmetic tilt, which leaves the
+    // swimmer's head level with their hips while moving through the cube.
+    const descend = getGlbOrientation(
+      "z",
+      "front",
+      "swim_forward",
+      Math.PI / 2,
+    );
+    const ascend = getGlbOrientation(
+      "z",
+      "front",
+      "swim_forward",
+      -Math.PI / 2,
+    );
+    const localForward = new Vector3(0, 0, 1);
+    const localRight = new Vector3(1, 0, 0);
+
+    expect(localForward.clone().applyQuaternion(descend).toArray()).toEqual([
+      expect.closeTo(0, 6),
+      expect.closeTo(-1, 6),
+      expect.closeTo(0, 6),
+    ]);
+    expect(localForward.clone().applyQuaternion(ascend).toArray()).toEqual([
+      expect.closeTo(0, 6),
+      expect.closeTo(1, 6),
+      expect.closeTo(0, 6),
+    ]);
+    expect(localRight.clone().applyQuaternion(descend).y).toBeCloseTo(0, 6);
+    expect(localRight.clone().applyQuaternion(ascend).y).toBeCloseTo(0, 6);
   });
 
   it("removes Meshy root travel from the swim clip so the controller owns position", () => {

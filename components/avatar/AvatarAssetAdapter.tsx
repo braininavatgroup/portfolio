@@ -130,6 +130,28 @@ export function getGlbYaw(
     : getAvatarYaw(forwardAxis, facing);
 }
 
+export function getGlbOrientation(
+  forwardAxis: typeof avatarAsset.forwardAxis,
+  facing: AvatarFacing,
+  animation: AvatarClip,
+  swimHeadingRadians = 0,
+) {
+  const yaw = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    getGlbYaw(forwardAxis, facing, animation, swimHeadingRadians),
+  );
+  if (animation !== "swim_forward") return yaw;
+
+  // Decompose the screen heading into horizontal yaw and vertical pitch. The
+  // arcsine folds pitch into [-90°, 90°], so down can point fully down while
+  // left/right reversals still turn through yaw instead of somersaulting.
+  const pitch = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(1, 0, 0),
+    Math.asin(Math.sin(swimHeadingRadians)),
+  );
+  return yaw.multiply(pitch);
+}
+
 export function makeLocomotionClipInPlace(clip: THREE.AnimationClip) {
   const prepared = clip.clone();
   for (const track of prepared.tracks) {
@@ -149,6 +171,10 @@ export function makeLocomotionClipInPlace(clip: THREE.AnimationClip) {
 
 export function getAvatarPlaybackRate(animation: AvatarClip) {
   return animation === "swim_forward" ? 0.8 : avatarAsset.playbackRate;
+}
+
+export function getAvatarTurnRate(animation: AvatarClip) {
+  return animation === "swim_forward" ? 2.2 : 4.5;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -188,16 +214,14 @@ function GlbAvatar({
   );
   const { actions } = useAnimations(animationClips, root);
   const playbackRate = getAvatarPlaybackRate(animation);
+  const turnRate = getAvatarTurnRate(animation);
   const targetQuaternion = useMemo(
     () =>
-      new THREE.Quaternion().setFromAxisAngle(
-        new THREE.Vector3(0, 1, 0),
-        getGlbYaw(
-          avatarAsset.forwardAxis,
-          facing,
-          animation,
-          swimHeadingRadians ?? 0,
-        ),
+      getGlbOrientation(
+        avatarAsset.forwardAxis,
+        facing,
+        animation,
+        swimHeadingRadians ?? 0,
       ),
     [animation, facing, swimHeadingRadians],
   );
@@ -215,7 +239,7 @@ function GlbAvatar({
 
   useFrame((_, delta) => {
     if (root.current) {
-      root.current.quaternion.rotateTowards(targetQuaternion, 4.5 * delta);
+      root.current.quaternion.rotateTowards(targetQuaternion, turnRate * delta);
     }
   });
 

@@ -1,7 +1,7 @@
 import type { AvatarStagePoint } from "./stage";
 
 export const BRAIN_FOOD_MAX_SPEED = 220;
-export const BRAIN_FOOD_TURN_RADIANS_PER_SECOND = 4.5;
+export const BRAIN_FOOD_TURN_RADIANS_PER_SECOND = 2.2;
 const coastingDampingPerSecond = 1.4;
 const reducedMotionStep = 12;
 const maximumFrameDeltaSeconds = 0.05;
@@ -64,6 +64,53 @@ function boundedPoint(
     x: clamp(point.x, left + bounds.padding, left + bounds.width - bounds.padding),
     y: clamp(point.y, top + bounds.padding, top + bounds.height - bounds.padding),
   };
+}
+
+export function findBrainFoodSpawn(
+  nodes: readonly BrainFoodNodePosition[],
+  bounds: BrainFoodBounds,
+  avatarRadius: number,
+): AvatarStagePoint | null {
+  const left = (bounds.left ?? 0) + bounds.padding;
+  const right = (bounds.left ?? 0) + bounds.width - bounds.padding;
+  const top = (bounds.top ?? 0) + bounds.padding;
+  const bottom = (bounds.top ?? 0) + bounds.height - bounds.padding;
+  if (right < left || bottom < top) return null;
+
+  const center = { x: (left + right) / 2, y: (top + bottom) / 2 };
+  if (nodes.length === 0) return center;
+
+  const axisSamples = (minimum: number, maximum: number) => {
+    const values = [minimum];
+    for (let value = minimum + 24; value < maximum; value += 24) {
+      values.push(value);
+    }
+    if (maximum !== minimum) values.push(maximum);
+    return values;
+  };
+  const candidates = [
+    center,
+    ...axisSamples(top, bottom).flatMap((y) =>
+      axisSamples(left, right).map((x) => ({ x, y })),
+    ),
+  ];
+  let best: AvatarStagePoint | null = null;
+  let bestClearance = -Infinity;
+  for (const candidate of candidates) {
+    const clearance = Math.min(
+      ...nodes.map(
+        (node) =>
+          Math.hypot(candidate.x - node.x, candidate.y - node.y) -
+          node.radius -
+          avatarRadius,
+      ),
+    );
+    if (clearance > bestClearance) {
+      best = candidate;
+      bestClearance = clearance;
+    }
+  }
+  return bestClearance > 0 ? best : null;
 }
 
 export function integrateBrainFood(

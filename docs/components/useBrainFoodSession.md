@@ -3,6 +3,8 @@
 Source: [`components/useBrainFoodSession.ts`](../../components/useBrainFoodSession.ts) · Tests: `components/useBrainFoodSession.test.tsx`
 
 Owns the visitor-triggered Brain Food session: the exact Shift+G shortcut, Arrow/WASD movement, live-node collision state, completion celebration, Escape cancellation, and restoration of the avatar's prior visibility.
+It chooses the clearest bounded spawn from the published node field and does
+not collect anything until the avatar's position actually changes.
 
 ## Arguments
 
@@ -11,7 +13,7 @@ Owns the visitor-triggered Brain Food session: the exact Shift+G shortcut, Arrow
 ## Requires
 
 A browser and one live `.portfolio-world` surface. The map must call
-`syncNodePositions` with its current viewport-projected nodes.
+`syncNodePositions` with current viewport-projected nodes before and during play.
 
 ## Example
 

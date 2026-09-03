@@ -16,9 +16,9 @@ of stage position. The module also exports the pure helpers its test pins.
 
 `animation`, `facing`, and `reducedMotion` are required; `anchor` (`"feet"`
 default, or `"center"`), `swimHeadingRadians`, `stageScale`, and
-`onAvailableAnimationsChange` are optional. A swim heading is measured in the
-screen/map plane: right is `0`, down is `Math.PI / 2`, and left is `Math.PI`.
-See [`AvatarAssetAdapterProps`](../../../components/avatar/AvatarAssetAdapter.tsx).
+`onAvailableAnimationsChange` are optional. Swim heading uses screen radians
+(right `0`, down `π/2`, left `π`) for yaw and ±90° pitch, never roll. See
+[`AvatarAssetAdapterProps`](../../../components/avatar/AvatarAssetAdapter.tsx).
 
 ## Requires
 

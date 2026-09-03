@@ -14,7 +14,7 @@ behind (design-conventions §6.12). Colours come from the enclosing
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect` required; `activeVisual`,
-`onCloseVisual`, `registerAvatarStage` optional — see `PortfolioWorldProps`.
+`onCloseVisual`, `registerAvatarStage`, `brainFood` optional — see `PortfolioWorldProps`.
 Pure helpers: `connectorSegment`, `composeSpotlightGoals`; the rules live in
 `lib/portfolio-world-{zones,field,projection}.ts`, `portfolio-story-tree.ts`,
 and `portfolio-node-envelope.ts`.
@@ -54,8 +54,8 @@ export function PortfolioWorldExample() {
   7px movement threshold); the Escape binding lives in `PortfolioExperience`.
 - **It sizes itself from the viewport, not its parent.** `.portfolio-world` is
   `position: fixed`; it shrinks to a box only inside a containing block.
-- **Only `activeVisual` disables node buttons**; the dimmed field stays
-  clickable. `.portfolio-visual-open` belongs on the composition root.
+- **`activeVisual` and Brain Food disable node buttons**; otherwise dimmed nodes
+  stay clickable. Brain Food hides links; `.portfolio-visual-open` goes on the root.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it in
   dev). Tests pass `stillRng` or `createRng` and assert rules, not coordinates.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isExactShiftShortcut } from "../lib/dom-keyboard";
 import {
   collectBrainFoodNodes,
+  findBrainFoodSpawn,
   integrateBrainFood,
   isBrainFoodComplete,
   type BrainFoodBody,
@@ -100,10 +101,12 @@ export function useBrainFoodSession({
       return;
     }
     const bounds = playBounds();
-    const position = {
-      x: (bounds.left ?? 0) + bounds.width / 2,
-      y: (bounds.top ?? 0) + bounds.height / 2,
-    };
+    const position = findBrainFoodSpawn(
+      nodesRef.current,
+      bounds,
+      avatarCollisionRadius,
+    );
+    if (!position) return;
     wasVisibleRef.current = avatarRuntime.getSnapshot().visible;
     bodyRef.current = {
       position,
@@ -111,7 +114,6 @@ export function useBrainFoodSession({
       heading: 0,
     };
     eatenRef.current = new Set();
-    nodesRef.current = [];
     completingRef.current = false;
     previousFrameRef.current = null;
     activeRef.current = true;
@@ -171,7 +173,12 @@ export function useBrainFoodSession({
         bodyRef.current.position,
         bodyRef.current.heading,
       );
-      collectAtCurrentPosition(previousPosition);
+      if (
+        bodyRef.current.position.x !== previousPosition.x ||
+        bodyRef.current.position.y !== previousPosition.y
+      ) {
+        collectAtCurrentPosition(previousPosition);
+      }
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
@@ -208,7 +215,12 @@ export function useBrainFoodSession({
           bodyRef.current.position,
           bodyRef.current.heading,
         );
-        collectAtCurrentPosition(previousPosition);
+        if (
+          bodyRef.current.position.x !== previousPosition.x ||
+          bodyRef.current.position.y !== previousPosition.y
+        ) {
+          collectAtCurrentPosition(previousPosition);
+        }
       } else {
         heldRef.current.add(key);
       }

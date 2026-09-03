@@ -975,11 +975,13 @@ export function PortfolioWorld({
           // Every drawn node is a target, the dimmed field included: a click
           // on any record lands on that record instead of falling through to
           // the surface and resetting the map.
-          button.style.pointerEvents = brainFoodRef.current?.active ? "none" : "auto";
+          button.style.pointerEvents = brainFoodRef.current?.active
+            ? "none"
+            : "auto";
         }
       }
 
-      if (brainFoodRef.current?.active) {
+      if (brainFoodRef.current) {
         brainFoodRef.current.syncNodePositions(
           nodes.flatMap((node) =>
             node.screen
@@ -999,16 +1001,16 @@ export function PortfolioWorld({
         const eaten = brainFoodRef.current?.active
           ? brainFoodRef.current.eatenIds
           : new Set<string>();
-        drawLinks(
-          context,
-          nodes,
-          linksRef.current.filter(
-            (link) => !eaten.has(link.from) && !eaten.has(link.to),
-          ),
-          active.selectedId,
-          palette,
-          connectorMemory,
-        );
+        if (!brainFoodRef.current?.active) {
+          drawLinks(
+            context,
+            nodes,
+            linksRef.current,
+            active.selectedId,
+            palette,
+            connectorMemory,
+          );
+        }
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );

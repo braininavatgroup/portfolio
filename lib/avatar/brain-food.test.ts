@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   BRAIN_FOOD_MAX_SPEED,
-  BRAIN_FOOD_TURN_RADIANS_PER_SECOND,
   collectBrainFoodNodes,
+  findBrainFoodSpawn,
   integrateBrainFood,
   isBrainFoodComplete,
   type BrainFoodBody,
@@ -50,9 +50,7 @@ describe("Brain Food motion", () => {
       false,
     );
 
-    expect(next.heading).toBeCloseTo(
-      BRAIN_FOOD_TURN_RADIANS_PER_SECOND / 60,
-    );
+    expect(next.heading).toBeCloseTo(2.2 / 60);
     expect(next.velocity).toEqual({ x: 0, y: 0 });
     expect(next.position.x).toBe(movingRight.position.x);
 
@@ -60,7 +58,8 @@ describe("Brain Food motion", () => {
     for (let frame = 0; frame < 60; frame += 1) {
       turned = integrateBrainFood(turned, { x: -1, y: 0 }, 1 / 60, bounds, false);
     }
-    expect(turned.heading).toBeCloseTo(Math.PI);
+    expect(turned.heading).toBeGreaterThan(Math.PI / 2);
+    expect(turned.heading).toBeLessThan(Math.PI);
     expect(turned.velocity.x).toBeLessThan(0);
     expect(turned.position.x).toBeLessThan(movingRight.position.x);
   });
@@ -135,6 +134,21 @@ describe("Brain Food collection", () => {
     { id: "dubs", x: 210, y: 200, radius: 22 },
     { id: "reporting", x: 500, y: 500, radius: 22 },
   ];
+
+  it("chooses a bounded spawn whose whole swimmer radius is clear of nodes", () => {
+    const spawn = findBrainFoodSpawn(
+      [{ id: "center", x: 400, y: 300, radius: 30 }],
+      bounds,
+      78,
+    );
+
+    expect(spawn).not.toBeNull();
+    expect(spawn!.x).toBeGreaterThanOrEqual(48);
+    expect(spawn!.x).toBeLessThanOrEqual(752);
+    expect(spawn!.y).toBeGreaterThanOrEqual(48);
+    expect(spawn!.y).toBeLessThanOrEqual(552);
+    expect(Math.hypot(spawn!.x - 400, spawn!.y - 300)).toBeGreaterThan(108);
+  });
 
   it("eats a touched portfolio node once and never eats Bradley", () => {
     expect(

@@ -10,8 +10,8 @@ and places an [`AvatarAssetAdapter`](./AvatarAssetAdapter.md) there at a
 viewport-derived scale (104 desktop, 72 at 768px and below, via the exported
 `selectAvatarStageScale`). While a `motion` path is present it samples the path
 each frame and derives heading from direction of travel. Swim heading rotates
-the rig around its upright Y axis, so vertical map travel reads as movement
-toward or away from the camera rather than a screen-plane cartwheel.
+the rig through its horizontal pool plane and adds full pitch for vertical
+travel; straight, diagonal, and reverse paths never roll the swimmer.
 
 ## Props
 

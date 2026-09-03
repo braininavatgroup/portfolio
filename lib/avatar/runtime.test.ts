@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ANSWER_REACTION_MS,
-  BRAIN_FOOD_CELEBRATION_MS,
   AvatarRuntime,
   type AvatarStageGeometry,
 } from "./runtime";
@@ -104,7 +103,12 @@ describe("minimal avatar runtime", () => {
       phase: "celebrating",
       animation: "cheer_with_both_hands",
     });
-    await vi.advanceTimersByTimeAsync(BRAIN_FOOD_CELEBRATION_MS);
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(avatar.getSnapshot()).toMatchObject({
+      phase: "celebrating",
+      animation: "cheer_with_both_hands",
+    });
+    await vi.advanceTimersByTimeAsync(1);
     await completion;
     expect(avatar.getSnapshot()).toMatchObject({
       phase: "idle",

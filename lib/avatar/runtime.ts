@@ -49,7 +49,7 @@ export type AvatarSnapshot = {
 };
 
 export const ANSWER_REACTION_MS = 1_600;
-export const BRAIN_FOOD_CELEBRATION_MS = 1_600;
+export const BRAIN_FOOD_CELEBRATION_MS = 3_000;
 const swimViewportInset = 24;
 const swimObstaclePadding = 88;
 const minimumSwimDurationMs = 9_000;

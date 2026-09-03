@@ -134,6 +134,51 @@ describe("useBrainFoodSession", () => {
     expect(result.current.active).toBe(true);
   });
 
+  it("starts in a clear part of the published node field", () => {
+    const avatar = runtime();
+    const { result } = renderHook(() =>
+      useBrainFoodSession({
+        avatarRuntime: avatar,
+        edibleNodeCount: 1,
+        enabled: true,
+        reducedMotion: false,
+      }),
+    );
+    act(() => {
+      result.current.syncNodePositions([
+        { id: "center-node", x: 600, y: 350, radius: 30 },
+      ]);
+      shortcut();
+    });
+
+    const spawn = avatar.getSnapshot().position;
+    expect(Math.hypot(spawn.x - 600, spawn.y - 350)).toBeGreaterThan(108);
+    expect(result.current.eatenIds).toEqual(new Set());
+  });
+
+  it("does not award a node until the visitor actually swims", () => {
+    const avatar = runtime();
+    const { result } = renderHook(() =>
+      useBrainFoodSession({
+        avatarRuntime: avatar,
+        edibleNodeCount: 1,
+        enabled: true,
+        reducedMotion: false,
+      }),
+    );
+    act(() => shortcut());
+    const spawn = avatar.getSnapshot().position;
+    act(() => {
+      result.current.syncNodePositions([
+        { id: "unexpected-overlap", x: spawn.x, y: spawn.y, radius: 22 },
+      ]);
+      frames.shift()?.(0);
+    });
+
+    expect(result.current.eatenIds).toEqual(new Set());
+    expect(avatar.getSnapshot().phase).toBe("brain-food");
+  });
+
   it("eats live map nodes and restores after the completion celebration", async () => {
     const avatar = runtime(true);
     const { result } = renderHook(() =>
@@ -149,9 +194,13 @@ describe("useBrainFoodSession", () => {
     act(() => {
       result.current.syncNodePositions([
         { id: "bradley", x: 50, y: 50, radius: 20 },
-        { id: "dubs", x: position.x, y: position.y, radius: 22 },
+        { id: "dubs", x: position.x + 90, y: position.y, radius: 22 },
       ]);
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowRight" }),
+      );
       frames.shift()?.(0);
+      frames.shift()?.(50);
     });
 
     expect(result.current.eatenIds).toEqual(new Set(["dubs"]));

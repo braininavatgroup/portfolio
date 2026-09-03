@@ -8,9 +8,9 @@ channel; chat and navigation remain complete if WebGL fails.
 Brain Food reuses the same avatar and the live portfolio map. Exact `Shift+G`
 starts an untimed desktop session. Arrow keys or WASD steer a breaststroke
 through every existing map node except Bradley. Eaten nodes and their incident
-connections disappear. Eating the final node plays the fixed celebration, then
-restores the map selection and avatar visibility from before the game. Escape
-cancels and restores immediately.
+connections disappear. Eating the final node holds the fixed celebration for
+3 seconds, then restores the prior map selection and avatar visibility.
+Escape cancels and restores immediately.
 
 ## Runtime
 
@@ -44,21 +44,26 @@ answer delta has rendered, so motion never leads the answer.
 
 `useBrainFoodSession` owns the global shortcut, held keys, velocity, collision
 set, completion, cancellation, and restoration. `PortfolioWorld` remains the
-only map renderer and publishes each projected node position into the session.
+only map renderer and publishes each projected node position before and during
+the session. Start chooses the clearest bounded point in that live field, and
+idle frames cannot collect nodes; the visitor must move first.
 The game does not create a portal, duplicate collectibles, a chooser, a timer,
-or a result overlay.
+or a result overlay. While it is active the map paints only floating nodes and
+labels; every trunk, branch, and relation line returns on restore.
 
 Normal movement tops out at 220 CSS pixels per second. Input supplies a desired
-map-plane heading; the controller turns toward it at a bounded rate and reduces
+map-plane heading; the controller turns toward it at 2.2 radians per second and reduces
 propulsion during a sharp change of course, so the avatar does not swim
 backward while reversing. Reduced motion advances one bounded step per key
 press. The model stays on `swim_forward` for the whole collection phase while
-its center-anchored stage group moves and its rig yaws in 3D. The Meshy clip's
-Hips X/Z root travel is stripped at load time, leaving controller movement as
-the only translation source. Collection sweeps the avatar-sized hit area
-between rendered positions and uses viewport coordinates shared with the live
-map. The session pauses input when the document is hidden and cancels if the
-viewport crosses into the mobile layout.
+its center-anchored stage group moves. Its rig yaws through the horizontal X/Z
+pool plane and independently pitches up to 90 degrees toward vertical travel,
+keeping roll level. The Meshy clip's Hips X/Z root travel is stripped
+at load time, leaving controller movement as the only translation source.
+Collection sweeps the avatar-sized hit area between rendered positions and
+uses viewport coordinates shared with the live map. The session pauses input
+when the document is hidden and cancels if the viewport crosses into the
+mobile layout.
 
 ## Failure and proof boundaries
 
