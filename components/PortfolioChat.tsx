@@ -225,11 +225,18 @@ function GuideAssistantMessage() {
   );
 }
 
-function GuideSuggestion({ prompt }: { prompt: string }) {
+function GuideSuggestion({
+  disabled,
+  prompt,
+}: {
+  disabled: boolean;
+  prompt: string;
+}) {
   return (
     <SuggestionPrimitive.Trigger
       className="portfolio-guide-suggestion"
       data-testid="guide-suggestion"
+      disabled={disabled}
       send
     >
       <GuideControlGlyph kind="chevron" />
@@ -252,12 +259,19 @@ function guidePromptNode(prompt: GuidePrompt) {
   return undefined;
 }
 
-function GuideInitialSuggestion({ prompt }: { prompt: GuidePrompt }) {
+function GuideInitialSuggestion({
+  disabled,
+  prompt,
+}: {
+  disabled: boolean;
+  prompt: GuidePrompt;
+}) {
   const node = guidePromptNode(prompt);
   return (
     <ThreadPrimitive.Suggestion
       className="portfolio-guide-suggestion"
       data-testid="guide-suggestion"
+      disabled={disabled}
       prompt={prompt.text}
       send
     >
@@ -277,16 +291,26 @@ function waitForWord(signal: AbortSignal) {
       resolve();
       return;
     }
-    const timer = window.setTimeout(resolve, 45);
-    signal.addEventListener(
-      "abort",
-      () => {
-        window.clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
+    const settle = () => {
+      window.clearTimeout(timer);
+      signal.removeEventListener("abort", settle);
+      resolve();
+    };
+    const timer = window.setTimeout(settle, 45);
+    signal.addEventListener("abort", settle, { once: true });
   });
+}
+
+function isGuideSubmissionEligible({
+  challengeRequired,
+  challengeToken,
+  online,
+}: {
+  challengeRequired: boolean;
+  challengeToken: string | null;
+  online: boolean;
+}) {
+  return online && (!challengeRequired || Boolean(challengeToken));
 }
 
 function cumulativeWords(answer: string) {
@@ -378,6 +402,11 @@ export function PortfolioChat({
     challengeTokenRef.current = challengeToken;
   }, [askPortfolio, avatarIntegration, challengeToken]);
 
+  const updateChallengeToken = useCallback((token: string | null) => {
+    challengeTokenRef.current = token;
+    setChallengeToken(token);
+  }, []);
+
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
       async *run({ messages, abortSignal }) {
@@ -386,6 +415,11 @@ export function PortfolioChat({
           ? messageText(latestMessage).trim()
           : "";
         if (!question) return;
+        if (!isGuideSubmissionEligible({
+          challengeRequired: Boolean(turnstileSiteKey),
+          challengeToken: challengeTokenRef.current,
+          online: typeof navigator === "undefined" || navigator.onLine,
+        })) return;
 
         const run = Symbol("portfolio-guide-run");
         activeRun.current = run;
@@ -425,7 +459,7 @@ export function PortfolioChat({
           setPending(false);
           setSlow(false);
           if (turnstileSiteKey) {
-            setChallengeToken(null);
+            updateChallengeToken(null);
             turnstileController.current?.reset();
           }
         };
@@ -498,6 +532,7 @@ export function PortfolioChat({
           const resolveOnce = () => {
             if (settled) return;
             settled = true;
+            abortSignal.removeEventListener("abort", resolveOnce);
             if (firstTextWaiter.current?.run === run) {
               firstTextWaiter.current = null;
             }
@@ -505,6 +540,7 @@ export function PortfolioChat({
           };
           firstTextWaiter.current = { resolve: resolveOnce, run };
           abortSignal.addEventListener("abort", resolveOnce, { once: true });
+          if (abortSignal.aborted) resolveOnce();
         });
         for (let index = 0; index < reveals.length; index += 1) {
           if (!isCurrent()) return;
@@ -542,7 +578,7 @@ export function PortfolioChat({
         await finishRun();
       },
     }),
-    [turnstileSiteKey],
+    [turnstileSiteKey, updateChallengeToken],
   );
 
   const suggestionAdapter = useMemo(
@@ -592,11 +628,11 @@ export function PortfolioChat({
     setPending(false);
     setSlow(false);
     if (turnstileSiteKey) {
-      setChallengeToken(null);
+      updateChallengeToken(null);
       turnstileController.current?.reset();
     }
     onThreadStateChange?.(false);
-  }, [onThreadStateChange, resetSignal, runtime, turnstileSiteKey]);
+  }, [onThreadStateChange, resetSignal, runtime, turnstileSiteKey, updateChallengeToken]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -623,17 +659,17 @@ export function PortfolioChat({
     void renderTurnstileWidget(turnstileContainer.current, turnstileSiteKey, {
       onToken(token) {
         if (!active) return;
-        setChallengeToken(token);
+        updateChallengeToken(token);
         setChallengeMessage("");
       },
       onError() {
         if (!active) return;
-        setChallengeToken(null);
+        updateChallengeToken(null);
         setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
       },
       onExpired() {
         if (!active) return;
-        setChallengeToken(null);
+        updateChallengeToken(null);
         setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
       },
     })
@@ -654,7 +690,7 @@ export function PortfolioChat({
       turnstileController.current?.remove();
       turnstileController.current = null;
     };
-  }, [renderTurnstileWidget, turnstileSiteKey]);
+  }, [renderTurnstileWidget, turnstileSiteKey, updateChallengeToken]);
 
   const setAvatarElement = useCallback(
     (element: HTMLDivElement | null) => {
@@ -668,14 +704,19 @@ export function PortfolioChat({
     firstTextWaiter.current?.resolve();
   }, []);
 
+  const submissionEligible = isGuideSubmissionEligible({
+    challengeRequired: Boolean(turnstileSiteKey),
+    challengeToken,
+    online: !offline,
+  });
+
   function guardComposerKey(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey) return;
     if (
       event.nativeEvent.isComposing ||
       event.keyCode === 229 ||
       compositionJustEnded.current ||
-      offline ||
-      (turnstileSiteKey && !challengeToken)
+      !submissionEligible
     ) {
       event.preventDefault();
       if (turnstileSiteKey && !challengeToken) {
@@ -685,7 +726,7 @@ export function PortfolioChat({
   }
 
   function retry() {
-    if (!failedQuestion?.canRetry) return;
+    if (!submissionEligible || !failedQuestion?.canRetry) return;
     const userMessage = [...runtime.thread.getState().messages]
       .reverse()
       .find((message) => message.role === "user");
@@ -729,7 +770,11 @@ export function PortfolioChat({
               <ThreadPrimitive.Empty>
                 <div className="portfolio-guide-suggestions">
                   {initialPrompts.map((prompt) => (
-                    <GuideInitialSuggestion key={prompt.text} prompt={prompt} />
+                    <GuideInitialSuggestion
+                      disabled={!submissionEligible}
+                      key={prompt.text}
+                      prompt={prompt}
+                    />
                   ))}
                 </div>
               </ThreadPrimitive.Empty>
@@ -743,7 +788,13 @@ export function PortfolioChat({
                 <p className="portfolio-guide-error">
                   Something went wrong.{" "}
                   {failedQuestion.canRetry ? (
-                    <button onClick={retry} type="button">Try again</button>
+                    <button
+                      disabled={!submissionEligible}
+                      onClick={retry}
+                      type="button"
+                    >
+                      Try again
+                    </button>
                   ) : null}
                 </p>
               ) : null}
@@ -751,7 +802,10 @@ export function PortfolioChat({
               <div className="portfolio-guide-suggestions">
                 <ThreadPrimitive.Suggestions>
                   {({ suggestion }) => (
-                    <GuideSuggestion prompt={suggestion.prompt} />
+                    <GuideSuggestion
+                      disabled={!submissionEligible}
+                      prompt={suggestion.prompt}
+                    />
                   )}
                 </ThreadPrimitive.Suggestions>
               </div>
@@ -802,7 +856,7 @@ export function PortfolioChat({
             <ComposerPrimitive.Send
               aria-label={pending ? "Asking…" : "Ask"}
               className="portfolio-guide-send"
-              disabled={composerDisabled || Boolean(turnstileSiteKey && !challengeToken)}
+              disabled={pending || !submissionEligible}
             >
               <GuideControlGlyph kind="send" />
             </ComposerPrimitive.Send>

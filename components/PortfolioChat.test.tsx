@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
 import {
   PortfolioChatClientError,
   type AskPortfolio,
@@ -201,6 +209,124 @@ describe("docked portfolio Guide", () => {
     await waitFor(() => expect((input as HTMLTextAreaElement).disabled).toBe(false));
   });
 
+  it.each(["offline", "missing challenge token"] as const)(
+    "blocks starter prompts while %s",
+    async (blockedBy) => {
+      // Catches starter prompts bypassing the same submission gate as the composer.
+      let online = blockedBy !== "offline";
+      vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+      const askPortfolio = vi.fn<AskPortfolio>(async () => {});
+      const renderTurnstile: TurnstileRenderer = async () => ({
+        remove: vi.fn(),
+        reset: vi.fn(),
+      });
+      render(
+        <PortfolioChat
+          askPortfolio={askPortfolio}
+          renderTurnstile={renderTurnstile}
+          resetSignal={0}
+          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
+        />,
+      );
+
+      const starter = (await screen.findAllByTestId("guide-suggestion"))[0]!;
+      expect((starter as HTMLButtonElement).disabled).toBe(true);
+      (starter as HTMLButtonElement).disabled = false;
+      fireEvent.click(starter);
+      await act(async () => {});
+
+      // The adapter is the final backstop even if an assistant-ui control is stale.
+      expect(askPortfolio).not.toHaveBeenCalled();
+      online = true;
+    },
+  );
+
+  it.each(["offline", "missing challenge token"] as const)(
+    "blocks follow-up prompts while %s",
+    async (blockedBy) => {
+      // Catches generated follow-ups starting a protected request after eligibility expires.
+      let online = true;
+      vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+      let deliverToken: ((token: string) => void) | undefined;
+      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
+        deliverToken = callbacks.onToken;
+        return { remove: vi.fn(), reset: vi.fn() };
+      };
+      const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+        onEvent({ type: "evidence", evidence: [evidence] });
+        onEvent({ type: "answer_delta", delta: "A weekly workflow [E1]." });
+        onEvent({ type: "done" });
+      });
+      render(
+        <PortfolioChat
+          askPortfolio={askPortfolio}
+          renderTurnstile={renderTurnstile}
+          resetSignal={0}
+          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
+        />,
+      );
+      if (blockedBy === "missing challenge token") {
+        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
+        deliverToken?.("challenge-token");
+      }
+      submit("Tell me about pitching");
+      const followUp = await screen.findByRole("button", {
+        name: "Summarise Music promo campaign pitching",
+      });
+
+      if (blockedBy === "offline") {
+        online = false;
+        fireEvent(window, new Event("offline"));
+      }
+      await waitFor(() => expect((followUp as HTMLButtonElement).disabled).toBe(true));
+      fireEvent.click(followUp);
+      await act(async () => {});
+
+      expect(askPortfolio).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["offline", "missing challenge token"] as const)(
+    "blocks retry while %s",
+    async (blockedBy) => {
+      // Catches the error recovery path bypassing connectivity or challenge eligibility.
+      let online = true;
+      vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+      let deliverToken: ((token: string) => void) | undefined;
+      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
+        deliverToken = callbacks.onToken;
+        return { remove: vi.fn(), reset: vi.fn() };
+      };
+      const askPortfolio = vi.fn<AskPortfolio>(async () => {
+        throw new PortfolioChatClientError("provider failed", "provider_error");
+      });
+      render(
+        <PortfolioChat
+          askPortfolio={askPortfolio}
+          renderTurnstile={renderTurnstile}
+          resetSignal={0}
+          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
+        />,
+      );
+      if (blockedBy === "missing challenge token") {
+        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
+        deliverToken?.("challenge-token");
+      }
+      submit("Retry this exactly");
+      const retry = await screen.findByRole("button", { name: "Try again" });
+
+      if (blockedBy === "offline") {
+        online = false;
+        fireEvent(window, new Event("offline"));
+      }
+      await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
+      fireEvent.click(retry);
+      await act(async () => {});
+
+      expect(askPortfolio).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("sends with Enter, preserves Shift+Enter, and ignores the Enter that commits IME text", async () => {
     // Catches assistant-ui's default Enter handling bypassing the Guide's IME guard.
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
@@ -296,6 +422,60 @@ describe("docked portfolio Guide", () => {
     await screen.findByText("Verified.");
     expect(askPortfolio.mock.calls[0]![1].challengeToken).toBe("challenge-token");
     await waitFor(() => expect(reset).toHaveBeenCalledTimes(1));
+  });
+
+  it("reveals the first word before the complete answer and removes settled abort listeners", async () => {
+    // Catches the local reveal collapsing into one paint or retaining listeners after normal waits.
+    vi.useFakeTimers();
+    let addAbortListener: MockInstance<AbortSignal["addEventListener"]> | undefined;
+    let removeAbortListener: MockInstance<AbortSignal["removeEventListener"]> | undefined;
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent, signal }) => {
+      addAbortListener = vi.spyOn(signal!, "addEventListener");
+      removeAbortListener = vi.spyOn(signal!, "removeEventListener");
+      onEvent({ type: "answer_delta", delta: "First second third fourth fifth sixth." });
+      onEvent({ type: "done" });
+    });
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+
+    submit("Reveal this");
+    await vi.waitFor(() => {
+      const visibleAnswer = document.querySelector(".chat-answer")?.textContent;
+      expect(visibleAnswer).toContain("First");
+      expect(visibleAnswer).not.toBe("First second third fourth fifth sixth.");
+    }, { interval: 1, timeout: 100 });
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.waitFor(() =>
+      expect(screen.getByText("First second third fourth fifth sixth.")).toBeTruthy(),
+    );
+    expect(addAbortListener).toHaveBeenCalledTimes(6);
+    expect(removeAbortListener).toHaveBeenCalledTimes(6);
+  });
+
+  it("aborts an in-progress word reveal when reset starts a new conversation", async () => {
+    // Catches old reveal timers repopulating a transcript after reset.
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
+      signal = options.signal;
+      options.onEvent({ type: "answer_delta", delta: "First second third fourth fifth sixth." });
+      options.onEvent({ type: "done" });
+    });
+    const { rerender } = render(
+      <PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />,
+    );
+    submit("Reveal then reset");
+    await vi.waitFor(() => {
+      const visibleAnswer = document.querySelector(".chat-answer")?.textContent;
+      expect(visibleAnswer).toContain("First");
+      expect(visibleAnswer).not.toBe("First second third fourth fifth sixth.");
+    }, { interval: 1, timeout: 100 });
+
+    rerender(<PortfolioChat askPortfolio={askPortfolio} resetSignal={1} />);
+    expect(signal?.aborted).toBe(true);
+    expect(screen.queryByText("Reveal then reset")).toBeNull();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(screen.queryByText("First second third fourth fifth sixth.")).toBeNull();
   });
 
   it("aborts stale turns and ignores their late events", async () => {
