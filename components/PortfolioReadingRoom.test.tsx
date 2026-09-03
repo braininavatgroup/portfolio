@@ -180,8 +180,9 @@ describe("PortfolioReadingRoom desktop", () => {
     expect(source).toContain('DEFAULT_READING_ROOM_LAYOUT.split * 100');
     expect(source).toContain('id="main" minSize={720}');
     expect(source).toContain('id="right"\n                minSize={360}');
-    expect(source).toContain('<Panel defaultSize="40%" id="top" minSize={160}>');
-    expect(source).toContain('defaultSize="60%"\n                    id="bottom"\n                    minSize={160}');
+    expect(source).toContain("const SIDE_SLOT_MIN_HEIGHT = 240;");
+    expect(source).toContain('<Panel defaultSize="40%" id="top" minSize={SIDE_SLOT_MIN_HEIGHT}>');
+    expect(source).toContain('defaultSize="60%"\n                    id="bottom"\n                    minSize={SIDE_SLOT_MIN_HEIGHT}');
     expect(source).toContain('collapsedSize={40}');
     expect(DEFAULT_READING_ROOM_LAYOUT.side).toBe(320 / 1440);
     expect(DEFAULT_READING_ROOM_LAYOUT.split).toBe(680 / 1120);
@@ -332,6 +333,21 @@ describe("PortfolioReadingRoom desktop", () => {
     expect(slot(container, "bottom").querySelector('[data-view="guide"]')).not.toBeNull();
 
     expect(storage.getItem("reading-room-slots")).toContain('"hidden"');
+  });
+
+  it("reports every collapse and reopen through onLayoutChange", () => {
+    const onLayoutChange = vi.fn();
+    render(<PortfolioReadingRoom {...roomProps()} onLayoutChange={onLayoutChange} />);
+    onLayoutChange.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide side panes" }));
+    expect(onLayoutChange).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Show side panes" }));
+    expect(onLayoutChange).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
+    expect(onLayoutChange).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByRole("button", { name: "Show Contents" }));
+    expect(onLayoutChange).toHaveBeenCalledTimes(4);
   });
 
   it("keeps the Guide mounted while its side panes are hidden", () => {
@@ -683,6 +699,8 @@ describe("Reading Room stylesheet", () => {
     expect(stylesheet).toMatch(/\.portfolio-reading-room-global-controls\s*\{[^}]*right:\s*17px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-pane\[data-reading-room-slot="top"\] \.portfolio-reading-room-view-controls,\s*\.portfolio-reading-room-desktop\[data-right-collapsed="true"\] \.portfolio-reading-room-pane\[data-reading-room-slot="main"\] \.portfolio-reading-room-view-controls\s*\{[^}]*right:\s*57px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-guide \.portfolio-guide-send\s*\{[^}]*height:\s*32px/);
+    expect(stylesheet).toMatch(/\.portfolio-contents-scroll,\s*\.reader-scroll,\s*\.portfolio-chat-thread\s*\{[^}]*scrollbar-width:\s*none/);
+    expect(stylesheet).toMatch(/\.reader-scroll::-webkit-scrollbar[^{]*\{[^}]*display:\s*none/);
     expect(stylesheet).not.toContain(".portfolio-mobile-view-control");
     expect(stylesheet).not.toContain(".portfolio-mobile-map-open");
   });

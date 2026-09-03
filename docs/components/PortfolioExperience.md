@@ -43,3 +43,6 @@ export function PortfolioExperienceExample() {
 - **Keyboard bindings are ordered globally**: Escape first cancels Brain Food,
   then closes a visual, then resets a Guide thread, then returns to About.
   Exact Shift+G starts Brain Food on the live Map.
+- **Visual state includes its opening frame.** Reader gallery groups pass their
+  flattened asset offset so the map stage opens on the thumbnail that was
+  selected; closing restores focus to that trigger.

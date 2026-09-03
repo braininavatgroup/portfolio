@@ -43,6 +43,10 @@ import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "
 
 const SLOT_STORAGE_KEY = "reading-room-slots";
 const DESKTOP_QUERY = "(min-width: 1020px)";
+// A side slot never shrinks below a usable Guide: 40px bar, the 80px minimum
+// avatar area, the 78px composer, and its 12/24 margins (Bradley, 3 September;
+// the README's 160 left only the avatar and the composer's top edge).
+const SIDE_SLOT_MIN_HEIGHT = 240;
 
 // Nothing follows the pointer and no text appears: dnd-kit's Feedback plugin
 // must keep running (it supplies the operation's shape for collisions), so it
@@ -75,6 +79,9 @@ export type PortfolioReadingRoomProps = {
   onGuideReset: () => void;
   onGuideVisibilityChange?: (visible: boolean) => void;
   onHome: () => void;
+  /** Fires after any panel resize, collapse, or reopen so viewport overlays
+   *  (the avatar dock) can re-read slot geometry. */
+  onLayoutChange?: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
   reader: ReactNode;
@@ -349,6 +356,7 @@ export function PortfolioReadingRoom({
   onGuideReset,
   onGuideVisibilityChange,
   onHome,
+  onLayoutChange,
   onSelect,
   onSelectThread,
   reader,
@@ -399,6 +407,14 @@ export function PortfolioReadingRoom({
   }, [layoutStorage]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const notifyLayout = useCallback(() => {
+    onLayoutChange?.();
+  }, [onLayoutChange]);
+  const persistAndNotify = useCallback(<A extends unknown[]>(persist: (...args: A) => void) => (...args: A) => {
+    persist(...args);
+    notifyLayout();
+  }, [notifyLayout]);
+
   const updateLayout = useCallback((update: (current: ReadingRoomLayoutState) => ReadingRoomLayoutState) => {
     setLayout((current) => {
       const next = update(current);
@@ -446,11 +462,13 @@ export function PortfolioReadingRoom({
   const closeContents = useCallback(() => {
     setContentsCollapsed(true);
     contentsPanelRef.current?.collapse();
-  }, [contentsPanelRef]);
+    notifyLayout();
+  }, [contentsPanelRef, notifyLayout]);
   const showContents = useCallback(() => {
     setContentsCollapsed(false);
     contentsPanelRef.current?.expand();
-  }, [contentsPanelRef]);
+    notifyLayout();
+  }, [contentsPanelRef, notifyLayout]);
   const collapseRight = useCallback(() => {
     setRightCollapsed(true);
     updateLayout((current) => ({
@@ -462,7 +480,8 @@ export function PortfolioReadingRoom({
       ])],
     }));
     rightPanelRef.current?.collapse();
-  }, [rightPanelRef, updateLayout]);
+    notifyLayout();
+  }, [notifyLayout, rightPanelRef, updateLayout]);
   const toggleRight = useCallback(() => {
     if (rightCollapsed) {
       setRightCollapsed(false);
@@ -473,10 +492,11 @@ export function PortfolioReadingRoom({
         )),
       }));
       rightPanelRef.current?.expand();
+      notifyLayout();
       return;
     }
     collapseRight();
-  }, [collapseRight, rightCollapsed, rightPanelRef, updateLayout]);
+  }, [collapseRight, notifyLayout, rightCollapsed, rightPanelRef, updateLayout]);
   const toggleLower = useCallback(() => {
     if (lowerCollapsed) {
       setViewHidden(layout.slots.bottom, false);
@@ -485,7 +505,8 @@ export function PortfolioReadingRoom({
       setViewHidden(layout.slots.bottom, true);
       bottomPanelRef.current?.collapse();
     }
-  }, [bottomPanelRef, layout.slots.bottom, lowerCollapsed, setViewHidden]);
+    notifyLayout();
+  }, [bottomPanelRef, layout.slots.bottom, lowerCollapsed, notifyLayout, setViewHidden]);
 
   const selectFromContents = useCallback((node: PortfolioWorldNode) => {
     onSelect(node);
@@ -639,7 +660,7 @@ export function PortfolioReadingRoom({
         <Group
           defaultLayout={outerPersistence.defaultLayout}
           id="reading-room-outer"
-          onLayoutChanged={outerPersistence.onLayoutChanged}
+          onLayoutChanged={persistAndNotify(outerPersistence.onLayoutChanged)}
           orientation="horizontal"
         >
           <Panel
@@ -677,7 +698,7 @@ export function PortfolioReadingRoom({
             <Group
               defaultLayout={primaryPersistence.defaultLayout}
               id="reading-room-primary"
-              onLayoutChanged={primaryPersistence.onLayoutChanged}
+              onLayoutChanged={persistAndNotify(primaryPersistence.onLayoutChanged)}
               orientation="horizontal"
             >
               <Panel defaultSize={`${DEFAULT_READING_ROOM_LAYOUT.split * 100}%`} id="main" minSize={720}>
@@ -714,10 +735,10 @@ export function PortfolioReadingRoom({
                 <Group
                   defaultLayout={rightPersistence.defaultLayout}
                   id="reading-room-right"
-                  onLayoutChanged={rightPersistence.onLayoutChanged}
+                  onLayoutChanged={persistAndNotify(rightPersistence.onLayoutChanged)}
                   orientation="vertical"
                 >
-                  <Panel defaultSize="40%" id="top" minSize={160}>
+                  <Panel defaultSize="40%" id="top" minSize={SIDE_SLOT_MIN_HEIGHT}>
                     <DesktopSlot
                       activeDragView={activeDragView}
                       collapsed={layout.hidden.includes(layout.slots.top)}
@@ -732,7 +753,7 @@ export function PortfolioReadingRoom({
                     collapsible
                     defaultSize="60%"
                     id="bottom"
-                    minSize={160}
+                    minSize={SIDE_SLOT_MIN_HEIGHT}
                     onResize={(size: PanelSize) => {
                       const collapsed = size.inPixels <= 40;
                       if (collapsed !== layout.hidden.includes(layout.slots.bottom)) {

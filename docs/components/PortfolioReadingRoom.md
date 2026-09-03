@@ -15,7 +15,8 @@ hidden views persist separately through `lib/reading-room-layout.ts`.
 Pass one controlled `reader`, `map`, and `guide`; `map` accepts optional `compact`
 and `nodesInTabOrder`. Selection uses `selectedId`, `selectedSubject`,
 `activeThreadId`, `onSelect`, and `onSelectThread`. Home and Guide coordination
-use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`.
+use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
+`onLayoutChange` fires after every panel resize, collapse, or reopen.
 
 `mobileTabRequest` reveals Reader or Map; `onEscapeBeforeRoom` can consume Escape
 before Guide reset/Home. `storage` is a test/gallery seam; omit it in production.
@@ -86,8 +87,7 @@ export function PortfolioReadingRoomExample() {
 
 ## Pitfalls
 
-- **The owner keeps navigation state.** The shell does not own URLs, active
-  visuals, citation targets, avatar lifecycle, or Brain Food.
+- **The owner keeps navigation state**: URLs, visuals, citations, avatar, Brain Food.
 - **Mobile does not read or write desktop panel layout.** A tab change must not
   corrupt the three desktop slots or any persisted panel group.
 - **Persistence restores after hydration.** The first client markup uses the
@@ -96,7 +96,7 @@ export function PortfolioReadingRoomExample() {
   non-interactive `PortfolioControlGlyph`; every button is a positioned sibling.
 - **Dragging adds no ghost and no text.** dnd-kit feedback is `clone` with the
   moving bar hidden; the in-place bar darkens and the target shows fill and border.
-- **Hidden views stay mounted.** Collapse and mobile tab changes use `hidden`
-  so Guide runtime and controlled view state survive hide/show transitions.
-- **Pointer DnD needs a real browser for fidelity proof.** Unit tests cover the
-  three pairs and persistence; `/design#reading-room` is the pointer fixture.
+- **Hidden views stay mounted.** Collapse and tab changes use `hidden`, so the
+  Guide runtime and view state survive.
+- **Pointer DnD needs a real browser.** Unit tests cover the three pairs;
+  `/design#reading-room` is the pointer fixture.

@@ -33,6 +33,9 @@ export type AvatarStageObstacle = {
 
 export type AvatarStageGeometry = {
   dock: AvatarStagePoint;
+  /** Height available above the dock for the standing figure, when the dock
+   *  is a real layout area; null or absent lets the viewport scale decide. */
+  dockHeight?: number | null;
   obstacles: readonly AvatarStageObstacle[];
   viewport: AvatarStageViewport;
 };
@@ -46,6 +49,8 @@ export type AvatarSnapshot = {
   swimHeading: number | null;
   visible: boolean;
   failed: boolean;
+  /** The dock area's height the actor must fit inside, or null. */
+  fitHeight: number | null;
 };
 
 export const ANSWER_REACTION_MS = 1_600;
@@ -90,15 +95,17 @@ export class AvatarRuntime {
 
   constructor(readStage: () => AvatarStageGeometry) {
     this.#readStage = readStage;
+    const stage = readStage();
     this.#snapshot = {
       phase: "hidden",
       animation: "idle_3",
-      position: readStage().dock,
+      position: stage.dock,
       motion: null,
       facing: "front",
       swimHeading: null,
       visible: false,
       failed: false,
+      fitHeight: stage.dockHeight ?? null,
     };
   }
 
@@ -130,11 +137,12 @@ export class AvatarRuntime {
   };
 
   show() {
-    const { dock } = this.#readStage();
+    const { dock, dockHeight } = this.#readStage();
     this.#update({
       phase: "idle",
       animation: "idle_3",
       position: dock,
+      fitHeight: dockHeight ?? null,
       motion: null,
       facing: "front",
       swimHeading: null,
@@ -144,7 +152,8 @@ export class AvatarRuntime {
 
   refreshDock() {
     if (this.#snapshot.phase !== "idle") return;
-    this.#update({ position: this.#readStage().dock });
+    const stage = this.#readStage();
+    this.#update({ position: stage.dock, fitHeight: stage.dockHeight ?? null });
   }
 
   hide() {
@@ -194,6 +203,7 @@ export class AvatarRuntime {
         phase: "swimming",
         animation: "swim_forward",
         position: stage.dock,
+        fitHeight: stage.dockHeight ?? null,
         motion,
         facing: facingForPath(points),
         swimHeading: null,
@@ -272,10 +282,12 @@ export class AvatarRuntime {
 
   #stop(phase: "hidden" | "idle", visible: boolean) {
     this.#resetQueue();
+    const stage = this.#readStage();
     this.#update({
       phase,
       animation: "idle_3",
-      position: this.#readStage().dock,
+      position: stage.dock,
+      fitHeight: stage.dockHeight ?? null,
       motion: null,
       facing: "front",
       swimHeading: null,

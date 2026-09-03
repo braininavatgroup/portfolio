@@ -91,4 +91,29 @@ describe("useAvatarStage", () => {
       y: 776,
     });
   });
+
+  it("re-docks on any Guide resize, not only the avatar area's", () => {
+    const observed: Element[] = [];
+    const original = globalThis.ResizeObserver;
+    class SpyObserver {
+      observe(target: Element) { observed.push(target); }
+      disconnect() {}
+      unobserve() {}
+    }
+    globalThis.ResizeObserver = SpyObserver as unknown as typeof ResizeObserver;
+    try {
+      const guide = document.createElement("section");
+      guide.className = "portfolio-chat";
+      const area = document.createElement("div");
+      guide.appendChild(area);
+      document.body.appendChild(guide);
+      const { result } = renderHook(() => useAvatarStage({ assistantOpen: true, reducedMotion: true }));
+      act(() => result.current.registerAvatarDock(area));
+      expect(observed).toEqual([area, guide]);
+      guide.remove();
+    } finally {
+      globalThis.ResizeObserver = original;
+    }
+  });
 });
+

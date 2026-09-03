@@ -1,7 +1,6 @@
 # PortfolioReader
 
-Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) ·
-Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
+Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) · Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
 The embedded dossier is the `<aside>` holding every piece of reading on the site.
 Its `data-reader-mode` is `about`, `record`, or `thread`. All share one section
@@ -12,13 +11,15 @@ Containing threads lead a record's Related rows. Paragraphs may carry `[phrase](
 (new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
 `ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
 from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
+A ready grouped gallery renders every slide as a separate reader visual.
 
 ## Props
 
 `activeThreadId`, `selectedId`, `onReset`, `onSelect`, and `onSelectThread` are
-required. `onOpenVisual` is optional. Mode is
-`record` for a non-Why, non-`bradley` `selectedId`, then `thread` when
-`activeThreadId` resolves, and `about` otherwise.
+required. `onOpenVisual` is optional and receives the block, trigger, and the
+flattened opening frame; each grouped-gallery trigger opens on its own first
+asset. Mode is `record` for a non-Why, non-`bradley` `selectedId`, then
+`thread` when `activeThreadId` resolves, and `about` otherwise.
 
 ## Requires
 
@@ -66,3 +67,4 @@ export function PortfolioReaderExample() {
   panel own Home and selection navigation.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the
   triggers open nothing.
+- **Reader gallery groups are not stage pages.** The dossier keeps the authored groups, while the map stage advances one flattened asset at a time.

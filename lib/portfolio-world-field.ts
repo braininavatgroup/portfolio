@@ -27,7 +27,9 @@ export type Segment = readonly [Point, Point];
 
 export const FIELD = {
   /** Insets from the viewport edges, in pixels. */
-  inset: { x: 70, top: 60, bottom: 90 },
+  // Symmetric: nothing floats over a Reading Room slot's bottom edge, so the
+  // field uses the same headroom above and below.
+  inset: { x: 70, top: 60, bottom: 60 },
   /**
    * Room kept around a lit node: a gap beyond both labels sideways, and the
    * rows above and below its mark that a dimmed mark plus hanging label
@@ -66,6 +68,13 @@ export function segmentDistance(point: Point, [a, b]: Segment): number {
 
 type Rect = { left: number; top: number; right: number; bottom: number };
 
+const translateRect = (rect: Rect, x: number, y: number): Rect => ({
+  left: rect.left + x,
+  top: rect.top + y,
+  right: rect.right + x,
+  bottom: rect.bottom + y,
+});
+
 const insideRect = (point: Point, rect: Rect) =>
   point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 
@@ -95,6 +104,57 @@ export function segmentRectDistance(segment: Segment, rect: Rect): number {
     closest = Math.min(closest, Math.hypot(dx, dy));
   }
   return closest;
+}
+
+/**
+ * The smallest practical translation that gives a label room around a line.
+ * Horizontal movement is preferred while it stays modest: map labels hang
+ * below their marks, so a sideways nudge preserves their vertical rhythm and
+ * fixes the common case where a sloping trunk brushes the first or last word.
+ */
+export function segmentRectClearanceShift(
+  segment: Segment,
+  rect: Rect,
+  clearance: number,
+): Point {
+  if (segmentRectDistance(segment, rect) >= clearance) return { x: 0, y: 0 };
+
+  const solve = (xDirection: number, yDirection: number) => {
+    let high = 1;
+    while (
+      high < 4096 &&
+      segmentRectDistance(
+        segment,
+        translateRect(rect, xDirection * high, yDirection * high),
+      ) < clearance
+    ) {
+      high *= 2;
+    }
+    if (high >= 4096) return null;
+    let low = 0;
+    for (let step = 0; step < 24; step += 1) {
+      const middle = (low + high) / 2;
+      const distance = segmentRectDistance(
+        segment,
+        translateRect(rect, xDirection * middle, yDirection * middle),
+      );
+      if (distance >= clearance) high = middle;
+      else low = middle;
+    }
+    return { x: xDirection * high, y: yDirection * high };
+  };
+
+  const candidates = [
+    solve(-1, 0),
+    solve(1, 0),
+    solve(0, -1),
+    solve(0, 1),
+  ].filter((candidate): candidate is Point => candidate !== null);
+  return candidates.reduce((best, candidate) => {
+    const score = Math.hypot(candidate.x, candidate.y) * (candidate.x ? 0.45 : 1);
+    const bestScore = Math.hypot(best.x, best.y) * (best.x ? 0.45 : 1);
+    return score < bestScore ? candidate : best;
+  });
 }
 
 /** The box a dimmed record occupies on screen: its mark and hanging label. */

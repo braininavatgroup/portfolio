@@ -108,6 +108,7 @@ export function galleryAvatarSnapshot(
     facing: "front",
     swimHeading: null,
     visible: true,
+    fitHeight: null,
     failed: false,
     ...overrides,
   };

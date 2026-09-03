@@ -15,7 +15,7 @@ import type {
   PortfolioWorldFamily,
   PortfolioWorldRegister,
 } from "../lib/portfolio-world";
-import { useId, type ComponentPropsWithRef } from "react";
+import type { ComponentPropsWithRef, CSSProperties } from "react";
 
 function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimitive[] }) {
   const halfViewBox = PORTFOLIO_NODE_MARK_SIZE * 0.6;
@@ -64,61 +64,34 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
   );
 }
 
+function shapeMask(d: string) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='-9 -9 18 18'><path d='${d}' fill='#000'/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+// The brain pattern is a CSS mask (the outline shape intersected with the
+// brain at 170%), exactly as the prototype draws it. It references no SVG ids,
+// so a cloned bar — dnd-kit copies the bar while it drags — keeps its
+// pattern instead of resolving a duplicate id to a hidden element.
 function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {
-  const id = useId().replaceAll(":", "");
   const [outline] = portfolioControlMarkPrimitives(kind);
   if (outline.kind !== "path") return null;
 
-  const clipId = `portfolio-control-clip-${id}`;
-  const maskId = `portfolio-control-mask-${id}`;
-
   return (
-    <svg
-      data-pattern="brain"
-      focusable="false"
-      viewBox="-9 -9 18 18"
-    >
-      <defs>
-        <clipPath id={clipId}>
-          <path d={outline.d} fill="currentColor" stroke="none" />
-        </clipPath>
-        <mask
-          className="portfolio-control-pattern-mask"
-          height="18"
-          id={maskId}
-          maskUnits="userSpaceOnUse"
-          width="18"
-          x="-9"
-          y="-9"
-        >
-          {/* The brain at 170% of the 18-unit box, centred on the origin, so
-              the outline clips a coarse fold pattern rather than one corner. */}
-          <image
-            height="30.6"
-            href="/biv-brain-symbol.svg"
-            preserveAspectRatio="xMidYMid meet"
-            width="30.6"
-            x="-15.3"
-            y="-15.3"
-          />
-        </mask>
-      </defs>
-      <rect
-        clipPath={`url(#${clipId})`}
-        fill="currentColor"
-        height="18"
-        mask={`url(#${maskId})`}
-        stroke="none"
-        width="18"
-        x="-9"
-        y="-9"
+    <>
+      <span
+        className="portfolio-control-pattern"
+        data-pattern="brain"
+        style={{ "--control-shape": shapeMask(outline.d) } as CSSProperties}
       />
-      <path
-        d={outline.d}
-        fill="none"
-        strokeWidth={kind === "chat" ? 1.15 : undefined}
-      />
-    </svg>
+      <svg focusable="false" viewBox="-9 -9 18 18">
+        <path
+          d={outline.d}
+          fill="none"
+          strokeWidth={kind === "chat" ? 1.15 : undefined}
+        />
+      </svg>
+    </>
   );
 }
 

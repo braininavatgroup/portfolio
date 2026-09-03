@@ -248,6 +248,47 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(screen.getByRole("complementary", { name: "Portfolio home" })).toBeTruthy();
   });
 
+  it("keeps the docked Guide mounted while a reader visual is open", async () => {
+    await renderExperience();
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio contents" })).getByRole("button", { name: "Dubs" }));
+
+    const visualTrigger = screen.getByRole("button", {
+      name: /Open gallery visual in map: Catch the thought where it happens/,
+    });
+    const guide = screen.getByRole("region", { name: "Portfolio Guide" });
+
+    visualTrigger.focus();
+    fireEvent.click(visualTrigger);
+
+    // The Guide is a docked slot, not a floating surface: nothing hides it.
+    expect(guide.hidden).toBe(false);
+    expect(screen.getByRole("region", { name: "Portfolio Guide" })).toBe(guide);
+
+    const closeButton = screen.getByRole("button", {
+      name: "Close visual in map",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(closeButton));
+    fireEvent.click(closeButton);
+
+    expect(screen.getByRole("region", { name: "Portfolio Guide" })).toBe(guide);
+    await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
+  });
+
+  it("opens a Dubs gallery group at its own first image", async () => {
+    await renderExperience();
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio contents" })).getByRole("button", { name: "Dubs" }));
+
+    fireEvent.click(screen.getByRole("button", {
+      name: /Open gallery visual in map: What accumulates/,
+    }));
+
+    const stage = screen.getByRole("region", {
+      name: /Visual in map:/,
+    });
+    expect(within(stage).getByAltText("The Dubs library showing saved documents and listening progress")).toBeTruthy();
+    expect(within(stage).queryByAltText("Dubs controls available from the iPhone Lock Screen")).toBeNull();
+  });
+
   it("exposes neither the old toybox nor the Director shortcut", async () => {
     await renderExperience();
     fireEvent.keyDown(document, { key: "A", shiftKey: true });

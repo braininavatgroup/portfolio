@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BRADLEY_MIN_LEAN,
   BRADLEY_SPOTLIGHT_SPREAD,
+  clearSpotlightLineLabels,
+  clearSpotlightLabelRays,
   composeSpotlightGoals,
   MAX_SPOTLIGHT_LEAN,
   connectorSegment,
@@ -36,7 +38,11 @@ import {
 import {
   projectWorldPoint,
   translateWorldPointByScreenDelta,
+  worldPointAtDepth,
 } from "../lib/portfolio-world-projection";
+import { envelopeInset } from "../lib/portfolio-node-envelope";
+import { segmentRectDistance } from "../lib/portfolio-world-field";
+import { storyTreeJunction } from "../lib/portfolio-story-tree";
 
 afterEach(cleanup);
 
@@ -146,7 +152,7 @@ describe("PortfolioWorld", () => {
     );
   });
 
-  it("opens a gallery placeholder over the map and lets it be inspected", () => {
+  it("opens media without a framed header, caption, or counter", () => {
     const onCloseVisual = vi.fn();
     render(
       <PortfolioWorld
@@ -171,16 +177,16 @@ describe("PortfolioWorld", () => {
       name: "Visual in map: Inspect a representative multi-frame system.",
     });
     expect(stage.getAttribute("data-format")).toBe("gallery");
-    // The count reads twice: in the draft frame's corner and beside the
-    // Previous / Next node controls in the copy band.
-    expect(screen.getAllByText("1 / 3")).toHaveLength(2);
     expect(stage.querySelector(".reader-placeholder-frame")).toBeTruthy();
     expect(stage.querySelector('.portfolio-control-mark[data-control="close"]')).toBeTruthy();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Next visual frame" }),
-    );
-    expect(screen.getAllByText("2 / 3")).toHaveLength(2);
+    expect(stage.querySelector(".portfolio-visual-stage-image .portfolio-visual-stage-close")).toBeNull();
+    expect(stage.querySelector(".portfolio-visual-stage-head")).toBeNull();
+    expect(stage.querySelector(".portfolio-visual-stage-copy")).toBeNull();
+    expect(stage.querySelector(".reader-placeholder-count")).toBeNull();
+    expect(screen.queryByText("1 / 3")).toBeNull();
+    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByText("Previous")).toBeNull();
+    expect(screen.queryByText("Next")).toBeNull();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Close visual in map" }),
@@ -188,7 +194,7 @@ describe("PortfolioWorld", () => {
     expect(onCloseVisual).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a ready single-image gallery to one reachable frame", () => {
+  it("omits previous and next when the visual has one image", () => {
     render(
       <PortfolioWorld
         activeThreadId={null}
@@ -207,12 +213,119 @@ describe("PortfolioWorld", () => {
       />,
     );
 
-    expect(screen.getByText("1 / 1")).toBeTruthy();
-    expect(
-      screen
-        .getByRole("button", { name: "Next visual frame" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
+    expect(screen.queryByText("1 / 1")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Previous visual frame" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Next visual frame" })).toBeNull();
+  });
+
+  it("renders every visual format as bare media instead of a studio frame", () => {
+    const { rerender } = render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "ready-gallery",
+          status: "ready",
+          purpose: "Inspect the finished system.",
+          format: "gallery",
+          src: "/visuals/finished-system.jpg",
+          alt: "Finished system",
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    expect(document.querySelector(".portfolio-visual-stage-media")).toBeTruthy();
+    expect(document.querySelector("[data-media-field]")).toBeNull();
+
+    rerender(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={{
+          type: "visual",
+          id: "ready-video",
+          status: "ready",
+          purpose: "Watch the system in use.",
+          format: "video",
+          src: "/visuals/finished-system.mp4",
+          poster: "/visuals/finished-system.jpg",
+          captionsSrc: "/visuals/finished-system.vtt",
+          alt: "Finished system in use",
+        }}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    expect(document.querySelector(".portfolio-visual-stage-media")).toBeTruthy();
+    expect(document.querySelector("[data-media-field]")).toBeNull();
+  });
+
+  it("presents one selected gallery image and navigates images without copy chrome", () => {
+    const visualWithSlides = {
+      type: "visual",
+      id: "dubs-loop",
+      status: "ready",
+      purpose: "See how Dubs carries a reaction into agent context.",
+      format: "gallery",
+      treatment: "sequence",
+      slides: [
+        {
+          title: "Capture loop",
+          caption: "Catch the thought where it happens.",
+          assets: [
+            { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls", label: "Available mid-stride" },
+            { src: "/visuals/dubs/reader.png", alt: "Reading and listening in Dubs", label: "Read and listen" },
+            { src: "/visuals/dubs/note.png", alt: "Writing an inline note", label: "Capture the reaction" },
+            { src: "/visuals/dubs/markup.png", alt: "Markup attached to its passage", label: "Keep the context" },
+          ],
+        },
+        {
+          title: "What accumulates",
+          caption: "A linked library becomes useful context.",
+          assets: [
+            { src: "/visuals/dubs/library.png", alt: "Dubs library", label: "A linked library" },
+            { src: "/visuals/dubs/tags.png", alt: "Tagged Dubs", label: "Recorded taste" },
+            { src: "/visuals/dubs/perspective.png", alt: "Dubs Perspective rules", label: "A chosen perspective" },
+          ],
+        },
+        {
+          title: "Connect your agent",
+          caption: "The library becomes context an agent can use.",
+          assets: [
+            { src: "/visuals/dubs/mcp.png", alt: "Dubs MCP setup and authorization", label: "MCP connection" },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        activeVisual={visualWithSlides as never}
+        activeVisualFrame={2}
+        onReset={() => {}}
+        onSelect={() => {}}
+        selectedId="dubs"
+      />,
+    );
+
+    const stage = screen.getByRole("region", {
+      name: "Visual in map: See how Dubs carries a reaction into agent context.",
+    });
+    expect(stage.querySelectorAll("img")).toHaveLength(1);
+    expect(screen.getByAltText("Writing an inline note")).toBeTruthy();
+    expect(screen.queryByText("Capture loop")).toBeNull();
+    expect(screen.queryByText("Catch the thought where it happens.")).toBeNull();
+    expect(screen.queryByText("Available mid-stride")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next visual frame" }));
+    expect(stage.querySelectorAll("img")).toHaveLength(1);
+    expect(screen.getByAltText("Markup attached to its passage")).toBeTruthy();
+    expect(screen.queryByText("3 / 8")).toBeNull();
   });
 
   it("keeps a ready video in placeholder state until captions exist", () => {
@@ -408,22 +521,19 @@ describe("PortfolioWorld", () => {
     ).toBeNull();
   });
 
-  it("leaves from under the label's centre when the ray would run through it", () => {
+  it("keeps clipped connectors on their original ray instead of inventing a label-edge origin", () => {
     // A two-line desktop label at the full 132 width, hanging 18 below the mark.
     const labelBox = { x: -66, y: 18, width: 132, height: 30 };
-    // Down-right at 35°: the far-edge rule would start the line 80px out,
-    // past the label's side. It starts 2px under the label instead.
+    // Down-right at 35°: the visible segment remains collinear with the two
+    // nodes and starts beyond the label rather than under its centre.
     const diagonal = connectorSegment(
       { x: 0, y: 0, family: "operation", labelBox },
       { x: 300, y: 210, family: "engagement" },
     )!;
-    expect(diagonal.start).toEqual({ x: 0, y: 50 });
-    // The other end meets the run where it actually starts, on the line
-    // from under the label to its mark.
-    const slope = (diagonal.end.y - 50) / diagonal.end.x;
-    expect(slope).toBeCloseTo((210 - 50) / 300, 5);
-    // A relation above the spotlit node: its line down to the spotlight
-    // leaves from under its own label the same way.
+    expect(diagonal.start.x).toBeGreaterThan(66);
+    expect(diagonal.start.y / diagonal.start.x).toBeCloseTo(210 / 300, 5);
+    expect(diagonal.end.y / diagonal.end.x).toBeCloseTo(210 / 300, 5);
+    // The same invariant holds for a relation above the spotlight.
     const arriving = connectorSegment(
       {
         x: -150,
@@ -433,7 +543,7 @@ describe("PortfolioWorld", () => {
       },
       { x: 0, y: 0, family: "story" },
     )!;
-    expect(arriving.start).toEqual({ x: -150, y: -150 });
+    expect((arriving.start.y + 200) / (arriving.start.x + 150)).toBeCloseTo(200 / 150, 5);
     // A compact label sits beside the mark: there the far-edge rule holds.
     const beside = connectorSegment(
       { x: 0, y: 0, family: "story", labelBox: { x: 12, y: -6, width: 60, height: 12 } },
@@ -458,7 +568,8 @@ describe("PortfolioWorld", () => {
       memory,
       "a->b",
     )!;
-    expect(first.start).toEqual({ x: 0, y: 50 });
+    expect(first.start.x).toBeGreaterThan(66);
+    expect(first.start.y).toBeGreaterThan(0);
     // The target moves up beside the mark, so the ray clears the label.
     const second = connectorSegment(
       { x: 0, y: 0, family: "story", labelBox },
@@ -675,10 +786,13 @@ describe("PortfolioWorld canvas paint", () => {
       labelAlphas: new Map<string, number>(),
       pathAlphas: [] as number[],
       moveToCalls: 0,
+      strokes: [] as Array<{ lineToCount: number; style: string }>,
       translateCalls: 0,
     };
+    let lineToCount = 0;
     const target: Record<string, unknown> = {
       beginPath: () => {
+        lineToCount = 0;
         record.pathAlphas.push(Number(target.globalAlpha));
       },
       drawImage: (...args: unknown[]) => {
@@ -687,6 +801,15 @@ describe("PortfolioWorld canvas paint", () => {
       measureText: (value: string) => ({ width: value.length * 6.2 }),
       moveTo: () => {
         record.moveToCalls += 1;
+      },
+      lineTo: () => {
+        lineToCount += 1;
+      },
+      stroke: () => {
+        record.strokes.push({
+          lineToCount,
+          style: String(target.strokeStyle),
+        });
       },
       translate: () => {
         record.translateCalls += 1;
@@ -807,6 +930,18 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
   });
 
+  it("strokes Bradley's trunk and strongest branch as one joined path", async () => {
+    const connector = "rgb(12, 34, 56)";
+    const record = paintWithConnector(connector);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(
+      record.strokes.some(
+        ({ lineToCount, style }) => style === connector && lineToCount === 2,
+      ),
+    ).toBe(true);
+  });
+
   it("consumes the resolved connector token without a hardcoded fallback", async () => {
     const record = paintWithConnector("rgb(9, 8, 7)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
@@ -891,6 +1026,184 @@ describe("spotlight composition", () => {
   const bradley = { x: 20, y: 541, z: 647 };
   const centered = { x: 20, y: 100, z: 700 };
   const eight = Array.from({ length: 8 }, (_, index) => `r${index}`);
+
+  it("keeps a lower relation while seating its connector clear of the selected label", () => {
+    const camera = {
+      position: { x: 0, y: 35, z: -760 },
+      target: { x: 0, y: 0, z: 760 },
+      fov: 621.6,
+    };
+    const viewport = { width: 915, height: 787 };
+    const spotlight = { x: 0, y: 0, z: 700 };
+    const related = new Map([["lower-right", { x: -360, y: -260, z: 700 }]]);
+    const origin = projectWorldPoint(
+      spotlight,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const before = projectWorldPoint(
+      related.get("lower-right")!,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const labelBox = { x: origin.x - 66, y: origin.y + 18, width: 132, height: 30 };
+    const directionTo = (point: { x: number; y: number }) => {
+      const distance = Math.hypot(point.x - origin.x, point.y - origin.y);
+      return { x: (point.x - origin.x) / distance, y: (point.y - origin.y) / distance };
+    };
+    expect(envelopeInset(origin, 0, labelBox, directionTo(before), 2)).toBeGreaterThan(2);
+
+    const cleared = clearSpotlightLabelRays({
+      camera,
+      label: "Brain in a Vat Music Promotions Agency",
+      measure: (value) => value.length * 6.2,
+      related,
+      spotlight,
+      viewport,
+    });
+    const after = projectWorldPoint(
+      cleared.get("lower-right")!,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+
+    expect(after.y, "the relation itself may remain below the selected record").toBeGreaterThan(origin.y);
+    expect(envelopeInset(origin, 0, labelBox, directionTo(after), 2)).toBe(2);
+  });
+
+  it("keeps same-side label clearance from collapsing related records together", () => {
+    const camera = {
+      position: { x: 0, y: 35, z: -760 },
+      target: { x: 0, y: 0, z: 760 },
+      fov: 621.6,
+    };
+    const viewport = { width: 915, height: 787 };
+    const spotlight = { x: 0, y: 0, z: 700 };
+    const origin = projectWorldPoint(
+      spotlight,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const atScreen = (x: number, y: number) =>
+      worldPointAtDepth(
+        { x, y },
+        origin.depth,
+        camera.position,
+        camera.target,
+        camera.fov,
+        viewport.width,
+        viewport.height,
+      );
+    const related = new Map([
+      ["lower-left-a", atScreen(origin.x - 82, origin.y + 108)],
+      ["lower-left-b", atScreen(origin.x - 74, origin.y + 114)],
+    ]);
+
+    const cleared = clearSpotlightLabelRays({
+      camera,
+      label: "Brain in a Vat Music Promotions Agency",
+      measure: (value) => value.length * 6.2,
+      related,
+      relatedLabels: new Map([
+        ["lower-left-a", "Music promo campaign pitching"],
+        ["lower-left-b", "Music promo campaign kickoff"],
+      ]),
+      spotlight,
+      viewport,
+    });
+    const [a, b] = ["lower-left-a", "lower-left-b"].map((id) =>
+      projectWorldPoint(
+        cleared.get(id)!,
+        camera.position,
+        camera.target,
+        camera.fov,
+        viewport.width,
+        viewport.height,
+      )!,
+    );
+
+    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(80);
+  });
+
+  it("nudges a relation label clear of the non-incident Bradley trunk", () => {
+    const camera = {
+      position: { x: 0, y: 35, z: -760 },
+      target: { x: 0, y: 0, z: 760 },
+      fov: 621.6,
+    };
+    const viewport = { width: 678, height: 445 };
+    const depth = 700;
+    const atScreen = (x: number, y: number) =>
+      worldPointAtDepth(
+        { x, y },
+        depth,
+        camera.position,
+        camera.target,
+        camera.fov,
+        viewport.width,
+        viewport.height,
+      );
+    const bradley = atScreen(250, 38);
+    const spotlight = atScreen(346, 289);
+    const related = new Map([["making-work-playable", atScreen(208, 180)]]);
+
+    const cleared = clearSpotlightLineLabels({
+      bradley,
+      camera,
+      measure: (value) => value.length * 6.2,
+      related,
+      relatedLabels: new Map([["making-work-playable", "Making work playable"]]),
+      spotlight,
+      viewport,
+    });
+    const after = projectWorldPoint(
+      cleared.get("making-work-playable")!,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const root = projectWorldPoint(
+      bradley,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const spot = projectWorldPoint(
+      spotlight,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    )!;
+    const trunkStart = { x: root.x, y: root.y + 40 };
+    const junction = storyTreeJunction(trunkStart, [spot]);
+    const labelBox = {
+      left: after.x - 62,
+      top: after.y + 18,
+      right: after.x + 62,
+      bottom: after.y + 33,
+    };
+
+    expect(after.x).toBeLessThan(208);
+    expect(segmentRectDistance([junction, spot], labelBox)).toBeGreaterThanOrEqual(8 - 1e-3);
+  });
 
   it("hangs the spotlit node beneath Bradley and stars its relations clear of the trunk and the field below", () => {
     const { bradley: root, spotlight, related } = composeSpotlightGoals(bradley, centered, eight);

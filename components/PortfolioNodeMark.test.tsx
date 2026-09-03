@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -33,18 +35,25 @@ describe("PortfolioControlGlyph", () => {
     expect(button.querySelector('[data-control-glyph="reader"]')).not.toBeNull();
   });
 
-  it("centres the 170% brain pattern inside the Map and Guide outlines", () => {
+  it("draws the Map and Guide pattern as an id-free CSS mask of the outline", async () => {
     for (const kind of ["map", "chat"] as const) {
       const { container } = render(<PortfolioControlGlyph kind={kind} />);
-      const image = container.querySelector('svg[data-pattern="brain"] mask image')!;
-      const size = Number(image.getAttribute("width"));
+      const pattern = container.querySelector<HTMLElement>('.portfolio-control-pattern[data-pattern="brain"]')!;
+      const [outline] = portfolioControlMarkPrimitives(kind);
 
-      expect(size).toBeCloseTo(18 * 1.7);
-      expect(Number(image.getAttribute("height"))).toBeCloseTo(size);
-      expect(Number(image.getAttribute("x")) + size / 2).toBeCloseTo(0);
-      expect(Number(image.getAttribute("y")) + size / 2).toBeCloseTo(0);
+      expect(pattern).not.toBeNull();
+      expect(container.querySelector("mask, clipPath, image, [id]")).toBeNull();
+      expect(decodeURIComponent(pattern.style.getPropertyValue("--control-shape"))).toContain(
+        outline.kind === "path" ? outline.d : "",
+      );
       cleanup();
     }
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const rule = stylesheet.match(/\.portfolio-control-pattern\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain('mask-image: var(--control-shape), url("/biv-brain-symbol.svg")');
+    expect(rule).toContain("mask-size: contain, 170% 170%");
+    expect(rule).toContain("mask-composite: intersect");
+    expect(rule).toContain("background: currentColor");
   });
 
   it("keeps the mobile Contents panel glyph distinct from the desktop sidebar control", () => {

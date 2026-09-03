@@ -72,7 +72,10 @@ export function PortfolioExperience() {
   const reducedMotion = useReducedMotion();
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
+  const [activeVisual, setActiveVisual] = useState<{
+    block: PortfolioVisualBlock;
+    initialFrame: number;
+  } | null>(null);
   const [guideVisible, setGuideVisible] = useState(false);
   const [guideHasThread, setGuideHasThread] = useState(false);
   const [guideResetSignal, setGuideResetSignal] = useState(0);
@@ -140,9 +143,10 @@ export function PortfolioExperience() {
   const openVisualInMap = useCallback((
     visual: PortfolioVisualBlock,
     trigger: HTMLButtonElement,
+    initialFrame = 0,
   ) => {
     visualTriggerRef.current = trigger;
-    setActiveVisual(visual);
+    setActiveVisual({ block: visual, initialFrame });
     requestMobileTab("map");
   }, [requestMobileTab]);
 
@@ -246,7 +250,8 @@ export function PortfolioExperience() {
   const map = (
     <PortfolioWorld
       activeThreadId={activeThreadId}
-      activeVisual={activeVisual}
+      activeVisual={activeVisual?.block}
+      activeVisualFrame={activeVisual?.initialFrame}
       brainFood={brainFood}
       onCloseVisual={closeVisualInMap}
       onReset={showHomeAndSyncLocation}
@@ -283,6 +288,7 @@ export function PortfolioExperience() {
         onGuideReset={resetGuide}
         onGuideVisibilityChange={setGuideVisible}
         onHome={showHomeAndSyncLocation}
+        onLayoutChange={refreshAvatarDock}
         onSelect={selectWorldNode}
         onSelectThread={selectThread}
         reader={reader}

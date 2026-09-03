@@ -3,7 +3,7 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AvatarSnapshot } from "../../lib/avatar/runtime";
-import { AvatarStageActor } from "./AvatarStageActor";
+import { AvatarStageActor, selectAvatarStageScale } from "./AvatarStageActor";
 
 const frame = vi.hoisted(() => vi.fn());
 const camera = vi.hoisted(() => ({
@@ -43,6 +43,7 @@ function snapshot(overrides: Partial<AvatarSnapshot> = {}): AvatarSnapshot {
     facing: "front",
     swimHeading: null,
     visible: true,
+    fitHeight: null,
     failed: false,
     ...overrides,
   };
@@ -55,6 +56,20 @@ function stageGroup(container: HTMLElement) {
 }
 
 describe("AvatarStageActor", () => {
+  it("caps the stage scale to the dock height and keeps a floor", () => {
+    expect(selectAvatarStageScale(1440)).toBe(104);
+    expect(selectAvatarStageScale(1440, null)).toBe(104);
+    expect(selectAvatarStageScale(1440, 400)).toBe(104);
+    expect(selectAvatarStageScale(1440, 120)).toBe(52);
+    expect(selectAvatarStageScale(1440, 60)).toBe(40);
+    expect(selectAvatarStageScale(390, 400)).toBe(72);
+  });
+
+  it("passes the snapshot's fit height into the stage scale", () => {
+    render(<AvatarStageActor reducedMotion snapshot={snapshot({ fitHeight: 120 })} />);
+    expect(adapter).toHaveBeenCalledWith(expect.objectContaining({ stageScale: 52 }));
+  });
+
   beforeEach(() => {
     frame.mockReset();
     adapter.mockReset();

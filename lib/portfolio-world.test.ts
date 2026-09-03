@@ -10,6 +10,7 @@ import {
   portfolioThreads,
   portfolioThroughline,
   portfolioWorldLinks,
+  portfolioWorldNodeById,
   portfolioWorldNodes,
   portfolioWhatNodes,
 } from "./portfolio-world";
@@ -331,6 +332,24 @@ describe("accepted portfolio world", () => {
 });
 
 describe("authored content contract", () => {
+  it("publishes the Dubs visual as three complete Apple-framed slides", () => {
+    const dubsVisual = portfolioWorldNodeById
+      .get("dubs")!
+      .body.find((block) => typeof block !== "string" && block.type === "visual");
+
+    expect(dubsVisual).toMatchObject({
+      type: "visual",
+      id: "dubs-loop",
+      status: "ready",
+      format: "gallery",
+      treatment: "sequence",
+      sourceStatus: "exists",
+    });
+    expect(dubsVisual && typeof dubsVisual !== "string" && dubsVisual.type === "visual"
+      ? dubsVisual.slides?.map((slide) => slide.assets.length)
+      : undefined).toEqual([4, 3, 1]);
+  });
+
   it("treats captions, not an optional poster, as the video readiness boundary", () => {
     expect(
       isPortfolioVisualReady({

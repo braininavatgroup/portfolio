@@ -33,7 +33,8 @@ or production activation contracts.
   Dragging 48px past the minimum collapses it.
 - The main slot has a 720px minimum. The right column has a 360px minimum.
   Dragging 48px past the right-column minimum hides both right views.
-- The right column defaults to a 40/60 vertical split with 160px minimums.
+- The right column defaults to a 40/60 vertical split with 240px minimums,
+  so a side slot always shows a usable Guide (bar, avatar area, composer).
   Dragging a side slot to its minimum collapses it to its 40px bar.
 - Default slots are main Reader, top Map, bottom Guide.
 - Slot assignments, hidden views, and all three panel layouts persist under
@@ -79,7 +80,9 @@ or production activation contracts.
 
 - The current canvas composition, selection, connector, field, seed, drag,
   and visual-stage behavior remains the source of truth.
-- The Map sizes from its slot rather than the viewport.
+- The Map sizes from its slot rather than the viewport. Its rest composition
+  is centred vertically in the slot, and the field keeps the same inset above
+  and below; nothing reserves a band for a floating surface.
 - In a side slot, labels remain visible for Bradley, all four threads, the
   selected node, and the hovered node. Other labels appear only on hover.
 - Labels for nodes left of 30 percent of the map width sit to the right.
@@ -94,7 +97,9 @@ or production activation contracts.
 - The client presentation uses `assistant-ui` runtime and primitives for the
   thread, messages, suggestions, and composer.
 - The avatar area sits above a transcript occupying at most 45 percent of the
-  Guide. The transcript is bottom-anchored.
+  Guide. The transcript is bottom-anchored. The live avatar stands on the
+  area's bottom edge and scales to fit the area's height (16px headroom, 80px
+  minimum), re-docking after any panel resize, collapse, or reopen.
 - User messages are right-aligned bubbles. Assistant messages are plain body
   copy. Valid evidence citations are inline, register-colored links that
   select the cited subject in Map and Reader.

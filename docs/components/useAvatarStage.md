@@ -58,3 +58,6 @@ export function UseAvatarStageExample() {
   instead of the returned function registers nothing and fails silently.
 - **A zero-size avatar area is not a dock.** Before layout settles, the runtime
   uses its bounded viewport fallback so queued motion still has a valid origin.
+- **The dock reports its height.** `dockHeight` is the avatar area's height and
+  drives the actor's scale; panel resizes reach the hook through the Reading
+  Room's `onLayoutChange`.

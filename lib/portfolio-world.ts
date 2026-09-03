@@ -13,6 +13,7 @@
 import portfolioContentJson from "../content/portfolio-content.json";
 import {
   assertValidPortfolioContentDocument,
+  type PortfolioContentBodyText,
   type PortfolioContentDocument,
   type PortfolioInterfaceTextKey,
 } from "./portfolio-content-schema";
@@ -65,6 +66,19 @@ export type PortfolioVisualBlock = {
   caption?: string;
   captionsSrc?: string;
   poster?: string;
+  slides?: readonly PortfolioVisualSlide[];
+};
+
+export type PortfolioVisualAsset = {
+  src: string;
+  alt: string;
+  label?: string;
+};
+
+export type PortfolioVisualSlide = {
+  title: string;
+  caption: string;
+  assets: readonly PortfolioVisualAsset[];
 };
 
 export type PortfolioBodyBlock =
@@ -145,19 +159,15 @@ export const isPortfolioVisualReady = (
 
   const format = portfolioVisualFormat(block);
   if (format === "video") return Boolean(block.src && block.captionsSrc);
+  if (format === "gallery" && block.slides?.length) {
+    return block.slides.every((slide) => slide.assets.length > 0);
+  }
   return Boolean(block.src);
 };
 
 function mergeBody(
   skeleton: readonly PortfolioBodyBlockSkeleton[],
-  texts: {
-    paragraphs: Record<string, string>;
-    placeholders: Record<
-      string,
-      { prompt: string; questions?: Record<string, string> }
-    >;
-    visuals: Record<string, { purpose: string; alt?: string; caption?: string }>;
-  },
+  texts: PortfolioContentBodyText,
 ): readonly PortfolioBodyBlock[] {
   return skeleton.map((block): PortfolioBodyBlock => {
     if (block.kind === "paragraph") {
@@ -176,6 +186,21 @@ function mergeBody(
       };
     }
     const entry = texts.visuals[block.id];
+    const slides = block.slides?.map((slide, slideIndex) => {
+      const slideText = entry.slides?.[slideIndex];
+      return {
+        title: slideText?.title ?? "",
+        caption: slideText?.caption ?? "",
+        assets: slide.assets.map((asset, assetIndex) => {
+          const assetText = slideText?.assets[assetIndex];
+          return {
+            src: asset.src,
+            alt: assetText?.alt ?? "",
+            ...(assetText?.label ? { label: assetText.label } : {}),
+          };
+        }),
+      };
+    });
     return {
       type: "visual",
       id: block.id,
@@ -189,6 +214,7 @@ function mergeBody(
       ...(entry.caption ? { caption: entry.caption } : {}),
       ...(block.captionsSrc ? { captionsSrc: block.captionsSrc } : {}),
       ...(block.poster ? { poster: block.poster } : {}),
+      ...(slides ? { slides } : {}),
     };
   });
 }

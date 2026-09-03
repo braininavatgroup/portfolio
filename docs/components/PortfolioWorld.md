@@ -1,7 +1,6 @@
 # PortfolioWorld
 
-Source: [`components/PortfolioWorld.tsx`](../../components/PortfolioWorld.tsx) ·
-Gallery: `/design#world` · Tests: `components/PortfolioWorld.test.tsx`
+Source: [`components/PortfolioWorld.tsx`](../../components/PortfolioWorld.tsx) · Gallery: `/design#world` · Tests: `components/PortfolioWorld.test.tsx`
 
 The spatial map. One 2D `<canvas>` paints the marks, labels, and relationships,
 with a real `<button>` over every node. Selection recomposes one fixed camera:
@@ -12,14 +11,14 @@ colours resolve from the enclosing `.portfolio-composition`.
 
 `activeThreadId`, `selectedId`, `onReset`, and `onSelect` are required. `compact`
 keeps the priority labels visible; `nodesInTabOrder={false}` routes keyboard
-navigation through Contents. Visual, avatar-stage, and Brain Food props are
-optional. See `PortfolioWorldProps`; placement helpers live in
-`lib/portfolio-world-*`, `portfolio-story-tree.ts`, and `portfolio-node-envelope.ts`.
+navigation through Contents. `activeVisual`, `activeVisualFrame`, `onCloseVisual`,
+avatar-stage, and Brain Food props are optional. See `PortfolioWorldProps`;
+helpers live in `lib/portfolio-world-*`, `portfolio-story-tree.ts`, and
+`portfolio-node-envelope.ts`.
 
 ## Requires
 
-A `.portfolio-composition` ancestor, for `--world-*`, `--ink`, `--map-*` and
-`--map-connector`. It renders eagerly and needs no lazy boundary.
+A `.portfolio-composition` ancestor for the `--world-*`, `--ink`, and `--map-*` tokens; no lazy boundary.
 
 ## Example
 
@@ -49,21 +48,22 @@ export function PortfolioWorldExample() {
 
 ## Pitfalls
 
-- **Escape is not handled here.** Blank-space click calls `onReset` (under a
-  7px movement threshold); the Escape binding lives in `PortfolioExperience`.
-- **It fills its positioned slot.** Allocate the slot and give it `position:
-  relative`. `ResizeObserver` owns sizing; viewport resize is only the fallback.
-- **Compactness is explicit.** A narrow slot does not infer `compact`; its
-  owner passes the flag. Labels on nodes left of 30 percent of the slot sit to
-  the right, and all other compact labels sit to the left.
-- **`activeVisual` and Brain Food disable node buttons.** Every other node,
-  including the dimmed field, stays clickable. Brain Food hides connectors;
-  `.portfolio-visual-open` belongs on the composition root.
+- **Escape is not handled here.** Blank-space click (under 7px) calls `onReset`.
+- **It fills its positioned slot.** Give the slot `position: relative`;
+  `ResizeObserver` owns sizing. `compact` is explicit: the owner passes it, and
+  compact labels sit right of nodes in the left 30 percent, else left.
+- **`activeVisual` and Brain Food disable node buttons.** Other nodes stay
+  clickable. Brain Food hides connectors; a visual hides map geometry and shows
+  one asset at a time with a close mark and gallery arrows, opening on
+  `activeVisualFrame`. `.portfolio-visual-open` belongs on the composition root.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
-- **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it in
-  dev). Tests pass `stillRng` or `createRng` and assert rules, not coordinates.
-- **The field seats after the lit nodes settle**, outside the overlap solver.
-  Pass every drawn lit line to `fieldGoals` or the field may sit on it.
-- **Canvas type and size are code-side.** Labels are 12.5px, Bradley is 14px,
-  and his SVG brain paints at 21px. Widths cache per wrap.
+- **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it);
+  tests assert rules, not coordinates. The rest pose is centred in its slot
+  (`centreComposition`) and the field's insets are symmetric.
+- **The field seats after the lit nodes settle**, outside the overlap solver;
+  pass every drawn lit line to `fieldGoals`. A lower relation is valid, but no
+  line crosses a label: selected-label rays clear first, then related nodes
+  nudge sideways away from non-incident lit lines.
+- **Canvas type and size are code-side.** Labels are 12.5px, Bradley 14px with
+  his SVG brain at 21px. Widths cache per wrap; never measure in the frame.
 - **Past changes opacity, not color** (`PAST_WORLD_ALPHA`); the register stays.

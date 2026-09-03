@@ -62,12 +62,10 @@ describe("design gallery route", () => {
       const mark = document.querySelector(
         `#marks .portfolio-control-mark[data-control="${kind}"]`,
       )!;
-      const pattern = mark.querySelector('svg[data-pattern="brain"]')!;
+      const pattern = mark.querySelector<HTMLElement>('.portfolio-control-pattern[data-pattern="brain"]')!;
 
       expect(pattern).not.toBeNull();
-      expect(pattern.querySelector("image")?.getAttribute("href")).toBe(
-        "/biv-brain-symbol.svg",
-      );
+      expect(pattern.style.getPropertyValue("--control-shape")).toContain("data:image/svg+xml");
     }
 
     expect(

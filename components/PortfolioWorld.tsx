@@ -41,6 +41,7 @@ const CanvasLabelEditor: ComponentType<{
 const recordLabelPath = (nodeId: string) => `records.${nodeId}.label`;
 import {
   clonePoint as clone,
+  cameraBasis,
   projectWorldPoint,
   translateWorldPointByScreenDelta,
   worldPointAtDepth,
@@ -48,11 +49,16 @@ import {
   type ProjectedPoint,
 } from "../lib/portfolio-world-projection";
 import { relaxWorldOverlaps } from "../lib/portfolio-world-layout";
-import { envelopeInset, type LayoutBox } from "../lib/portfolio-node-envelope";
+import {
+  clearLabelRay,
+  envelopeInset,
+  type LayoutBox,
+} from "../lib/portfolio-node-envelope";
 import { storyTreeJunction } from "../lib/portfolio-story-tree";
 import {
   FIELD,
   fieldScreenTargets,
+  segmentRectClearanceShift,
   type FieldDimmed,
   type FieldLit,
   type Segment,
@@ -113,6 +119,7 @@ type RuntimeNode = PortfolioWorldNode & {
 export type PortfolioWorldProps = {
   activeThreadId: string | null;
   activeVisual?: PortfolioVisualBlock | null;
+  activeVisualFrame?: number;
   brainFood?: {
     active: boolean;
     eatenIds: ReadonlySet<string>;
@@ -193,13 +200,10 @@ function easeAnchor(memory: ConnectorMemory | undefined, key: string, point: Poi
 }
 
 /**
- * Where a line leaves a node, heading for `toward`. Past the mark along the
- * ray when the ray clears the label; from under the label's centre — the way
- * the trunk leaves Bradley — when the ray would run through the label
- * hanging beneath the mark, so a wide or two-line label never pushes the
- * line's start far from the mark. A compact label sits beside its mark, and
- * a run that would climb back into the label from below is not allowed, so
- * there the line still starts past the label's far edge.
+ * Where a line leaves a node, heading for `toward`. The visible segment stays
+ * on the relationship's ray and starts beyond the mark or label envelope.
+ * Stable spotlight placement keeps the selected node's ray clear of its
+ * label; this clipping remains the fallback during motion and dragging.
  */
 function lineStart(node: ConnectorAnchor, toward: Point): Point {
   const dx = toward.x - node.x;
@@ -210,11 +214,7 @@ function lineStart(node: ConnectorAnchor, toward: Point): Point {
   const radius = markRadius(node.family);
   const label = node.labelBox ?? null;
   const inset = envelopeInset(node, radius, label, direction, CONNECTOR_CLEARANCE);
-  const alongRay = { x: node.x + direction.x * inset, y: node.y + direction.y * inset };
-  if (!label || inset <= radius + CONNECTOR_CLEARANCE || label.y < node.y) return alongRay;
-  const bottom = label.y + label.height;
-  if (toward.y < bottom) return alongRay;
-  return { x: node.x, y: bottom + CONNECTOR_CLEARANCE };
+  return { x: node.x + direction.x * inset, y: node.y + direction.y * inset };
 }
 
 /** The visible run of a line between two envelopes, or null when they touch. */
@@ -228,9 +228,8 @@ export function connectorSegment(
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
   if (!distance) return null;
-  // Each end starts toward where the other actually starts, not toward its
-  // mark, so a run from under one label still meets the other's envelope
-  // where it is; one more pass settles the first end against the second.
+  // Each end starts toward where the other actually starts; one more pass
+  // settles the first end against the second envelope.
   const end = lineStart(to, lineStart(from, to));
   const start = lineStart(from, end);
   const along = ((end.x - start.x) * dx + (end.y - start.y) * dy) / distance;
@@ -576,34 +575,30 @@ function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string
   return style.getPropertyValue(variable).trim() || fallback;
 }
 
-// The dossier subject a visual belongs to: the open thread when the map is
-// on its story node, otherwise the selected record.
-function visualSubjectTitle(selectedId: string | null, activeThreadId: string | null) {
-  const thread = activeThreadId ? portfolioThreadById.get(activeThreadId) : undefined;
-  if (thread && (!selectedId || selectedId === thread.nodeId)) return thread.title;
-  const node = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
-  return node?.label ?? portfolioInterfaceText["world.mast"];
-}
-
 function PortfolioVisualStage({
   block,
+  initialFrame = 0,
   onClose,
-  title,
 }: {
   block: PortfolioVisualBlock;
+  initialFrame?: number;
   onClose?: () => void;
-  /** The dossier subject the visual belongs to, shown in the stage head. */
-  title: string;
 }) {
   const format = portfolioVisualFormat(block);
-  const assets =
+  const standaloneAssets =
     block.src && format !== "video"
       ? [{ src: block.src, alt: block.alt ?? "" }]
       : [];
-  const frameCount = format === "gallery" ? assets.length || 3 : 1;
-  const [activeFrame, setActiveFrame] = useState(0);
+  const slides = format === "gallery" ? block.slides ?? [] : [];
+  const galleryAssets = slides.flatMap((slide) => slide.assets);
+  const frameCount = format === "gallery"
+    ? galleryAssets.length || standaloneAssets.length || 3
+    : 1;
+  const [activeFrame, setActiveFrame] = useState(() =>
+    Math.max(0, Math.min(initialFrame, frameCount - 1)),
+  );
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const asset = assets[activeFrame];
+  const asset = galleryAssets[activeFrame] ?? standaloneAssets[activeFrame];
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -616,82 +611,68 @@ function PortfolioVisualStage({
       data-format={format}
       data-status={block.status}
     >
-      <header className="portfolio-visual-stage-head">
-        <div>
-          <span>Map visual</span>
-          <strong>{title}</strong>
+      <div className="portfolio-visual-stage-media">
+        <div className="portfolio-visual-stage-image">
+          {format === "video" && block.src && block.captionsSrc ? (
+            <video
+              aria-label={block.alt ?? block.purpose}
+              controls
+              poster={block.poster}
+              preload="metadata"
+              src={block.src}
+            >
+              <track
+                default
+                kind="captions"
+                src={block.captionsSrc}
+                srcLang="en"
+              />
+            </video>
+          ) : asset ? (
+            <img alt={asset.alt} src={asset.src} />
+          ) : (
+            <div
+              aria-label={`Planned ${format} placeholder`}
+              className="portfolio-visual-stage-placeholder"
+              data-format={format}
+            >
+              <ReaderPlaceholderFrame
+                format={format}
+                frame={activeFrame + 1}
+                frameCount={frameCount}
+                showFrameCount={false}
+                sourceStatus={block.sourceStatus}
+                treatment={block.treatment}
+              />
+            </div>
+          )}
         </div>
         <PortfolioControlMark
           aria-label="Close visual in map"
+          className="portfolio-visual-stage-close"
           kind="close"
-          label="Close"
           onClick={onClose}
           ref={closeButtonRef}
         />
-      </header>
-
-      <div className="portfolio-visual-stage-frame">
-        {format === "video" && block.src && block.captionsSrc ? (
-          <video
-            aria-label={block.alt ?? block.purpose}
-            controls
-            poster={block.poster}
-            preload="metadata"
-            src={block.src}
-          >
-            <track
-              default
-              kind="captions"
-              src={block.captionsSrc}
-              srcLang="en"
-            />
-          </video>
-        ) : asset ? (
-          <img
-            alt={asset.alt}
-            src={asset.src}
-          />
-        ) : (
-          <div
-            aria-label={`Planned ${format} placeholder`}
-            className="portfolio-visual-stage-placeholder"
-            data-format={format}
-          >
-            <ReaderPlaceholderFrame
-              format={format}
-              frame={activeFrame + 1}
-              frameCount={frameCount}
-              sourceStatus={block.sourceStatus}
-              treatment={block.treatment}
-            />
-          </div>
-        )}
-      </div>
-
-      <footer className="portfolio-visual-stage-copy">
-        <p>{block.caption ?? block.purpose}</p>
-        {format === "gallery" ? (
-          <nav aria-label="Visual frames">
+        {format === "gallery" && frameCount > 1 ? (
+          <nav aria-label="Visual frames" className="portfolio-visual-stage-nav">
             <PortfolioControlMark
               aria-label="Previous visual frame"
               disabled={activeFrame === 0}
               kind="previous"
-              label="Previous"
               onClick={() => setActiveFrame((frame) => Math.max(0, frame - 1))}
             />
-            <span>{activeFrame + 1} / {frameCount}</span>
             <PortfolioControlMark
               aria-label="Next visual frame"
               disabled={activeFrame === frameCount - 1}
               kind="next"
-              label="Next"
               onClick={() =>
                 setActiveFrame((frame) => Math.min(frameCount - 1, frame + 1))
               }
             />
           </nav>
         ) : null}
-      </footer>
+      </div>
     </section>
   );
 }
@@ -699,6 +680,7 @@ function PortfolioVisualStage({
 export function PortfolioWorld({
   activeThreadId,
   activeVisual,
+  activeVisualFrame,
   brainFood,
   compact = false,
   nodesInTabOrder = true,
@@ -882,9 +864,12 @@ export function PortfolioWorld({
         padding: 5,
         minHalfWidth: 13,
         footprint: { top: 13, extraHeight: 31 },
-        margins: { left: 12, right: 12, top: 18, bottom: 78 },
+        // The slot is the whole canvas: nothing floats over its bottom edge in
+        // the Reading Room, so the composition uses the full height.
+        margins: { left: 12, right: 12, top: 18, bottom: 18 },
         bounds: { x: 940, y: 540, z: [480, 1120] },
       });
+      centreComposition(working, camera.current.fov, width, height);
 
       nodes.forEach((node) => {
         node.base = clone(working.get(node.id)!);
@@ -1284,9 +1269,9 @@ export function PortfolioWorld({
       {activeVisual ? (
         <PortfolioVisualStage
           block={activeVisual}
-          key={activeVisual.id}
+          initialFrame={activeVisualFrame}
+          key={`${activeVisual.id}:${activeVisualFrame ?? 0}`}
           onClose={onCloseVisual}
-          title={visualSubjectTitle(selectedId, activeThreadId)}
         />
       ) : null}
       {import.meta.env.DEV && CanvasLabelEditor && labelAnchor ? (
@@ -1304,6 +1289,249 @@ export function PortfolioWorld({
 
 /** Records outside the composition sit in the field at this alpha. */
 const FIELD_ALPHA = 0.14;
+
+/**
+ * Apply the selected record's label box as a placement constraint after the
+ * overlap solver has settled the composition. Related nodes keep their side
+ * and screen distance, including valid seats below the record; only a ray
+ * that would cross the label turns far enough to clear its top corner.
+ */
+export function clearSpotlightLabelRays({
+  camera,
+  label,
+  measure,
+  related,
+  relatedLabels,
+  spotlight,
+  viewport,
+}: {
+  camera: { position: Point3; target: Point3; fov: number };
+  label: string;
+  measure: (value: string) => number;
+  related: ReadonlyMap<string, Point3>;
+  relatedLabels?: ReadonlyMap<string, string>;
+  spotlight: Point3;
+  viewport: { width: number; height: number };
+}): Map<string, Point3> {
+  const origin = projectWorldPoint(
+    spotlight,
+    camera.position,
+    camera.target,
+    camera.fov,
+    viewport.width,
+    viewport.height,
+  );
+  if (!origin) return new Map(related);
+  const lines = wrapLabel(label, measure);
+  const width = Math.min(
+    LABEL_MAX_WIDTH,
+    Math.max(...lines.map((line) => measure(line))),
+  );
+  const labelBox = {
+    x: origin.x - width / 2,
+    y: origin.y + LABEL_TOP,
+    width,
+    height: lines.length * LABEL_LINE_HEIGHT,
+  };
+  const projectedRelations = [...related].map(([id, point]) => {
+    const projected = projectWorldPoint(
+      point,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    );
+    if (!projected) {
+      return { id, point, projected: null, cleared: null, originCrossed: false };
+    }
+    const originCleared = clearLabelRay(
+      origin,
+      projected,
+      labelBox,
+      CONNECTOR_CLEARANCE,
+    );
+    const originCrossed =
+      originCleared.x !== projected.x || originCleared.y !== projected.y;
+    return { id, point, projected, cleared: originCleared, originCrossed };
+  });
+
+  // Several same-side rays can all clamp to one label corner. Keep the
+  // closest one there and fan the rest farther outward by their label widths,
+  // preserving every relation's radius and side.
+  for (const side of [-1, 1] as const) {
+    const crossing = projectedRelations
+      .filter(({ projected, cleared, originCrossed }) =>
+        projected &&
+        cleared &&
+        originCrossed &&
+        Math.sign(projected.x - origin.x) === side,
+      )
+      .map((entry) => {
+        const relatedLabel = relatedLabels?.get(entry.id) ?? entry.id;
+        const lines = wrapLabel(relatedLabel, measure);
+        const labelWidth = Math.min(
+          LABEL_MAX_WIDTH,
+          Math.max(...lines.map((line) => measure(line))),
+        );
+        return {
+          ...entry,
+          angle: Math.atan2(
+            entry.projected!.y - origin.y,
+            entry.projected!.x - origin.x,
+          ),
+          clearedAngle: Math.atan2(
+            entry.cleared!.y - origin.y,
+            entry.cleared!.x - origin.x,
+          ),
+          distance: Math.hypot(
+            entry.projected!.x - origin.x,
+            entry.projected!.y - origin.y,
+          ),
+          halfWidth: Math.max(15, labelWidth / 2),
+        };
+      })
+      .sort((a, b) => side > 0 ? a.angle - b.angle : b.angle - a.angle);
+
+    for (let index = 1; index < crossing.length; index += 1) {
+      const previous = crossing[index - 1]!;
+      const current = crossing[index]!;
+      const separation = previous.halfWidth + current.halfWidth + 8;
+      const radius = Math.max(1, Math.min(previous.distance, current.distance));
+      const angularGap = 2 * Math.asin(Math.min(0.98, separation / (2 * radius)));
+      const unclamped = previous.clearedAngle - side * angularGap;
+      current.clearedAngle = side > 0
+        ? Math.max(-Math.PI / 2 + 0.01, unclamped)
+        : Math.min(Math.PI * 1.5 - 0.01, unclamped);
+      current.cleared = {
+        x: origin.x + Math.cos(current.clearedAngle) * current.distance,
+        y: origin.y + Math.sin(current.clearedAngle) * current.distance,
+      };
+      const source = projectedRelations.find(({ id }) => id === current.id);
+      if (source) source.cleared = current.cleared;
+    }
+  }
+
+  return new Map(
+    projectedRelations.map(({ id, point, projected, cleared }) => {
+      if (!projected || !cleared) return [id, point];
+      if (cleared.x === projected.x && cleared.y === projected.y) return [id, point];
+      return [
+        id,
+        worldPointAtDepth(
+          cleared,
+          projected.depth,
+          camera.position,
+          camera.target,
+          camera.fov,
+          viewport.width,
+          viewport.height,
+        ),
+      ];
+    }),
+  );
+}
+
+/** Keep every relation label off the trunk and every other relation's line. */
+export function clearSpotlightLineLabels({
+  bradley,
+  camera,
+  measure,
+  related,
+  relatedLabels,
+  spotlight,
+  viewport,
+}: {
+  bradley: Point3;
+  camera: { position: Point3; target: Point3; fov: number };
+  measure: (value: string) => number;
+  related: ReadonlyMap<string, Point3>;
+  relatedLabels: ReadonlyMap<string, string>;
+  spotlight: Point3;
+  viewport: { width: number; height: number };
+}): Map<string, Point3> {
+  const project = (point: Point3) =>
+    projectWorldPoint(
+      point,
+      camera.position,
+      camera.target,
+      camera.fov,
+      viewport.width,
+      viewport.height,
+    );
+  const root = project(bradley);
+  const spot = project(spotlight);
+  if (!root || !spot) return new Map(related);
+  const bradleyLines = wrapLabel("Bradley Berkman", measure);
+  const trunkStart = {
+    x: root.x,
+    y:
+      root.y +
+      BRADLEY_LABEL_TOP +
+      bradleyLines.length * LABEL_LINE_HEIGHT +
+      CONNECTOR_CLEARANCE,
+  };
+  const junction = storyTreeJunction(trunkStart, [spot]);
+  const working = new Map(related);
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    const projected = new Map(
+      [...working].flatMap(([id, point]) => {
+        const screen = project(point);
+        return screen ? [[id, screen] as const] : [];
+      }),
+    );
+    const obstacles: Array<{ line: Segment; incidentId?: string }> = [
+      { line: [trunkStart, junction] },
+      { line: [junction, spot] },
+      ...[...projected].map(([id, point]) => ({
+        line: [spot, point] as Segment,
+        incidentId: id,
+      })),
+    ];
+    let moved = false;
+
+    for (const id of working.keys()) {
+      const original = projected.get(id);
+      if (!original) continue;
+      const label = relatedLabels.get(id) ?? id;
+      const lines = wrapLabel(label, measure);
+      const width = Math.min(
+        LABEL_MAX_WIDTH,
+        Math.max(...lines.map((line) => measure(line))),
+      );
+      const target = { x: original.x, y: original.y };
+      for (const obstacle of obstacles) {
+        if (obstacle.incidentId === id) continue;
+        const box = {
+          left: target.x - width / 2,
+          top: target.y + LABEL_TOP,
+          right: target.x + width / 2,
+          bottom: target.y + LABEL_TOP + lines.length * LABEL_LINE_HEIGHT,
+        };
+        const shift = segmentRectClearanceShift(obstacle.line, box, 8);
+        target.x += shift.x;
+        target.y += shift.y;
+      }
+      if (target.x === original.x && target.y === original.y) continue;
+      working.set(
+        id,
+        worldPointAtDepth(
+          target,
+          original.depth,
+          camera.position,
+          camera.target,
+          camera.fov,
+          viewport.width,
+          viewport.height,
+        ),
+      );
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  return working;
+}
 
 function applySpotlightGoals(
   nodes: RuntimeNode[],
@@ -1377,6 +1605,42 @@ function applySpotlightGoals(
     dimensions,
     measure,
   });
+  const spotlightNode = byId.get(spotlightId);
+  if (spotlightNode) {
+    const relatedLabels = new Map(
+      relatedIds.flatMap((id) => {
+        const node = byId.get(id);
+        return node ? [[id, node.label] as const] : [];
+      }),
+    );
+    const cleared = clearSpotlightLabelRays({
+      camera: { ...overview, fov: camera.fov },
+      label: spotlightNode.label,
+      measure,
+      related: new Map(
+        relatedIds.flatMap((id) => {
+          const node = byId.get(id);
+          return node ? [[id, node.goal] as const] : [];
+        }),
+      ),
+      relatedLabels,
+      spotlight: spotlightNode.goal,
+      viewport: dimensions,
+    });
+    const lineCleared = clearSpotlightLineLabels({
+      bradley: bradleyGoal,
+      camera: { ...overview, fov: camera.fov },
+      measure,
+      related: cleared,
+      relatedLabels,
+      spotlight: spotlightNode.goal,
+      viewport: dimensions,
+    });
+    for (const [id, point] of lineCleared) {
+      const node = byId.get(id);
+      if (node) node.goal = point;
+    }
+  }
   litNodes.forEach((node) => lit.set(node.id, clone(node.goal)));
   const field = fieldGoals(
     nodes,
@@ -1402,6 +1666,42 @@ function applySpotlightGoals(
  * Selecting Bradley opens the tree a little and reseats the field, so the
  * click moves everything and deselecting closes it again.
  */
+/**
+ * Slides the whole rest composition along the camera's up axis so its
+ * projected extent (marks plus the label footprint beneath them) sits in the
+ * vertical middle of the slot. The poses were authored for a viewport whose
+ * lower band held a floating chat; a Reading Room slot has no such band, and
+ * a short slot otherwise stacks the composition against its top edge. When
+ * the composition is taller than the slot, its top stays at the top margin.
+ */
+export function centreComposition(
+  positions: Map<string, Point3>,
+  fov: number,
+  width: number,
+  height: number,
+  footprint: { top: number; bottom: number } = { top: 13, bottom: 31 },
+  margin = 18,
+) {
+  const projected = [...positions.values()]
+    .map((point) => projectWorldPoint(point, overview.position, overview.target, fov, width, height))
+    .filter((point): point is NonNullable<typeof point> => point !== null);
+  if (projected.length === 0) return;
+  const top = Math.min(...projected.map((point) => point.y)) - footprint.top;
+  const bottom = Math.max(...projected.map((point) => point.y)) + footprint.bottom;
+  const centred = height / 2 - (top + bottom) / 2;
+  const shiftPx = Math.max(centred, margin - top);
+  if (Math.abs(shiftPx) < 0.5) return;
+  const meanScale = projected.reduce((sum, point) => sum + point.scale, 0) / projected.length;
+  const { up } = cameraBasis(overview.position, overview.target);
+  // Screen y grows downward while the camera's up axis grows upward.
+  const worldShift = -shiftPx / meanScale;
+  for (const point of positions.values()) {
+    point.x += up.x * worldShift;
+    point.y += up.y * worldShift;
+    point.z += up.z * worldShift;
+  }
+}
+
 function applyRestGoals(
   nodes: RuntimeNode[],
   spotlightBradley: boolean,
@@ -1572,7 +1872,7 @@ function relaxGoals(
     padding: 8,
     minHalfWidth: 15,
     footprint: { top: 14, extraHeight: 34 },
-    margins: { left: 18, right: 18, top: 18, bottom: 84 },
+    margins: { left: 18, right: 18, top: 18, bottom: 18 },
     // Wide enough to hold the field: a tighter clamp used to drag pushed
     // field nodes back into the composition.
     bounds: { x: 1600, y: 1600, z: [480, 1600] },
@@ -1593,14 +1893,17 @@ function drawLinks(
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const color = palette.connector;
-  const stroke = (start: Point, end: Point, alpha: number, active: boolean) => {
+  const stroke = (points: readonly Point[], alpha: number, active: boolean) => {
+    if (points.length < 2) return;
     context.save();
     context.globalAlpha = alpha;
+    context.lineCap = "round";
+    context.lineJoin = "round";
     context.strokeStyle = color;
     context.lineWidth = active ? 1.1 : 0.54;
     context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
+    context.moveTo(points[0].x, points[0].y);
+    for (const point of points.slice(1)) context.lineTo(point.x, point.y);
     context.stroke();
     context.restore();
   };
@@ -1630,7 +1933,7 @@ function drawLinks(
       memory,
       `${link.from}->${link.to}`,
     );
-    if (segment) stroke(segment.start, segment.end, alpha, active);
+    if (segment) stroke([segment.start, segment.end], alpha, active);
   }
 
   // The Story lines are one tree: a trunk straight down from Bradley's mark
@@ -1660,17 +1963,36 @@ function drawLinks(
     ...branches.map(({ node, active }) =>
       Math.min(root.alpha, node.alpha) * strengthOf(active)),
   );
-  stroke(trunkStart, junction, trunkAlpha, trunkActive);
-  for (const { node, screen, active } of branches) {
+  const renderedBranches = branches.flatMap(({ node, screen, active }) => {
     const branch = connectorSegment(
       { x: junction.x, y: junction.y, family: root.family },
       anchor(node, screen),
       memory,
       `root->${node.id}`,
     );
-    if (branch) {
-      stroke(junction, branch.end, Math.min(root.alpha, node.alpha) * strengthOf(active), active);
-    }
+    return branch
+      ? [{
+          active,
+          alpha: Math.min(root.alpha, node.alpha) * strengthOf(active),
+          end: branch.end,
+        }]
+      : [];
+  });
+  const primary = renderedBranches.reduce<(typeof renderedBranches)[number] | null>(
+    (strongest, branch) => !strongest || branch.alpha > strongest.alpha ? branch : strongest,
+    null,
+  );
+  if (!primary) {
+    stroke([trunkStart, junction], trunkAlpha, trunkActive);
+    return;
+  }
+
+  // The trunk and its strongest branch are one continuous path. A pair of
+  // separately antialiased butt ends left a stair-stepped notch at this joint.
+  stroke([trunkStart, junction, primary.end], trunkAlpha, trunkActive);
+  for (const branch of renderedBranches) {
+    if (branch === primary) continue;
+    stroke([junction, branch.end], branch.alpha, branch.active);
   }
 }
 

@@ -22,16 +22,25 @@ type AvatarStageActorProps = {
 
 const desktopAvatarStageScale = 104;
 const mobileAvatarStageScale = 72;
+const minimumAvatarStageScale = 40;
 const mobileStageBreakpoint = 768;
+const dockFitInset = 16;
 
 /**
  * The normalized two-world-unit avatar remains about 13rem tall on desktop
- * (208px / 2) and 9rem on mobile (144px / 2) when one world unit is one CSS pixel.
+ * (208px / 2) and 9rem on mobile (144px / 2) when one world unit is one CSS
+ * pixel. A dock with a known height caps the figure so it stands inside that
+ * area with a 16px headroom, never below an 80px figure.
  */
-export function selectAvatarStageScale(viewportWidth: number) {
-  return viewportWidth <= mobileStageBreakpoint
+export function selectAvatarStageScale(
+  viewportWidth: number,
+  fitHeight: number | null = null,
+) {
+  const base = viewportWidth <= mobileStageBreakpoint
     ? mobileAvatarStageScale
     : desktopAvatarStageScale;
+  if (fitHeight === null || !Number.isFinite(fitHeight) || fitHeight <= 0) return base;
+  return Math.max(minimumAvatarStageScale, Math.min(base, (fitHeight - dockFitInset) / 2));
 }
 
 function motionPoint(motion: AvatarStageMotion, progress: number) {
@@ -218,7 +227,7 @@ function AvatarStageVisual({
                 : snapshot.swimHeading ?? 0
             : null
         }
-        stageScale={selectAvatarStageScale(size.width)}
+        stageScale={selectAvatarStageScale(size.width, snapshot.fitHeight)}
       />
     </group>
   );

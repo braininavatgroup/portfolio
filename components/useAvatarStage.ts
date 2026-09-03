@@ -53,6 +53,7 @@ export function useAvatarStage({
 }) {
   const stageRef = useRef<HTMLElement | null>(null);
   const chatRef = useRef<HTMLElement | null>(null);
+  const dockObserver = useRef<ResizeObserver | null>(null);
 
   const readStage = useCallback((): AvatarStageGeometry => {
     const viewport = viewportSize();
@@ -63,12 +64,17 @@ export function useAvatarStage({
         : viewport.width;
     const floorY = viewport.height - bottomInset;
     const chatBounds = chatRef.current?.getBoundingClientRect();
-    const dock = chatBounds && chatBounds.width > 0 && chatBounds.height > 0
+    const docked = Boolean(chatBounds && chatBounds.width > 0 && chatBounds.height > 0);
+    const dock = docked && chatBounds
       ? {
           x: chatBounds.left + chatBounds.width / 2,
           y: chatBounds.bottom,
         }
       : { x: Math.max(72, width - 80), y: floorY };
+    // The figure stands on the area's bottom edge and must fit inside it, so
+    // a short Guide pane scales the actor down instead of lifting its head
+    // above the bar.
+    const dockHeight = docked && chatBounds ? chatBounds.height : null;
     const reader =
       typeof document === "undefined"
         ? null
@@ -78,6 +84,7 @@ export function useAvatarStage({
     );
     return {
       dock,
+      dockHeight,
       obstacles,
       viewport: { width, height: viewport.height, floorY },
     };
@@ -100,6 +107,18 @@ export function useAvatarStage({
 
   const registerAvatarDock = useCallback((element: HTMLElement | null) => {
     chatRef.current = element;
+    dockObserver.current?.disconnect();
+    dockObserver.current = null;
+    // The avatar area stops resizing at its minimum height while a sash keeps
+    // moving the whole Guide, so watch the Guide root too: any pane resize
+    // re-docks the figure mid-drag instead of on release.
+    if (element && typeof ResizeObserver !== "undefined" && typeof element.closest === "function") {
+      const observer = new ResizeObserver(() => avatarRuntime.refreshDock());
+      observer.observe(element);
+      const guide = element.closest<HTMLElement>(".portfolio-chat");
+      if (guide && guide !== element) observer.observe(guide);
+      dockObserver.current = observer;
+    }
     avatarRuntime.refreshDock();
   }, [avatarRuntime]);
 
@@ -128,6 +147,8 @@ export function useAvatarStage({
     return () => {
       window.removeEventListener("scroll", refresh);
       window.removeEventListener("resize", refresh);
+      dockObserver.current?.disconnect();
+      dockObserver.current = null;
       avatarRuntime.cancel();
     };
   }, [avatarRuntime]);

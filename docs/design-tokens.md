@@ -95,6 +95,7 @@ multiple of 8; these are the multiples it uses.
 
 | Token | Value | Use |
 | --- | --- | --- |
+| `--control-shape` | `none` | Set inline by patterned controls (Map, Guide): the outline mask that `.portfolio-control-pattern` intersects with the 170% brain |
 | `--reader-space-1` | `8px` | Label to content; row padding; figure margin |
 | `--reader-space-2` | `16px` | Paragraph gap; title to summary; mobile bottom inset |
 | `--reader-space-3` | `24px` | The page inset (mast, dossier top and bottom, chat and stage corners); mobile gutter |

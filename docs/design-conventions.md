@@ -266,7 +266,7 @@ position (`PortfolioChat`). Everything else is a class.
   `.portfolio-reader-footer`, `.portfolio-chat`, `.portfolio-chat-panel`,
   `.portfolio-chat-head`, `.portfolio-chat-thread`, `.portfolio-chat-composer`,
   `.portfolio-chat-trigger`, `.portfolio-visual-stage`,
-  `.portfolio-visual-stage-head`, `.portfolio-node-mark`,
+  `.portfolio-visual-stage-media`, `.portfolio-node-mark`,
   `.portfolio-control-mark`, `.portfolio-mobile-view-control`.
 - `.reader-<part>` names the dossier's interior, once you are inside
   `.portfolio-reader`: `.reader-scroll`, `.reader-content`,
@@ -333,14 +333,17 @@ arrowhead — classifications stay backstage. Every connector stops outside each
 endpoint's envelope: the mark's tightest circle (`portfolioNodeMarkRadius`)
 plus its painted label box (`lib/portfolio-node-envelope.ts`), with
 `CONNECTOR_CLEARANCE` of 2px. A line whose ray clears the label starts past
-the mark; a line whose ray would run through the label hanging beneath the
-mark leaves from under the label's centre instead, the way the trunk leaves
-Bradley, so a wide or two-line label never pushes a line's start far from its
-mark (compact labels sit beside the mark and keep the far-edge clip). A line
-whose envelopes touch is dropped (`connectorSegment` returns `null`), and each
-end eases toward its new start so the clip never snaps mid-motion. The tree at rest is one trunk from Bradley to a
-junction (`lib/portfolio-story-tree.ts`) and branches from there; nothing
-draws Bradley-to-Story lines directly.
+the mark; clipping never bends the line or invents a different origin. At a
+stable spotlight, related nodes may sit below the selected record, but a ray
+that would cross its label is rotated at the same screen-space radius and on
+the same side until it clears the nearest top corner by 2px. This label-clear
+pass runs after overlap relaxation. A line whose envelopes touch is dropped
+(`connectorSegment` returns `null`), and each end eases toward its new start so
+the clip never snaps mid-motion. Every related label also clears every
+non-incident lit segment by 8px; the smallest modest sideways node nudge wins,
+so a sloping trunk cannot brush the first or last word. The tree at rest is one
+trunk from Bradley to a junction (`lib/portfolio-story-tree.ts`) and branches
+from there; nothing draws Bradley-to-Story lines directly.
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields

@@ -61,6 +61,11 @@ export type PortfolioVisualSkeleton = {
   src?: string;
   captionsSrc?: string;
   poster?: string;
+  slides?: readonly PortfolioVisualSlideSkeleton[];
+};
+
+export type PortfolioVisualSlideSkeleton = {
+  assets: readonly { src: string }[];
 };
 
 export type PortfolioBodyBlockSkeleton =
@@ -120,6 +125,19 @@ const plannedVisual = (
   ...(treatment ? { treatment } : {}),
   sourceStatus,
   format,
+});
+
+const readyGallery = (
+  id: string,
+  slides: readonly PortfolioVisualSlideSkeleton[],
+): PortfolioVisualSkeleton => ({
+  kind: "visual",
+  id,
+  status: "ready",
+  treatment: "sequence",
+  sourceStatus: "exists",
+  format: "gallery",
+  slides,
 });
 
 export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
@@ -271,7 +289,28 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     summaryStatus: "placeholder",
     body: [
       draft("dubs-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("dubs-loop", "demo", "capture"),
+      readyGallery("dubs-loop", [
+        {
+          assets: [
+            { src: "/visuals/dubs/lock-screen.png" },
+            { src: "/visuals/dubs/read-and-listen.png" },
+            { src: "/visuals/dubs/inline-note.png" },
+            { src: "/visuals/dubs/markup-in-context.png" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/dubs/library.png" },
+            { src: "/visuals/dubs/tags.png" },
+            { src: "/visuals/dubs/perspective.png" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/dubs/mcp.png" },
+          ],
+        },
+      ]),
     ],
   },
   {
