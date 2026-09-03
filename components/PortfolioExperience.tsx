@@ -21,6 +21,7 @@ import {
 } from "../lib/portfolio-world";
 import type { ReadingRoomView } from "../lib/reading-room-layout";
 import { PortfolioChat } from "./PortfolioChat";
+import { PortfolioFeedback } from "./PortfolioFeedback";
 import {
   PortfolioReadingRoom,
   type ReadingRoomMobileTab,
@@ -306,6 +307,7 @@ export function PortfolioExperience() {
         viewRequest={viewRequest}
       />
       {avatarOverlay}
+      <PortfolioFeedback />
     </main>
   );
 }

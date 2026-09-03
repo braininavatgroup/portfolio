@@ -267,7 +267,8 @@ position (`PortfolioChat`). Everything else is a class.
   `.portfolio-chat-head`, `.portfolio-chat-thread`, `.portfolio-chat-composer`,
   `.portfolio-chat-trigger`, `.portfolio-visual-stage`,
   `.portfolio-visual-stage-media`, `.portfolio-node-mark`,
-  `.portfolio-control-mark`, `.portfolio-mobile-view-control`.
+  `.portfolio-control-mark`, `.portfolio-mobile-view-control`,
+  `.portfolio-feedback`.
 - `.reader-<part>` names the dossier's interior, once you are inside
   `.portfolio-reader`: `.reader-scroll`, `.reader-content`,
   `.reader-summary`, `.reader-composed-body`, `.reader-record-section`,

@@ -2152,6 +2152,164 @@ body:has(.portfolio-reading-room-desktop) {
   width: 32px;
 }
 
+/* Reviewer feedback -------------------------------------------------------
+   Mounted inside the composition only when a reviewer link has set the
+   `portfolio_reviewer` cookie (worker/portfolio-feedback.ts). Sits at the
+   page inset in the bottom-left corner, under the Contents column where the
+   Guide composer never reaches, above the avatar and below the cursor. It borrows the dossier's paper, hairline, and caption voice; Send
+   is the filled control, as in the Guide composer. The picking highlight is
+   the Acid focus ring, so selection introduces no new colour (Rule 6.1). */
+.portfolio-feedback {
+  bottom: var(--reader-space-3);
+  left: var(--reader-space-3);
+  position: fixed;
+  z-index: 900;
+}
+
+.portfolio-feedback-trigger,
+.portfolio-feedback-point {
+  appearance: none;
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0 12px;
+  text-align: left;
+}
+
+.portfolio-feedback-trigger {
+  filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
+  height: 40px;
+}
+
+.portfolio-feedback-point {
+  border-color: var(--map-line);
+  height: 32px;
+}
+
+.portfolio-feedback-point[data-picking="true"] { border-color: var(--focus-ring); }
+
+.portfolio-feedback-panel {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  display: grid;
+  filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
+  gap: var(--reader-space-1);
+  margin: 0;
+  padding: var(--reader-space-2);
+  width: min(320px, calc(100vw - 2 * var(--reader-space-3)));
+}
+
+.portfolio-feedback-head,
+.portfolio-feedback-foot,
+.portfolio-feedback-sent-row {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+  justify-content: space-between;
+}
+
+.portfolio-feedback-eyebrow {
+  color: var(--reader-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.portfolio-feedback textarea {
+  background: transparent;
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  height: 96px;
+  padding: var(--reader-space-1) 12px;
+  resize: none;
+  width: 100%;
+}
+
+.portfolio-feedback textarea::placeholder { color: var(--reader-muted); }
+
+.portfolio-feedback-target,
+.portfolio-feedback-status,
+.portfolio-feedback-sent-row {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+}
+
+.portfolio-feedback-target-name { color: var(--ink); }
+
+.portfolio-feedback-status[data-kind="error"] { color: var(--ink); }
+
+.portfolio-feedback-text-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  flex: 0 0 auto;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.portfolio-feedback-send {
+  appearance: none;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper);
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  padding: 0 12px;
+}
+
+.portfolio-feedback-send:disabled { opacity: 0.4; }
+
+.portfolio-feedback-sent {
+  display: grid;
+  gap: var(--reader-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portfolio-feedback-sent-note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-feedback-highlight {
+  border: 2px solid var(--focus-ring);
+  border-radius: 6px;
+  box-sizing: border-box;
+  pointer-events: none;
+  position: fixed;
+  z-index: 899;
+}
+
+@media (pointer: fine) {
+  .portfolio-feedback-trigger:hover,
+  .portfolio-feedback-point:hover {
+    background: color-mix(in srgb, var(--ink) 8%, var(--reader-paper));
+  }
+}
+
+/* Below the Reading Room breakpoint the mobile tab bar owns the bottom 56px. */
+@media (max-width: 1019px) {
+  .portfolio-feedback {
+    bottom: calc(56px + var(--reader-space-3) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .cursor-instrument {
   height: var(--cursor-size);
   opacity: 0;
