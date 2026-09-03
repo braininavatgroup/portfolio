@@ -8,6 +8,7 @@ import {
   fieldScreenTargets,
   isBlocked,
   segmentDistance,
+  segmentRectClearanceShift,
   segmentRectDistance,
   spreadSeats,
 } from "./portfolio-world-field";
@@ -28,6 +29,23 @@ describe("field", () => {
     expect(segmentRectDistance([{ x: 120, y: 120 }, { x: 300, y: 300 }], box)).toBe(0);
     expect(segmentRectDistance([{ x: 0, y: 170 }, { x: 300, y: 170 }], box)).toBe(20);
     expect(segmentRectDistance([{ x: 230, y: 0 }, { x: 230, y: 300 }], box)).toBe(30);
+  });
+
+  it("nudges a label sideways when a non-incident lit line brushes its text", () => {
+    const line = [{ x: 250, y: 211 }, { x: 346, y: 289 }] as const;
+    const box = { left: 151, top: 198, right: 264, bottom: 213 };
+
+    const shift = segmentRectClearanceShift(line, box, 8);
+    const shifted = {
+      left: box.left + shift.x,
+      top: box.top + shift.y,
+      right: box.right + shift.x,
+      bottom: box.bottom + shift.y,
+    };
+
+    expect(shift.x).toBeLessThan(0);
+    expect(shift.y).toBe(0);
+    expect(segmentRectDistance(line, shifted)).toBeGreaterThanOrEqual(8 - 1e-3);
   });
 
   it("blocks the room around a lit node's label and along a lit line", () => {

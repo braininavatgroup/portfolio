@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AvatarRuntime } from "../lib/avatar/runtime";
 import { PortfolioExperience } from "./PortfolioExperience";
@@ -168,6 +168,55 @@ describe("PortfolioExperience", () => {
     expect(window.location.hash).toBe("#dubs");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
+  });
+
+  it("hides the mounted chat dock while a reader visual is open", async () => {
+    await renderExperience();
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+
+    const visualTrigger = screen.getByRole("button", {
+      name: /Open gallery visual in map: Catch the thought where it happens/,
+    });
+    const chatDock = screen.getByRole("region", {
+      name: "Portfolio assistant dock",
+    });
+
+    visualTrigger.focus();
+    fireEvent.click(visualTrigger);
+
+    expect(chatDock.hidden).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "Open portfolio assistant" }),
+    ).toBeNull();
+
+    const closeButton = screen.getByRole("button", {
+      name: "Close visual in map",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(closeButton));
+    fireEvent.click(closeButton);
+
+    expect(chatDock.hidden).toBe(false);
+    expect(
+      screen.getByRole("region", { name: "Portfolio assistant dock" }),
+    ).toBe(chatDock);
+    await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
+  });
+
+  it("opens a Dubs gallery group at its own first image", async () => {
+    await renderExperience();
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dubs" }));
+
+    fireEvent.click(screen.getByRole("button", {
+      name: /Open gallery visual in map: What accumulates/,
+    }));
+
+    const stage = screen.getByRole("region", {
+      name: /Visual in map:/,
+    });
+    expect(within(stage).getByAltText("The Dubs library showing saved documents and listening progress")).toBeTruthy();
+    expect(within(stage).queryByAltText("Dubs controls available from the iPhone Lock Screen")).toBeNull();
   });
 
   it("exposes neither the old toybox nor the Director shortcut", async () => {

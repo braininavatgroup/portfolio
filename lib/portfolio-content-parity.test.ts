@@ -17,7 +17,16 @@ import {
 type TextBody = {
   paragraphs: Record<string, string>;
   placeholders: Record<string, { prompt: string; questions?: Record<string, string> }>;
-  visuals: Record<string, { purpose: string; alt?: string; caption?: string }>;
+  visuals: Record<string, {
+    purpose: string;
+    alt?: string;
+    caption?: string;
+    slides?: Array<{
+      title: string;
+      caption: string;
+      assets: Array<{ alt: string; label?: string }>;
+    }>;
+  }>;
 };
 
 function extractBody(body: readonly PortfolioBodyBlock[]): TextBody {
@@ -45,6 +54,16 @@ function extractBody(body: readonly PortfolioBodyBlock[]): TextBody {
       purpose: block.purpose,
       ...(block.alt ? { alt: block.alt } : {}),
       ...(block.caption ? { caption: block.caption } : {}),
+      ...(block.slides ? {
+        slides: block.slides.map((slide) => ({
+          title: slide.title,
+          caption: slide.caption,
+          assets: slide.assets.map((asset) => ({
+            alt: asset.alt,
+            ...(asset.label ? { label: asset.label } : {}),
+          })),
+        })),
+      } : {}),
     };
   }
   return out;

@@ -82,9 +82,9 @@ describe("PortfolioReader", () => {
       button.classList.contains("reader-inline-link"),
     );
     expect(links.map((link) => link.textContent)).toEqual([
-      "music promotions agency",
-      "systems and AI consulting practice",
-      "product studio",
+      "music promotions",
+      "systems and AI",
+      "software",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -93,10 +93,12 @@ describe("PortfolioReader", () => {
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
 
-    fireEvent.click(links[0]);
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "music-practice" }),
-    );
+    links.forEach((link) => fireEvent.click(link));
+    expect(onSelect.mock.calls.map(([node]) => node.id)).toEqual([
+      "music-practice",
+      "systems-consulting",
+      "product-studio",
+    ]);
   });
 
   it("draws every contact row as an index row with its own mark", () => {
@@ -293,6 +295,49 @@ describe("PortfolioReader", () => {
     expect(visual.querySelector(".reader-visual-placeholder")).toBeTruthy();
   });
 
+  it("shows every Dubs gallery moment as a separate reader visual", () => {
+    render(<PortfolioReader {...baseProps} selectedId="dubs" />);
+
+    const visuals = document.querySelectorAll(".reader-visual-gallery .reader-visual-trigger");
+    expect(visuals).toHaveLength(3);
+    expect([...visuals].map((visual) => visual.querySelectorAll("img").length)).toEqual([
+      4,
+      3,
+      1,
+    ]);
+    expect(visuals[0].textContent).toContain("Catch the thought where it happens");
+    expect(visuals[1].textContent).toContain("What accumulates");
+    expect(visuals[2].textContent).toContain("Connect your agent");
+    expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
+  });
+
+  it("opens each Dubs gallery group at that group's first image", () => {
+    const onOpenVisual = vi.fn();
+    render(
+      <PortfolioReader
+        {...baseProps}
+        onOpenVisual={onOpenVisual}
+        selectedId="dubs"
+      />,
+    );
+
+    const groups = screen.getAllByRole("button", {
+      name: /Open gallery visual in map:/,
+    });
+    fireEvent.click(groups[1]);
+    expect(onOpenVisual).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "dubs-loop" }),
+      groups[1],
+      4,
+    );
+    fireEvent.click(groups[2]);
+    expect(onOpenVisual).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "dubs-loop" }),
+      groups[2],
+      7,
+    );
+  });
+
   it("marks an in-progress summary as placeholder text", () => {
     const id = [...portfolioWorldNodeById.values()].find(
       (node) => node.summaryStatus === "placeholder",
@@ -304,12 +349,12 @@ describe("PortfolioReader", () => {
     expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
   });
 
-  it("opens image, video, and gallery blocks through the same map control", () => {
+  it("opens image and gallery blocks through the same map control", () => {
     const onOpenVisual = vi.fn();
 
     const cases = [
       { id: "writ", format: "image" },
-      { id: "dubs", format: "video" },
+      { id: "dubs", format: "gallery" },
       { id: "music-practice", format: "gallery" },
     ] as const;
 
@@ -321,15 +366,21 @@ describe("PortfolioReader", () => {
           selectedId={id}
         />,
       );
-      const trigger = screen.getByRole("button", {
-        name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
-      });
+      const trigger = id === "dubs"
+        ? screen.getAllByRole("button", {
+            name: /Open gallery visual in map:/,
+          })[0]
+        : screen.getByRole("button", {
+            name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
+          });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
-      expect(onOpenVisual).toHaveBeenLastCalledWith(
+      const expected = [
         expect.objectContaining({ type: "visual", format }),
         trigger,
-      );
+        ...(id === "dubs" ? [0] : []),
+      ];
+      expect(onOpenVisual).toHaveBeenLastCalledWith(...expected);
       unmount();
     }
   });

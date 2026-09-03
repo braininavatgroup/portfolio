@@ -7,7 +7,7 @@
       "kind": "About",
       "summary": "I make complexity legible enough to act on.",
       "paragraphs": {
-        "p1": "Hey, I'm Bradley. I run Brain in a Vat Group, which includes a [music promotions agency](record:music-practice), a [systems and AI consulting practice](record:systems-consulting), and a [product studio](record:product-studio) focused on software.",
+        "p1": "Hey, I'm Bradley. I run Brain in a Vat Group, which includes a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consulting practice, and a product studio focused on [software](record:product-studio).",
         "p2": "Before founding BiV, I launched and led the music-promotions division at INFAMOUS PR. Prior to that, I studied Philosophy, Politics, and Law, with a Music Industry minor, at the University of Southern California.",
         "p3": "Beyond my work, I enjoy: raving, arguing about the philosophy of consciousness, trading sheep for brick over a Catan board, and the ongoing search for New York City's finest hamburger.",
         "p4": "Thanks for checking out my portfolio!"
@@ -238,7 +238,36 @@
       },
       "visuals": {
         "dubs-loop": {
-          "purpose": "Demonstrate the listen, inline voice or text capture, linked-library, and hand-to-agent loop without requiring the reader to infer the interaction."
+          "purpose": "See how Dubs carries a reaction from the moment it happens into a linked library an agent can use.",
+          "caption": "Capture, accumulated context, and a controlled agent connection in three views.",
+          "slides": [
+            {
+              "title": "Catch the thought where it happens",
+              "caption": "Four frames make the continuity of the interaction visible.",
+              "assets": [
+                { "alt": "Dubs controls available from the iPhone Lock Screen", "label": "Available mid-stride" },
+                { "alt": "Reading and listening to a document in Dubs", "label": "Read and listen" },
+                { "alt": "Writing an inline note while reading in Dubs", "label": "Capture the reaction" },
+                { "alt": "A Dubs markup attached to its source passage", "label": "Keep the context" }
+              ]
+            },
+            {
+              "title": "What accumulates",
+              "caption": "The product moves from interaction craft to a library that records attention and taste.",
+              "assets": [
+                { "alt": "The Dubs library showing saved documents and listening progress", "label": "A linked library" },
+                { "alt": "A tagged view of documents in Dubs", "label": "Recorded taste" },
+                { "alt": "Rules for a Perspective in Dubs", "label": "A chosen perspective" }
+              ]
+            },
+            {
+              "title": "Connect your agent",
+              "caption": "The library becomes context an agent can use, with its scope and authority kept visible.",
+              "assets": [
+                { "alt": "Dubs MCP setup with token and pending authorization controls", "label": "MCP connection" }
+              ]
+            }
+          ]
         }
       }
     },

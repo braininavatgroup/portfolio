@@ -46,6 +46,7 @@ export type PortfolioChatAvatarIntegration = {
 
 export function PortfolioChat({
   avatarIntegration,
+  hidden = false,
   initiallyOpen = false,
   onLayoutChange,
   onOpenChange,
@@ -56,6 +57,7 @@ export function PortfolioChat({
   turnstileSiteKey,
 }: {
   avatarIntegration?: PortfolioChatAvatarIntegration;
+  hidden?: boolean;
   initiallyOpen?: boolean;
   onLayoutChange?: () => void;
   onOpenChange?: (open: boolean) => void;
@@ -497,6 +499,7 @@ export function PortfolioChat({
       data-has-thread={hasThreadContent ? "true" : "false"}
       data-input-focused={inputFocused ? "true" : "false"}
       data-open={open ? "true" : "false"}
+      hidden={hidden}
       style={dockStyle}
     >
       <nav

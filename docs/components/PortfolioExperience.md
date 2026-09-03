@@ -41,3 +41,6 @@ export function PortfolioExperienceExample() {
 - **Keyboard bindings are global**: Escape returns to overview and exact
   Shift+G starts Brain Food on desktop. During the game Escape cancels and
   restores the previous map selection.
+- **Visual state includes its opening frame.** Reader gallery groups pass their
+  flattened asset offset so the map stage opens on the thumbnail that was
+  selected; closing restores focus to that trigger.

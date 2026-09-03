@@ -37,7 +37,18 @@ export type PortfolioContentBodyText = {
     string,
     { prompt: string; questions?: Record<string, string> }
   >;
-  visuals: Record<string, { purpose: string; alt?: string; caption?: string }>;
+  visuals: Record<string, PortfolioContentVisualText>;
+};
+
+export type PortfolioContentVisualText = {
+  purpose: string;
+  alt?: string;
+  caption?: string;
+  slides?: Array<{
+    title: string;
+    caption: string;
+    assets: Array<{ alt: string; label?: string }>;
+  }>;
 };
 
 export type PortfolioContentRecord = PortfolioContentBodyText & {
@@ -187,9 +198,10 @@ function checkBodyText(
   const placeholderBlocks = body.flatMap((block) =>
     block.kind === "copy-placeholder" ? [block] : [],
   );
-  const visualIds = body.flatMap((block) =>
-    block.kind === "visual" ? [block.id] : [],
+  const visualBlocks = body.flatMap((block) =>
+    block.kind === "visual" ? [block] : [],
   );
+  const visualIds = visualBlocks.map(({ id }) => id);
 
   const paragraphs = value.paragraphs;
   if (!isPlainObject(paragraphs)) {
@@ -265,8 +277,9 @@ function checkBodyText(
       }
     }
     for (const [id, entry] of Object.entries(visuals)) {
+      const block = visualBlocks.find((candidate) => candidate.id === id);
       const entryPath = `${basePath}.visuals.${id}`;
-      if (!visualIds.includes(id)) {
+      if (!block) {
         issues.push({ path: entryPath, message: "unknown visual ID" });
         continue;
       }
@@ -280,8 +293,53 @@ function checkBodyText(
           checkString(issues, `${entryPath}.${field}`, entry[field]);
         }
       }
+      if (block.slides || entry.slides !== undefined) {
+        if (!Array.isArray(entry.slides)) {
+          issues.push({ path: `${entryPath}.slides`, message: "must be an array" });
+        } else if (!block.slides || entry.slides.length !== block.slides.length) {
+          issues.push({ path: `${entryPath}.slides`, message: `must contain ${block.slides?.length ?? 0} slides` });
+        } else {
+          entry.slides.forEach((slide, slideIndex) => {
+            const slidePath = `${entryPath}.slides.${slideIndex}`;
+            const skeletonSlide = block.slides![slideIndex];
+            if (!isPlainObject(slide)) {
+              issues.push({ path: slidePath, message: "must be an object" });
+              return;
+            }
+            checkString(issues, `${slidePath}.title`, slide.title);
+            checkString(issues, `${slidePath}.caption`, slide.caption);
+            if (!Array.isArray(slide.assets)) {
+              issues.push({ path: `${slidePath}.assets`, message: "must be an array" });
+            } else if (slide.assets.length !== skeletonSlide.assets.length) {
+              issues.push({ path: `${slidePath}.assets`, message: `must contain ${skeletonSlide.assets.length} assets` });
+            } else {
+              slide.assets.forEach((asset, assetIndex) => {
+                const assetPath = `${slidePath}.assets.${assetIndex}`;
+                if (!isPlainObject(asset)) {
+                  issues.push({ path: assetPath, message: "must be an object" });
+                  return;
+                }
+                checkString(issues, `${assetPath}.alt`, asset.alt);
+                if (asset.label !== undefined) {
+                  checkString(issues, `${assetPath}.label`, asset.label);
+                }
+                for (const key of Object.keys(asset)) {
+                  if (!["alt", "label"].includes(key)) {
+                    issues.push({ path: `${assetPath}.${key}`, message: "unknown visual asset field" });
+                  }
+                }
+              });
+            }
+            for (const key of Object.keys(slide)) {
+              if (!["title", "caption", "assets"].includes(key)) {
+                issues.push({ path: `${slidePath}.${key}`, message: "unknown visual slide field" });
+              }
+            }
+          });
+        }
+      }
       for (const key of Object.keys(entry)) {
-        if (!["purpose", "alt", "caption"].includes(key)) {
+        if (!["purpose", "alt", "caption", "slides"].includes(key)) {
           issues.push({ path: `${entryPath}.${key}`, message: "unknown visual field" });
         }
       }

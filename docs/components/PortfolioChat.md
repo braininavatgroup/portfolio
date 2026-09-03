@@ -14,10 +14,11 @@ and the optional swim action so the avatar can react. State shows as `data-open`
 
 ## Props
 
-No prop is required. `open`/`onOpenChange` make it
-controlled (`initiallyOpen` is the uncontrolled alternative); `askPortfolio`
-and `renderTurnstile` are injection seams defaulting to the real transport and
-widget; `turnstileSiteKey`, `avatarIntegration`, `registerAvatarDock`, and
+No prop is required. `open`/`onOpenChange` make it controlled
+(`initiallyOpen` is the uncontrolled alternative); `hidden` suppresses the
+mounted dock while another floating surface owns the page; `askPortfolio` and
+`renderTurnstile` are injection seams defaulting to the real transport and
+widget. `turnstileSiteKey`, `avatarIntegration`, `registerAvatarDock`, and
 `onLayoutChange` are optional.
 
 ## Requires
