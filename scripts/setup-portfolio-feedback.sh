@@ -61,7 +61,7 @@ STATUS="$(curl -s -o /dev/null -w '%{http_code}' \
 unset TOKEN READBACK
 case "$STATUS" in
   200) done_ "Digest route answers 200 — feedback is live. Try: npm run feedback" ;;
-  404) say "Digest route answers 404: the feedback build is not deployed yet. The secret is in place; once the PR is deployed, \`npm run feedback\` will work." ;;
+  303|404) say "Digest route answers $STATUS: the feedback build is not deployed yet. The secret is in place; once the PR is deployed, \`npm run feedback\` will work." ;;
   *)   say "Digest route answered $STATUS. The secret is set; check the deployment before relying on it." ;;
 esac
 
