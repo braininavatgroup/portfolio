@@ -2239,17 +2239,23 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-feedback-point[data-picking="true"] { border-color: var(--focus-ring); }
 
+/* One column pinned to the panel width: without minmax(0, 1fr) a long
+   single-line note row would widen the track and push every control out. */
 .portfolio-feedback-panel {
   background: var(--reader-paper);
   border: 1px solid var(--map-line-strong);
   border-radius: 6px;
+  box-sizing: border-box;
   display: grid;
   filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
   gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: var(--reader-space-2);
   width: min(320px, calc(100vw - 2 * var(--reader-space-3)));
 }
+
+.portfolio-feedback-panel > * { min-width: 0; }
 
 .portfolio-feedback-head,
 .portfolio-feedback-foot,
@@ -2272,6 +2278,7 @@ body:has(.portfolio-reading-room-mobile) {
   background: transparent;
   border: 1px solid var(--map-line);
   border-radius: 6px;
+  box-sizing: border-box;
   color: var(--ink);
   font: var(--reader-type-body) var(--font-reader);
   height: 96px;
@@ -2324,10 +2331,13 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-feedback-sent {
   display: grid;
   gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
+.portfolio-feedback-sent-row { min-width: 0; }
 
 .portfolio-feedback-sent-note {
   min-width: 0;
@@ -2380,6 +2390,7 @@ body:has(.portfolio-reading-room-mobile) {
   background: transparent;
   border: 1px solid var(--map-line);
   border-radius: 6px;
+  box-sizing: border-box;
   color: var(--ink);
   font: var(--reader-type-caption) var(--font-reader);
   height: 32px;
