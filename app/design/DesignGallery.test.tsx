@@ -50,6 +50,31 @@ describe("design gallery route", () => {
     }
   });
 
+  it("shows the complete control set with SVG-brain patterns in Map and Guide", () => {
+    render(<DesignGallery />);
+
+    const controls = document.querySelectorAll("#marks .portfolio-control-mark");
+    expect(controls).toHaveLength(16);
+
+    for (const kind of ["map", "chat"]) {
+      const mark = document.querySelector(
+        `#marks .portfolio-control-mark[data-control="${kind}"]`,
+      )!;
+      const pattern = mark.querySelector('svg[data-pattern="brain"]')!;
+
+      expect(pattern).not.toBeNull();
+      expect(pattern.querySelector("image")?.getAttribute("href")).toBe(
+        "/biv-brain-symbol.svg",
+      );
+    }
+
+    expect(
+      document
+        .querySelector('#marks .portfolio-control-mark[data-control="chat"] svg > path')
+        ?.getAttribute("stroke-width"),
+    ).toBe("1.15");
+  });
+
   /**
    * The nav is built from the same grouped list the page renders from, so this
    * asserts the two cannot come apart: every section on the page is reachable

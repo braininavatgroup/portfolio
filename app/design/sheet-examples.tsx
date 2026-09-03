@@ -76,12 +76,13 @@ export function PortfolioAnalyticsExample() {
 export function PortfolioNodeMarkExample() {
   // The mark takes its shape from `family` and its color from `register`,
   // and must sit inside a `.portfolio-composition` for `--world-*` to resolve.
-  // A control is the same envelope drawn as a button: glyph, 40px hit box,
-  // and a caption; the accessible name comes from `aria-label`.
+  // Patterned Map and Guide controls use the same SVG brain asset as identity.
+  // The accessible names come from `aria-label`.
   return (
     <div className="portfolio-composition">
-      <PortfolioNodeMark family="operation" register="warm" />
+      <PortfolioNodeMark family="identity" register="identity" />
       <PortfolioControlMark aria-label="Show portfolio map" kind="map" label="Map" />
+      <PortfolioControlMark aria-label="Open the Guide" kind="chat" label="Guide" />
     </div>
   );
 }

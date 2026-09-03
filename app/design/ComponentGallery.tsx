@@ -83,10 +83,9 @@ function NodeMarkGrid() {
       </div>
       <p className="design-note" style={{ marginTop: "18px" }}>
         Glyph is a function of family, colour of register, and the two axes are
-        independent — the register column in the Color section carries the same
-        six values with their token names. The contact marks share the envelope
-        in the identity colour: node primitives for email, CV, and Instagram,
-        filled silhouettes for GitHub and LinkedIn like the brain symbol.
+        independent. Story keeps its register type while sharing Arc red. Map
+        and Guide clip the SVG brain pattern inside their outlines. Contact
+        marks share the envelope in the identity colour.
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 # Design tokens
 
-Status: live inventory for PER-17, 31 August 2026.
+Status: live inventory for the Reading Room, 2 September 2026.
 
 This document maps the values that already exist in `app/globals.css`. It does
 not approve palette changes. `docs/portfolio-design-system-checkpoint.md`
@@ -29,8 +29,8 @@ portfolio-composition work.
 | `--reader-paper-dark` | `#292625` | Dark reader paper | `--reader-paper-light` |
 | `--reader-ink-light` | `#201711` | Brown-black light ink and identity | `--reader-ink-dark` |
 | `--reader-ink-dark` | `#f0e6dc` | Dark-mode ink and identity | `--reader-ink-light` |
-| `--world-lichen` | `#466700` | Lichen Story register | `--world-acid` |
-| `--world-acid` | `#b6df5b` | Acid Story register | `--world-lichen` |
+| `--world-lichen` | `#466700` | Retained legacy Lichen leaf; not used by the Reading Room | `--world-acid` |
+| `--world-acid` | `#b6df5b` | Reading Room focus ring | `--world-lichen` |
 | `--world-hard-red` | `#d7191c` | Hard red Arc register | `--world-signal-red` |
 | `--world-signal-red` | `#ff554a` | Signal red Arc register | `--world-hard-red` |
 | `--world-electric-pink` | `#d0007e` | Electric pink Operations register | `--world-hot-pink` |
@@ -66,6 +66,7 @@ The live shadow tokens are not mode-switched:
 | Token | Light value | Dark value | Role |
 | --- | --- | --- | --- |
 | `--ink` | `--reader-ink-light` | `--reader-ink-dark` | Composition ink |
+| `--focus-ring` | `--world-acid` | `--world-acid` | 2px Reading Room focus ring |
 | `--map-paper` | `--map-silver` | `--map-paper-dark` | World background |
 | `--map-paper-near` | `--map-paper-near-light` | `--map-paper-near-dark` | Near-paper surfaces |
 | `--map-muted` | `--map-muted-light` | `--map-muted-dark` | Map secondary ink |
@@ -77,7 +78,7 @@ The live shadow tokens are not mode-switched:
 | `--reader-body` | `--reader-body-light` | `--reader-body-dark` | Body copy |
 | `--reader-muted` | `--reader-muted-light` | `--reader-muted-dark` | Labels and metadata |
 | `--world-identity` | `--reader-ink-light` | `--reader-ink-dark` | Bradley identity mark |
-| `--world-story` | `--world-lichen` | `--world-acid` | Story marks |
+| `--world-story` | `--world-hard-red` | `--world-signal-red` | Story marks; Story remains a distinct register type but shares Arc's red pair |
 | `--world-arc` | `--world-hard-red` | `--world-signal-red` | From argument to instrument marks |
 | `--world-warm` | `--world-electric-pink` | `--world-hot-pink` | Operations marks |
 | `--world-bridge` | `--world-violet` | `--world-violet-dark` | Bridge marks |
@@ -103,17 +104,21 @@ multiple of 8; these are the multiples it uses.
 
 One type scale, held as `font` shorthands (`weight size/line-height`) and
 written as `font: var(--reader-type-*) var(--font-reader)`. Tracking, case,
-and colour belong to the rule that reads the voice. Nothing on the dossier is
-smaller than 11px; nothing is `clamp()`ed.
+and colour belong to the rule that reads the voice. The 10px tab voice is the
+only voice below 11px and appears only in mobile navigation. Nothing is
+`clamp()`ed.
 
 | Token | Value | Tracking · colour | Use |
 | --- | --- | --- | --- |
 | `--reader-type-display` | `500 36px/40px` | −0.055em · `--ink` | Map mast and every dossier `h1`: home, Index, thread, record. `text-wrap: balance` |
 | `--reader-type-summary` | `400 18px/24px` | −0.01em · `--ink` | Record summary, thread lede |
-| `--reader-type-row` | `400 16px/24px` | 0 · `--ink` | Index, related, explore, and contact rows |
+| `--reader-type-row` | `400 15px/24px` | 0 · `--ink` | Contents, related, explore, and contact rows |
 | `--reader-type-body` | `400 15px/24px` | 0 · `--reader-body` | Paragraphs. `text-wrap: pretty` |
+| `--reader-type-mast` | `500 15px/20px` | 0 · `--ink` | Contents mast and group titles |
+| `--reader-type-secondary` | `400 13px/18px` | 0 · `--reader-muted` | Guide secondary status copy |
 | `--reader-type-caption` | `400 12px/16px` | 0 · `--reader-muted` | Figure captions, placeholder meta, footer controls, control labels (`--ink`), stage count |
-| `--reader-type-label` | `500 11px/16px` | +0.08em · uppercase · `--reader-muted` | Section labels, placeholder labels, stage eyebrow |
+| `--reader-type-label` | `500 11px/16px` | +0.06em · uppercase · `--reader-muted` | Section labels, placeholder labels, stage eyebrow |
+| `--reader-type-tab` | `400 10px/12px` | +0.02em · navigation ink | Mobile tab labels only |
 
 ### Recurring dimensions
 

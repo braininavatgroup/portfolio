@@ -15,7 +15,7 @@ import type {
   PortfolioWorldFamily,
   PortfolioWorldRegister,
 } from "../lib/portfolio-world";
-import type { ComponentPropsWithRef } from "react";
+import { useId, type ComponentPropsWithRef } from "react";
 
 function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimitive[] }) {
   const halfViewBox = PORTFOLIO_NODE_MARK_SIZE * 0.6;
@@ -60,6 +60,62 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
         }
         return null;
       })}
+    </svg>
+  );
+}
+
+function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {
+  const id = useId().replaceAll(":", "");
+  const [outline] = portfolioControlMarkPrimitives(kind);
+  if (outline.kind !== "path") return null;
+
+  const clipId = `portfolio-control-clip-${id}`;
+  const maskId = `portfolio-control-mask-${id}`;
+
+  return (
+    <svg
+      data-pattern="brain"
+      focusable="false"
+      viewBox="-9 -9 18 18"
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <path d={outline.d} fill="currentColor" stroke="none" />
+        </clipPath>
+        <mask
+          className="portfolio-control-pattern-mask"
+          height="18"
+          id={maskId}
+          maskUnits="userSpaceOnUse"
+          width="18"
+          x="-9"
+          y="-9"
+        >
+          <image
+            height="30.6"
+            href="/biv-brain-symbol.svg"
+            preserveAspectRatio="xMidYMid meet"
+            width="30.6"
+            x="-6.3"
+            y="-6.3"
+          />
+        </mask>
+      </defs>
+      <rect
+        clipPath={`url(#${clipId})`}
+        fill="currentColor"
+        height="18"
+        mask={`url(#${maskId})`}
+        stroke="none"
+        width="18"
+        x="-9"
+        y="-9"
+      />
+      <path
+        d={outline.d}
+        fill="none"
+        strokeWidth={kind === "chat" ? 1.15 : undefined}
+      />
     </svg>
   );
 }
@@ -111,7 +167,8 @@ type PortfolioControlMarkProps = Omit<ComponentPropsWithRef<"button">, "children
 
 // A control drawn as a node mark: the glyph alone in the node envelope, an
 // invisible 40px hit box around it, a caption below, and nothing else — no
-// ring, fill, shadow, or pictogram. `map` renders the brain symbol mask.
+// ring, fill, shadow, or pictogram. Map and Guide clip the SVG brain pattern
+// inside their supplied outlines.
 export function PortfolioControlMark({
   className,
   kind,
@@ -127,8 +184,8 @@ export function PortfolioControlMark({
       {...rest}
     >
       <span aria-hidden="true" className="portfolio-control-glyph">
-        {kind === "map" ? (
-          <span className="portfolio-node-brain" />
+        {kind === "map" || kind === "chat" ? (
+          <PatternedControlGlyph kind={kind} />
         ) : (
           <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
         )}

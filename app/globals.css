@@ -75,10 +75,13 @@
      and colour travel with the rule that reads the voice. */
   --reader-type-display: 500 36px/40px;
   --reader-type-summary: 400 18px/24px;
-  --reader-type-row: 400 16px/24px;
+  --reader-type-row: 400 15px/24px;
   --reader-type-body: 400 15px/24px;
+  --reader-type-mast: 500 15px/20px;
+  --reader-type-secondary: 400 13px/18px;
   --reader-type-caption: 400 12px/16px;
   --reader-type-label: 500 11px/16px;
+  --reader-type-tab: 400 10px/12px;
 }
 
 body {
@@ -416,16 +419,16 @@ input:focus-visible {
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-linejoin: miter;
   stroke-width: 1.45;
   width: 18px;
 }
 
 .portfolio-node-brain {
-  -webkit-mask: url("/biv-brain-symbol.png") center / contain no-repeat;
+  -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
   background: currentColor;
   height: 15px;
-  mask: url("/biv-brain-symbol.png") center / contain no-repeat;
+  mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
   width: 15px;
 }
 
@@ -469,9 +472,13 @@ input:focus-visible {
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-linejoin: miter;
   stroke-width: 1.45;
   width: 18px;
+}
+
+.portfolio-control-pattern-mask {
+  mask-type: alpha;
 }
 
 .portfolio-control-mark[data-control="send"] .portfolio-control-glyph svg,
@@ -517,6 +524,7 @@ input:focus-visible {
 }
 
 .portfolio-composition {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-light);
   --map-muted: var(--map-muted-light);
   --map-paper: var(--map-silver);
@@ -529,7 +537,7 @@ input:focus-visible {
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
   --world-identity: var(--reader-ink-light);
-  --world-story: var(--world-lichen);
+  --world-story: var(--world-hard-red);
   --world-arc: var(--world-hard-red);
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
@@ -546,6 +554,7 @@ input:focus-visible {
 
 @media (prefers-color-scheme: dark) {
   .portfolio-composition {
+    --focus-ring: var(--world-acid);
     --ink: var(--reader-ink-dark);
     --map-muted: var(--map-muted-dark);
     --map-paper: var(--map-paper-dark);
@@ -558,7 +567,7 @@ input:focus-visible {
     --map-line-strong: var(--map-line-strong-dark);
     --map-grid: var(--map-grid-dark);
     --world-identity: var(--reader-ink-dark);
-    --world-story: var(--world-acid);
+    --world-story: var(--world-signal-red);
     --world-arc: var(--world-signal-red);
     --world-warm: var(--world-hot-pink);
     --world-bridge: var(--world-violet-dark);
@@ -618,14 +627,14 @@ input:focus-visible {
    in the checkpoint palette — on .reader-index-row and .portfolio-chat-trigger
    among others, which also broke Rule 6.1 ("selection introduces no new
    color"). Scoped with :where() so it carries no specificity: it beats those
-   unscoped rules on source order alone, and every composition rule that sets
-   its own treatment — the 1px world node, the 3px-offset floating controls —
-   still wins. */
+   unscoped rules on source order alone. The Reading Room uses the same Acid
+   ring for every composition control. */
 :where(.portfolio-composition) a:focus-visible,
 :where(.portfolio-composition) button:focus-visible,
 :where(.portfolio-composition) input:focus-visible,
 :where(.portfolio-composition) textarea:focus-visible {
-  outline: 2px solid var(--ink);
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -713,7 +722,7 @@ body:has(.portfolio-composition) {
 }
 
 .portfolio-world-node:focus-visible {
-  outline: 1px solid var(--ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -753,7 +762,7 @@ body:has(.portfolio-composition) {
 .portfolio-visual-stage-head span {
   color: var(--reader-muted);
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -933,7 +942,7 @@ body:has(.portfolio-composition) {
 .reader-record-section h2 {
   color: var(--reader-muted);
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin: 0 0 var(--reader-space-1);
   text-transform: uppercase;
 }
@@ -965,7 +974,7 @@ body:has(.portfolio-composition) {
 }
 
 .reader-index-row:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -1011,7 +1020,7 @@ body:has(.portfolio-composition) {
   color: var(--reader-muted);
   display: block;
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -1091,7 +1100,7 @@ body:has(.portfolio-composition) {
 
 .reader-placeholder-count {
   font: var(--reader-type-label) var(--font-reader);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   position: absolute;
   right: 12px;
   text-transform: uppercase;
@@ -1665,6 +1674,7 @@ body:has(.portfolio-composition) {
 :where([data-theme="light"]) .portfolio-composition,
 .portfolio-composition[data-theme="light"],
 .design-gallery[data-theme="light"] {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-light);
   --map-muted: var(--map-muted-light);
   --map-paper: var(--map-silver);
@@ -1677,7 +1687,7 @@ body:has(.portfolio-composition) {
   --map-line-strong: var(--map-line-strong-light);
   --map-grid: var(--map-grid-light);
   --world-identity: var(--reader-ink-light);
-  --world-story: var(--world-lichen);
+  --world-story: var(--world-hard-red);
   --world-arc: var(--world-hard-red);
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
@@ -1688,6 +1698,7 @@ body:has(.portfolio-composition) {
 :where([data-theme="dark"]) .portfolio-composition,
 .portfolio-composition[data-theme="dark"],
 .design-gallery[data-theme="dark"] {
+  --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-dark);
   --map-muted: var(--map-muted-dark);
   --map-paper: var(--map-paper-dark);
@@ -1700,7 +1711,7 @@ body:has(.portfolio-composition) {
   --map-line-strong: var(--map-line-strong-dark);
   --map-grid: var(--map-grid-dark);
   --world-identity: var(--reader-ink-dark);
-  --world-story: var(--world-acid);
+  --world-story: var(--world-signal-red);
   --world-arc: var(--world-signal-red);
   --world-warm: var(--world-hot-pink);
   --world-bridge: var(--world-violet-dark);
