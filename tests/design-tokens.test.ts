@@ -31,6 +31,27 @@ describe("design token contract", () => {
     expect(dark).toContain("--world-arc: var(--world-signal-red)");
   });
 
+  it("routes every explicit Reading Room focus outline through the Acid alias", async () => {
+    const stylesheet = await readStylesheet();
+    const compositionStart = stylesheet.indexOf(".portfolio-composition {");
+    const galleryStart = stylesheet.indexOf("/* Design gallery", compositionStart);
+    const composition = stylesheet.slice(compositionStart, galleryStart);
+    const focusRules = [...composition.matchAll(/([^{}]*:focus-visible[^{}]*)\{([^}]*)\}/g)];
+    const explicitOutlines = focusRules
+      .filter(([, , declarations]) => /\boutline\s*:/.test(declarations))
+      .map(([, selectors, declarations]) => ({
+        selectors: selectors.trim(),
+        outline: declarations.match(/\boutline\s*:\s*([^;]+);/)?.[1].trim(),
+      }));
+
+    expect(explicitOutlines.length).toBeGreaterThan(0);
+    expect(
+      explicitOutlines.filter(
+        ({ outline }) => outline !== "2px solid var(--focus-ring)",
+      ),
+    ).toEqual([]);
+  });
+
   it("resolves every custom property the stylesheet reads", async () => {
     const stylesheet = await readStylesheet();
     const declared = new Set(

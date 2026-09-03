@@ -348,10 +348,11 @@ an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor`, miter
 joins, and `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
 symbol (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.svg`
-filled with `currentColor`; `PortfolioWorld` paints that SVG at 21px for the
-root node. Map and Guide marks clip the same brain pattern inside their supplied
-hexagon and bubble outlines. The Guide outline alone uses a 1.15 stroke. Contact
-and control marks join the shared envelope.
+filled with `currentColor`. `PortfolioWorld` still paints the retained PNG at
+21px for the root node until Task 4 migrates its canvas image loader. Map and
+Guide marks clip the SVG brain pattern inside their supplied hexagon and bubble
+outlines. The Guide outline alone uses a 1.15 stroke. Contact and control marks
+join the shared envelope.
 
 **Rule 6.5 — Controls are node marks.** Use `PortfolioControlMark` for Reading
 Room chrome and actions. Bar controls may use a 32px square hit area with a 6px
