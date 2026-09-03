@@ -121,9 +121,12 @@ async function handleReviewerLink(url: URL, secret: string) {
   });
   if (REVIEWER_CODE.test(code)) {
     const value = await createReviewerCookieValue(secret, code);
+    // `Secure` only over https: the local dev server is plain http and some
+    // embedded browsers drop Secure cookies there. Production is always https.
+    const secure = url.protocol === "https:" ? " Secure;" : "";
     headers.set(
       "set-cookie",
-      `${REVIEWER_COOKIE}=${value}; Max-Age=${REVIEWER_COOKIE_SECONDS}; Secure; SameSite=Lax; Path=/`,
+      `${REVIEWER_COOKIE}=${value}; Max-Age=${REVIEWER_COOKIE_SECONDS};${secure} SameSite=Lax; Path=/`,
     );
   }
   return new Response(null, { status: 303, headers });

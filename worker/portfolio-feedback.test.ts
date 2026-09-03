@@ -98,6 +98,18 @@ describe("reviewer links", () => {
     ).toBe("alice");
   });
 
+  it("omits Secure on plain http so the local dev server can preview the flow", async () => {
+    const response = await withPortfolioFeedback(
+      new Request("http://localhost:5173/?r=alice"),
+      env(),
+      downstream().next,
+    );
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toMatch(/^portfolio_reviewer=v1\.alice\./u);
+    expect(cookie).not.toContain("Secure");
+    expect(cookie).toContain("SameSite=Lax");
+  });
+
   it("strips an invalid code without issuing a cookie", async () => {
     const response = await withPortfolioFeedback(
       new Request("https://preview.example/?r=Not%20Valid"),
