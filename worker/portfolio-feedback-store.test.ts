@@ -2,9 +2,27 @@ import { describe, expect, it } from "vitest";
 import {
   feedbackNotesToMarkdown,
   MAX_NOTES_PER_REVIEWER,
+  normalizeReviewerCode,
   PortfolioFeedbackObject,
   readFeedbackNoteInput,
 } from "./portfolio-feedback-store";
+
+describe("normalizeReviewerCode", () => {
+  it.each([
+    ["alice", "alice"],
+    ["Sarah Smith", "sarah-smith"],
+    ["sarah.smith@acme.com", "sarah-smith-acme-com"],
+    ["  Élan Vital!! ", "elan-vital"],
+    ["--Acme__Team--", "acme-team"],
+    ["a-very-long-reviewer-name-that-keeps-going-forever", "a-very-long-reviewer-name-that-k"],
+  ])("turns %j into %j", (raw, code) => {
+    expect(normalizeReviewerCode(raw)).toBe(code);
+  });
+
+  it.each(["", "x", "!!!", null, undefined])("rejects %j", (raw) => {
+    expect(normalizeReviewerCode(raw)).toBeNull();
+  });
+});
 
 function storage() {
   const values = new Map<string, unknown>();

@@ -43,6 +43,26 @@ export const MAX_NOTE_LENGTH = 4_000;
 export const MAX_FIELD_LENGTH = 600;
 export const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 
+/**
+ * Turns whatever Bradley typed into a link into a canonical reviewer code, so
+ * `?r=Sarah Smith`, `?r=sarah.smith@acme.com`, or `?r=Élan` all count. Lowercase
+ * ASCII letters, digits and single hyphens, at most 32 characters; null when
+ * nothing usable remains.
+ */
+export function normalizeReviewerCode(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const code = raw
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
+    .replace(/-{2,}/gu, "-")
+    .slice(0, 32)
+    .replace(/-+$/u, "");
+  return REVIEWER_CODE.test(code) ? code : null;
+}
+
 function json(status: number, body: unknown) {
   return Response.json(body, {
     status,
