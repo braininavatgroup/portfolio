@@ -2222,7 +2222,12 @@ body:has(.portfolio-reading-room-mobile) {
   text-align: left;
 }
 
+/* The trigger is the one filled control at rest, like Send: ink on paper so
+   it reads against the dossier in both modes without introducing a colour. */
 .portfolio-feedback-trigger {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--reader-paper);
   filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
   height: 40px;
 }
@@ -2426,7 +2431,11 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-feedback-sent-row[data-focused="true"] .portfolio-feedback-sent-note { color: var(--ink); }
 
 @media (pointer: fine) {
-  .portfolio-feedback-trigger:hover,
+  .portfolio-feedback-trigger:hover {
+    background: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+    border-color: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+  }
+
   .portfolio-feedback-point:hover {
     background: color-mix(in srgb, var(--ink) 8%, var(--reader-paper));
   }
