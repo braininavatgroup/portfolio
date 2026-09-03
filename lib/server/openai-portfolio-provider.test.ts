@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import type { PortfolioChatProviderInput } from "./portfolio-chat-provider";
 import type { PortfolioGroundingEvidence } from "../portfolio-grounding";
-import { allowedAvatarAnimations, avatarBehaviors } from "../avatar/behaviors";
 
 const evidence: PortfolioGroundingEvidence[] = [
   {
@@ -24,40 +23,17 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarSequence: string[];
-  avatarIntent: "ordinary" | "expressive" | "requested";
-  avatarTone: {
-    energy: "low" | "medium" | "high";
-    warmth: "reserved" | "warm";
-    confidence: "uncertain" | "neutral" | "assured";
-    mischief: "none" | "playful";
-  };
-};
-
-type StructuredOutputInput = Omit<
-  StructuredOutput,
-  "avatarIntent" | "avatarTone"
-> &
-  Partial<Pick<StructuredOutput, "avatarIntent" | "avatarTone">>;
-
-const defaultAvatarOutput = {
-  avatarIntent: "ordinary" as const,
-  avatarTone: {
-    energy: "medium" as const,
-    warmth: "warm" as const,
-    confidence: "neutral" as const,
-    mischief: "none" as const,
-  },
+  avatarAction: "none" | "swim_lap";
 };
 
 function completedResponse(
-  output: StructuredOutputInput | string,
+  output: StructuredOutput | string,
   usage?: { input_tokens: number; output_tokens: number; total_tokens: number },
 ) {
   const text =
     typeof output === "string"
       ? output
-      : JSON.stringify({ ...defaultAvatarOutput, ...output });
+      : JSON.stringify(output);
   return Response.json({
     id: "resp_portfolio_test",
     output: [
@@ -77,10 +53,9 @@ function portfolioOutput(
   sentences: StructuredOutput["sentences"],
 ): StructuredOutput {
   return {
-    ...defaultAvatarOutput,
     mode: "portfolio",
     sentences,
-    avatarSequence: ["agree_gesture"],
+    avatarAction: "none",
   };
 }
 
@@ -136,22 +111,14 @@ describe("OpenAI portfolio provider", () => {
       type: "json_schema",
       strict: true,
     });
-    expect(body.text.format.schema.properties.avatarSequence).toMatchObject({
-      type: "array",
-      minItems: 1,
-      maxItems: 3,
-      items: { enum: allowedAvatarAnimations },
+    expect(body.text.format.schema.properties.avatarAction).toMatchObject({
+      enum: ["none", "swim_lap"],
     });
-    expect(body.text.format.schema.properties.avatarIntent).toMatchObject({
-      enum: ["ordinary", "expressive", "requested"],
-    });
-    expect(body.text.format.schema.properties.avatarTone).toMatchObject({
-      type: "object",
-      required: ["energy", "warmth", "confidence", "mischief"],
-    });
-    for (const behavior of avatarBehaviors) {
-      expect(body.instructions).toContain(`${behavior.id}: ${behavior.guidance}`);
-    }
+    expect(body.text.format.schema.properties).not.toHaveProperty("avatarSequence");
+    expect(body.text.format.schema.properties).not.toHaveProperty("avatarTone");
+    expect(body.instructions).toContain(
+      "Choose swim_lap only when the visitor explicitly asks Bradley to swim",
+    );
     expect(body.instructions).not.toContain(
       "Every factual sentence must end with one or more evidence labels",
     );
@@ -199,7 +166,7 @@ describe("OpenAI portfolio provider", () => {
         fetchImplementation: async () =>
           completedResponse({
             mode,
-            avatarSequence: ["agree_gesture"],
+            avatarAction: "none",
             sentences: [
               {
                 text: "The model tried to attach another source. [E2]",
@@ -234,7 +201,7 @@ describe("OpenAI portfolio provider", () => {
       fetchImplementation: async () =>
         completedResponse({
           mode,
-          avatarSequence: ["agree_gesture"],
+          avatarAction: "none",
           sentences: [{ text: answer, evidenceIds: [] }],
         }),
     });
@@ -387,7 +354,7 @@ describe("OpenAI portfolio provider", () => {
         requestBody = String(init?.body);
         return completedResponse({
           mode: "portfolio",
-          avatarSequence: ["shrug"],
+          avatarAction: "none",
           sentences: [
             {
               text: "I don't know Bradley's favorite soup. If he publishes it, this portfolio will gain one strangely important data point.",
@@ -419,9 +386,9 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it("rejects evidence ids outside portfolio mode", async () => {
-    const output: StructuredOutputInput = {
+    const output: StructuredOutput = {
       mode: "general",
-      avatarSequence: ["agree_gesture"],
+      avatarAction: "none",
       sentences: [
         {
           text: "Keep the blade at a steady angle.",
@@ -528,8 +495,8 @@ describe("OpenAI portfolio provider", () => {
     expect(chunks).toEqual(["Grounded. [E1]"]);
   });
 
-  it("reports tone and a validated performance in time for first-text scheduling", async () => {
-    // Catches structured direction arriving too late for the client to coordinate it with the answer.
+  it("reports an explicit swim request in time for post-reaction scheduling", async () => {
+    // Catches the one allowed action arriving too late for the client to queue it after reaction.
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test-server-only",
       model: "portfolio-model-test",
@@ -537,14 +504,7 @@ describe("OpenAI portfolio provider", () => {
         completedResponse({
           mode: "social",
           sentences: [{ text: "Here we go.", evidenceIds: [] }],
-          avatarSequence: ["wave_one_hand", "joyful_dance_with_hand_sway"],
-          avatarIntent: "requested",
-          avatarTone: {
-            energy: "high",
-            warmth: "warm",
-            confidence: "assured",
-            mischief: "playful",
-          },
+          avatarAction: "swim_lap",
         }),
     });
     const lifecycle: string[] = [];
@@ -560,29 +520,36 @@ describe("OpenAI portfolio provider", () => {
 
     expect(lifecycle).toEqual(["effects", "answer:Here we go."]);
     expect(onEffects).toHaveBeenCalledWith({
-      avatarSequence: [
-        { action: "play", animation: "wave_one_hand" },
-        { action: "wait", durationMs: 1_600 },
-        { action: "play", animation: "joyful_dance_with_hand_sway" },
-        { action: "wait", durationMs: 2_800 },
-      ],
-      avatarIntent: "requested",
-      avatarTone: {
-        energy: "high",
-        warmth: "warm",
-        confidence: "assured",
-        mischief: "playful",
-      },
+      avatarAction: "swim_lap",
       issues: [],
     });
   });
 
-  it.each([
-    ["zero", []],
-    ["more than three", ["idle_3", "shrug", "alert", "walking"]],
-    ["unknown", ["dance"]],
-  ])("rejects a %s-behavior structured performance", async (_label, avatarSequence) => {
-    // Catches invalid control data reaching the effect callback.
+  it("reports no effect for an ordinary answer", async () => {
+    const onEffects = vi.fn();
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only",
+      model: "portfolio-model-test",
+      fetchImplementation: async () =>
+        completedResponse({
+          mode: "social",
+          sentences: [{ text: "Hello.", evidenceIds: [] }],
+          avatarAction: "none",
+        }),
+    });
+
+    for await (const _chunk of provider.streamAnswer({
+      question: "Hello",
+      evidence,
+      onEffects,
+    })) {
+      // Consume the complete response.
+    }
+
+    expect(onEffects).toHaveBeenCalledWith({ avatarAction: null, issues: [] });
+  });
+
+  it("rejects an unknown avatar action before it reaches the effect callback", async () => {
     const onEffects = vi.fn();
     const onFailure = vi.fn();
     const provider = createOpenAIPortfolioProvider({
@@ -592,8 +559,8 @@ describe("OpenAI portfolio provider", () => {
         completedResponse({
           mode: "social",
           sentences: [{ text: "Nope.", evidenceIds: [] }],
-          avatarSequence,
-        }),
+          avatarAction: "dance",
+        } as unknown as StructuredOutput),
     });
 
     await expect(async () => {

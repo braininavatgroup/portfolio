@@ -66,16 +66,12 @@ describe("portfolio chat route handler", () => {
     ]);
   });
 
-  it("emits validated agent motion before the first answer delta", async () => {
-    // Catches model-selected direction being buffered until after the answer stream.
+  it("emits a validated swim request before the first answer delta", async () => {
+    // Catches the explicit swim request being buffered until after the answer stream.
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onEffects }) {
         onEffects?.({
-          avatarSequence: [
-            { action: "play", animation: "wave_one_hand" },
-            { action: "wait", durationMs: 1_600 },
-            { action: "play", animation: "joyful_dance_with_hand_sway" },
-          ],
+          avatarAction: "swim_lap",
           issues: [],
         });
         yield "It keeps the final approval human. [E3]";
@@ -95,11 +91,7 @@ describe("portfolio chat route handler", () => {
       {
         type: "effects",
         effects: {
-          avatarSequence: [
-            { action: "play", animation: "wave_one_hand" },
-            { action: "wait", durationMs: 1_600 },
-            { action: "play", animation: "joyful_dance_with_hand_sway" },
-          ],
+          avatarAction: "swim_lap",
           issues: [],
         },
       },
@@ -111,14 +103,12 @@ describe("portfolio chat route handler", () => {
     ]);
   });
 
-  it("does not emit motion when answer validation fails", async () => {
+  it("does not emit a swim request when answer validation fails", async () => {
     // Catches optional avatar work surviving a rejected primary answer.
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ onEffects }) {
         onEffects?.({
-          avatarSequence: [
-            { action: "play", animation: "joyful_dance_with_hand_sway" },
-          ],
+          avatarAction: "swim_lap",
           issues: [],
         });
         yield "This cites an unknown source. [E99]";
