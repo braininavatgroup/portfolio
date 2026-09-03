@@ -136,6 +136,29 @@ artifact without rebuilding or overwriting it. If gate readback or dispatch
 fails, the wizard verifies a compensating reset to `false`; ordinary later
 tested `main` pushes still deploy automatically while the gate remains armed.
 
+### Reviewer feedback on the preview
+
+Design partners leave notes on the password-protected preview without seeing
+each other's, and without a note ever persisting into their own later visits.
+Mint a link per person with `npm run feedback -- --link alice`; it is the site
+URL with `?r=alice`. Opening it (after the shared password) sets a signed,
+90-day `portfolio_reviewer` cookie and redirects to the clean URL. From then
+on a "Leave a note" control sits in the bottom-left corner: a note, an
+optional pointer at one element on the page, and Send. Notes go to the
+`PORTFOLIO_FEEDBACK` Durable Object through `worker/portfolio-feedback.ts`;
+the widget keeps only the current visit's notes in memory so a reviewer can
+take one back.
+
+Run `npm run setup:feedback` once from your own terminal: it mints the admin
+token, sets it as the required Worker secret `PORTFOLIO_FEEDBACK_ADMIN_TOKEN`
+through your Wrangler login, and stores it in your login Keychain. Re-running
+rotates it. Then `npm run feedback` prints the digest (add `-- --json` for raw
+notes), reading the token from the Keychain or from
+`PORTFOLIO_FEEDBACK_ADMIN_TOKEN` if set. The admin route sits outside the
+password gate and accepts only that bearer token, so it never needs the
+preview password. The whole feature is dormant unless
+`PORTFOLIO_FEEDBACK_ENABLED` is `"true"`, which only the main preview sets.
+
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service. `npm run eval:chat -- --model <id>` runs it against a live provider — real, billable calls, so it is deliberately not in CI.
 
 ## Verification

@@ -26,6 +26,7 @@ test("the site-preview config cannot attach production routes or chat-specific p
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
     OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
     OPENAI_PORTFOLIO_REASONING_EFFORT: "medium",
+    PORTFOLIO_FEEDBACK_ENABLED: "false",
   });
   assert.deepEqual(config.durable_objects, {
     bindings: [
@@ -33,12 +34,20 @@ test("the site-preview config cannot attach production routes or chat-specific p
         name: "PORTFOLIO_CHAT_BUDGET",
         class_name: "PortfolioChatBudgetObject",
       },
+      {
+        name: "PORTFOLIO_FEEDBACK",
+        class_name: "PortfolioFeedbackObject",
+      },
     ],
   });
   assert.deepEqual(config.migrations, [
     {
       tag: "v1",
       new_sqlite_classes: ["PortfolioChatBudgetObject"],
+    },
+    {
+      tag: "v2",
+      new_sqlite_classes: ["PortfolioFeedbackObject"],
     },
   ]);
   assert.deepEqual(config.secrets, { required: ["OPENAI_API_KEY"] });

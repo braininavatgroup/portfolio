@@ -53,6 +53,10 @@ Provision these only as encrypted secrets on the dedicated Worker:
 - `OPENAI_API_KEY`
 - `PORTFOLIO_MAIN_PREVIEW_PASSWORD`
 - `PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET`
+- `PORTFOLIO_FEEDBACK_ADMIN_TOKEN` — the bearer token for the reviewer
+  feedback digest (`npm run feedback`); at least 32 characters, held only by
+  Bradley. Missing or short, the admin route answers 404 while reviewer notes
+  still record.
 
 Use a strong shared passphrase for the password and an independently generated
 high-entropy signing secret. Never place either value in GitHub source,

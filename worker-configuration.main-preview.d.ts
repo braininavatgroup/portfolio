@@ -9,15 +9,18 @@ interface __BaseEnv_Env {
 	PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200";
 	OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra";
 	OPENAI_PORTFOLIO_REASONING_EFFORT: "medium";
+	PORTFOLIO_FEEDBACK_ENABLED: "true";
 	OPENAI_API_KEY: string;
 	PORTFOLIO_MAIN_PREVIEW_PASSWORD: string;
 	PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET: string;
+	PORTFOLIO_FEEDBACK_ADMIN_TOKEN: string;
 	PORTFOLIO_CHAT_BUDGET: DurableObjectNamespace<import("./dist/server/index").PortfolioChatBudgetObject>;
+	PORTFOLIO_FEEDBACK: DurableObjectNamespace<import("./dist/server/index").PortfolioFeedbackObject>;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./dist/server/index");
-		durableNamespaces: "PortfolioChatBudgetObject";
+		durableNamespaces: "PortfolioChatBudgetObject" | "PortfolioFeedbackObject";
 	}
 	interface Env extends __BaseEnv_Env {}
 }
@@ -26,7 +29,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED" | "PORTFOLIO_CHAT_TURNSTILE_REQUIRED" | "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT" | "OPENAI_PORTFOLIO_MODEL" | "OPENAI_PORTFOLIO_REASONING_EFFORT" | "OPENAI_API_KEY" | "PORTFOLIO_MAIN_PREVIEW_PASSWORD" | "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED" | "PORTFOLIO_CHAT_TURNSTILE_REQUIRED" | "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT" | "OPENAI_PORTFOLIO_MODEL" | "OPENAI_PORTFOLIO_REASONING_EFFORT" | "PORTFOLIO_FEEDBACK_ENABLED" | "OPENAI_API_KEY" | "PORTFOLIO_MAIN_PREVIEW_PASSWORD" | "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET" | "PORTFOLIO_FEEDBACK_ADMIN_TOKEN">> {}
 }
 
 // Begin runtime types

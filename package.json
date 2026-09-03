@@ -16,6 +16,7 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "setup:chat": "bash scripts/setup-portfolio-chat.sh",
     "setup:main-preview": "bash scripts/setup-main-preview.sh",
+    "setup:feedback": "bash scripts/setup-portfolio-feedback.sh",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",
@@ -23,7 +24,8 @@
     "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel TURNSTILE_SECRET_KEY=turnstile-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/main-preview-worker-config.test.mjs tests/main-preview-workflow.test.mjs tests/preview-worker-config.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern worker-configuration.main-preview.d.ts",
     "eval:chat": "tsx scripts/run-portfolio-chat-eval.ts",
-    "deadcode": "knip --include files,dependencies"
+    "deadcode": "knip --include files,dependencies",
+    "feedback": "node scripts/portfolio-feedback.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",

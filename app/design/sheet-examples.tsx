@@ -20,6 +20,7 @@ import {
 import { PortfolioChat } from "../../components/PortfolioChat";
 import { PortfolioContents } from "../../components/PortfolioContents";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
+import { PortfolioFeedback } from "../../components/PortfolioFeedback";
 import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import { PortfolioReadingRoom } from "../../components/PortfolioReadingRoom";
 import { PortfolioReader } from "../../components/PortfolioReader";
@@ -52,6 +53,26 @@ export function CursorInstrumentExample() {
   return (
     <div className="portfolio-composition">
       <CursorInstrument />
+    </div>
+  );
+}
+// #example-end
+
+// #example:PortfolioFeedback
+export function PortfolioFeedbackExample() {
+  // In production it takes no props: the reviewer comes from the cookie the
+  // worker sets from a `?r=<code>` link, and notes post to the worker's
+  // `/_portfolio-feedback/notes` route. Both are seams here, so this example
+  // never leaves the page.
+  return (
+    <div className="portfolio-composition">
+      <PortfolioFeedback
+        reviewer="alice"
+        transport={{
+          send: async (draft) => ({ ...draft, reviewer: "alice", id: "example", createdAt: 0 }),
+          remove: async () => {},
+        }}
+      />
     </div>
   );
 }
