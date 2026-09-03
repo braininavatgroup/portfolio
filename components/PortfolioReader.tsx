@@ -19,7 +19,6 @@ import {
   portfolioThreadById,
   portfolioVisualFormat,
   isPortfolioVisualReady,
-  portfolioWorldIndexSections,
   portfolioWorldLinks,
   portfolioWorldNodeById,
   type PortfolioBodyBlock,
@@ -34,12 +33,13 @@ const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
 
 type PortfolioReaderProps = {
   activeThreadId: string | null;
+  /** @deprecated Ignored. Task 6 removes this prop with the remaining callers. */
+  indexOpen?: boolean;
   onOpenVisual?: (
     block: PortfolioVisualBlock,
     trigger: HTMLButtonElement,
   ) => void;
-  /** True when the footer's Index control has opened the index state. */
-  indexOpen?: boolean;
+  /** @deprecated Ignored. Task 6 removes this prop with the remaining callers. */
   onOpenIndex?: () => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
@@ -47,8 +47,8 @@ type PortfolioReaderProps = {
   selectedId: string | null;
 };
 
-// Every row on the dossier — index, related, explore, contact — is one shape:
-// a label in the row voice and the record's mark trailing in its register.
+// Every Reader row is one shape: a label in the row voice and the record's
+// mark trailing in its register.
 function IndexRow({
   node,
   onSelect,
@@ -88,44 +88,6 @@ function ThreadIndexRow({
         <PortfolioNodeMark family={node.family} register={node.register} />
       </button>
     </li>
-  );
-}
-
-function ReaderIndex({
-  onSelect,
-  onSelectThread,
-}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread">) {
-  return (
-    <div className="reader-content reader-index-content">
-      <EditableText
-        as="h1"
-        path="interface.reader.indexTitle"
-        value={portfolioInterfaceText["reader.indexTitle"]}
-      />
-      {portfolioWorldIndexSections.map((section) => (
-        <section className="reader-index-group" key={section.id}>
-          <EditableText
-            as="h2"
-            path={`interface.${section.titleKey}`}
-            value={section.title}
-          />
-          <ul className="reader-rows">
-            {section.type === "threads"
-              ? portfolioThreads.map((thread) => (
-                  <ThreadIndexRow
-                    key={thread.id}
-                    onSelect={onSelectThread}
-                    thread={thread}
-                  />
-                ))
-              : section.nodeIds.map((nodeId) => {
-                  const node = portfolioWorldNodeById.get(nodeId);
-                  return node ? <IndexRow key={node.id} node={node} onSelect={onSelect} /> : null;
-                })}
-          </ul>
-        </section>
-      ))}
-    </div>
   );
 }
 
@@ -508,7 +470,7 @@ function WorldRecord({
   /**
    * The About record doubles as the home state: its summary is the title
    * (the map mast already carries the name), Contact follows the body, and
-   * there is no Related section, which the index state covers.
+   * there is no Related section, which Contents covers.
    */
   home?: boolean;
   node: PortfolioWorldNode;
@@ -584,16 +546,12 @@ function WorldRecord({
 
 export function PortfolioReader({
   activeThreadId,
-  indexOpen = false,
-  onOpenIndex,
   onOpenVisual,
-  onReset,
   onSelect,
   onSelectThread,
   selectedId,
 }: PortfolioReaderProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const indexScrollTop = useRef(0);
   const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   // The About record is the home state, so selecting it lands on home.
   const node = selected?.id === HOME_NODE_ID ? undefined : selected;
@@ -602,16 +560,12 @@ export function PortfolioReader({
     ? "record"
     : thread
       ? "thread"
-      : indexOpen
-        ? "index"
-        : "home";
+      : "about";
   const label = node && node.outlineType !== "why"
     ? `${node.label} record`
     : thread
       ? `${thread.title} thread`
-      : mode === "index"
-        ? "Portfolio index"
-        : "Portfolio home";
+      : "Portfolio home";
   // Not read during render: the server yields false and a client with
   // ?review=clean yields true, so reading it inline changed the className
   // between the server HTML and the first client render. The subscribe
@@ -622,12 +576,11 @@ export function PortfolioReader({
     () => false,
   );
 
-  // The index keeps its scroll position across a round trip; everything else
-  // opens at its top, so a row tapped far down the index does not open the
-  // record already scrolled past its title.
+  // Every selection opens at its top. The scroll element stays mounted so the
+  // Reading Room can move this Reader between slots without replacing it.
   useLayoutEffect(() => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTop = mode === "index" ? indexScrollTop.current : 0;
+    scrollRef.current.scrollTop = 0;
   }, [activeThreadId, mode, selectedId]);
 
   return (
@@ -638,9 +591,6 @@ export function PortfolioReader({
     >
       <div
         className="reader-scroll"
-        onScroll={(event) => {
-          if (mode === "index") indexScrollTop.current = event.currentTarget.scrollTop;
-        }}
         ref={scrollRef}
       >
         {node && node.outlineType !== "why" ? (
@@ -657,8 +607,6 @@ export function PortfolioReader({
             onSelectThread={onSelectThread}
             threadId={thread.id}
           />
-        ) : mode === "index" ? (
-          <ReaderIndex onSelect={onSelect} onSelectThread={onSelectThread} />
         ) : (
           <WorldRecord
             home
@@ -668,9 +616,9 @@ export function PortfolioReader({
             onSelectThread={onSelectThread}
           />
         )}
-        {/* Privacy is the dossier's last line: it appears only once the
-            reader has scrolled to the end, on the same 24 inset as the
-            Index control and the chat mark. */}
+        <EditorStatusLine />
+        {/* Privacy is the dossier's last line and appears only once the
+            reader has scrolled to the end. */}
         <a className="reader-privacy" href="/privacy">
           <EditableText
             path="interface.reader.privacyLink"
@@ -678,29 +626,6 @@ export function PortfolioReader({
           />
         </a>
       </div>
-      {/* One text control laid over the scroll area's bottom-left corner, on
-          the page's 24 inset: Index everywhere but the index, where it is
-          Home. Content scrolls beneath it. */}
-      <footer className="portfolio-reader-footer">
-        <nav aria-label="Dossier" className="reader-footer-links">
-          {mode === "index" ? (
-            <button aria-label="Portfolio home" onClick={onReset} type="button">
-              <EditableText
-                path="interface.reader.backButton"
-                value={portfolioInterfaceText["reader.backButton"]}
-              />
-            </button>
-          ) : onOpenIndex ? (
-            <button aria-label="Portfolio index" onClick={onOpenIndex} type="button">
-              <EditableText
-                path="interface.reader.indexTitle"
-                value={portfolioInterfaceText["reader.indexTitle"]}
-              />
-            </button>
-          ) : null}
-        </nav>
-        <EditorStatusLine />
-      </footer>
     </aside>
   );
 }

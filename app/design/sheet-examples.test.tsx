@@ -53,7 +53,7 @@ afterEach(() => {
 
 describe("cheat-sheet examples", () => {
   it("exports one example per sheet", () => {
-    expect(exampleNames).toHaveLength(19);
+    expect(exampleNames).toHaveLength(20);
   });
 
   /**
@@ -61,8 +61,8 @@ describe("cheat-sheet examples", () => {
    * can silently shrink to zero — and vitest reports `it.each([])` as a pass.
    * Pin the count so deleting a mount is a failure, not a quiet no-op.
    */
-  it("actually mounts fifteen examples", () => {
-    expect(renderable).toHaveLength(15);
+  it("actually mounts sixteen examples", () => {
+    expect(renderable).toHaveLength(16);
     expect(webglExamples.length + separatelyCovered.length + renderable.length).toBe(
       exampleNames.length,
     );

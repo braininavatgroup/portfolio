@@ -1,0 +1,121 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  portfolioThreads,
+  portfolioWorldIndexSections,
+  portfolioWorldNodeById,
+} from "../lib/portfolio-world";
+import { PortfolioContents } from "./PortfolioContents";
+
+afterEach(cleanup);
+
+const baseProps = {
+  activeThreadId: null,
+  onHome: () => {},
+  onSelect: () => {},
+  onSelectThread: () => {},
+  selectedId: null,
+};
+
+describe("PortfolioContents", () => {
+  it("renders Home as the mast above the shared editorial groups", () => {
+    const { container } = render(<PortfolioContents {...baseProps} />);
+
+    const home = screen.getByRole("button", { name: "Portfolio home" });
+    const mast = home.closest(".portfolio-contents-mast")!;
+    expect(home.textContent).toContain("Bradley Berkman");
+    expect(mast.querySelector('[data-control="sidebarLeft"]')).toBeTruthy();
+    expect(home.querySelector('[data-family="identity"]')).toBeTruthy();
+    expect(
+      [...container.querySelectorAll(".portfolio-contents-group > h2")].map(
+        (heading) => heading.textContent,
+      ),
+    ).toEqual(portfolioWorldIndexSections.map(({ title }) => title));
+  });
+
+  it("uses one responsive Contents row contract with trailing 18px marks", () => {
+    const { container } = render(<PortfolioContents {...baseProps} />);
+
+    const rows = [...container.querySelectorAll(".portfolio-contents-row")];
+    expect(rows).toHaveLength(16);
+    for (const row of rows) {
+      expect(row.tagName).toBe("BUTTON");
+      expect(row.getAttribute("data-row-size")).toBe("contents");
+      expect(row.parentElement?.tagName).toBe("LI");
+      expect(row.querySelectorAll(".portfolio-node-mark")).toHaveLength(1);
+      expect(row.lastElementChild?.classList.contains("portfolio-node-mark")).toBe(true);
+    }
+  });
+
+  it("uses the handoff's compact intent without replacing authoritative labels", () => {
+    render(<PortfolioContents {...baseProps} />);
+
+    expect(screen.getByRole("button", { name: "Brain in a Vat Music Promotions Agency" }).textContent).toContain(
+      "Music Promotions Agency",
+    );
+    expect(screen.getByRole("button", { name: "Brain in a Vat Systems & AI Consulting" }).textContent).toContain(
+      "Systems & AI Consulting",
+    );
+    expect(screen.getByRole("button", { name: "Music promo campaign kickoff" }).textContent).toContain(
+      "Campaign kickoff",
+    );
+  });
+
+  it("marks the selected record with its native register", () => {
+    const selected = portfolioWorldNodeById.get("kickoff")!;
+    render(<PortfolioContents {...baseProps} selectedId={selected.id} />);
+
+    const row = screen.getByRole("button", { name: selected.label });
+    expect(row.getAttribute("data-selected")).toBe("true");
+    expect(row.getAttribute("data-register")).toBe(selected.register);
+    expect(row.querySelector(".portfolio-node-mark")?.getAttribute("data-register")).toBe(
+      selected.register,
+    );
+  });
+
+  it("routes record and thread rows through their distinct selection callbacks", () => {
+    const onSelect = vi.fn();
+    const onSelectThread = vi.fn();
+    const record = portfolioWorldNodeById.get("dubs")!;
+    const thread = portfolioThreads[0];
+    render(
+      <PortfolioContents
+        {...baseProps}
+        activeThreadId={thread.id}
+        onSelect={onSelect}
+        onSelectThread={onSelectThread}
+      />,
+    );
+
+    const threadGroup = screen.getByRole("heading", { name: "Threads" }).closest("section")!;
+    const threadRow = within(threadGroup).getByRole("button", { name: thread.title });
+    expect(threadRow.getAttribute("data-selected")).toBe("true");
+    fireEvent.click(threadRow);
+    expect(onSelectThread).toHaveBeenCalledWith(thread.id);
+
+    fireEvent.click(screen.getByRole("button", { name: record.label }));
+    expect(onSelect).toHaveBeenCalledWith(record);
+  });
+
+  it("hands Home and row selections to the mobile Reader when requested", () => {
+    const onHome = vi.fn();
+    const onNavigate = vi.fn();
+    const record = portfolioWorldNodeById.get("writ")!;
+    render(
+      <PortfolioContents
+        {...baseProps}
+        onHome={onHome}
+        onNavigate={onNavigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: record.label }));
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Portfolio home" }));
+    expect(onHome).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledTimes(2);
+  });
+});

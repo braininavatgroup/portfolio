@@ -18,6 +18,7 @@ import {
   PortfolioAnalyticsPreference,
 } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
+import { PortfolioContents } from "../../components/PortfolioContents";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
 import { PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
 import { PortfolioReader } from "../../components/PortfolioReader";
@@ -83,6 +84,28 @@ export function PortfolioNodeMarkExample() {
       <PortfolioNodeMark family="identity" register="identity" />
       <PortfolioControlMark aria-label="Show portfolio map" kind="map" label="Map" />
       <PortfolioControlMark aria-label="Open the Guide" kind="chat" label="Guide" />
+    </div>
+  );
+}
+// #example-end
+
+// #example:PortfolioContents
+export function PortfolioContentsExample() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+
+  return (
+    <div className="portfolio-composition">
+      <PortfolioContents
+        activeThreadId={activeThreadId}
+        onHome={() => {
+          setSelectedId(null);
+          setActiveThreadId(null);
+        }}
+        onSelect={(node) => setSelectedId(node.id)}
+        onSelectThread={setActiveThreadId}
+        selectedId={selectedId}
+      />
     </div>
   );
 }
