@@ -33,6 +33,7 @@ import {
 } from "react";
 import {
   DEFAULT_READING_ROOM_LAYOUT,
+  readingRoomMinimums,
   parseReadingRoomLayout,
   serializeReadingRoomLayout,
   setReadingRoomViewHidden,
@@ -123,6 +124,22 @@ function getDesktopSnapshot() {
 
 function getDesktopServerSnapshot() {
   return true;
+}
+
+function subscribeViewportWidth(listener: () => void) {
+  window.addEventListener("resize", listener);
+  return () => window.removeEventListener("resize", listener);
+}
+
+function getViewportWidth() {
+  return window.innerWidth;
+}
+
+// The server guesses the narrowest desktop. Minimums may only grow after
+// hydration: growing pushes panel sizes up, while shrinking from a too-wide
+// guess would first collapse Contents and the right column on tablets.
+function getViewportWidthServerSnapshot() {
+  return 1020;
 }
 
 function getBrowserStorage() {
@@ -395,6 +412,14 @@ export function PortfolioReadingRoom({
     getDesktopSnapshot,
     getDesktopServerSnapshot,
   );
+  const viewportWidth = useSyncExternalStore(
+    subscribeViewportWidth,
+    getViewportWidth,
+    getViewportWidthServerSnapshot,
+  );
+  // Below 1382px the three regions shrink together so the page never scrolls
+  // sideways (tablet portrait reads as a fixed window, like a laptop).
+  const minimums = readingRoomMinimums(viewportWidth);
   const layoutStorage = useMemo(
     () => storage ?? getBrowserStorage(),
     [storage],
@@ -751,7 +776,7 @@ export function PortfolioReadingRoom({
             defaultSize={320}
             groupResizeBehavior="preserve-pixel-size"
             id="contents"
-            minSize={300}
+            minSize={minimums.contents}
             onResize={(size: PanelSize) => setContentsCollapsed(size.inPixels === 0)}
             panelRef={contentsPanelRef}
           >
@@ -772,18 +797,18 @@ export function PortfolioReadingRoom({
               event,
               "reading-room-outer",
               "left",
-              300,
+              minimums.contents,
               closeContents,
             )}
           />
-          <Panel id="workspace" minSize={1081}>
+          <Panel id="workspace" minSize={minimums.workspace}>
             <Group
               defaultLayout={primaryPersistence.defaultLayout}
               id="reading-room-primary"
               onLayoutChanged={persistAndNotify(primaryPersistence.onLayoutChanged)}
               orientation="horizontal"
             >
-              <Panel defaultSize={`${DEFAULT_READING_ROOM_LAYOUT.split * 100}%`} id="main" minSize={720}>
+              <Panel defaultSize={`${DEFAULT_READING_ROOM_LAYOUT.split * 100}%`} id="main" minSize={minimums.main}>
                 <DesktopSlot
                   activeDragView={activeDragView}
                   bodyRef={slotBodies.main}
@@ -801,7 +826,7 @@ export function PortfolioReadingRoom({
                   event,
                   "reading-room-primary",
                   "right",
-                  360,
+                  minimums.right,
                   collapseRight,
                 )}
               />
@@ -811,7 +836,7 @@ export function PortfolioReadingRoom({
                 data-collapsed={rightCollapsed ? "true" : "false"}
                 defaultSize={`${(1 - DEFAULT_READING_ROOM_LAYOUT.split) * 100}%`}
                 id="right"
-                minSize={360}
+                minSize={minimums.right}
                 onResize={(size: PanelSize) => setRightCollapsed(size.inPixels === 0)}
                 panelRef={rightPanelRef}
               >

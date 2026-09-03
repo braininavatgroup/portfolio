@@ -150,3 +150,30 @@ export function setReadingRoomViewHidden(
 export function visibleReadingRoomSlots(state: ReadingRoomLayoutState): ReadingRoomSlot[] {
   return READING_ROOM_SLOTS.filter((slot) => !state.hidden.includes(state.slots[slot]));
 }
+
+/** The viewport width at which the handoff's full minimums (300 + 720 + 360) fit. */
+export const FULL_DESKTOP_WIDTH = 1382;
+
+export type ReadingRoomMinimums = {
+  contents: number;
+  main: number;
+  right: number;
+  /** main + separator + right: the workspace panel's own minimum. */
+  workspace: number;
+};
+
+/**
+ * Panel minimums for a desktop viewport. At and above 1382px the handoff's
+ * minimums apply. Below it (tablet portrait, small laptops) the three regions
+ * shrink to a compact desktop whose minimums always sum to the viewport, so
+ * the page never scrolls sideways: Contents 240, right 320, main the rest.
+ */
+export function readingRoomMinimums(viewportWidth: number): ReadingRoomMinimums {
+  if (viewportWidth >= FULL_DESKTOP_WIDTH) {
+    return { contents: 300, main: 720, right: 360, workspace: 1081 };
+  }
+  const contents = 240;
+  const right = 320;
+  const main = Math.max(420, Math.floor(viewportWidth) - contents - right - 2);
+  return { contents, main, right, workspace: main + 1 + right };
+}

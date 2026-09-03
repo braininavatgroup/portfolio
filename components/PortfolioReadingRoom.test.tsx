@@ -108,6 +108,7 @@ function slot(container: HTMLElement, name: "main" | "top" | "bottom") {
 }
 
 beforeEach(() => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440, writable: true });
   desktop = true;
   mediaListeners.clear();
   installMatchMedia();
@@ -175,11 +176,12 @@ describe("PortfolioReadingRoom desktop", () => {
 
     expect(source).toContain('defaultSize={320}');
     expect(source).toContain('groupResizeBehavior="preserve-pixel-size"');
-    expect(source).toContain('id="contents"\n            minSize={300}');
-    expect(source).toContain('<Panel id="workspace" minSize={1081}>');
+    expect(source).toContain('id="contents"\n            minSize={minimums.contents}');
+    expect(source).toContain('<Panel id="workspace" minSize={minimums.workspace}>');
+    expect(source).toContain("const minimums = readingRoomMinimums(viewportWidth);");
     expect(source).toContain('DEFAULT_READING_ROOM_LAYOUT.split * 100');
-    expect(source).toContain('id="main" minSize={720}');
-    expect(source).toContain('id="right"\n                minSize={360}');
+    expect(source).toContain('id="main" minSize={minimums.main}');
+    expect(source).toContain('id="right"\n                minSize={minimums.right}');
     expect(source).toContain("const SIDE_SLOT_MIN_HEIGHT = 240;");
     expect(source).toContain('<Panel defaultSize="40%" id="top" minSize={SIDE_SLOT_MIN_HEIGHT}>');
     expect(source).toContain('defaultSize="60%"\n                    id="bottom"\n                    minSize={SIDE_SLOT_MIN_HEIGHT}');
@@ -733,6 +735,13 @@ describe("Reading Room stylesheet", () => {
     expect(bar).toContain("height: 40px");
     expect(top).toContain("height: 44px");
     expect(tabs).toContain("height: 56px");
+    const contentsRow = stylesheet.match(/\.portfolio-contents-row\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(contentsRow).toContain("min-height: 28px");
+    expect(contentsRow).not.toMatch(/\n\s*height: 28px/);
+    expect(tabs).toContain("env(safe-area-inset-bottom, 0px)");
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile\s*\{[^}]*height:\s*100dvh/);
+    expect(stylesheet).toMatch(/body:has\(\.portfolio-reading-room-mobile\)\s*\{[^}]*overflow:\s*hidden/);
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-map-page:has\(\.portfolio-chat-composer textarea:focus\)\s*\{[^}]*grid-template-rows:\s*0 minmax\(0, 1fr\)/);
     expect(mobilePages).toContain("grid-template-rows: 52% 48%");
     expect(avatar).toContain("height: 96px");
     expect(avatar).toContain("width: 96px");
@@ -761,8 +770,9 @@ describe("Reading Room stylesheet", () => {
     expect(stylesheet).toMatch(/\.portfolio-reading-room-view-bar\[data-dnd-placeholder\][^{]*\{[^}]*background/);
     expect(stylesheet).toContain("--reader-drop-fill-light: rgb(32 23 17 / 8%)");
     expect(stylesheet).toContain("--reader-drop-fill-dark: rgb(240 230 220 / 10%)");
-    expect(stylesheet).toMatch(/\.portfolio-reading-room-desktop\s*\{[^}]*min-width:\s*1382px/);
-    expect(stylesheet).toMatch(/body:has\(\.portfolio-reading-room-desktop\)\s*\{[^}]*overflow-x:\s*auto/);
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-desktop\s*\{[^}]*min-width:\s*1020px/);
+    expect(stylesheet).toMatch(/body:has\(\.portfolio-reading-room-desktop\)\s*\{[^}]*overflow:\s*hidden/);
+    expect(stylesheet).not.toMatch(/overflow-x:\s*auto/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-view\s*\{[^}]*background:\s*var\(--map-paper-near\)/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-guide \.portfolio-chat-composer\s*\{[^}]*background:\s*var\(--map-paper\)/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-pane-body > \.portfolio-world > \.portfolio-world-mast[^}]*display:\s*none/);
