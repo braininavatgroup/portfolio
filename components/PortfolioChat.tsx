@@ -1,38 +1,67 @@
 "use client";
 
 import {
-  FormEvent,
+  AssistantRuntimeProvider,
+  ComposerPrimitive,
+  MessagePrimitive,
+  SuggestionPrimitive,
+  ThreadPrimitive,
+  useAuiState,
+  useLocalRuntime,
+  type ChatModelAdapter,
+  type TextMessagePartProps,
+} from "@assistant-ui/react";
+import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  type CSSProperties,
+  useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
-  PortfolioChatClientError,
   streamPortfolioAnswer,
   type AskPortfolio,
 } from "../lib/portfolio-chat-client";
-import {
-  renderTurnstile,
-  type TurnstileController,
-  type TurnstileRenderer,
-} from "../lib/portfolio-chat-turnstile";
 import {
   appendPortfolioChatTurn,
   type PortfolioChatMessage,
 } from "../lib/portfolio-chat-conversation";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
-import { portfolioInterfaceText } from "../lib/portfolio-world";
-import { EditableText, useEditableContent } from "./editor/EditableText";
-import { PortfolioControlMark } from "./PortfolioNodeMark";
+import {
+  portfolioControlMarkPrimitives,
+  type PortfolioControlMarkKind,
+} from "../lib/portfolio-control-mark";
+import {
+  parseGuideAnswerSegments,
+  type GuideEvidenceTarget,
+} from "../lib/portfolio-guide-citations";
+import {
+  getGuideFollowUpPrompts,
+  getGuideInitialPrompts,
+  type GuidePrompt,
+} from "../lib/portfolio-guide-prompts";
+import {
+  renderTurnstile,
+  type TurnstileController,
+  type TurnstileRenderer,
+} from "../lib/portfolio-chat-turnstile";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import type {
   PortfolioChatTurnMode,
   PortfolioChatVisitState,
 } from "../lib/portfolio-chat-protocol";
+import {
+  portfolioThreadById,
+  portfolioWorldNodeById,
+  type PortfolioWorldRegister,
+} from "../lib/portfolio-world";
+import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { PortfolioNodeMark } from "./PortfolioNodeMark";
+import { useEditableContent } from "./editor/EditableText";
 
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments
@@ -44,101 +73,565 @@ export type PortfolioChatAvatarIntegration = {
   onEffects: AvatarLifecycleCallback<[PortfolioResponseEffects]>;
 };
 
-export function PortfolioChat({
-  avatarIntegration,
-  initiallyOpen = false,
-  onLayoutChange,
-  onOpenChange,
-  open: controlledOpen,
-  registerAvatarDock,
-  askPortfolio = streamPortfolioAnswer,
-  renderTurnstile: renderTurnstileWidget = renderTurnstile,
-  turnstileSiteKey,
-}: {
+export type PortfolioChatProps = {
   avatarIntegration?: PortfolioChatAvatarIntegration;
-  initiallyOpen?: boolean;
   onLayoutChange?: () => void;
-  onOpenChange?: (open: boolean) => void;
-  open?: boolean;
+  onNavigateEvidence?: (
+    target: GuideEvidenceTarget,
+    evidence: PortfolioGroundingEvidence,
+  ) => void;
+  onThreadStateChange?: (hasThread: boolean) => void;
   registerAvatarDock?: (element: HTMLElement | null) => void;
+  resetSignal?: number;
   askPortfolio?: AskPortfolio;
   renderTurnstile?: TurnstileRenderer;
   turnstileSiteKey?: string;
+  /** Accepted until PortfolioExperience moves to the Reading Room shell. */
+  initiallyOpen?: boolean;
+  /** Accepted until PortfolioExperience moves to the Reading Room shell. */
+  onOpenChange?: (open: boolean) => void;
+  /** The docked Guide is mounted regardless of this transitional value. */
+  open?: boolean;
+};
+
+type GuideMessageMetadata = {
+  citedEvidence: PortfolioGroundingEvidence[];
+  evidence: PortfolioGroundingEvidence[];
+};
+
+type GuideNavigationContextValue = PortfolioChatProps["onNavigateEvidence"];
+
+const GuideNavigationContext = createContext<GuideNavigationContextValue>(undefined);
+const GuideFirstTextContext = createContext<() => void>(() => {});
+const browserGuideVisitSeed = typeof window === "undefined" ? 0 : Date.now();
+const getBrowserGuideVisitSeed = () => browserGuideVisitSeed;
+const getServerGuideVisitSeed = () => 0;
+const subscribeGuideVisitSeed = () => () => {};
+
+function GuideControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
+  return (
+    <span aria-hidden="true" className="portfolio-control-glyph" data-control={kind}>
+      <svg focusable="false" viewBox="-9 -9 18 18">
+        {portfolioControlMarkPrimitives(kind).map((primitive, index) => {
+          if (primitive.kind !== "path") return null;
+          return (
+            <path
+              d={primitive.d}
+              fill={primitive.fill ? "currentColor" : "none"}
+              key={index}
+              stroke={primitive.fill ? "none" : undefined}
+            />
+          );
+        })}
+      </svg>
+    </span>
+  );
+}
+
+function messageText(message: {
+  content: readonly { type: string; text?: string }[];
 }) {
+  return message.content
+    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("");
+}
+
+function guideEvidenceFromMetadata(
+  value: unknown,
+  key: keyof GuideMessageMetadata = "evidence",
+) {
+  if (!value || typeof value !== "object" || !(key in value)) return [];
+  const evidence = Reflect.get(value, key);
+  return Array.isArray(evidence)
+    ? (evidence as PortfolioGroundingEvidence[])
+    : [];
+}
+
+function evidenceRegister(
+  target: GuideEvidenceTarget,
+): PortfolioWorldRegister {
+  if (target.type === "home") return "identity";
+  const node = target.type === "node"
+    ? portfolioWorldNodeById.get(target.id)
+    : portfolioWorldNodeById.get(portfolioThreadById.get(target.id)?.nodeId ?? "");
+  return node?.register ?? "identity";
+}
+
+function GuideAssistantText({ text }: TextMessagePartProps) {
+  const navigate = useContext(GuideNavigationContext);
+  const reportFirstText = useContext(GuideFirstTextContext);
+  const evidence = useAuiState((state) =>
+    guideEvidenceFromMetadata(state.message.metadata.custom.guide),
+  );
+  useEffect(() => {
+    if (text) reportFirstText();
+  }, [reportFirstText, text]);
+  return (
+    <p className="chat-answer">
+      {parseGuideAnswerSegments(text, evidence).map((segment, index) =>
+        segment.type === "text" ? (
+          segment.text
+        ) : (
+          <button
+            aria-label={`${segment.text} ${segment.evidence.title}`}
+            className="portfolio-guide-citation"
+            data-register={evidenceRegister(segment.target)}
+            key={`${index}-${segment.label}`}
+            onClick={() => navigate?.(segment.target, segment.evidence)}
+            type="button"
+          >
+            {segment.text}
+          </button>
+        ),
+      )}
+    </p>
+  );
+}
+
+function GuideUserMessage() {
+  return (
+    <MessagePrimitive.Root
+      className="chat-question"
+      data-guide-primitive="message"
+    >
+      <MessagePrimitive.Content components={{ Text: GuideUserText }} />
+    </MessagePrimitive.Root>
+  );
+}
+
+function GuideUserText({ text }: TextMessagePartProps) {
+  return <p>{text}</p>;
+}
+
+function GuideAssistantMessage() {
+  const answer = useAuiState((state) => messageText(state.message));
+  if (!answer) return null;
+  return (
+    <MessagePrimitive.Root
+      className="portfolio-guide-answer"
+      data-guide-primitive="message"
+    >
+      <MessagePrimitive.Content components={{ Text: GuideAssistantText }} />
+      <button
+        aria-label="Copy answer"
+        className="portfolio-guide-copy"
+        onClick={() => void navigator.clipboard?.writeText(answer)}
+        type="button"
+      >
+        <GuideControlGlyph kind="copy" />
+      </button>
+    </MessagePrimitive.Root>
+  );
+}
+
+function GuideSuggestion({ prompt }: { prompt: string }) {
+  return (
+    <SuggestionPrimitive.Trigger
+      className="portfolio-guide-suggestion"
+      data-testid="guide-suggestion"
+      send
+    >
+      <GuideControlGlyph kind="chevron" />
+      <span>{prompt}</span>
+    </SuggestionPrimitive.Trigger>
+  );
+}
+
+function guidePromptNode(prompt: GuidePrompt) {
+  if (!prompt.evidenceId) return undefined;
+  if (prompt.evidenceId.startsWith("node:")) {
+    return portfolioWorldNodeById.get(prompt.evidenceId.slice("node:".length));
+  }
+  if (prompt.evidenceId.startsWith("thread:")) {
+    const thread = portfolioThreadById.get(
+      prompt.evidenceId.slice("thread:".length),
+    );
+    return portfolioWorldNodeById.get(thread?.nodeId ?? "");
+  }
+  return undefined;
+}
+
+function GuideInitialSuggestion({ prompt }: { prompt: GuidePrompt }) {
+  const node = guidePromptNode(prompt);
+  return (
+    <ThreadPrimitive.Suggestion
+      className="portfolio-guide-suggestion"
+      data-testid="guide-suggestion"
+      prompt={prompt.text}
+      send
+    >
+      {node ? (
+        <PortfolioNodeMark family={node.family} register={node.register} />
+      ) : (
+        <span aria-hidden="true" className="portfolio-guide-suggestion-mark" />
+      )}
+      <span>{prompt.text}</span>
+    </ThreadPrimitive.Suggestion>
+  );
+}
+
+function waitForWord(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+    const timer = window.setTimeout(resolve, 45);
+    signal.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
+}
+
+function cumulativeWords(answer: string) {
+  const words = answer.match(/\S+\s*/g) ?? [];
+  let cumulative = "";
+  return words.map((word) => {
+    cumulative += word;
+    return cumulative;
+  });
+}
+
+function runSafely(work: (() => void | Promise<void>) | undefined) {
+  if (!work) return Promise.resolve();
+  try {
+    return Promise.resolve(work()).catch(() => {});
+  } catch {
+    return Promise.resolve();
+  }
+}
+
+function GuideThreadStateReporter({
+  onThreadStateChange,
+}: {
+  onThreadStateChange?: (hasThread: boolean) => void;
+}) {
+  const hasThread = useAuiState((state) => state.thread.messages.length > 0);
+  useEffect(() => {
+    onThreadStateChange?.(hasThread);
+  }, [hasThread, onThreadStateChange]);
+  return null;
+}
+
+export function PortfolioChat({
+  avatarIntegration,
+  onLayoutChange,
+  onNavigateEvidence,
+  onThreadStateChange,
+  registerAvatarDock,
+  resetSignal = 0,
+  askPortfolio = streamPortfolioAnswer,
+  renderTurnstile: renderTurnstileWidget = renderTurnstile,
+  turnstileSiteKey,
+}: PortfolioChatProps) {
   const composerPlaceholder = useEditableContent(
     "interface.chat.composerPlaceholder",
     portfolioInterfaceText["chat.composerPlaceholder"],
   );
-  const [input, setInput] = useState("");
-  const [lastQuestion, setLastQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [evidence, setEvidence] = useState<PortfolioGroundingEvidence[]>([]);
-  const [message, setMessage] = useState("");
-  const [pending, setPending] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
-  const [inputFocused, setInputFocused] = useState(false);
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(initiallyOpen);
-  const open = controlledOpen ?? uncontrolledOpen;
-  const setOpen = useCallback(
-    (nextOpen: boolean) => {
-      if (controlledOpen === undefined) setUncontrolledOpen(nextOpen);
-      onOpenChange?.(nextOpen);
-    },
-    [controlledOpen, onOpenChange],
-  );
-  const [transcript, setTranscript] = useState<PortfolioChatMessage[]>([]);
-  const [panelPosition, setPanelPosition] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+  const [failedQuestion, setFailedQuestion] = useState<{
+    question: string;
+    canRetry: boolean;
   } | null>(null);
+  const [notice, setNotice] = useState("");
+  const [offline, setOffline] = useState(
+    () => typeof navigator !== "undefined" && !navigator.onLine,
+  );
+  const [pending, setPending] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const askPortfolioRef = useRef(askPortfolio);
+  const avatarIntegrationRef = useRef(avatarIntegration);
+  const challengeTokenRef = useRef(challengeToken);
   const conversation = useRef<PortfolioChatMessage[]>([]);
+  const visitSeed = useSyncExternalStore(
+    subscribeGuideVisitSeed,
+    getBrowserGuideVisitSeed,
+    getServerGuideVisitSeed,
+  );
   const visitState = useRef<PortfolioChatVisitState>({
     generalTurns: 0,
     portfolioNudgeShown: false,
   });
+  const retryAttempt = useRef(false);
+  const activeRun = useRef<symbol | null>(null);
+  const avatarElement = useRef<HTMLDivElement | null>(null);
   const compositionEndTimer = useRef<number | null>(null);
-  const composing = useRef(false);
   const compositionJustEnded = useRef(false);
-  const requestController = useRef<AbortController | null>(null);
-  const panelRef = useRef<HTMLElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const inputHeight = useRef(-1);
-  const mobileBackRef = useRef<HTMLButtonElement | null>(null);
-  const threadRef = useRef<HTMLDivElement | null>(null);
-  const panelDrag = useRef<{
-    pointerId: number;
-    offsetX: number;
-    offsetY: number;
+  const firstTextWaiter = useRef<{
+    resolve: () => void;
+    run: symbol;
   } | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
   const turnstileController = useRef<TurnstileController | null>(null);
-  const setChatPanel = useCallback(
-    (element: HTMLElement | null) => {
-      panelRef.current = element;
-      registerAvatarDock?.(element);
-    },
-    [registerAvatarDock],
+  const previousResetSignal = useRef(resetSignal);
+
+  useEffect(() => {
+    askPortfolioRef.current = askPortfolio;
+    avatarIntegrationRef.current = avatarIntegration;
+    challengeTokenRef.current = challengeToken;
+  }, [askPortfolio, avatarIntegration, challengeToken]);
+
+  const adapter = useMemo<ChatModelAdapter>(
+    () => ({
+      async *run({ messages, abortSignal }) {
+        const latestMessage = messages.at(-1);
+        const question = latestMessage?.role === "user"
+          ? messageText(latestMessage).trim()
+          : "";
+        if (!question) return;
+
+        const run = Symbol("portfolio-guide-run");
+        activeRun.current = run;
+        const isRetry = retryAttempt.current;
+        retryAttempt.current = false;
+        const challenge = challengeTokenRef.current ?? undefined;
+        const conversationAtStart = conversation.current;
+        const visitStateAtStart = { ...visitState.current };
+        const integration = avatarIntegrationRef.current;
+        let answer = "";
+        let evidence: PortfolioGroundingEvidence[] = [];
+        let failed = false;
+        let completed = false;
+        let turnMode: PortfolioChatTurnMode | undefined;
+        let avatarWork = runSafely(() => integration?.onTurnStart());
+        const effects: PortfolioResponseEffects[] = [];
+        const isCurrent = () =>
+          !abortSignal.aborted && activeRun.current === run;
+        const queueAvatar = (work: (() => void | Promise<void>) | undefined) => {
+          avatarWork = avatarWork.then(() =>
+            isCurrent() ? runSafely(work) : undefined,
+          );
+        };
+
+        setFailedQuestion(null);
+        setNotice("");
+        setPending(true);
+        setSlow(false);
+        const slowTimer = window.setTimeout(() => {
+          if (isCurrent()) setSlow(true);
+        }, 10_000);
+        const finishRun = async () => {
+          window.clearTimeout(slowTimer);
+          await avatarWork;
+          if (!isCurrent()) return;
+          activeRun.current = null;
+          setPending(false);
+          setSlow(false);
+          if (turnstileSiteKey) {
+            setChallengeToken(null);
+            turnstileController.current?.reset();
+          }
+        };
+
+        try {
+          await askPortfolioRef.current(question, {
+            signal: abortSignal,
+            ...(conversationAtStart.length
+              ? { conversation: conversationAtStart }
+              : {}),
+            visitState: visitStateAtStart,
+            ...(challenge ? { challengeToken: challenge } : {}),
+            onEvent(event) {
+              if (!isCurrent()) return;
+              if (event.type === "evidence") {
+                evidence = [...event.evidence];
+              } else if (event.type === "turn_mode") {
+                turnMode = event.mode;
+              } else if (event.type === "answer_delta") {
+                answer += event.delta;
+              } else if (event.type === "effects") {
+                effects.push(event.effects);
+              } else if (event.type === "notice") {
+                setNotice(event.message);
+              } else if (event.type === "error") {
+                failed = true;
+              } else if (event.type === "done") {
+                completed = true;
+              }
+            },
+          });
+        } catch {
+          failed = true;
+        }
+
+        if (!isCurrent()) return;
+        if (failed) {
+          setFailedQuestion({ question, canRetry: !isRetry });
+          await finishRun();
+          yield {
+            content: [],
+            status: { type: "incomplete", reason: "error" },
+          };
+          return;
+        }
+        if (!completed || !answer.trim()) {
+          await finishRun();
+          yield {
+            content: [],
+            status: completed
+              ? { type: "complete", reason: "stop" }
+              : { type: "incomplete", reason: "other" },
+          };
+          return;
+        }
+
+        window.clearTimeout(slowTimer);
+        setSlow(false);
+        const citedEvidence = Array.from(
+          new Map(
+            parseGuideAnswerSegments(answer, evidence)
+              .filter((segment) => segment.type === "citation")
+              .map((segment) => [segment.evidence.id, segment.evidence]),
+          ).values(),
+        );
+        const metadata: GuideMessageMetadata = { citedEvidence, evidence };
+        const reveals = cumulativeWords(answer);
+        const firstTextRendered = new Promise<void>((resolve) => {
+          let settled = false;
+          const resolveOnce = () => {
+            if (settled) return;
+            settled = true;
+            if (firstTextWaiter.current?.run === run) {
+              firstTextWaiter.current = null;
+            }
+            resolve();
+          };
+          firstTextWaiter.current = { resolve: resolveOnce, run };
+          abortSignal.addEventListener("abort", resolveOnce, { once: true });
+        });
+        for (let index = 0; index < reveals.length; index += 1) {
+          if (!isCurrent()) return;
+          yield {
+            content: [{ type: "text", text: reveals[index]! }],
+            metadata: { custom: { guide: metadata } },
+          };
+          if (index === 0) {
+            await firstTextRendered;
+            if (!isCurrent()) return;
+            queueAvatar(() => integration?.onFirstText());
+            for (const effect of effects) {
+              queueAvatar(() => integration?.onEffects(effect));
+            }
+          }
+          if (index < reveals.length - 1) await waitForWord(abortSignal);
+        }
+
+        if (!isCurrent()) return;
+        conversation.current = appendPortfolioChatTurn(
+          conversation.current,
+          question,
+          answer,
+        );
+        if (turnMode === "general") {
+          const showsNudge =
+            visitStateAtStart.generalTurns >= 2 &&
+            !visitStateAtStart.portfolioNudgeShown;
+          visitState.current = {
+            generalTurns: Math.min(2, visitStateAtStart.generalTurns + 1),
+            portfolioNudgeShown:
+              visitStateAtStart.portfolioNudgeShown || showsNudge,
+          };
+        }
+        await finishRun();
+      },
+    }),
+    [turnstileSiteKey],
   );
+
+  const suggestionAdapter = useMemo(
+    () => ({
+      async generate({ messages }: { messages: readonly { metadata: { custom: Record<string, unknown> } }[] }) {
+        const lastEvidence = guideEvidenceFromMetadata(
+          messages.at(-1)?.metadata.custom.guide,
+          "citedEvidence",
+        );
+        const prompts = messages.length
+          ? getGuideFollowUpPrompts(lastEvidence)
+          : getGuideInitialPrompts(visitSeed);
+        return prompts.map(({ text }) => ({ prompt: text }));
+      },
+    }),
+    [visitSeed],
+  );
+
+  const runtime = useLocalRuntime(adapter, {
+    adapters: { suggestion: suggestionAdapter },
+  });
+
+  useEffect(() => {
+    const finish = () => {
+      window.clearTimeout(compositionEndTimer.current ?? undefined);
+      activeRun.current = null;
+      runtime.thread.cancelRun();
+    };
+    return finish;
+  }, [runtime]);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- resetSignal is an imperative
+     new-conversation boundary; the effect must clear assistant-ui and local UI
+     state in the same commit after the parent advances it. */
+  useEffect(() => {
+    if (previousResetSignal.current === resetSignal) return;
+    previousResetSignal.current = resetSignal;
+    activeRun.current = null;
+    runtime.thread.cancelRun();
+    runtime.thread.reset();
+    runtime.thread.composer.setText("");
+    conversation.current = [];
+    visitState.current = { generalTurns: 0, portfolioNudgeShown: false };
+    retryAttempt.current = false;
+    setFailedQuestion(null);
+    setNotice("");
+    setPending(false);
+    setSlow(false);
+    if (turnstileSiteKey) {
+      setChallengeToken(null);
+      turnstileController.current?.reset();
+    }
+    onThreadStateChange?.(false);
+  }, [onThreadStateChange, resetSignal, runtime, turnstileSiteKey]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    const updateOnlineState = () => setOffline(!navigator.onLine);
+    window.addEventListener("online", updateOnlineState);
+    window.addEventListener("offline", updateOnlineState);
+    return () => {
+      window.removeEventListener("online", updateOnlineState);
+      window.removeEventListener("offline", updateOnlineState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!onLayoutChange || !avatarElement.current) return;
+    const observer = new ResizeObserver(onLayoutChange);
+    observer.observe(avatarElement.current);
+    return () => observer.disconnect();
+  }, [onLayoutChange]);
 
   useEffect(() => {
     if (!turnstileSiteKey || !turnstileContainer.current) return;
     let active = true;
     setChallengeMessage(portfolioInterfaceText["chat.verificationPreparing"]);
     void renderTurnstileWidget(turnstileContainer.current, turnstileSiteKey, {
-      onToken: (token) => {
+      onToken(token) {
         if (!active) return;
         setChallengeToken(token);
         setChallengeMessage("");
       },
-      onError: () => {
+      onError() {
         if (!active) return;
         setChallengeToken(null);
         setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
       },
-      onExpired: () => {
+      onExpired() {
         if (!active) return;
         setChallengeToken(null);
         setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
@@ -150,12 +643,12 @@ export function PortfolioChat({
           return;
         }
         turnstileController.current = controller;
-        setChallengeMessage("");
       })
       .catch(() => {
-        if (active) setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
+        if (active) {
+          setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
+        }
       });
-
     return () => {
       active = false;
       turnstileController.current?.remove();
@@ -163,467 +656,132 @@ export function PortfolioChat({
     };
   }, [renderTurnstileWidget, turnstileSiteKey]);
 
-  useEffect(() => {
-    return () => {
-      if (compositionEndTimer.current !== null) {
-        window.clearTimeout(compositionEndTimer.current);
-      }
-      requestController.current?.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    const thread = threadRef.current;
-    if (thread) thread.scrollTop = thread.scrollHeight;
-  }, [answer, lastQuestion, message, pending, transcript]);
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!onLayoutChange || !panel || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(onLayoutChange);
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, [onLayoutChange, open]);
-
-  useEffect(() => {
-    if (!open || typeof window === "undefined" || window.innerWidth > 600) return;
-    const timer = window.setTimeout(() => mobileBackRef.current?.focus(), 0);
-    return () => window.clearTimeout(timer);
-  }, [open]);
-
-  useEffect(() => {
-    const clampPanel = (x: number, y: number, width: number, height: number) => {
-      const reader = document.querySelector<HTMLElement>(".portfolio-reader");
-      const readerLeft = reader?.getBoundingClientRect().left ?? window.innerWidth;
-      return {
-        x: Math.min(Math.max(x, 82), Math.max(82, readerLeft - width - 12)),
-        y: Math.min(Math.max(y, 12), Math.max(12, window.innerHeight - height - 12)),
-        width,
-        height,
-      };
-    };
-    const move = (event: PointerEvent) => {
-      const active = panelDrag.current;
-      const panel = panelRef.current;
-      if (!active || !panel || event.pointerId !== active.pointerId) return;
-      const bounds = panel.getBoundingClientRect();
-      setPanelPosition(
-        clampPanel(
-          event.clientX - active.offsetX,
-          event.clientY - active.offsetY,
-          bounds.width,
-          bounds.height,
-        ),
-      );
-    };
-    const stop = (event: PointerEvent) => {
-      if (panelDrag.current?.pointerId !== event.pointerId) return;
-      panelDrag.current = null;
-    };
-    const resize = () => {
-      setPanelPosition((current) =>
-        current
-          ? clampPanel(current.x, current.y, current.width, current.height)
-          : current,
-      );
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop);
-    window.addEventListener("pointercancel", stop);
-    window.addEventListener("resize", resize);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", stop);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  async function runQuestion(question: string) {
-    if (turnstileSiteKey && !challengeToken) {
-      setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
-      return;
-    }
-    const questionChallengeToken = challengeToken ?? undefined;
-    requestController.current?.abort();
-    const controller = new AbortController();
-    requestController.current = controller;
-    const conversationAtStart = conversation.current;
-    const visitStateAtStart = { ...visitState.current };
-    let streamedAnswer = "";
-    let streamFailed = false;
-    let streamCompleted = false;
-    let turnMode: PortfolioChatTurnMode | undefined;
-    let receivedText = false;
-    let avatarWork = Promise.resolve();
-    const pendingEffects: PortfolioResponseEffects[] = [];
-    const isCurrentTurn = () =>
-      !controller.signal.aborted && requestController.current === controller;
-    const runAvatarWorkSafely = (work: () => void | Promise<void>) => {
-      try {
-        return Promise.resolve(work()).catch(() => {});
-      } catch {
-        return Promise.resolve();
-      }
-    };
-    const scheduleAvatarWork = (work: () => void | Promise<void>) => {
-      avatarWork = avatarWork.then(async () => {
-        if (!isCurrentTurn()) return;
-        await runAvatarWorkSafely(work);
-      });
-    };
-    const scheduleAvatarWorkAfterRender = (
-      work: () => void | Promise<void>,
-    ) => {
-      scheduleAvatarWork(
-        () =>
-          new Promise<void>((resolve) => {
-            window.setTimeout(() => {
-              void (async () => {
-                if (isCurrentTurn()) {
-                  try {
-                    await work();
-                  } catch {
-                    // Avatar work is optional and must never interrupt text.
-                  }
-                }
-                resolve();
-              })();
-            }, 0);
-          }),
-      );
-    };
-    const scheduleEffects = (effects: PortfolioResponseEffects) => {
-      scheduleAvatarWork(() => avatarIntegration?.onEffects(effects));
-    };
-
-    avatarWork = runAvatarWorkSafely(
-      () => avatarIntegration?.onTurnStart(),
-    );
-    setAnswer("");
-    setEvidence([]);
-    setMessage("");
-    setPending(true);
-
-    try {
-      await askPortfolio(question, {
-        signal: controller.signal,
-        ...(conversationAtStart.length
-          ? { conversation: conversationAtStart }
-          : {}),
-        visitState: visitStateAtStart,
-        ...(questionChallengeToken
-          ? { challengeToken: questionChallengeToken }
-          : {}),
-        onEvent: (event) => {
-          if (!isCurrentTurn()) return;
-          if (event.type === "evidence") {
-            setEvidence(event.evidence);
-          }
-          if (event.type === "turn_mode") turnMode = event.mode;
-          if (event.type === "answer_delta") {
-            streamedAnswer += event.delta;
-            setAnswer((current) => current + event.delta);
-            if (!receivedText) {
-              receivedText = true;
-              if (avatarIntegration) {
-                scheduleAvatarWorkAfterRender(() =>
-                  avatarIntegration.onFirstText(),
-                );
-              }
-              for (const effects of pendingEffects.splice(0)) {
-                scheduleEffects(effects);
-              }
-            }
-          }
-          if (event.type === "effects") {
-            if (receivedText) {
-              scheduleEffects(event.effects);
-            } else {
-              pendingEffects.push(event.effects);
-            }
-          }
-          if (event.type === "notice" || event.type === "error") {
-            if (event.type === "error") streamFailed = true;
-            if (event.type === "error") {
-              setAnswer("");
-              setInput((current) => current || question);
-            }
-            setMessage(event.message);
-          }
-          if (event.type === "done") streamCompleted = true;
-        },
-      });
-      if (
-        !controller.signal.aborted &&
-        !streamFailed &&
-        streamCompleted &&
-        streamedAnswer.trim() &&
-        requestController.current === controller
-      ) {
-        const nextConversation = appendPortfolioChatTurn(
-          conversation.current,
-          question,
-          streamedAnswer,
-        );
-        conversation.current = nextConversation;
-        setTranscript(nextConversation);
-        if (turnMode === "general") {
-          const isThirdGeneralTurn =
-            visitStateAtStart.generalTurns >= 2 &&
-            !visitStateAtStart.portfolioNudgeShown;
-          visitState.current = {
-            generalTurns: Math.min(2, visitStateAtStart.generalTurns + 1),
-            portfolioNudgeShown:
-              visitStateAtStart.portfolioNudgeShown || isThirdGeneralTurn,
-          };
-        }
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      setAnswer("");
-      setInput((current) => current || question);
-      setMessage(
-        error instanceof PortfolioChatClientError
-          ? error.message
-          : portfolioInterfaceText["chat.unavailable"],
-      );
-    } finally {
-      if (turnstileSiteKey) {
-        setChallengeToken(null);
-        turnstileController.current?.reset();
-      }
-      await avatarWork;
-      if (requestController.current === controller) {
-        requestController.current = null;
-        setPending(false);
-      }
-    }
-  }
-
-  function beginQuestion(question: string) {
-    if (!question) return;
-    setLastQuestion(question);
-    setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
-    inputHeight.current = -1;
-    inputRef.current?.blur();
-    void runQuestion(question);
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    beginQuestion(input.trim());
-  }
-
-  function submitOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      event.nativeEvent.isComposing ||
-      composing.current ||
-      compositionJustEnded.current ||
-      pending ||
-      event.keyCode === 229
-    ) {
-      return;
-    }
-    event.preventDefault();
-    event.currentTarget.form?.requestSubmit();
-  }
-
-  const citedEvidence = evidence.flatMap((item, index) => {
-    const label = index + 1;
-    return answer.includes(`[E${label}]`) ? [{ item, label }] : [];
-  });
-  const history =
-    lastQuestion &&
-    answer &&
-    transcript.at(-2)?.role === "user" &&
-    transcript.at(-2)?.content === lastQuestion &&
-    transcript.at(-1)?.role === "assistant" &&
-    transcript.at(-1)?.content === answer
-      ? transcript.slice(0, -2)
-      : transcript;
-  const hasThreadContent = Boolean(
-    history.length || lastQuestion || answer || message || pending || citedEvidence.length,
+  const setAvatarElement = useCallback(
+    (element: HTMLDivElement | null) => {
+      avatarElement.current = element;
+      registerAvatarDock?.(element);
+    },
+    [registerAvatarDock],
   );
 
-  function beginPanelDrag(event: ReactPointerEvent<HTMLElement>) {
+  const reportFirstText = useCallback(() => {
+    firstTextWaiter.current?.resolve();
+  }, []);
+
+  function guardComposerKey(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
     if (
-      event.button !== 0 ||
-      window.matchMedia("(max-width: 900px)").matches ||
-      (event.target instanceof Element && event.target.closest("button"))
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      compositionJustEnded.current ||
+      offline ||
+      (turnstileSiteKey && !challengeToken)
     ) {
-      return;
+      event.preventDefault();
+      if (turnstileSiteKey && !challengeToken) {
+        setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
+      }
     }
-    const bounds = panelRef.current?.getBoundingClientRect();
-    if (!bounds) return;
-    event.preventDefault();
-    panelDrag.current = {
-      pointerId: event.pointerId,
-      offsetX: event.clientX - bounds.left,
-      offsetY: event.clientY - bounds.top,
-    };
   }
 
-  function minimize() {
-    setPanelPosition(null);
-    setOpen(false);
+  function retry() {
+    if (!failedQuestion?.canRetry) return;
+    const userMessage = [...runtime.thread.getState().messages]
+      .reverse()
+      .find((message) => message.role === "user");
+    if (!userMessage) return;
+    retryAttempt.current = true;
+    setFailedQuestion({ ...failedQuestion, canRetry: false });
+    runtime.thread.startRun({ parentId: userMessage.id });
   }
 
-  const dockStyle = panelPosition
-    ? ({
-        left: `${
-          open
-            ? panelPosition.x - 63
-            : panelPosition.x + panelPosition.width - 103
-        }px`,
-        top: `${
-          open
-            ? panelPosition.y
-            : panelPosition.y + panelPosition.height - 40
-        }px`,
-        right: "auto",
-        bottom: "auto",
-      } satisfies CSSProperties)
-    : undefined;
+  const composerDisabled = offline || pending;
+  const initialPrompts = getGuideInitialPrompts(visitSeed);
 
   return (
-    <section
-      className={`portfolio-chat`}
-      aria-label="Portfolio assistant dock"
-      data-clarity-mask="true"
-      data-has-thread={hasThreadContent ? "true" : "false"}
-      data-input-focused={inputFocused ? "true" : "false"}
-      data-open={open ? "true" : "false"}
-      style={dockStyle}
-    >
-      <nav
-        aria-label="Portfolio assistant navigation"
-        className="portfolio-chat-mobile-nav"
-        hidden={!open}
-      >
-        <button
-          aria-label="Back to portfolio home"
-          onClick={minimize}
-          ref={mobileBackRef}
-          type="button"
+    <AssistantRuntimeProvider runtime={runtime}>
+      <GuideNavigationContext.Provider value={onNavigateEvidence}>
+        <GuideFirstTextContext.Provider value={reportFirstText}>
+          <section
+          aria-label="Portfolio Guide"
+          className="portfolio-chat"
+          data-clarity-mask="true"
+          data-offline={offline ? "true" : "false"}
+          data-pending={pending ? "true" : "false"}
         >
-          <EditableText
-            path="interface.chat.backButton"
-            value={portfolioInterfaceText["chat.backButton"]}
-          />
-        </button>
-        <EditableText
-          as="b"
-          path="interface.chat.title"
-          value={portfolioInterfaceText["chat.title"]}
-        />
-        <span aria-hidden="true" />
-      </nav>
-      <div className="portfolio-chat-anchor">
-        <section
-          aria-label="Portfolio assistant"
-          className="portfolio-chat-panel"
-          hidden={!open}
-          ref={setChatPanel}
-        >
-          <header className="portfolio-chat-head" onPointerDown={beginPanelDrag}>
-            <EditableText
-              as="b"
-              path="interface.chat.title"
-              value={portfolioInterfaceText["chat.title"]}
-            />
-            <PortfolioControlMark
-              aria-label="Minimize portfolio assistant"
-              kind="minimize"
-              onClick={minimize}
-              onPointerDown={(event) => event.stopPropagation()}
-            />
-          </header>
+          <GuideThreadStateReporter onThreadStateChange={onThreadStateChange} />
           <div
-            aria-live="polite"
+            aria-hidden="true"
+            className="portfolio-guide-avatar"
+            ref={setAvatarElement}
+          />
+          <ThreadPrimitive.Root
             className="portfolio-chat-thread"
-            hidden={!hasThreadContent}
-            ref={threadRef}
+            data-guide-primitive="thread"
           >
-            {history.map((item, index) =>
-              item.role === "user" ? (
-                <div className="chat-question" key={`history-${index}`}><p>{item.content}</p></div>
-              ) : (
-                <p className="chat-answer" key={`history-${index}`}>{item.content}</p>
-              ),
-            )}
-            {lastQuestion ? <div className="chat-question"><p>{lastQuestion}</p></div> : null}
-            {answer ? (
-              <section aria-labelledby="chat-answer-heading">
-                <h3 className="sr-only" id="chat-answer-heading">Answer</h3>
-                <p className="chat-answer">{answer}</p>
-              </section>
-            ) : null}
-            {message ? <p className="chat-message">{message}</p> : null}
-            {pending && !answer ? (
-              <EditableText
-                as="p"
-                className="chat-message"
-                path="interface.chat.pendingStatus"
-                value={portfolioInterfaceText["chat.pendingStatus"]}
+            <ThreadPrimitive.Viewport autoScroll>
+              <ThreadPrimitive.Messages
+                components={{
+                  AssistantMessage: GuideAssistantMessage,
+                  UserMessage: GuideUserMessage,
+                }}
               />
-            ) : null}
-            {citedEvidence.length > 0 ? (
-              <section aria-labelledby="chat-evidence-heading" className="chat-evidence-pills">
-                <h3 className="sr-only" id="chat-evidence-heading">Supporting portfolio evidence</h3>
-                {citedEvidence.map(({ item, label }) => (
-                  <a aria-label={`[E${label}] ${item.title}`} href={item.href} key={item.id}>
-                    E{label} · {item.title}
-                    <span className="sr-only">{item.excerpt}</span>
-                  </a>
-                ))}
-              </section>
-            ) : null}
-          </div>
+              <ThreadPrimitive.Empty>
+                <div className="portfolio-guide-suggestions">
+                  {initialPrompts.map((prompt) => (
+                    <GuideInitialSuggestion key={prompt.text} prompt={prompt} />
+                  ))}
+                </div>
+              </ThreadPrimitive.Empty>
+              {slow ? (
+                <div className="portfolio-guide-slow" role="status">
+                  <span aria-hidden="true" className="portfolio-guide-twirl" />
+                  <span>Still thinking. The records are long.</span>
+                </div>
+              ) : null}
+              {failedQuestion ? (
+                <p className="portfolio-guide-error">
+                  Something went wrong.{" "}
+                  {failedQuestion.canRetry ? (
+                    <button onClick={retry} type="button">Try again</button>
+                  ) : null}
+                </p>
+              ) : null}
+              {notice ? <p className="portfolio-guide-notice">{notice}</p> : null}
+              <div className="portfolio-guide-suggestions">
+                <ThreadPrimitive.Suggestions>
+                  {({ suggestion }) => (
+                    <GuideSuggestion prompt={suggestion.prompt} />
+                  )}
+                </ThreadPrimitive.Suggestions>
+              </div>
+            </ThreadPrimitive.Viewport>
+          </ThreadPrimitive.Root>
           {turnstileSiteKey ? (
-            <div aria-label="Security verification" className="chat-turnstile" role="group">
+            <div
+              aria-label="Security verification"
+              className="chat-turnstile"
+              role="group"
+            >
               <div ref={turnstileContainer} />
               {challengeMessage ? <p className="chat-note">{challengeMessage}</p> : null}
             </div>
           ) : null}
-          {!hasThreadContent ? (
-            <button
-              className="portfolio-chat-suggestion"
-              disabled={pending}
-              onClick={() => beginQuestion("Take a leisurely swim.")}
-              type="button"
-            >
-              Take a leisurely swim
-            </button>
-          ) : null}
-          <form className="portfolio-chat-composer" id="portfolio-question-form" onSubmit={submit}>
-            <label className="sr-only" htmlFor="portfolio-question">Ask a question about the portfolio</label>
-            <textarea
+          <ComposerPrimitive.Root
+            className="portfolio-chat-composer"
+            data-guide-primitive="composer"
+          >
+            <label className="sr-only" htmlFor="portfolio-question">
+              Ask a question about the portfolio
+            </label>
+            <ComposerPrimitive.Input
+              aria-label="Ask a question about the portfolio"
+              disabled={composerDisabled}
               id="portfolio-question"
+              maxRows={3}
               name="question"
-              onBlur={() => {
-                setInputFocused(false);
-              }}
-              onChange={(event) => {
-                setInput(event.target.value);
-                event.target.style.height = "auto";
-                const maximumHeight = 65;
-                const nextHeight = Math.min(event.target.scrollHeight, maximumHeight);
-                if (nextHeight > 0) {
-                  event.target.style.height = `${nextHeight}px`;
-                  event.target.style.overflowY =
-                    event.target.scrollHeight > maximumHeight ? "auto" : "hidden";
-                }
-                if (nextHeight !== inputHeight.current) {
-                  inputHeight.current = nextHeight;
-                  onLayoutChange?.();
-                }
-              }}
+              onChange={onLayoutChange}
               onCompositionEnd={() => {
-                composing.current = false;
                 compositionJustEnded.current = true;
                 compositionEndTimer.current = window.setTimeout(() => {
                   compositionJustEnded.current = false;
@@ -631,40 +789,27 @@ export function PortfolioChat({
                 }, 0);
               }}
               onCompositionStart={() => {
-                composing.current = true;
                 compositionJustEnded.current = false;
-                if (compositionEndTimer.current !== null) {
-                  window.clearTimeout(compositionEndTimer.current);
-                  compositionEndTimer.current = null;
-                }
+                window.clearTimeout(compositionEndTimer.current ?? undefined);
+                compositionEndTimer.current = null;
               }}
-              onFocus={() => {
-                setInputFocused(true);
-              }}
-              onKeyDown={submitOnEnter}
-              placeholder={composerPlaceholder}
-              ref={inputRef}
+              onHeightChange={onLayoutChange}
+              onKeyDown={guardComposerKey}
+              placeholder={offline ? "The Guide is offline" : composerPlaceholder}
               rows={1}
-              value={input}
+              submitMode="enter"
             />
-            <PortfolioControlMark
+            <ComposerPrimitive.Send
               aria-label={pending ? "Asking…" : "Ask"}
-              disabled={pending}
-              kind="send"
-              type="submit"
-            />
-          </form>
-        </section>
-        <PortfolioControlMark
-          aria-expanded={open}
-          aria-label="Open portfolio assistant"
-          className="portfolio-chat-trigger"
-          hidden={open}
-          kind="chat"
-          label="Chat"
-          onClick={() => setOpen(true)}
-        />
-      </div>
-    </section>
+              className="portfolio-guide-send"
+              disabled={composerDisabled || Boolean(turnstileSiteKey && !challengeToken)}
+            >
+              <GuideControlGlyph kind="send" />
+            </ComposerPrimitive.Send>
+          </ComposerPrimitive.Root>
+          </section>
+        </GuideFirstTextContext.Provider>
+      </GuideNavigationContext.Provider>
+    </AssistantRuntimeProvider>
   );
 }

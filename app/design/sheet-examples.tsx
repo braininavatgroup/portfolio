@@ -156,18 +156,13 @@ export function PortfolioWorldExample() {
 
 // #example:PortfolioChat
 export function PortfolioChatExample() {
-  const [open, setOpen] = useState(false);
-
-  // Match the production composition so the dock uses its fixed positioning.
   return (
-    <div className="experience portfolio-composition">
-      <section className="scene-shell">
+    <div className="portfolio-composition" style={{ height: 480 }}>
+      <section style={{ height: "100%" }}>
         <PortfolioChat
           // Omit both stubs in production: the defaults are
           // `streamPortfolioAnswer` and the real Turnstile renderer.
           askPortfolio={galleryAskPortfolio}
-          onOpenChange={setOpen}
-          open={open}
           renderTurnstile={galleryRenderTurnstile}
         />
       </section>

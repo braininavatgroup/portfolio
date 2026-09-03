@@ -50,7 +50,7 @@ const galleryEvidence: readonly PortfolioGroundingEvidence[] = [
 ];
 
 const galleryAnswer =
-  "This is a gallery fixture, not the production assistant. It streams a canned answer so the answering, evidence, and settled states are all visible without a network call.";
+  "This is a gallery fixture, not the production Guide. It reveals a canned answer so the answer and inline evidence states are visible without a network call [E1] [E2].";
 
 /**
  * A stand-in for `streamPortfolioAnswer`. It emits the same event shapes the

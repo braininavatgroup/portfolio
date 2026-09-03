@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PortfolioChatClientError,
   type AskPortfolio,
@@ -12,856 +12,472 @@ import { PortfolioChat } from "./PortfolioChat";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+    configurable: true,
+    value: vi.fn(),
+  });
 });
 
 const evidence = {
   id: "node:pitching",
   title: "Music promo campaign pitching",
-  excerpt:
-    "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
+  excerpt: "A weekly curator workflow.",
   href: "/?view=graph#pitching",
 };
 
-describe("portfolio chat", () => {
-  it("offers a leisurely swim as a visitor-triggered chat suggestion", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "Taking a lap." });
+function submit(question: string) {
+  const input = screen.getByLabelText("Ask a question about the portfolio");
+  fireEvent.change(input, { target: { value: question } });
+  fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+}
+
+describe("docked portfolio Guide", () => {
+  it("is always mounted through assistant-ui Thread, Message, Suggestion, and Composer primitives", async () => {
+    // Catches the old minimized floating dock returning or assistant-ui becoming decorative.
+    render(<PortfolioChat open={false} askPortfolio={async () => {}} resetSignal={0} />);
+
+    expect(screen.getByRole("region", { name: "Portfolio Guide" }).hidden).toBe(false);
+    expect(document.querySelector('[data-guide-primitive="thread"]')).toBeTruthy();
+    expect(document.querySelector('[data-guide-primitive="composer"]')).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /open portfolio assistant/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /minimize portfolio assistant/i })).toBeNull();
+
+    const starters = await screen.findAllByRole("button", { name: /^(Where|What|Can|Which|How|Go|Wave)/ });
+    expect(starters).toHaveLength(3);
+    expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(2);
+    expect(starters.filter((starter) => starter.querySelector(".portfolio-guide-suggestion-mark"))).toHaveLength(1);
+    fireEvent.click(starters[0]!);
+    await waitFor(() => expect(document.querySelector('[data-guide-primitive="message"]')).toBeTruthy());
+  });
+
+  it("passes bounded conversation, visit state, and abort signal through AskPortfolio", async () => {
+    // Catches the assistant-ui adapter bypassing the protected client options.
+    const askPortfolio = vi.fn<AskPortfolio>(async (question, { onEvent }) => {
+      onEvent({ type: "turn_mode", mode: "portfolio" });
+      onEvent({ type: "answer_delta", delta: `${question} answered.` });
       onEvent({ type: "done" });
     });
-    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Take a leisurely swim" }));
-
+    submit("First question");
+    await screen.findByText("First question answered.");
     await waitFor(() =>
-      expect(askPortfolio).toHaveBeenCalledWith(
-        "Take a leisurely swim.",
-        expect.any(Object),
-      ),
+      expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("false"),
     );
+    submit("Second question");
+    await screen.findByText("Second question answered.");
+
+    expect(askPortfolio).toHaveBeenNthCalledWith(
+      1,
+      "First question",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+        visitState: { generalTurns: 0, portfolioNudgeShown: false },
+      }),
+    );
+    expect(askPortfolio.mock.calls[0]![1]).not.toHaveProperty("conversation");
+    expect(askPortfolio.mock.calls[1]![1].conversation).toEqual([
+      { role: "user", content: "First question" },
+      { role: "assistant", content: "First question answered." },
+    ]);
   });
 
-  it("reports controlled open-state changes to its parent", () => {
-    // Catches the dock returning to local state while the paired avatar remains parent-controlled.
-    const onOpenChange = vi.fn();
-    const { rerender } = render(
-      <PortfolioChat
-        open={false}
-        onOpenChange={onOpenChange}
-        askPortfolio={async () => {}}
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open portfolio assistant" }),
-    );
-    expect(onOpenChange).toHaveBeenCalledWith(true);
-
-    rerender(
-      <PortfolioChat
-        open
-        onOpenChange={onOpenChange}
-        askPortfolio={async () => {}}
-      />,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
-    );
-    expect(onOpenChange).toHaveBeenLastCalledWith(false);
-  });
-
-  it("uses conventional mobile navigation and a multiline composer", async () => {
-    // Catches index navigation being squeezed into the typing and send controls.
-    const onOpenChange = vi.fn();
-    const onLayoutChange = vi.fn();
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "A useful answer." });
+  it("renders valid citations inline and routes them to Reader and Map navigation", async () => {
+    // Catches citations becoming detached evidence pills or ordinary href navigation.
+    const onNavigateEvidence = vi.fn();
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [evidence] });
+      onEvent({ type: "answer_delta", delta: "The weekly workflow [E1]. Unknown [E2]." });
       onEvent({ type: "done" });
-    });
+    };
     render(
       <PortfolioChat
-        open
-        onLayoutChange={onLayoutChange}
-        onOpenChange={onOpenChange}
         askPortfolio={askPortfolio}
+        onNavigateEvidence={onNavigateEvidence}
+        resetSignal={0}
       />,
     );
 
-    const navigation = screen.getByRole("navigation", {
-      name: "Portfolio assistant navigation",
+    submit("Tell me about pitching");
+    const citation = await screen.findByRole("button", {
+      name: "[E1] Music promo campaign pitching",
     });
-    const back = screen.getByRole("button", {
-      name: "Back to portfolio home",
+    await screen.findByText((_, element) =>
+      Boolean(element?.classList.contains("chat-answer") && element.textContent?.includes("Unknown [E2].")),
+    );
+    expect(document.querySelector(".chat-evidence-pills")).toBeNull();
+    fireEvent.click(citation);
+
+    expect(onNavigateEvidence).toHaveBeenCalledWith(
+      { type: "node", id: "pitching" },
+      evidence,
+    );
+  });
+
+  it("keys follow-up prompts to evidence the answer actually cites", async () => {
+    // Catches uncited evidence taking precedence over the record discussed in the answer.
+    const uncitedEvidence = {
+      id: "node:reporting",
+      title: "Campaign reporting",
+      excerpt: "A reporting workflow.",
+      href: "/?view=graph#reporting",
+    };
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [uncitedEvidence, evidence] });
+      onEvent({ type: "answer_delta", delta: "The weekly workflow [E2]." });
+      onEvent({ type: "done" });
+    };
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+
+    submit("Tell me about pitching");
+    await screen.findByRole("button", {
+      name: "[E2] Music promo campaign pitching",
     });
-    const composer = document.querySelector(".portfolio-chat-composer")!;
+
+    const followUp = await screen.findByRole("button", {
+        name: "Summarise Music promo campaign pitching",
+      });
+    expect(followUp.querySelector('[data-control="chevron"]')).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Summarise Campaign reporting" }),
+    ).toBeNull();
+  });
+
+  it("shows the contractual slow state only after ten seconds without text", async () => {
+    // Catches a premature or stale slow indicator.
+    vi.useFakeTimers();
+    render(<PortfolioChat askPortfolio={() => new Promise(() => {})} resetSignal={0} />);
+    submit("A slow question");
+    await vi.waitFor(() =>
+      expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("true"),
+    );
+
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(screen.queryByText("Still thinking. The records are long.")).toBeNull();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(screen.getByText("Still thinking. The records are long.")).toBeTruthy();
+    expect(document.querySelector(".portfolio-guide-twirl")).toBeTruthy();
+  });
+
+  it("shows exact error copy and permits one retry of the failed question", async () => {
+    // Catches retries changing the question or creating an unbounded retry loop.
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "partial" });
+      throw new PortfolioChatClientError("provider failed", "provider_error");
+    });
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+    submit("Retry this exactly");
+
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    expect(screen.getByText("Something went wrong.")).toBeTruthy();
+    expect(screen.queryByText("partial")).toBeNull();
+    fireEvent.click(retry);
+    await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(2));
+    expect(askPortfolio.mock.calls.map(([question]) => question)).toEqual([
+      "Retry this exactly",
+      "Retry this exactly",
+    ]);
+    expect(screen.getAllByText("Retry this exactly")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
+  it("tracks browser offline state and disables the composer with exact placeholder copy", async () => {
+    // Catches a browser connectivity change leaving a sendable composer behind.
+    let online = false;
+    vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
+    render(<PortfolioChat askPortfolio={async () => {}} resetSignal={0} />);
+
     const input = screen.getByLabelText("Ask a question about the portfolio");
+    expect((input as HTMLTextAreaElement).disabled).toBe(true);
+    expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
 
-    expect(navigation.contains(back)).toBe(true);
-    expect(back.querySelector("[data-index-mark]")).toBeNull();
-    expect(back.textContent).toBe("Home");
-    expect(navigation.textContent).toContain("Chat about the portfolio");
-    expect(composer.contains(back)).toBe(false);
-    expect(input.tagName).toBe("TEXTAREA");
-
-    onLayoutChange.mockClear();
-    fireEvent.focus(input);
-    fireEvent.change(input, {
-      target: { value: "A question that\nneeds more than one line" },
-    });
-    expect(onLayoutChange).toHaveBeenCalled();
-    fireEvent.submit(composer);
-
-    await waitFor(() =>
-      expect(askPortfolio).toHaveBeenCalledWith(
-        "A question that\nneeds more than one line",
-        expect.any(Object),
-      ),
-    );
-    expect(document.activeElement).not.toBe(input);
-
-    fireEvent.click(back);
-    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    online = true;
+    fireEvent(window, new Event("online"));
+    await waitFor(() => expect((input as HTMLTextAreaElement).disabled).toBe(false));
   });
 
-  it("sends with Enter and keeps Shift+Enter available for a line break", async () => {
-    // Catches the multiline composer requiring a pointer click to send.
+  it("sends with Enter, preserves Shift+Enter, and ignores the Enter that commits IME text", async () => {
+    // Catches assistant-ui's default Enter handling bypassing the Guide's IME guard.
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "A useful answer." });
+      onEvent({ type: "answer_delta", delta: "Answer." });
       onEvent({ type: "done" });
     });
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={askPortfolio}
-      />,
-    );
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
     const input = screen.getByLabelText("Ask a question about the portfolio");
 
     fireEvent.change(input, { target: { value: "First line" } });
-    expect(
-      fireEvent.keyDown(input, { key: "Enter", code: "Enter", shiftKey: true }),
-    ).toBe(true);
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter", shiftKey: true });
     expect(askPortfolio).not.toHaveBeenCalled();
-
-    fireEvent.change(input, { target: { value: "First line\nSecond line" } });
-    expect(
-      fireEvent.keyDown(input, { key: "Enter", code: "Enter" }),
-    ).toBe(false);
-    await waitFor(() =>
-      expect(askPortfolio).toHaveBeenCalledWith(
-        "First line\nSecond line",
-        expect.any(Object),
-      ),
-    );
-  });
-
-  it("does not send the Enter key that commits an IME composition", () => {
-    // Catches Safari submitting CJK text immediately after compositionend.
-    const askPortfolio = vi.fn<AskPortfolio>(async () => {});
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={askPortfolio}
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
 
     fireEvent.compositionStart(input);
     fireEvent.change(input, { target: { value: "質問" } });
     fireEvent.compositionEnd(input);
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-
     expect(askPortfolio).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await waitFor(() => expect(askPortfolio).toHaveBeenCalledWith("質問", expect.any(Object)));
   });
 
-  it("does not start a second turn with Enter while an answer is pending", async () => {
-    // Catches the keyboard path bypassing the disabled send button.
-    const askPortfolio = vi.fn<AskPortfolio>(() => new Promise(() => {}));
+  it("resets visible messages, history, visit state, errors, suggestions, and the current request", async () => {
+    // Catches resetSignal clearing only the transcript while hidden request state survives.
+    let firstOptions: Parameters<AskPortfolio>[1] | undefined;
+    const askPortfolio = vi.fn<AskPortfolio>((_question, options) => {
+      firstOptions ??= options;
+      if (askPortfolio.mock.calls.length === 1) return new Promise(() => {});
+      options.onEvent({ type: "answer_delta", delta: "Fresh answer." });
+      options.onEvent({ type: "done" });
+      return Promise.resolve();
+    });
+    const onThreadStateChange = vi.fn();
+    const { rerender } = render(
+      <PortfolioChat
+        askPortfolio={askPortfolio}
+        onThreadStateChange={onThreadStateChange}
+        resetSignal={0}
+      />,
+    );
+    submit("Abandon this");
+    await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <PortfolioChat
+        askPortfolio={askPortfolio}
+        onThreadStateChange={onThreadStateChange}
+        resetSignal={1}
+      />,
+    );
+    expect(firstOptions?.signal?.aborted).toBe(true);
+    expect(screen.queryByText("Abandon this")).toBeNull();
+    await waitFor(() => expect(onThreadStateChange).toHaveBeenLastCalledWith(false));
+    expect(await screen.findAllByTestId("guide-suggestion")).toHaveLength(3);
+
+    submit("Fresh question");
+    await screen.findByText("Fresh answer.");
+    const freshOptions = askPortfolio.mock.calls[1]![1];
+    expect(freshOptions).not.toHaveProperty("conversation");
+    expect(freshOptions.visitState).toEqual({ generalTurns: 0, portfolioNudgeShown: false });
+  });
+
+  it("waits for Turnstile, forwards one token, and resets the widget after the turn", async () => {
+    // Catches assistant-ui keyboard submission bypassing the challenge gate.
+    let deliverToken: ((token: string) => void) | undefined;
+    const reset = vi.fn();
+    const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
+      deliverToken = callbacks.onToken;
+      return { reset, remove: vi.fn() };
+    };
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "Verified." });
+      onEvent({ type: "done" });
+    });
     render(
       <PortfolioChat
-        initiallyOpen
         askPortfolio={askPortfolio}
+        renderTurnstile={renderTurnstile}
+        resetSignal={0}
+        turnstileSiteKey="site-key"
       />,
     );
     const input = screen.getByLabelText("Ask a question about the portfolio");
-
-    fireEvent.change(input, { target: { value: "First question" } });
+    fireEvent.change(input, { target: { value: "Verified question" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    expect(askPortfolio).not.toHaveBeenCalled();
+
+    deliverToken?.("challenge-token");
+    await waitFor(() => expect(screen.queryByText("Verification is required before asking.")).toBeNull());
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await screen.findByText("Verified.");
+    expect(askPortfolio.mock.calls[0]![1].challengeToken).toBe("challenge-token");
+    await waitFor(() => expect(reset).toHaveBeenCalledTimes(1));
+  });
+
+  it("aborts stale turns and ignores their late events", async () => {
+    // Catches an obsolete response replacing a newer answer after reset.
+    let releaseFirst: (() => void) | undefined;
+    let staleEvent: Parameters<Parameters<AskPortfolio>[1]["onEvent"]>[0] | undefined;
+    const askPortfolio = vi.fn<AskPortfolio>((_question, options) => {
+      if (askPortfolio.mock.calls.length === 1) {
+        return new Promise<void>((resolve) => {
+          releaseFirst = resolve;
+          staleEvent = { type: "answer_delta", delta: "Stale answer." };
+        });
+      }
+      options.onEvent({ type: "answer_delta", delta: "Current answer." });
+      options.onEvent({ type: "done" });
+      return Promise.resolve();
+    });
+    const { rerender } = render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+    submit("Old question");
     await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(1));
+    const oldOptions = askPortfolio.mock.calls[0]![1];
 
-    fireEvent.change(input, { target: { value: "Second question" } });
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-
-    expect(askPortfolio).toHaveBeenCalledTimes(1);
+    rerender(<PortfolioChat askPortfolio={askPortfolio} resetSignal={1} />);
+    submit("New question");
+    await screen.findByText("Current answer.");
+    if (staleEvent) oldOptions.onEvent(staleEvent);
+    oldOptions.onEvent({ type: "done" });
+    releaseFirst?.();
+    expect(oldOptions.signal?.aborted).toBe(true);
+    expect(screen.queryByText("Stale answer.")).toBeNull();
   });
 
-  it("starts as the compact conversation control and restores the full assistant", async () => {
-    render(
-      <PortfolioChat
-        askPortfolio={async () => {}}
-      />,
-    );
-
-    expect(
-      document
-        .querySelector(".portfolio-chat")
-        ?.getAttribute("data-clarity-mask"),
-    ).toBe("true");
-
-    expect(
-      screen.getByRole("button", { name: "Open portfolio assistant" }),
-    ).toBeTruthy();
-    expect(document.querySelector(".portfolio-chat-avatar")).toBeNull();
-    expect(
-      (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
-    ).toBe(true);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open portfolio assistant" }),
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByLabelText("Ask a question about the portfolio"),
-      ).toBeTruthy();
-      expect(
-        (document.querySelector(".portfolio-chat-panel") as HTMLElement).hidden,
-      ).toBe(false);
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
-    );
-    expect(
-      screen.getByRole("button", { name: "Open portfolio assistant" }),
-    ).toBeTruthy();
-  });
-
-  it("does not turn a mobile dock position into the next desktop position", () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => ({ matches: true })),
-    );
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={async () => {}}
-      />,
-    );
-    const panel = document.querySelector(".portfolio-chat-panel") as HTMLElement;
-    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
-      bottom: 830,
-      height: 111,
-      left: 77,
-      right: 365,
-      top: 719,
-      width: 288,
-      x: 77,
-      y: 719,
-      toJSON: () => ({}),
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
-    );
-
-    expect(
-      (screen.getByLabelText("Portfolio assistant dock") as HTMLElement).style
-        .left,
-    ).toBe("");
-  });
-
-  it("returns the minimized desktop bubble to its default map-edge dock", () => {
-    // Catches the open panel bounds being reused as a displaced closed-bubble position.
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => ({ matches: false })),
-    );
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={async () => {}}
-      />,
-    );
-    const panel = document.querySelector(".portfolio-chat-panel") as HTMLElement;
-    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
-      bottom: 830,
-      height: 111,
-      left: 577,
-      right: 865,
-      top: 719,
-      width: 288,
-      x: 577,
-      y: 719,
-      toJSON: () => ({}),
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Minimize portfolio assistant" }),
-    );
-
-    const dock = screen.getByLabelText("Portfolio assistant dock");
-    expect(dock.getAttribute("style")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Open portfolio assistant" }),
-    ).toBeTruthy();
-  });
-
-  it("holds effects behind the first rendered answer delta", async () => {
-    // Catches safe effects running site or avatar work before text becomes the primary response.
-    const lifecycle: string[] = [];
+  it("keeps the narrow avatar callbacks ordered behind rendered text", async () => {
+    // Catches the Guide restoring deleted director callbacks or running the
+    // closed swim action before the primary answer appears.
+    const calls: string[] = [];
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({
         type: "effects",
-        effects: {
-          avatarAction: "swim_lap",
-          issues: [],
-        },
+        effects: { avatarAction: "swim_lap", issues: [] },
       });
-      lifecycle.push("effects-received");
-      expect(lifecycle).toEqual(["turn-start", "effects-received"]);
-      onEvent({ type: "answer_delta", delta: "Text leads. [E1]" });
+      onEvent({ type: "evidence", evidence: [evidence] });
+      onEvent({ type: "answer_delta", delta: "Text first. [E1]" });
       onEvent({ type: "done" });
     };
-    const avatarIntegration = {
-      onTurnStart: () => {
-        lifecycle.push("turn-start");
-      },
-      onFirstText: () => {
-        lifecycle.push("talking");
-      },
-      onEffects: () => {
-        lifecycle.push(
-          screen.queryByText("Text leads. [E1]")
-            ? "effects-after-text"
-            : "effects-before-text",
-        );
-      },
-    };
-
     render(
       <PortfolioChat
-        initiallyOpen
-        avatarIntegration={avatarIntegration}
         askPortfolio={askPortfolio}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "Open Dubs" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    await waitFor(() => expect(lifecycle.at(-1)).toBe("effects-after-text"));
-    expect(lifecycle).toEqual([
-      "turn-start",
-      "effects-received",
-      "talking",
-      "effects-after-text",
-    ]);
-  });
-
-  it("drops effects when a turn finishes without answer text", async () => {
-    // Catches a no-text response executing optional effects without a primary answer.
-    const effects: string[] = [];
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({
-        type: "effects",
-        effects: {
-          avatarAction: null,
-          issues: [],
-        },
-      });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <PortfolioChat
-        initiallyOpen
         avatarIntegration={{
-          onTurnStart: () => {},
-          onFirstText: () => {},
-          onEffects: () => {
-            effects.push("effect");
+          onTurnStart: () => { calls.push("start"); },
+          onFirstText: () => {
+            calls.push(
+              document.querySelector(".chat-answer")?.textContent
+                ? "first-after-text"
+                : "first-before-text",
+            );
+          },
+          onEffects: (effects) => {
+            calls.push(effects.avatarAction ?? "no-action");
           },
         }}
-        askPortfolio={askPortfolio}
+        resetSignal={0}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "Question" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Ask" })).toBeTruthy());
-    expect(effects).toEqual([]);
+    submit("Show pitching");
+
+    await waitFor(() => expect(calls).toContain("swim_lap"));
+    expect(calls).toEqual(["start", "first-after-text", "swim_lap"]);
   });
 
   it.each([
     ["synchronous throw", () => { throw new Error("avatar start failed"); }],
     ["asynchronous rejection", () => Promise.reject(new Error("avatar start failed"))],
-  ])("isolates a %s from turn start", async (_label, onTurnStart) => {
-    // Catches optional turn-start work preventing transport, state reset, or answer rendering.
+  ])("isolates a %s from avatar turn start", async (_label, onTurnStart) => {
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "Chat survives." });
+      onEvent({ type: "answer_delta", delta: "Guide survives." });
       onEvent({ type: "done" });
     });
-
     render(
       <PortfolioChat
-        initiallyOpen
+        askPortfolio={askPortfolio}
         avatarIntegration={{
           onTurnStart,
           onFirstText: () => {},
           onEffects: () => {},
         }}
-        askPortfolio={askPortfolio}
+        resetSignal={0}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "Question" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    expect(await screen.findByText("Chat survives.")).toBeTruthy();
+    submit("Question");
+
+    expect(await screen.findByText("Guide survives.")).toBeTruthy();
     expect(askPortfolio).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps text first while delivering the avatar lifecycle in event order", async () => {
-    // Catches lifecycle work delaying text, replaying the first-delta callback, or reordering effects and failure recovery.
-    const lifecycle: string[] = [];
+  it("drops an avatar effect when a turn completes without answer text", async () => {
+    const onEffects = vi.fn();
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "Safe answer. " });
-      onEvent({ type: "answer_delta", delta: "[E1]" });
       onEvent({
         type: "effects",
-        effects: { avatarAction: null, issues: [] },
-      });
-      onEvent({
-        type: "error",
-        code: "provider_unavailable",
-        message: "The answer service is temporarily unavailable.",
+        effects: { avatarAction: "swim_lap", issues: [] },
       });
       onEvent({ type: "done" });
     };
-    const avatarIntegration = {
-      onTurnStart: () => {
-        lifecycle.push("submit");
-      },
-      onFirstText: () => {
-        lifecycle.push("first-text");
-      },
-      onEffects: () => {
-        lifecycle.push("effects");
-      },
-    };
-
     render(
       <PortfolioChat
-        initiallyOpen
-        avatarIntegration={avatarIntegration}
         askPortfolio={askPortfolio}
+        avatarIntegration={{
+          onTurnStart: () => {},
+          onFirstText: () => {},
+          onEffects,
+        }}
+        resetSignal={0}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does Dubs work?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    await waitFor(() => expect(lifecycle).toContain("effects"));
-    expect(lifecycle).toEqual([
-      "submit",
-      "first-text",
-      "effects",
-    ]);
-  });
-
-  it("commits the first answer delta before running avatar work", async () => {
-    // Catches avatar scheduling that can get ahead of the primary text response.
-    let releaseRequest: (() => void) | undefined;
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "Text stays primary." });
-      await new Promise<void>((resolve) => {
-        releaseRequest = resolve;
-      });
-    };
-    const observedText: boolean[] = [];
-    const avatarIntegration = {
-      onTurnStart: () => {},
-      onFirstText: () => {
-        observedText.push(Boolean(screen.queryByText("Text stays primary.")));
-      },
-      onEffects: () => {},
-    };
-
-    render(
-      <PortfolioChat
-        initiallyOpen
-        avatarIntegration={avatarIntegration}
-        askPortfolio={askPortfolio}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "Question" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    await waitFor(() => expect(observedText).toEqual([true]));
-    releaseRequest?.();
-  });
-
-  it("does not submit a question until configured Turnstile verification completes", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async () => {});
-    const renderTurnstile: TurnstileRenderer = vi.fn(async () => ({
-      remove: vi.fn(),
-      reset: vi.fn(),
-    }));
-
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={askPortfolio}
-        renderTurnstile={renderTurnstile}
-        turnstileSiteKey="site-key"
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "How does reporting work?" } });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByText("Complete verification before asking."),
-    ).toBeTruthy();
-    expect(askPortfolio).not.toHaveBeenCalled();
-  });
-
-  it("forwards a Turnstile token and resets the widget after asking", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
-      expect(options.challengeToken).toBe("challenge-token");
-      options.onEvent({ type: "done" });
-    });
-    const controller = { remove: vi.fn(), reset: vi.fn() };
-    const renderTurnstile: TurnstileRenderer = vi.fn(
-      async (_container, _siteKey, callbacks) => {
-        callbacks.onToken("challenge-token");
-        return controller;
-      },
-    );
-
-    render(
-      <PortfolioChat
-        initiallyOpen
-        askPortfolio={askPortfolio}
-        renderTurnstile={renderTurnstile}
-        turnstileSiteKey="site-key"
-      />,
-    );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "How does reporting work?" } });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(1));
-    expect(controller.reset).toHaveBeenCalledTimes(1);
-  });
-
-  it("streams a labeled answer separately from its supporting evidence", async () => {
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "The approval step " });
-      await Promise.resolve();
-      onEvent({ type: "answer_delta", delta: "stays human. [E1]" });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does pitching preserve approval?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(await screen.findByText("The approval step stays human. [E1]")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Answer" })).toBeTruthy();
-    expect(
-      screen.getByRole("heading", { name: "Supporting portfolio evidence" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "[E1] Music promo campaign pitching" }).getAttribute("href"),
-    ).toBe("/?view=graph#pitching");
-    expect(screen.getByText(evidence.excerpt)).toBeTruthy();
-  });
-
-  // Owner: portfolio chat UI. Retire only if the server sends cited evidence
-  // after generation instead of the complete context before generation.
-  it("shows only the complete-context sources cited by the answer", async () => {
-    const reportingEvidence = {
-      ...evidence,
-      id: "node:reporting",
-      title: "Music promo campaign reporting",
-      excerpt: "A daily pipeline that finds wins, verifies the evidence, and drafts every client report.",
-      href: "/?view=graph#reporting",
-    };
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence, reportingEvidence] });
-      onEvent({ type: "answer_delta", delta: "Reporting stays reviewable. [E2]" });
-      onEvent({ type: "done" });
-    };
-
-    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does reporting work?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByRole("link", { name: "[E2] Music promo campaign reporting" }),
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("link", {
-        name: "[E1] Music promo campaign pitching",
-      }),
-    ).toBeNull();
-  });
-
-  it("keeps follow-up context in the current visit without persisting it", async () => {
-    const requests: Array<{
-      question: string;
-      conversation?: readonly { role: "user" | "assistant"; content: string }[];
-    }> = [];
-    const askPortfolio: AskPortfolio = async (question, options) => {
-      requests.push({ question, conversation: options.conversation });
-      options.onEvent({ type: "answer_delta", delta: `${question} answer. [E1]` });
-      options.onEvent({ type: "done" });
-    };
-
-    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-
-    fireEvent.change(input, { target: { value: "Tell me about pitching." } });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-    await waitFor(() => expect(requests).toHaveLength(1));
-
-    fireEvent.change(input, { target: { value: "What changed?" } });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-    await waitFor(() => expect(requests).toHaveLength(2));
-
-    expect(requests[0]?.conversation).toBeUndefined();
-    expect(requests[1]?.conversation).toEqual([
-      { role: "user", content: "Tell me about pitching." },
-      { role: "assistant", content: "Tell me about pitching. answer. [E1]" },
-    ]);
-    expect(screen.getByText("Tell me about pitching.")).toBeTruthy();
-    expect(screen.getByText("Tell me about pitching. answer. [E1]")).toBeTruthy();
-    expect(screen.getByText("What changed?")).toBeTruthy();
-    expect(screen.getByText("What changed? answer. [E1]")).toBeTruthy();
-  });
-
-  it("counts only completed general turns and marks the third-turn nudge once", async () => {
-    const requests: Array<{
-      question: string;
-      visitState: { generalTurns: number; portfolioNudgeShown: boolean } | undefined;
-    }> = [];
-    const askPortfolio: AskPortfolio = async (question, options) => {
-      requests.push({ question, visitState: options.visitState });
-      const mode = question.startsWith("social") ? "social" : "general";
-      options.onEvent({ type: "turn_mode", mode });
-      options.onEvent({ type: "answer_delta", delta: `${mode} answer` });
-      options.onEvent({ type: "done" });
-    };
-
-    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    const ask = async (question: string, expectedRequests: number) => {
-      fireEvent.change(input, { target: { value: question } });
-      fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-      await waitFor(() => expect(requests).toHaveLength(expectedRequests));
-    };
-
-    await ask("social one", 1);
-    await ask("general one", 2);
-    await ask("social two", 3);
-    await ask("social three", 4);
-    await ask("general two", 5);
-    await ask("general three", 6);
-    await ask("general four", 7);
-
-    expect(requests.map(({ visitState }) => visitState)).toEqual([
-      { generalTurns: 0, portfolioNudgeShown: false },
-      { generalTurns: 0, portfolioNudgeShown: false },
-      { generalTurns: 1, portfolioNudgeShown: false },
-      { generalTurns: 1, portfolioNudgeShown: false },
-      { generalTurns: 1, portfolioNudgeShown: false },
-      { generalTurns: 2, portfolioNudgeShown: false },
-      { generalTurns: 2, portfolioNudgeShown: true },
-    ]);
-  });
-
-  it("keeps the next request disabled until the completed turn is committed", async () => {
-    let releaseRequest: (() => void) | undefined;
-    const requestFinished = new Promise<void>((resolve) => {
-      releaseRequest = resolve;
-    });
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "turn_mode", mode: "general" });
-      onEvent({ type: "answer_delta", delta: "Complete answer" });
-      onEvent({ type: "done" });
-      await requestFinished;
-    };
-
-    render(<PortfolioChat initiallyOpen askPortfolio={askPortfolio} />);
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "A general question" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    submit("No answer");
 
     await waitFor(() =>
       expect(
-        (screen.getByRole("button", { name: "Asking…" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true),
+        screen
+          .getByRole("region", { name: "Portfolio Guide" })
+          .getAttribute("data-pending"),
+      ).toBe("false"),
     );
-    releaseRequest?.();
-    await waitFor(() =>
-      expect(
-        (screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(false),
-    );
+    expect(onEffects).not.toHaveBeenCalled();
   });
 
-  it("renders a retired preview error without exposing an alternate access form", async () => {
-    const askPortfolio = vi.fn<AskPortfolio>(async () => {
-      throw new PortfolioChatClientError(
-        "preview_required",
-        "Preview access is required.",
-      );
-    });
 
-    render(
+  it("registers its docked avatar area, reports layout changes, and copies clean answer text", async () => {
+    // Catches removing protected layout/avatar wiring while replacing the panel.
+    let reportResize: (() => void) | undefined;
+    const observe = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          reportResize = () => callback([], this as unknown as ResizeObserver);
+        }
+        observe = observe;
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const registerAvatarDock = vi.fn();
+    const onLayoutChange = vi.fn();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...window.navigator, onLine: true, clipboard: { writeText } });
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [evidence] });
+      onEvent({ type: "answer_delta", delta: "Copy this [E1]." });
+      onEvent({ type: "done" });
+    };
+    const { unmount } = render(
       <PortfolioChat
-        initiallyOpen
         askPortfolio={askPortfolio}
+        onLayoutChange={onLayoutChange}
+        registerAvatarDock={registerAvatarDock}
+        resetSignal={0}
       />,
     );
+    expect(registerAvatarDock).toHaveBeenCalledWith(
+      expect.objectContaining({ className: "portfolio-guide-avatar" }),
+    );
+    expect(observe).toHaveBeenCalledWith(
+      expect.objectContaining({ className: "portfolio-guide-avatar" }),
+    );
+    onLayoutChange.mockClear();
+    reportResize?.();
+    expect(onLayoutChange).toHaveBeenCalledTimes(1);
     const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "How does reporting work?" } });
+    fireEvent.change(input, { target: { value: "Copy" } });
+    expect(onLayoutChange).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(await screen.findByText("Preview access is required.")).toBeTruthy();
-    expect(screen.queryByLabelText("Preview access code")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Unlock preview" })).toBeNull();
-    expect(input).toHaveProperty("value", "How does reporting work?");
-    expect(screen.getByRole("button", { name: "Ask" })).toHaveProperty(
-      "disabled",
-      false,
+    await screen.findByText((_, element) =>
+      Boolean(element?.classList.contains("chat-answer") && element.textContent === "Copy this [E1]."),
     );
+    fireEvent.click(screen.getByRole("button", { name: "Copy answer" }));
+    expect(writeText).toHaveBeenCalledWith("Copy this [E1].");
+    unmount();
+    expect(registerAvatarDock).toHaveBeenLastCalledWith(null);
   });
-
-  it("does not expose uncited full context when the provider stream fails", async () => {
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({
-        type: "error",
-        code: "provider_unavailable",
-        message: "The answer service is temporarily unavailable.",
-      });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does pitching work?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByText("The answer service is temporarily unavailable."),
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("heading", { name: "Supporting portfolio evidence" }),
-    ).toBeNull();
-  });
-
-  it("clears a partial answer when the provider fails mid-stream", async () => {
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "Incomplete answer" });
-      onEvent({
-        type: "error",
-        code: "provider_unavailable",
-        message: "The answer service is temporarily unavailable.",
-      });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does pitching work?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByText("The answer service is temporarily unavailable."),
-    ).toBeTruthy();
-    expect(screen.queryByText("Incomplete answer")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Answer" })).toBeNull();
-  });
-
-  it("clears a partial answer when the transport rejects mid-stream", async () => {
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "Incomplete transport answer" });
-      throw new Error("connection lost");
-    };
-
-    render(
-      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "How does pitching work?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByText("The answer service is temporarily unavailable."),
-    ).toBeTruthy();
-    expect(screen.queryByText("Incomplete transport answer")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Answer" })).toBeNull();
-  });
-
-  it("shows the evidence gap instead of inventing an answer", async () => {
-    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
-      onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({
-        type: "notice",
-        code: "insufficient_evidence",
-        message:
-          "The portfolio does not publish enough evidence to answer that question.",
-      });
-      onEvent({ type: "done" });
-    };
-
-    render(
-      <PortfolioChat initiallyOpen askPortfolio={askPortfolio} />,
-    );
-    fireEvent.change(screen.getByLabelText("Ask a question about the portfolio"), {
-      target: { value: "What patents did Bradley file?" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-
-    expect(
-      await screen.findByText(
-        "The portfolio does not publish enough evidence to answer that question.",
-      ),
-    ).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Answer" })).toBeNull();
-    expect(
-      screen.queryByRole("heading", { name: "Supporting portfolio evidence" }),
-    ).toBeNull();
-  });
-
 });
