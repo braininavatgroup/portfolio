@@ -14,7 +14,11 @@ import {
   SPOTLIGHT_JITTER,
   spreadFrom,
 } from "./PortfolioWorld";
-import { portfolioThreads, portfolioWorldNodeById } from "../lib/portfolio-world";
+import {
+  getWorldFocusIds,
+  portfolioThreads,
+  portfolioWorldNodeById,
+} from "../lib/portfolio-world";
 import {
   AUTHORED_ZONES,
   createRng,
@@ -205,6 +209,34 @@ describe("PortfolioWorld", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps every node a click target, the dimmed field under a selection included", async () => {
+    const onSelect = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        onReset={() => {}}
+        onSelect={onSelect}
+        selectedId="dubs"
+      />,
+    );
+    // Let the field settle to its dimmed alpha before clicking into it.
+    for (let frame = 0; frame < 40; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    }
+    const focus = getWorldFocusIds({ activeThreadId: null, selectedId: "dubs" });
+    const field = [...portfolioWorldNodeById.values()].filter((node) => !focus.has(node.id));
+    expect(field.length).toBeGreaterThan(0);
+    for (const node of field) {
+      const button = screen.getByRole("button", { name: `${node.kind} ${node.label}` });
+      expect(button.style.pointerEvents, `${node.id} lost its hit box`).not.toBe("none");
+    }
+    const target = field[0];
+    const button = screen.getByRole("button", { name: `${target.kind} ${target.label}` });
+    fireEvent.pointerDown(button, { button: 0, pointerId: 3, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(button, { pointerId: 3, clientX: 101, clientY: 100 });
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: target.id }));
+  });
+
   it("maps a rightward drag to rightward screen movement", () => {
     const cameraPosition = { x: 0, y: 35, z: -760 };
     const cameraTarget = { x: 0, y: 0, z: 760 };
@@ -297,6 +329,68 @@ describe("PortfolioWorld", () => {
         { x: 15, y: 0, family: "product" },
       ),
     ).toBeNull();
+  });
+
+  it("leaves from under the label's centre when the ray would run through it", () => {
+    // A two-line desktop label at the full 132 width, hanging 18 below the mark.
+    const labelBox = { x: -66, y: 18, width: 132, height: 30 };
+    // Down-right at 35°: the far-edge rule would start the line 80px out,
+    // past the label's side. It starts 2px under the label instead.
+    const diagonal = connectorSegment(
+      { x: 0, y: 0, family: "operation", labelBox },
+      { x: 300, y: 210, family: "engagement" },
+    )!;
+    expect(diagonal.start).toEqual({ x: 0, y: 50 });
+    // The other end meets the run where it actually starts, on the line
+    // from under the label to its mark.
+    const slope = (diagonal.end.y - 50) / diagonal.end.x;
+    expect(slope).toBeCloseTo((210 - 50) / 300, 5);
+    // A relation above the spotlit node: its line down to the spotlight
+    // leaves from under its own label the same way.
+    const arriving = connectorSegment(
+      {
+        x: -150,
+        y: -200,
+        family: "component",
+        labelBox: { x: -216, y: -182, width: 132, height: 30 },
+      },
+      { x: 0, y: 0, family: "story" },
+    )!;
+    expect(arriving.start).toEqual({ x: -150, y: -150 });
+    // A compact label sits beside the mark: there the far-edge rule holds.
+    const beside = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox: { x: 12, y: -6, width: 60, height: 12 } },
+      { x: 200, y: 0, family: "product" },
+    )!;
+    expect(beside.start.x).toBe(74);
+    // A run that would climb back into the label from below keeps the far edge.
+    const shallow = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox },
+      { x: 120, y: 40, family: "product" },
+    )!;
+    expect(shallow.start.y).toBeLessThan(48);
+    expect(shallow.start.x).toBeGreaterThan(60);
+  });
+
+  it("eases each end of a line toward its new start instead of snapping", () => {
+    const memory = new Map<string, { x: number; y: number }>();
+    const labelBox = { x: -66, y: 18, width: 132, height: 30 };
+    const first = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox },
+      { x: 300, y: 210, family: "product" },
+      memory,
+      "a->b",
+    )!;
+    expect(first.start).toEqual({ x: 0, y: 50 });
+    // The target moves up beside the mark, so the ray clears the label.
+    const second = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox },
+      { x: 300, y: 0, family: "product" },
+      memory,
+      "a->b",
+    )!;
+    expect(second.start.y).toBeLessThan(50);
+    expect(second.start.y).toBeGreaterThan(0);
   });
 
   it("reconstructs the authored overview composition at its reference viewport", () => {

@@ -54,8 +54,8 @@ export function PortfolioWorldExample() {
   7px movement threshold); the Escape binding lives in `PortfolioExperience`.
 - **It sizes itself from the viewport, not its parent.** `.portfolio-world` is
   `position: fixed`; it shrinks to a box only inside a containing block.
-- **`activeVisual` disables every node button**; `.portfolio-visual-open`
-  belongs on the composition root.
+- **Only `activeVisual` disables node buttons**; the dimmed field stays
+  clickable. `.portfolio-visual-open` belongs on the composition root.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it in
   dev). Tests pass `stillRng` or `createRng` and assert rules, not coordinates.
