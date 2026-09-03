@@ -33,6 +33,11 @@ or production activation contracts.
   Dragging 48px past the minimum collapses it.
 - The main slot has a 720px minimum. The right column has a 360px minimum.
   Dragging 48px past the right-column minimum hides both right views.
+- Those minimums apply from 1382px up. Between 1020px and 1382px (tablet
+  portrait, small laptops) the desktop is compact: Contents 240px, right
+  column 320px, main the remainder, so the three regions always fit the
+  window and the page never scrolls sideways. The Reader column reflows and
+  the side Map is compact, so nothing is clipped.
 - The right column defaults to a 40/60 vertical split with 240px minimums,
   so a side slot always shows a usable Guide (bar, avatar area, composer).
   Dragging a side slot to its minimum collapses it to its 40px bar.
@@ -180,6 +185,12 @@ or production activation contracts.
   3 September 2026.
 - The mobile Map is compact, as `Mobile Prototype.dc.html` passes
   `compact=true`; the desktop main slot is the only non-compact Map.
+- The README's `body { overflow-x: auto }` canvas is superseded (Bradley,
+  3 September, iPad portrait): the page never scrolls sideways; a narrower
+  desktop shrinks its panel minimums instead.
+- Mobile: the document never scrolls; the shell is the dynamic viewport with
+  the tab bar in the home-indicator safe area, and a focused composer gives
+  the Guide the whole page while the keyboard is up.
 - Bradley's mockup captures of 3 September fix desktop surfaces by slot
   (measured: main `#d2d7db`/`#211c18`, sides and Contents `#eff1f1`/`#292625`,
   composer always near-paper); the README's per-view mapping is superseded.

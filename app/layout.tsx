@@ -16,6 +16,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   interactiveWidget: "resizes-content",
+  // The mobile tab bar paints into the home-indicator safe area.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

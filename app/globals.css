@@ -760,17 +760,19 @@ body:has(.portfolio-composition) {
   width: 100%;
 }
 
+/* The desktop canvas is the window: below 1382px the panel minimums shrink
+   with the viewport (see readingRoomMinimums), so the page never scrolls
+   sideways and tablet portrait reads as a fixed window. */
 .portfolio-reading-room-desktop {
-  min-width: 1382px;
+  min-width: 1020px;
 }
 
 body:has(.portfolio-reading-room-desktop) {
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .experience:has(> .portfolio-reading-room-desktop) {
-  min-width: 1382px;
-  overflow-x: visible;
+  overflow: hidden;
 }
 
 .portfolio-reading-room > [data-group],
@@ -1093,10 +1095,34 @@ body:has(.portfolio-reading-room-desktop) {
   z-index: 12;
 }
 
+/* The mobile shell is exactly the dynamic viewport and the document never
+   scrolls: only Contents, Reader, Map, and the Guide thread do. That keeps
+   the top mast and the tab bar glued to the screen edges whatever the
+   toolbar or keyboard does, and never exposes the body behind the bar. The
+   tab bar extends into the home-indicator safe area. */
 .portfolio-reading-room-mobile {
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr) 56px;
+  grid-template-rows: 44px minmax(0, 1fr) calc(56px + env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
   min-height: 0;
+}
+
+.experience:has(> .portfolio-reading-room-mobile) {
+  height: 100dvh;
+  min-height: 0;
+}
+
+body:has(.portfolio-reading-room-mobile) {
+  background: var(--reader-paper);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* While the composer has focus (the keyboard is up and the viewport has
+   shrunk), the Guide takes the whole page so the thread and composer stay in
+   view; the Map returns on blur. Instant, like every other mobile change. */
+.portfolio-reading-room-mobile-map-page:has(.portfolio-chat-composer textarea:focus) {
+  grid-template-rows: 0 minmax(0, 1fr);
 }
 
 .portfolio-reading-room-mobile-top {
@@ -1266,10 +1292,11 @@ body:has(.portfolio-reading-room-desktop) {
   align-items: center;
   background: var(--reader-paper);
   border-top: 1px solid var(--map-line);
+  box-sizing: content-box;
   display: flex;
   height: 56px;
   justify-content: space-around;
-  padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  padding: 0 max(12px, env(safe-area-inset-right)) env(safe-area-inset-bottom, 0px) max(12px, env(safe-area-inset-left));
 }
 
 .portfolio-reading-room-mobile-tab {
@@ -1426,7 +1453,9 @@ body:has(.portfolio-reading-room-desktop) {
   font: var(--reader-type-row) var(--font-reader);
   gap: var(--reader-space-2);
   grid-template-columns: minmax(0, 1fr) auto;
-  height: 28px;
+  /* 28px for one line; a label that wraps in a narrow Contents column (the
+     compact desktop's 240px) grows the row instead of overlapping the next. */
+  min-height: 28px;
   margin: 0 calc(var(--reader-space-1) * -1);
   padding: 2px var(--reader-space-1);
   text-align: left;
@@ -1473,6 +1502,21 @@ body:has(.portfolio-reading-room-desktop) {
 
 .reader-scroll > .reader-content {
   flex: 0 0 auto;
+}
+
+/* About: Contact is page body, not a footer, but on a tall slot it reads
+   better at the bottom of the column, just above Privacy. The content fills
+   the scroll height and Contact takes the free space above it; on a short
+   slot it keeps its ordinary 64px gap and scrolls like any section. */
+.portfolio-reader[data-reader-mode="about"] .reader-scroll > .reader-content {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.portfolio-reader[data-reader-mode="about"] .reader-contact {
+  margin-top: auto;
+  padding-top: var(--reader-space-8);
 }
 
 .reader-content {
@@ -1811,7 +1855,7 @@ body:has(.portfolio-reading-room-desktop) {
 
 @media (max-width: 1019px) {
   .portfolio-contents-row {
-    height: 36px;
+    min-height: 36px;
     padding-bottom: 6px;
     padding-top: 6px;
   }
