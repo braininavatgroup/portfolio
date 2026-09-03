@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   withMainPreviewPassword,
   type MainPreviewAuthEnv,
@@ -6,6 +6,10 @@ import {
 
 const NOW = Date.UTC(2026, 7, 27, 16, 0, 0);
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1_000;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const enabledEnv: MainPreviewAuthEnv = {
   PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "true",
@@ -227,6 +231,59 @@ describe("main preview password boundary", () => {
     );
     expect(await response.text()).toBe("protected application");
     expect(app.calls()).toBe(1);
+  });
+
+  it("marks authenticated preview HTML as excluded from external analytics", async () => {
+    class TestHTMLRewriter {
+      private handler?: {
+        element(element: { setAttribute(name: string, value: string): void }): void;
+      };
+
+      on(
+        selector: string,
+        handler: {
+          element(element: { setAttribute(name: string, value: string): void }): void;
+        },
+      ) {
+        expect(selector).toBe("html");
+        this.handler = handler;
+        return this;
+      }
+
+      transform(response: Response) {
+        const headers = new Headers(response.headers);
+        this.handler?.element({
+          setAttribute(name, value) {
+            headers.set(`x-test-html-${name}`, value);
+          },
+        });
+        return new Response(response.body, { ...response, headers });
+      }
+    }
+    vi.stubGlobal("HTMLRewriter", TestHTMLRewriter);
+    const login = await withMainPreviewPassword(
+      postLogin(enabledEnv.PORTFOLIO_MAIN_PREVIEW_PASSWORD!),
+      enabledEnv,
+      downstream().next,
+      () => NOW,
+    );
+    const response = await withMainPreviewPassword(
+      new Request("https://preview.example/index", {
+        headers: { cookie: cookiePair(login)! },
+      }),
+      enabledEnv,
+      async () => new Response("<!doctype html><html><body>Preview</body></html>", {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+      () => NOW + 1_000,
+    );
+
+    expect(
+      response.headers.get("x-test-html-data-portfolio-analytics-context"),
+    ).toBe("preview");
+    expect(response.headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
   });
 
   it.each([

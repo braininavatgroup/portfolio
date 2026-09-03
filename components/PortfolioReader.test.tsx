@@ -1,17 +1,34 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioContact,
   portfolioThreads,
+  portfolioVisualFormat,
   portfolioWorldNodeById,
+  portfolioWorldNodes,
 } from "../lib/portfolio-world";
+import { startPrivacySafeReplay } from "../lib/portfolio-analytics";
 import { inlineLinkTargets, stripInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { PortfolioReader } from "./PortfolioReader";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  document.head.innerHTML = "";
+  delete window.clarity;
+});
+
+function enableAnalytics() {
+  startPrivacySafeReplay({
+    context: "external",
+    hostname: "bradleyberkman.com",
+    projectId: "abc123",
+  });
+  window.clarity!.q = [];
+}
 
 const baseProps = {
   activeThreadId: null,
@@ -46,6 +63,43 @@ function countWorkbenchBlocks(id: string) {
 }
 
 describe("PortfolioReader", () => {
+  it("reports active attention and nested Reader completion for an arbitrary record", async () => {
+    vi.useFakeTimers();
+    enableAnalytics();
+    const node = portfolioWorldNodes.find(
+      (candidate) => candidate.id !== "bradley" && candidate.outlineType !== "why",
+    )!;
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId={node.id} />,
+    );
+    const scroll = container.querySelector<HTMLElement>(".reader-scroll")!;
+    Object.defineProperties(scroll, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    scroll.scrollTop = 400;
+
+    window.dispatchEvent(new Event("focus"));
+    fireEvent.scroll(scroll);
+    await act(async () => vi.advanceTimersByTime(15_000));
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_content_id",
+      node.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_active_seconds",
+      "15",
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_completion_percent",
+      "50",
+    ]);
+  });
+
   it("opens on the About record as home, titled by its throughline", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
 
@@ -114,6 +168,21 @@ describe("PortfolioReader", () => {
       expect(row.querySelector("small")).toBeNull();
       expect(row.parentElement?.tagName).toBe("LI");
     }
+  });
+
+  it("reports a contact action by kind without sending its address", () => {
+    enableAnalytics();
+    const social = portfolioContact.socials[0]!;
+    render(<PortfolioReader {...baseProps} />);
+
+    fireEvent.click(screen.getByRole("link", { name: social.label }));
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_contact_kind",
+      social.key,
+    ]);
+    expect(JSON.stringify(window.clarity?.q)).not.toContain(social.href);
   });
 
   it("does not add a redundant alternate-index link inside the reader", () => {
@@ -219,6 +288,85 @@ describe("PortfolioReader", () => {
     expect(anchor?.getAttribute("data-external")).toBe("true");
     expect(anchor?.hasAttribute("data-register")).toBe(false);
     expect(screen.queryByText(/\]\(https?:/)).toBeNull();
+  });
+
+  it("reports an external evidence open without sending its URL or text", () => {
+    const node = portfolioWorldNodes.find((candidate) =>
+      candidate.body.some(
+        (block) =>
+          typeof block === "string" &&
+          inlineLinkTargets(block).some((target) => target.kind === "external"),
+      ),
+    )!;
+    const external = node.body
+      .flatMap((block) => (typeof block === "string" ? inlineLinkTargets(block) : []))
+      .find((target) => target.kind === "external")!;
+    enableAnalytics();
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId={node.id} />,
+    );
+
+    fireEvent.click(
+      container.querySelector<HTMLAnchorElement>(
+        ".reader-composed-body a.reader-inline-link",
+      )!,
+    );
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_content_id",
+      node.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_evidence_kind",
+      "external",
+    ]);
+    expect(JSON.stringify(window.clarity?.q)).not.toContain(
+      external.kind === "external" ? external.href : "",
+    );
+  });
+
+  it("reports a visual open using its arbitrary content and evidence IDs", () => {
+    const node = portfolioWorldNodes.find((candidate) =>
+      candidate.body.some(
+        (block) => typeof block !== "string" && block.type === "visual",
+      ),
+    )!;
+    const visual = node.body.find(
+      (block) => typeof block !== "string" && block.type === "visual",
+    )!;
+    if (typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("fixture has no visual");
+    }
+    enableAnalytics();
+    const { container } = render(
+      <PortfolioReader
+        {...baseProps}
+        onOpenVisual={() => {}}
+        selectedId={node.id}
+      />,
+    );
+
+    fireEvent.click(
+      container.querySelector<HTMLButtonElement>(".reader-visual-trigger")!,
+    );
+
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_content_id",
+      node.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_evidence_id",
+      visual.id,
+    ]);
+    expect(window.clarity?.q).toContainEqual([
+      "set",
+      "portfolio_evidence_kind",
+      portfolioVisualFormat(visual),
+    ]);
   });
 
   it("renders unfinished copy and planned visuals as part of the working composition", () => {

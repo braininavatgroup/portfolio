@@ -7,9 +7,12 @@ import {
   PUBLIC_CLARITY_PROJECT_ID,
   setPrivacySafeReplayConsent,
   startPrivacySafeReplay,
+  trackPortfolioInsight,
 } from "../lib/portfolio-analytics";
 
 const CONSENT_KEY = "portfolio_analytics_consent";
+const CAMPAIGN_KEY = "portfolio_analytics_campaign";
+const OPAQUE_CAMPAIGN = /^[a-z0-9][a-z0-9_-]{5,63}$/u;
 
 type AnalyticsStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -23,20 +26,54 @@ export function PortfolioAnalytics({
   storage?: AnalyticsStorage;
 } = {}) {
   useEffect(() => {
-    const enabled = startPrivacySafeReplay({
-      hostname: hostname ?? window.location.hostname,
-      projectId,
-    });
-    if (!enabled) return;
-
     let storedPreference: string | null = null;
+    const url = new URL(window.location.href);
+    const enrollOptOut = url.searchParams.get("analytics") === "off";
+    const requestedCampaign = url.searchParams.get("campaign");
+    if (enrollOptOut || requestedCampaign !== null) {
+      url.searchParams.delete("analytics");
+      url.searchParams.delete("campaign");
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+    let campaignCode: string | null = null;
     try {
-      storedPreference = (storage ?? window.localStorage).getItem(CONSENT_KEY);
+      if (enrollOptOut) window.sessionStorage.removeItem(CAMPAIGN_KEY);
+      const analyticsStorage = storage ?? window.localStorage;
+      if (enrollOptOut) {
+        analyticsStorage.setItem(CONSENT_KEY, "denied");
+      }
+      storedPreference = analyticsStorage.getItem(CONSENT_KEY);
+      if (!enrollOptOut && requestedCampaign !== null) {
+        if (OPAQUE_CAMPAIGN.test(requestedCampaign)) {
+          window.sessionStorage.setItem(CAMPAIGN_KEY, requestedCampaign);
+        } else {
+          window.sessionStorage.removeItem(CAMPAIGN_KEY);
+        }
+      }
+      campaignCode = window.sessionStorage.getItem(CAMPAIGN_KEY);
     } catch {
       // Analytics remains usable when browser storage is unavailable.
     }
-    const denied = storedPreference === "denied";
-    if (denied) setPrivacySafeReplayConsent("denied");
+    if (enrollOptOut || storedPreference === "denied") {
+      setPrivacySafeReplayConsent("denied");
+      return;
+    }
+
+    const enabled = startPrivacySafeReplay({
+      campaignCode,
+      context: document.documentElement.dataset.portfolioAnalyticsContext,
+      hostname: hostname ?? window.location.hostname,
+      projectId,
+    });
+    if (enabled) {
+      trackPortfolioInsight("entry", {
+        entry_source: campaignCode ? "campaign" : "direct",
+      });
+    }
   }, [hostname, projectId, storage]);
 
   return null;
