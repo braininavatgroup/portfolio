@@ -89,3 +89,28 @@ export function translateWorldPointByScreenDelta(
     z: point.z + right.z * screenRight - up.z * screenDown,
   };
 }
+
+/**
+ * The world point that projects to `screen` at camera distance `depth`: the
+ * exact inverse of projectWorldPoint for a chosen depth, so a composition can
+ * be authored in screen space and still live in the world.
+ */
+export function worldPointAtDepth(
+  screen: { x: number; y: number },
+  depth: number,
+  position: Point3,
+  target: Point3,
+  fov: number,
+  width: number,
+  height: number,
+): Point3 {
+  const { forward, right, up } = cameraBasis(position, target);
+  const scale = fov / depth;
+  const a = (screen.x - width / 2) / scale;
+  const b = (height / 2 - screen.y) / scale;
+  return {
+    x: position.x + right.x * a + up.x * b + forward.x * depth,
+    y: position.y + right.y * a + up.y * b + forward.y * depth,
+    z: position.z + right.z * a + up.z * b + forward.z * depth,
+  };
+}

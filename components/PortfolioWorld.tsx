@@ -14,8 +14,8 @@ import {
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
+  isRestingWorldSelection,
   isWorldLinkActive,
-  PORTFOLIO_ARC_THREAD_ID,
   portfolioInterfaceText,
   portfolioThreadById,
   portfolioVisualFormat,
@@ -43,14 +43,46 @@ import {
   clonePoint as clone,
   projectWorldPoint,
   translateWorldPointByScreenDelta,
+  worldPointAtDepth,
   type Point3,
   type ProjectedPoint,
 } from "../lib/portfolio-world-projection";
 import { relaxWorldOverlaps } from "../lib/portfolio-world-layout";
+import { envelopeInset, type LayoutBox } from "../lib/portfolio-node-envelope";
+import { storyTreeJunction } from "../lib/portfolio-story-tree";
+import {
+  FIELD,
+  fieldScreenTargets,
+  type FieldDimmed,
+  type FieldLit,
+  type Segment,
+} from "../lib/portfolio-world-field";
+import {
+  AUTHORED_ZONES,
+  clearTrunkCone,
+  compositionRng,
+  ensureShift,
+  groupByFamily,
+  LOOSE_LIMIT,
+  MIN_SHIFT,
+  looseZones,
+  placeInZone,
+  placeOne,
+  polarPoint,
+  setWorldSeed,
+  starZones,
+  stillRng,
+  trunkTilt,
+  ZONE_DEPTH,
+  type Rng,
+  type Zone,
+  type ZoneMap,
+} from "../lib/portfolio-world-zones";
 import {
   PORTFOLIO_NODE_MARK_SIZE,
+  PORTFOLIO_NODE_MARK_STROKE,
   portfolioNodeMarkPrimitives,
-  portfolioNodeMarkVertices,
+  portfolioNodeMarkRadius,
 } from "../lib/portfolio-node-mark";
 
 type Point = { x: number; y: number };
@@ -66,12 +98,15 @@ type RuntimeNode = PortfolioWorldNode & {
   base: Point3;
   goal: Point3;
   goalAlpha: number;
+  /** The painted label's box on screen this frame, part of the envelope. */
+  labelBox: LayoutBox | null;
   labelLines: string[];
   labelSource: string;
   point: Point3;
   rawBase: Point3;
   screen: ProjectedPoint | null;
-  userPlaced: boolean;
+  /** The widest label line, measured once per wrap, not per frame. */
+  labelWidth: number;
 };
 
 type PortfolioWorldProps = {
@@ -88,48 +123,90 @@ const MARK_SIZE = PORTFOLIO_NODE_MARK_SIZE;
 const BRADLEY_MARK_SIZE = 21;
 const LABEL_MAX_WIDTH = 132;
 const LABEL_LINE_HEIGHT = 15;
+/** Where a label starts below its mark; drawNode paints it there. */
+const LABEL_TOP = 18;
+const BRADLEY_LABEL_TOP = 23;
+/** Bradley's 14px medium label measures wider than the 12.5px record font. */
+const BRADLEY_LABEL_SCALE = 14 / 12.5;
+const COMPACT_LINE_HEIGHT = 12;
+/** The compact label is painted at 11px against the 12.5px measurement. */
+const COMPACT_LABEL_SCALE = 11 / 12.5;
+const COMPACT_LABEL_INSET = 12;
 export const PAST_WORLD_ALPHA = 0.42;
+/**
+ * The field at rest. Bradley and the four Stories are the resting
+ * composition; every other record stays present and clickable at this alpha
+ * so the map still invites exploration without competing with the tree.
+ */
+export const REST_FIELD_ALPHA = 0.4;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 const BRADLEY_FONT = '500 14px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
-type ConnectorAnchor = Point & { family: PortfolioWorldFamily };
+type ConnectorAnchor = Point & {
+  family: PortfolioWorldFamily;
+  /** The painted label's box, when the anchor is a node with one showing. */
+  labelBox?: LayoutBox | null;
+};
 
-function cross2d(a: Point, b: Point) {
-  return a.x * b.y - a.y * b.x;
+/**
+ * Every line stops this far outside a node's envelope (Rule 6.3): the mark's
+ * tightest circle keeps a line from bleeding through an asterisk's open arms
+ * or a triangle's gaps, the label box keeps it off the text beneath the
+ * mark, and the clearance keeps it from touching either.
+ */
+const CONNECTOR_CLEARANCE = 2;
+
+function markRadius(family: PortfolioWorldFamily) {
+  return portfolioNodeMarkRadius(family, family === "identity" ? BRADLEY_MARK_SIZE : MARK_SIZE);
 }
 
-function polygonBoundaryInset(vertices: readonly Point[], direction: Point) {
-  let nearest = Number.POSITIVE_INFINITY;
-  for (let index = 0; index < vertices.length; index += 1) {
-    const start = vertices[index];
-    const end = vertices[(index + 1) % vertices.length];
-    const edge = { x: end.x - start.x, y: end.y - start.y };
-    const denominator = cross2d(direction, edge);
-    if (Math.abs(denominator) < 1e-8) continue;
-    const distance = cross2d(start, edge) / denominator;
-    const segmentPosition = cross2d(start, direction) / denominator;
-    if (distance >= 0 && segmentPosition >= 0 && segmentPosition <= 1) {
-      nearest = Math.min(nearest, distance);
-    }
-  }
-  return Number.isFinite(nearest) ? nearest : 0;
+/**
+ * While nodes travel, a line's inset can jump the moment its ray starts or
+ * stops crossing a label box. Each end remembers its last inset and eases
+ * toward the new one, so the envelope takes hold smoothly rather than
+ * snapping; a line may cross a label for a few frames mid-motion, which is
+ * accepted.
+ */
+export type InsetMemory = Map<string, number>;
+const INSET_EASE = 0.18;
+
+function easeInset(memory: InsetMemory | undefined, key: string, inset: number) {
+  if (!memory) return inset;
+  const previous = memory.get(key);
+  const next = previous === undefined ? inset : previous + (inset - previous) * INSET_EASE;
+  memory.set(key, next);
+  return next;
 }
 
-function markBoundaryInset(family: PortfolioWorldFamily, direction: Point) {
-  if (family === "operation") return MARK_SIZE * 0.5;
-  if (family === "product") return MARK_SIZE * 0.49;
-  const vertices = portfolioNodeMarkVertices(family);
-  return vertices ? polygonBoundaryInset(vertices, direction) : 0;
-}
-
-export function connectorSegment(from: ConnectorAnchor, to: ConnectorAnchor) {
+/** The visible run of a line between two envelopes, or null when they touch. */
+export function connectorSegment(
+  from: ConnectorAnchor,
+  to: ConnectorAnchor,
+  memory?: InsetMemory,
+  key = "",
+) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const distance = Math.hypot(dx, dy);
-  if (!distance) return { start: { x: from.x, y: from.y }, end: { x: to.x, y: to.y } };
+  if (!distance) return null;
   const direction = { x: dx / distance, y: dy / distance };
-  const fromInset = markBoundaryInset(from.family, direction);
-  const toInset = markBoundaryInset(to.family, { x: -direction.x, y: -direction.y });
+  const fromInset = easeInset(
+    memory,
+    `${key}:from`,
+    envelopeInset(from, markRadius(from.family), from.labelBox ?? null, direction, CONNECTOR_CLEARANCE),
+  );
+  const toInset = easeInset(
+    memory,
+    `${key}:to`,
+    envelopeInset(
+      to,
+      markRadius(to.family),
+      to.labelBox ?? null,
+      { x: -direction.x, y: -direction.y },
+      CONNECTOR_CLEARANCE,
+    ),
+  );
+  if (fromInset + toInset >= distance) return null;
   return {
     start: {
       x: from.x + direction.x * fromInset,
@@ -142,88 +219,250 @@ export function connectorSegment(from: ConnectorAnchor, to: ConnectorAnchor) {
   };
 }
 
+/**
+ * Where drawNode will paint a node's label this frame, in screen space, or
+ * null when it paints none. Mirrors drawNode's geometry exactly; the two
+ * must move together.
+ */
+function labelBoxFor(
+  node: RuntimeNode,
+  palette: Pick<WorldPalette, "compact" | "selectedNodeId" | "width">,
+): LayoutBox | null {
+  const point = node.screen;
+  if (!point || node.labelLines.length === 0) return null;
+  const { compact } = palette;
+  const showLabel =
+    !compact || node.family === "story" || palette.selectedNodeId === node.id;
+  if (!showLabel) return null;
+  const isBradley = node.id === "bradley";
+  const scale = compact ? COMPACT_LABEL_SCALE : isBradley ? BRADLEY_LABEL_SCALE : 1;
+  const width = node.labelWidth * scale;
+  const lineHeight = compact ? COMPACT_LINE_HEIGHT : LABEL_LINE_HEIGHT;
+  const height = node.labelLines.length * lineHeight;
+  if (!compact) {
+    return {
+      x: point.x - width / 2,
+      y: point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP),
+      width,
+      height,
+    };
+  }
+  const leftSide = point.x < palette.width / 2;
+  return {
+    x: leftSide ? point.x - COMPACT_LABEL_INSET - width : point.x + COMPACT_LABEL_INSET,
+    y: point.y - height / 2,
+    width,
+    height,
+  };
+}
+
 const overview = {
   position: { x: 0, y: 35, z: -760 },
   target: { x: 0, y: 0, z: 760 },
 };
-const storyView = {
-  position: { x: -90, y: 55, z: -650 },
-  target: { x: 0, y: -10, z: 800 },
+/**
+ * Every spotlight state is one composition: Bradley stays at twelve o'clock,
+ * the spotlit node — a Story or any record — hangs beneath him on the
+ * trunk, and its relations land in zones around it (see
+ * lib/portfolio-world-zones): an authored zone map for the large Stories,
+ * the loose fan for up to four relations, the star for more. Grouping and
+ * order are rules; the session seed picks the exact pose, so a record
+ * returns to the same pose within a visit and a fresh one on reload.
+ * Offsets are world units: +x is screen-left, +y is up.
+ */
+const LOOSE_GOAL: Point3 = { x: 20, y: -30, z: 660 };
+const STAR_GOAL: Point3 = { x: 20, y: -150, z: 660 };
+/** How far the spotlit node may wander from its lean, in world units. */
+export const SPOTLIGHT_JITTER = { x: 30, y: 20 };
+
+if (typeof window !== "undefined") {
+  // One seed per page load; `?seed=` pins it while developing.
+  const pinned = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("seed")
+    : null;
+  setWorldSeed(pinned ? Number(pinned) : Math.floor(Math.random() * 4294967296));
+}
+
+export type SpotlightComposition = {
+  bradley: Point3;
+  spotlight: Point3;
+  related: Map<string, Point3>;
 };
 
-const storyLayouts: Record<
-  string,
-  { bradley: Point3; story: Point3; members: Record<string, Point3> }
-> = {
-  "making-work-playable": {
-    bradley: { x: 560, y: 15, z: 540 },
-    story: { x: 330, y: 10, z: 610 },
-    members: {
-      kickoff: { x: 80, y: 270, z: 820 },
-      pitching: { x: -130, y: 290, z: 850 },
-      reporting: { x: -330, y: 190, z: 820 },
-      "real-estate": { x: -420, y: 20, z: 850 },
-      touring: { x: -360, y: -170, z: 820 },
-      dubs: { x: -180, y: -280, z: 850 },
-      writ: { x: 40, y: -280, z: 820 },
-      yoohoo: { x: 190, y: -120, z: 850 },
-    },
-  },
-  [PORTFOLIO_ARC_THREAD_ID]: {
-    bradley: { x: 680, y: 95, z: 500 },
-    story: { x: 500, y: -75, z: 555 },
-    members: {
-      "thread-philosophy": { x: 80, y: 230, z: 820 },
-      "thread-making-work-playable": { x: -180, y: 40, z: 850 },
-      "thread-authorship": { x: 80, y: -220, z: 820 },
-    },
-  },
-  authorship: {
-    bradley: { x: 680, y: 95, z: 500 },
-    story: { x: 500, y: -75, z: 555 },
-    members: {
-      "music-practice": { x: 0, y: 300, z: 850 },
-      "systems-consulting": { x: -170, y: 330, z: 850 },
-      "product-studio": { x: -300, y: 290, z: 850 },
-      kickoff: { x: -220, y: 260, z: 850 },
-      pitching: { x: -400, y: 150, z: 850 },
-      reporting: { x: -480, y: 0, z: 850 },
-      "real-estate": { x: -250, y: -280, z: 850 },
-      touring: { x: -20, y: -365, z: 850 },
-      dubs: { x: 210, y: -270, z: 850 },
-      writ: { x: 390, y: -150, z: 850 },
-      yoohoo: { x: 450, y: 40, z: 850 },
-    },
-  },
-  philosophy: {
-    bradley: { x: 570, y: 10, z: 540 },
-    story: { x: 350, y: 0, z: 610 },
-    members: {
-      pitching: { x: 100, y: 200, z: 820 },
-      reporting: { x: -120, y: 230, z: 820 },
-      "real-estate": { x: -330, y: 110, z: 820 },
-      touring: { x: -340, y: -110, z: 820 },
-      writ: { x: -130, y: -230, z: 820 },
-    },
-  },
+/**
+ * Each spotlit node lands as its own composition, not the same tree with the
+ * relations swapped: it settles part-way back toward where it rests, and
+ * Bradley leans a little the same way, so the trunk tilts and both move
+ * again on every switch.
+ */
+const STAR_LEAN = 0.3;
+const LOOSE_LEAN = 0.85;
+const BRADLEY_LEAN = 0.12;
+/** The spotlit node never hangs further than this to either side of Bradley. */
+export const MAX_SPOTLIGHT_LEAN = 300;
+/** Bradley always leans at least this far, so the lean reads as intended. */
+export const BRADLEY_MIN_LEAN = 70;
+
+export type SpotlightOptions = {
+  /** The record's signature: rotates the loose fan's seating. */
+  signature?: number;
+  /** Half label widths in world units, so wide labels clear the trunk. */
+  labelHalfWidths?: ReadonlyMap<string, number>;
+  familyOf?: (id: string) => string | undefined;
 };
+
+export function composeSpotlightGoals(
+  bradleyBase: Point3,
+  spotlightBase: Point3,
+  relatedIds: readonly string[],
+  zoneMap?: ZoneMap,
+  rng: Rng = stillRng,
+  { signature = 0, labelHalfWidths, familyOf }: SpotlightOptions = {},
+): SpotlightComposition {
+  const dx = spotlightBase.x - bradleyBase.x;
+  const lean = Math.sign(dx || 1) * Math.max(Math.abs(dx) * BRADLEY_LEAN, BRADLEY_MIN_LEAN);
+  const bradley = { ...clone(bradleyBase), x: bradleyBase.x + lean };
+  const related = new Map<string, Point3>();
+  const fill = (anchor: Point3, zones: readonly Zone[]) => {
+    for (const zone of zones) {
+      for (const [id, point] of placeInZone(anchor, zone, rng)) {
+        related.set(id, clearTrunkCone(anchor, bradley, point, labelHalfWidths?.get(id) ?? 0));
+      }
+    }
+  };
+
+  if (zoneMap) {
+    const spotlight = placeOne(bradleyBase, zoneMap.spotlight, rng);
+    fill(spotlight, zoneMap.zones);
+    // Anything the map leaves out hangs straight below rather than vanishing.
+    for (const id of relatedIds) {
+      if (!related.has(id)) related.set(id, polarPoint(spotlight, 90, 400));
+    }
+    return { bradley, spotlight, related };
+  }
+
+  const loose = relatedIds.length <= LOOSE_LIMIT;
+  const signed = () => rng() * 2 - 1;
+  const shift = Math.max(
+    -MAX_SPOTLIGHT_LEAN,
+    Math.min(MAX_SPOTLIGHT_LEAN, dx * (loose ? LOOSE_LEAN : STAR_LEAN)),
+  );
+  const spotlight = {
+    ...(loose ? LOOSE_GOAL : STAR_GOAL),
+    x: bradleyBase.x + shift + signed() * SPOTLIGHT_JITTER.x,
+  };
+  spotlight.y += signed() * SPOTLIGHT_JITTER.y;
+  fill(
+    spotlight,
+    loose
+      ? looseZones(
+          relatedIds,
+          signature % Math.max(1, relatedIds.length),
+          trunkTilt(spotlight, bradley),
+        )
+      : starZones(familyOf ? groupByFamily(relatedIds, familyOf) : relatedIds, familyOf),
+  );
+  return { bradley, spotlight, related };
+}
+
+/**
+ * Selecting Bradley at rest is its own micro-state rather than a no-op: the
+ * tree opens a little around him and the field reseats, and both close
+ * again when he is deselected. Every map click moves something.
+ */
+export const BRADLEY_SPOTLIGHT_SPREAD = 1.08;
+
+export function spreadFrom(root: Point3, base: Point3, scale: number): Point3 {
+  return {
+    x: root.x + (base.x - root.x) * scale,
+    y: root.y + (base.y - root.y) * scale,
+    z: base.z,
+  };
+}
+
+/**
+ * Where the records outside a composition go: the field
+ * (lib/portfolio-world-field), dispersed evenly across the map behind the
+ * composition, in the room the lit nodes and their lines leave free. They
+ * stay present and clickable but never sit under a spotlit node.
+ */
+function fieldGoals(
+  nodes: readonly RuntimeNode[],
+  lit: ReadonlyMap<string, Point3>,
+  links: readonly (readonly [string, string])[],
+  camera: { position: Point3; target: Point3 },
+  fov: number,
+  viewport: { width: number; height: number },
+  measure: (value: string) => number,
+  rng: Rng,
+): Map<string, Point3> {
+  const project = (point: Point3) =>
+    projectWorldPoint(point, camera.position, camera.target, fov, viewport.width, viewport.height);
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const screens = new Map<string, Point>();
+  const litPoints: FieldLit[] = [];
+  for (const [id, point] of lit) {
+    const screen = project(point);
+    if (!screen) continue;
+    screens.set(id, screen);
+    const node = byId.get(id);
+    // Anchors without a node (the tree's junction) only carry lines.
+    if (!node) continue;
+    litPoints.push({
+      point: screen,
+      halfWidth: Math.min(measure(node.label), LABEL_MAX_WIDTH) / 2,
+    });
+  }
+  const lines: Segment[] = [];
+  for (const [from, to] of links) {
+    const a = screens.get(from);
+    const b = screens.get(to);
+    if (a && b) lines.push([a, b]);
+  }
+  const dimmed: FieldDimmed[] = [];
+  for (const node of nodes) {
+    if (lit.has(node.id)) continue;
+    const rest = project(node.base);
+    dimmed.push({ id: node.id, rest: rest ?? { x: viewport.width / 2, y: viewport.height / 2 } });
+  }
+  const targets = fieldScreenTargets(dimmed, litPoints, lines, viewport, rng);
+  return new Map(
+    [...targets].map(([id, target]) => [
+      id,
+      worldPointAtDepth(
+        target,
+        FIELD.depth,
+        camera.position,
+        camera.target,
+        fov,
+        viewport.width,
+        viewport.height,
+      ),
+    ]),
+  );
+}
 
 function createRuntimeNodes(): RuntimeNode[] {
+  // The first frame is the resting composition, so the field starts dimmed
+  // rather than fading down from full strength on load.
+  const resting = getWorldFocusIds({ activeThreadId: null, selectedId: null });
   return portfolioWorldNodes.map((node) => {
     const { x: screenX, y: screenY, z } = node.position;
     const point = { x: (50 - screenX) * 18, y: (50 - screenY) * 18, z };
+    const alpha = resting.has(node.id) ? 1 : REST_FIELD_ALPHA;
     return {
       ...node,
-      alpha: 1,
+      alpha,
       base: clone(point),
       goal: clone(point),
-      goalAlpha: 1,
+      goalAlpha: alpha,
+      labelBox: null,
       labelLines: [node.label],
       labelSource: node.label,
       point: clone(point),
       rawBase: clone(point),
       screen: null,
-      userPlaced: false,
+      labelWidth: 0,
     };
   });
 }
@@ -450,6 +689,7 @@ export function PortfolioWorld({
   const blankPress = useRef<{ pointerId: number; start: Point } | null>(null);
   const editorActive = useEditorActive();
   const [labelAnchor, setLabelAnchor] = useState<CanvasLabelAnchor | null>(null);
+  const measureRef = useRef<(value: string) => number>((value) => value.length * 6.2);
   const brainImage = useRef<HTMLImageElement | null>(null);
   const brainCache = useRef(new Map<string, HTMLCanvasElement>());
   const focusIds = useMemo(
@@ -497,54 +737,42 @@ export function PortfolioWorld({
       : undefined;
 
     if (activeStory) {
-      // A record opened from a Story is evidence inside the same authored
-      // composition. It does not collapse into a generic focus layout.
+      // A Story is its own composition: Bradley's tree with the members
+      // placed around the chosen Story (composeSpotlightGoals).
       if (previous.activeThreadId !== activeThreadId) {
-        applyStoryGoals(nodes, activeStory.id, size.current, camera.current);
+        applyStoryGoals(
+          nodes,
+          activeStory.id,
+          size.current,
+          camera.current,
+          measureRef.current,
+          byId.get("bradley")?.goal,
+        );
       }
       return;
     }
 
-    if (!selectedId) {
-      nodes.forEach((node) => {
-        node.goal = clone(node.base);
-        node.goalAlpha = 1;
-      });
-      camera.current.goalPosition = clone(overview.position);
-      camera.current.goalTarget = clone(overview.target);
+    // Rest and Bradley are one composition: the authored tree, Bradley and
+    // the Stories at full strength, the field dimmed, the overview camera.
+    if (isRestingWorldSelection(selectedId)) {
+      applyRestGoals(
+        nodes,
+        selectedId === "bradley",
+        size.current,
+        camera.current,
+        measureRef.current,
+      );
       return;
     }
 
-    const selected = byId.get(selectedId);
-    if (!selected) return;
-    const adjacent = focusIds ? [...focusIds].filter((id) => id !== selectedId) : [];
-    selected.goal = { x: 0, y: 0, z: 560 };
-    selected.goalAlpha = 1;
-    adjacent.forEach((id, index) => {
-      const node = byId.get(id);
-      if (!node) return;
-      const angle =
-        -Math.PI * 0.72 +
-        index * ((Math.PI * 1.44) / Math.max(adjacent.length - 1, 1));
-      node.goal = {
-        x: Math.cos(angle) * 320,
-        y: Math.sin(angle) * 205,
-        z: 610 + (index % 2) * 140,
-      };
-      node.goalAlpha = 0.95;
-    });
-    nodes.forEach((node, index) => {
-      if (node.id === selectedId || focusIds?.has(node.id)) return;
-      const direction = index % 2 === 0 ? -1 : 1;
-      node.goal = {
-        x: direction * (560 + (index % 3) * 120),
-        y: node.base.y * 1.45,
-        z: 1120 + (index % 4) * 160,
-      };
-      node.goalAlpha = 0.16;
-    });
-    camera.current.goalPosition = { x: -120, y: 70, z: -580 };
-    camera.current.goalTarget = { x: 0, y: 0, z: 610 };
+    applyRecordGoals(
+      nodes,
+      selectedId,
+      size.current,
+      camera.current,
+      measureRef.current,
+      byId.get("bradley")?.goal,
+    );
   }, [activeThreadId, focusIds, selectedId]);
 
   useEffect(() => {
@@ -562,6 +790,7 @@ export function PortfolioWorld({
       context.font = FONT;
       return context.measureText(value).width;
     };
+    measureRef.current = measure;
 
     const fitOverview = () => {
       const { width, height } = size.current;
@@ -574,8 +803,7 @@ export function PortfolioWorld({
         nodes: nodes.map((node) => ({
           id: node.id,
           label: node.label,
-          pinned:
-            node.id === "bradley" || node.family === "story" || node.userPlaced,
+          pinned: node.id === "bradley" || node.family === "story",
         })),
         camera: {
           position: overview.position,
@@ -627,6 +855,22 @@ export function PortfolioWorld({
           camera.current,
           measure,
         );
+      } else if (!isRestingWorldSelection(state.current.selectedId)) {
+        applyRecordGoals(
+          runtime.current,
+          state.current.selectedId,
+          size.current,
+          camera.current,
+          measure,
+        );
+      } else {
+        applyRestGoals(
+          runtime.current,
+          state.current.selectedId === "bradley",
+          size.current,
+          camera.current,
+          measure,
+        );
       }
     };
 
@@ -639,6 +883,7 @@ export function PortfolioWorld({
     motion?.addEventListener?.("change", updateMotion);
 
     let lastLabelWidth = -1;
+    const insetMemory: InsetMemory = new Map();
     const render = () => {
       // Read before the node buttons are written below, so the reads land on
       // clean style instead of forcing a recalculation per node.
@@ -680,7 +925,9 @@ export function PortfolioWorld({
         if (labelWidth !== lastLabelWidth || liveLabel !== node.labelSource) {
           node.labelSource = liveLabel;
           node.labelLines = wrapLabel(liveLabel, measure, labelWidth);
+          node.labelWidth = Math.max(...node.labelLines.map(measure));
         }
+        node.labelBox = labelBoxFor(node, palette);
         const button = buttonRefs.current.get(node.id);
         if (button && node.screen) {
           button.style.left = `${(node.screen.x / width) * 100}%`;
@@ -691,7 +938,7 @@ export function PortfolioWorld({
 
       if (context) {
         context.clearRect(0, 0, width, height);
-        drawLinks(context, nodes, linksRef.current, active.selectedId, palette);
+        drawLinks(context, nodes, linksRef.current, active.selectedId, palette, insetMemory);
         const sorted = [...nodes].sort(
           (a, b) => (b.screen?.depth ?? 0) - (a.screen?.depth ?? 0),
         );
@@ -739,6 +986,8 @@ export function PortfolioWorld({
     }
     const node = runtime.current.find(({ id }) => id === active.id);
     if (!node?.screen) return;
+    // The goal stays put: a dragged node follows the pointer while held and
+    // springs back to its composition on release.
     node.point = translateWorldPointByScreenDelta(
       node.point,
       node.screen.scale,
@@ -747,7 +996,6 @@ export function PortfolioWorld({
       camera.current.position,
       camera.current.target,
     );
-    node.goal = clone(node.point);
     active.last = { x: event.clientX, y: event.clientY };
   }
 
@@ -825,14 +1073,9 @@ export function PortfolioWorld({
     const active = drag.current;
     if (active && active.pointerId === event.pointerId) {
       drag.current = null;
-      const node = runtime.current.find(({ id }) => id === active.id);
       if (!active.moved) {
         const selected = portfolioWorldNodeById.get(active.id);
         if (selected) onSelect(selected);
-      } else if (node && !state.current.selectedId && !state.current.activeThreadId) {
-        node.base = clone(node.point);
-        node.rawBase = clone(node.point);
-        node.userPlaced = true;
       }
       return;
     }
@@ -929,66 +1172,285 @@ export function PortfolioWorld({
   );
 }
 
+/** Records outside the composition sit in the field at this alpha. */
+const FIELD_ALPHA = 0.14;
+
+function applySpotlightGoals(
+  nodes: RuntimeNode[],
+  spotlightId: string,
+  relatedIds: readonly string[],
+  focusIds: Set<string>,
+  dimensions: { width: number; height: number },
+  camera: Camera,
+  measure: (value: string) => number,
+  /** Bradley's goal in the composition being left, when this is a new one. */
+  bradleyFrom?: Point3,
+) {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const bradleyBase = byId.get("bradley")?.base ?? STAR_GOAL;
+  const spotlightBase = byId.get(spotlightId)?.base ?? bradleyBase;
+  const rng = compositionRng(spotlightId);
+  // Pixels per world unit at the composition's depth, for label widths.
+  const scale = (() => {
+    const project = (x: number) =>
+      projectWorldPoint(
+        { x, y: 0, z: ZONE_DEPTH },
+        overview.position,
+        overview.target,
+        camera.fov,
+        dimensions.width,
+        dimensions.height,
+      );
+    const a = project(0);
+    const b = project(100);
+    return a && b ? Math.abs(b.x - a.x) / 100 : 0.41;
+  })();
+  const labelHalfWidths = new Map(
+    nodes.map((node) => [
+      node.id,
+      Math.min(measure(node.label), LABEL_MAX_WIDTH) / 2 / Math.max(0.05, scale),
+    ]),
+  );
+  const composition = composeSpotlightGoals(
+    bradleyBase,
+    spotlightBase,
+    relatedIds,
+    AUTHORED_ZONES[spotlightId],
+    rng,
+    {
+      signature: Math.max(0, nodes.findIndex((node) => node.id === spotlightId)),
+      labelHalfWidths,
+      familyOf: (id) => byId.get(id)?.family,
+    },
+  );
+  // Every new composition moves Bradley by a legible amount.
+  const bradleyGoal = ensureShift(bradleyFrom, composition.bradley, MIN_SHIFT, {
+    x: Math.sign(composition.bradley.x - bradleyBase.x || 1),
+    y: 0,
+  });
+  const lit = new Map<string, Point3>([
+    ["bradley", bradleyGoal],
+    [spotlightId, composition.spotlight],
+    ...composition.related,
+  ]);
+  // Settle the lit composition first, so the field seats around where the
+  // lit labels actually land; the field itself never enters the solver.
+  const litNodes = nodes.filter((node) => lit.has(node.id));
+  litNodes.forEach((node) => {
+    node.goal = clone(lit.get(node.id)!);
+  });
+  relaxGoals(litNodes, {
+    pinned: new Set(["bradley", spotlightId]),
+    spotlit: focusIds,
+    camera: overview,
+    fov: camera.fov,
+    dimensions,
+    measure,
+  });
+  litNodes.forEach((node) => lit.set(node.id, clone(node.goal)));
+  const field = fieldGoals(
+    nodes,
+    lit,
+    [["bradley", spotlightId], ...relatedIds.map((id) => [spotlightId, id] as const)],
+    overview,
+    camera.fov,
+    dimensions,
+    measure,
+    rng,
+  );
+  nodes.forEach((node) => {
+    if (!lit.has(node.id)) node.goal = clone(field.get(node.id) ?? node.base);
+    node.goalAlpha = focusIds.has(node.id) ? 1 : FIELD_ALPHA;
+  });
+  camera.goalPosition = clone(overview.position);
+  camera.goalTarget = clone(overview.target);
+}
+
+/**
+ * Rest and Bradley are one composition: the authored tree — Bradley and the
+ * Stories at full strength — with the field dimmed and dispersed beneath it.
+ * Selecting Bradley opens the tree a little and reseats the field, so the
+ * click moves everything and deselecting closes it again.
+ */
+function applyRestGoals(
+  nodes: RuntimeNode[],
+  spotlightBradley: boolean,
+  dimensions: { width: number; height: number },
+  camera: Camera,
+  measure: (value: string) => number = (value) => value.length * 6.2,
+) {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const focusIds = getWorldFocusIds({ activeThreadId: null, selectedId: null });
+  const root = byId.get("bradley")?.base;
+  const lit = new Map<string, Point3>();
+  for (const id of focusIds) {
+    const base = byId.get(id)?.base;
+    if (!base) continue;
+    lit.set(
+      id,
+      spotlightBradley && root && id !== "bradley"
+        ? spreadFrom(root, base, BRADLEY_SPOTLIGHT_SPREAD)
+        : clone(base),
+    );
+  }
+  const seated = dimensions.width > 0 && dimensions.height > 0;
+  // The tree's real lines: the trunk to the junction, then the branches.
+  const stories = [...focusIds].filter((id) => id !== "bradley");
+  // The junction is screen-space geometry (drawLinks computes the same), so
+  // project, branch, and lift the point back to Bradley's depth.
+  const rootGoal = lit.get("bradley");
+  const project = (point: Point3) =>
+    projectWorldPoint(
+      point,
+      overview.position,
+      overview.target,
+      camera.fov,
+      dimensions.width,
+      dimensions.height,
+    );
+  const rootScreen = seated && rootGoal ? project(rootGoal) : null;
+  const storyScreens = stories.map((id) => project(lit.get(id)!));
+  const junction =
+    rootGoal && rootScreen && storyScreens.every(Boolean)
+      ? worldPointAtDepth(
+          storyTreeJunction(rootScreen, storyScreens.map((screen) => screen!)),
+          rootGoal.z,
+          overview.position,
+          overview.target,
+          camera.fov,
+          dimensions.width,
+          dimensions.height,
+        )
+      : null;
+  const treeLines: (readonly [string, string])[] = junction
+    ? [["bradley", "junction"], ...stories.map((id) => ["junction", id] as const)]
+    : stories.map((id) => ["bradley", id] as const);
+  const litWithJunction = new Map(lit);
+  if (junction) litWithJunction.set("junction", junction);
+  const field = seated
+    ? fieldGoals(
+        nodes,
+        litWithJunction,
+        treeLines,
+        overview,
+        camera.fov,
+        dimensions,
+        measure,
+        compositionRng(spotlightBradley ? "bradley" : "rest"),
+      )
+    : new Map<string, Point3>();
+  // The tree is authored and stays put; the field seats around it.
+  nodes.forEach((node) => {
+    node.goal = clone(lit.get(node.id) ?? field.get(node.id) ?? node.base);
+    node.goalAlpha = focusIds.has(node.id) ? 1 : REST_FIELD_ALPHA;
+  });
+  camera.goalPosition = clone(overview.position);
+  camera.goalTarget = clone(overview.target);
+}
+
+/** A record's composition: the record beneath Bradley, its neighbours around it. */
+function applyRecordGoals(
+  nodes: RuntimeNode[],
+  selectedId: string,
+  dimensions: { width: number; height: number },
+  camera: Camera,
+  measure: (value: string) => number = (value) => value.length * 6.2,
+  bradleyFrom?: Point3,
+) {
+  const focusIds = getWorldFocusIds({ activeThreadId: null, selectedId });
+  const related = [...focusIds].filter((id) => id !== selectedId && id !== "bradley");
+  applySpotlightGoals(
+    nodes,
+    selectedId,
+    related,
+    focusIds,
+    dimensions,
+    camera,
+    measure,
+    bradleyFrom,
+  );
+}
+
+/** A Story's composition: the Story beneath Bradley, its members around it. */
 function applyStoryGoals(
   nodes: RuntimeNode[],
   storyId: string,
   dimensions: { width: number; height: number },
   camera: Camera,
   measure: (value: string) => number = (value) => value.length * 6.2,
+  bradleyFrom?: Point3,
 ) {
   const story = portfolioThreadById.get(storyId);
-  const layout = storyLayouts[storyId];
-  if (!story || !layout) return;
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+  if (!story) return;
   const focusIds = getWorldFocusIds({
     activeThreadId: story.id,
     selectedId: story.nodeId,
   });
-  nodes.forEach((node) => {
-    if (node.id === "bradley") node.goal = clone(layout.bradley);
-    else if (node.id === story.nodeId) node.goal = clone(layout.story);
-    else node.goal = layout.members[node.id]
-      ? clone(layout.members[node.id])
-      : clone(node.base);
-    node.goalAlpha = focusIds?.has(node.id) ? 1 : 0.13;
+  applySpotlightGoals(
+    nodes,
+    story.nodeId,
+    story.members,
+    focusIds,
+    dimensions,
+    camera,
+    measure,
+    bradleyFrom,
+  );
+}
+
+/**
+ * Settle a composition's goals so no label sits on another: the spine stays
+ * put, spotlit nodes share pushes, and every dimmed node yields — it steps
+ * out from under a spotlit one rather than hiding beneath it.
+ */
+function relaxGoals(
+  nodes: RuntimeNode[],
+  {
+    pinned,
+    spotlit,
+    camera,
+    fov,
+    dimensions,
+    measure,
+  }: {
+    pinned: Set<string>;
+    spotlit: Set<string>;
+    camera: { position: Point3; target: Point3 };
+    fov: number;
+    dimensions: { width: number; height: number };
+    measure: (value: string) => number;
+  },
+) {
+  const { width, height } = dimensions;
+  if (!width || !height) return;
+  const working = new Map(nodes.map((node) => [node.id, clone(node.goal)]));
+
+  relaxWorldOverlaps({
+    positions: working,
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      label: node.label,
+      pinned: pinned.has(node.id),
+      yielding: !spotlit.has(node.id),
+    })),
+    camera: { position: camera.position, target: camera.target, fov },
+    viewport: { width, height },
+    measure,
+    wrap: (label, measureText) => wrapLabel(label, measureText),
+    lineHeight: LABEL_LINE_HEIGHT,
+    iterations: 160,
+    padding: 8,
+    minHalfWidth: 15,
+    footprint: { top: 14, extraHeight: 34 },
+    margins: { left: 18, right: 18, top: 18, bottom: 84 },
+    // Wide enough to hold the field: a tighter clamp used to drag pushed
+    // field nodes back into the composition.
+    bounds: { x: 1600, y: 1600, z: [480, 1600] },
   });
 
-  const { width, height } = dimensions;
-  if (width && height) {
-    const ids = ["bradley", story.nodeId, ...story.members];
-    const working = new Map(ids.map((id) => [id, clone(byId.get(id)!.goal)]));
-
-    relaxWorldOverlaps({
-      positions: working,
-      nodes: ids.map((id) => ({
-        id,
-        label: byId.get(id)!.label,
-        pinned: id === "bradley" || id === story.nodeId,
-      })),
-      camera: {
-        position: storyView.position,
-        target: storyView.target,
-        fov: camera.fov,
-      },
-      viewport: { width, height },
-      measure,
-      wrap: (label, measureText) => wrapLabel(label, measureText),
-      lineHeight: LABEL_LINE_HEIGHT,
-      iterations: 160,
-      padding: 8,
-      minHalfWidth: 15,
-      footprint: { top: 14, extraHeight: 34 },
-      margins: { left: 18, right: 18, top: 18, bottom: 84 },
-      bounds: { x: 980, y: 590, z: [620, 1050] },
-    });
-
-    ids.forEach((id) => {
-      byId.get(id)!.goal = clone(working.get(id)!);
-    });
-  }
-
-  camera.goalPosition = clone(storyView.position);
-  camera.goalTarget = clone(storyView.target);
+  nodes.forEach((node) => {
+    node.goal = clone(working.get(node.id)!);
+  });
 }
 
 function drawLinks(
@@ -997,29 +1459,88 @@ function drawLinks(
   links: ReturnType<typeof getVisibleWorldLinks>,
   selectedId: string | null,
   palette: WorldPalette,
+  insets: InsetMemory,
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const color = palette.connector;
-  for (const link of links) {
-    const from = byId.get(link.from);
-    const to = byId.get(link.to);
-    if (!from?.screen || !to?.screen) continue;
-    const active = isWorldLinkActive(link, selectedId);
-    const strength = selectedId ? (active ? 0.78 : 0.025) : 0.25;
-    const alpha = Math.min(from.alpha, to.alpha) * strength;
-    const segment = connectorSegment(
-      { x: from.screen.x, y: from.screen.y, family: from.family },
-      { x: to.screen.x, y: to.screen.y, family: to.family },
-    );
+  const stroke = (start: Point, end: Point, alpha: number, active: boolean) => {
     context.save();
     context.globalAlpha = alpha;
     context.strokeStyle = color;
     context.lineWidth = active ? 1.1 : 0.54;
     context.beginPath();
-    context.moveTo(segment.start.x, segment.start.y);
-    context.lineTo(segment.end.x, segment.end.y);
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
     context.stroke();
     context.restore();
+  };
+  // There is always a spotlight — rest reads as Bradley — so a line is either
+  // part of the current composition or nearly gone.
+  const strengthOf = (active: boolean) => (active ? 0.78 : 0.025);
+  const anchor = (node: RuntimeNode, screen: ProjectedPoint): ConnectorAnchor => ({
+    x: screen.x,
+    y: screen.y,
+    family: node.family,
+    labelBox: node.labelBox,
+  });
+
+  const isRoot = (layer: (typeof links)[number]["layer"]) =>
+    layer === "story-root" || layer === "spotlight-root";
+
+  for (const link of links) {
+    if (isRoot(link.layer)) continue;
+    const from = byId.get(link.from);
+    const to = byId.get(link.to);
+    if (!from?.screen || !to?.screen) continue;
+    const active = isWorldLinkActive(link, selectedId);
+    const alpha = Math.min(from.alpha, to.alpha) * strengthOf(active);
+    const segment = connectorSegment(
+      anchor(from, from.screen),
+      anchor(to, to.screen),
+      insets,
+      `${link.from}->${link.to}`,
+    );
+    if (segment) stroke(segment.start, segment.end, alpha, active);
+  }
+
+  // The Story lines are one tree: a trunk straight down from Bradley's mark
+  // to a junction, then one straight branch per visible Story. The trunk
+  // carries the strongest branch, so a single open Story still reads as
+  // rooted on Bradley.
+  const root = byId.get("bradley");
+  const branches = links.flatMap((link) => {
+    if (!isRoot(link.layer)) return [];
+    const node = byId.get(link.to);
+    if (!node?.screen) return [];
+    const active = isWorldLinkActive(link, selectedId);
+    return [{ node, screen: node.screen, active }];
+  });
+  if (!root?.screen || branches.length === 0) return;
+  // The trunk leaves Bradley's envelope straight down: from under his label
+  // on desktop, from the mark itself where the compact label sits beside it.
+  const trunkStart = connectorSegment(
+    anchor(root, root.screen),
+    { x: root.screen.x, y: root.screen.y + 10000, family: root.family },
+    insets,
+    "trunk",
+  )?.start ?? { x: root.screen.x, y: root.screen.y };
+  const junction = storyTreeJunction(trunkStart, branches.map(({ screen }) => screen));
+  const trunkActive = branches.some(({ active }) => active);
+  const trunkAlpha = Math.max(
+    ...branches.map(({ node, active }) =>
+      Math.min(root.alpha, node.alpha) * strengthOf(active)),
+  );
+  stroke(trunkStart, junction, trunkAlpha, trunkActive);
+  for (const { node, screen, active } of branches) {
+    const branch = connectorSegment(
+      { x: junction.x, y: junction.y, family: root.family },
+      anchor(node, screen),
+      insets,
+      `root->${node.id}`,
+    );
+    if (branch) {
+      stroke(junction, branch.end, Math.min(root.alpha, node.alpha) * strengthOf(active), active);
+    }
   }
 }
 
@@ -1042,7 +1563,7 @@ function drawNode(
   context.globalAlpha = node.alpha * statusAlpha;
   context.fillStyle = color;
   context.strokeStyle = color;
-  context.lineWidth = 1.45;
+  context.lineWidth = PORTFOLIO_NODE_MARK_STROKE;
   context.lineJoin = "round";
 
   for (const primitive of portfolioNodeMarkPrimitives(node.family, size)) {
@@ -1112,7 +1633,7 @@ function drawNode(
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
-    : point.y + (isBradley ? 23 : 18) + LABEL_LINE_HEIGHT * 0.5;
+    : point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP) + LABEL_LINE_HEIGHT * 0.5;
   context.textAlign = compact
     ? point.x < palette.width / 2
       ? "right"

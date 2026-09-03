@@ -19,7 +19,6 @@ import {
 import {
   portfolioContactStructure,
   portfolioFactualLinkStructures,
-  PORTFOLIO_ARC_NODE_ID,
   portfolioRecordStructures,
   portfolioThreadStructures,
   type PortfolioBodyBlockSkeleton,
@@ -108,8 +107,13 @@ export function isPortfolioWhatNode(
 export type PortfolioWorldLink = {
   from: string;
   to: string;
-  type: "direct" | "lineage" | "story";
-  layer: "factual" | "story-root" | "story-membership";
+  type: "direct" | "lineage" | "story" | "spotlight";
+  /**
+   * `story-root` lines root a Story on Bradley; `spotlight-root` roots any
+   * other selected record on him, so every composition hangs from the same
+   * trunk. Both draw as the tree.
+   */
+  layer: "factual" | "story-root" | "story-membership" | "spotlight-root";
   threadId?: string;
 };
 
@@ -304,6 +308,19 @@ const threadMembershipLinks: readonly PortfolioWorldLink[] = portfolioThreads.fl
     })),
 );
 
+/**
+ * The map at rest is Bradley's composition. No selection and Bradley selected
+ * read the same way: Bradley spotlighted at twelve o'clock, the four Why
+ * lines rooted on him, and every other record dimmed in the field. Selecting
+ * Bradley therefore changes nothing on the map; the dossier already shows
+ * About as home.
+ */
+export function isRestingWorldSelection(
+  selectedId: string | null,
+): selectedId is null | "bradley" {
+  return !selectedId || selectedId === "bradley";
+}
+
 export function getVisibleWorldLinks({
   selectedId,
 }: {
@@ -312,10 +329,12 @@ export function getVisibleWorldLinks({
   const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   const links = [...portfolioWorldLinks];
 
-  if (selectedId === "bradley") {
+  if (isRestingWorldSelection(selectedId)) {
     links.push(...threadRootLinks);
   } else if (selected?.outlineType === "why" && selected.threadId) {
     links.push(...threadRootLinks.filter(({ threadId }) => threadId === selected.threadId));
+  } else if (selected) {
+    links.push({ from: "bradley", to: selected.id, type: "spotlight", layer: "spotlight-root" });
   }
 
   links.push(...threadMembershipLinks);
@@ -326,8 +345,7 @@ export function isWorldLinkActive(
   link: PortfolioWorldLink,
   selectedId: string | null,
 ): boolean {
-  if (!selectedId) return false;
-  if (selectedId === "bradley") return link.layer === "story-root";
+  if (isRestingWorldSelection(selectedId)) return link.layer === "story-root";
 
   const selected = portfolioWorldNodeById.get(selectedId);
   if (!selected) return false;
@@ -341,9 +359,6 @@ export function isWorldLinkActive(
   const ownsMembership =
     link.layer === "story-membership" &&
     link.threadId === selected.threadId;
-  if (selected.id === PORTFOLIO_ARC_NODE_ID) {
-    return link.layer === "factual" || ownsRoot || ownsMembership;
-  }
   return ownsRoot || ownsMembership;
 }
 
@@ -353,21 +368,18 @@ export function getWorldFocusIds({
 }: {
   activeThreadId: string | null;
   selectedId: string | null;
-}): Set<string> | null {
-  if (!selectedId) return null;
-  if (selectedId === "bradley") {
+}): Set<string> {
+  if (isRestingWorldSelection(selectedId)) {
     return new Set(["bradley", ...portfolioThreads.map(({ nodeId }) => nodeId)]);
   }
   if (activeThreadId) {
     const thread = portfolioThreadById.get(activeThreadId);
-    if (thread?.nodeId === PORTFOLIO_ARC_NODE_ID) {
-      return new Set(portfolioWorldNodes.map(({ id }) => id));
-    }
     return thread
       ? new Set(["bradley", thread.nodeId, ...thread.members])
       : new Set([selectedId]);
   }
-  const focused = new Set([selectedId]);
+  // A record's composition hangs from Bradley like a Story's does.
+  const focused = new Set(["bradley", selectedId]);
   for (const { from, to } of [...portfolioWorldLinks, ...threadMembershipLinks]) {
     if (from === selectedId) focused.add(to);
     if (to === selectedId) focused.add(from);

@@ -92,6 +92,23 @@ describe("relaxWorldOverlaps", () => {
     }
   });
 
+  it("moves a yielding node out from under a spotlighted one, not the reverse", () => {
+    const nodes: RelaxNode[] = [
+      { id: "lit", label: "Spotlighted", pinned: false },
+      { id: "dim", label: "Dimmed", pinned: false, yielding: true },
+    ];
+    const positions = new Map<string, Point3>([
+      ["lit", { x: 0, y: 0, z: 640 }],
+      ["dim", { x: 4, y: 2, z: 640 }],
+    ]);
+
+    relaxWorldOverlaps(options(nodes, positions));
+
+    expect(positions.get("lit")).toEqual({ x: 0, y: 0, z: 640 });
+    const boxes = footprints(nodes, positions);
+    expect(overlaps(boxes[0], boxes[1])).toBe(false);
+  });
+
   it("never moves a pinned node", () => {
     const nodes: RelaxNode[] = [
       { id: "bradley", label: "Bradley Berkman", pinned: true },

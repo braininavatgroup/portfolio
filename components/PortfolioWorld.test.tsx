@@ -3,11 +3,30 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  BRADLEY_MIN_LEAN,
+  BRADLEY_SPOTLIGHT_SPREAD,
+  composeSpotlightGoals,
+  MAX_SPOTLIGHT_LEAN,
   connectorSegment,
   PAST_WORLD_ALPHA,
   PortfolioWorld,
+  REST_FIELD_ALPHA,
+  SPOTLIGHT_JITTER,
+  spreadFrom,
 } from "./PortfolioWorld";
-import { portfolioWorldNodeById } from "../lib/portfolio-world";
+import { portfolioThreads, portfolioWorldNodeById } from "../lib/portfolio-world";
+import {
+  AUTHORED_ZONES,
+  createRng,
+  inSector,
+  LOOSE_SLOTS,
+  screenAngle,
+  screenDistance,
+  STAR_ARCS,
+  STAR_BAND,
+  stillRng,
+  zoneMembers,
+} from "../lib/portfolio-world-zones";
 import {
   projectWorldPoint,
   translateWorldPointByScreenDelta,
@@ -164,6 +183,28 @@ describe("PortfolioWorld", () => {
     expect(captions?.getAttribute("srclang")).toBe("en");
   });
 
+  it("treats a drag as a hold that does not select, and a still press as a click", () => {
+    const onSelect = vi.fn();
+    render(
+      <PortfolioWorld
+        activeThreadId={null}
+        onReset={() => {}}
+        onSelect={onSelect}
+        selectedId={null}
+      />,
+    );
+    const button = screen.getAllByRole("button", { name: /Dubs/ })[0];
+
+    fireEvent.pointerDown(button, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(button, { pointerId: 1, clientX: 160, clientY: 140 });
+    fireEvent.pointerUp(button, { pointerId: 1, clientX: 160, clientY: 140 });
+    expect(onSelect).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(button, { button: 0, pointerId: 2, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(button, { pointerId: 2, clientX: 102, clientY: 101 });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("maps a rightward drag to rightward screen movement", () => {
     const cameraPosition = { x: 0, y: 35, z: -760 };
     const cameraTarget = { x: 0, y: 0, z: 760 };
@@ -197,24 +238,65 @@ describe("PortfolioWorld", () => {
     expect(projectedMoved!.y).toBeCloseTo(projectedStart!.y, 5);
   });
 
-  it("terminates connectors at each visible mark instead of a padded halo", () => {
+  it("stops every connector outside the tightest circle around each mark", () => {
+    // product: 15 × 0.49 reach + half the 1.45 stroke + 2 clearance
     const circle = connectorSegment(
       { x: 0, y: 0, family: "product" },
       { x: 100, y: 0, family: "product" },
-    );
-
-    expect(circle.start.x).toBeCloseTo(7.35, 5);
-    expect(circle.end.x).toBeCloseTo(92.65, 5);
+    )!;
+    expect(circle.start.x).toBeCloseTo(10.075, 5);
+    expect(circle.end.x).toBeCloseTo(89.925, 5);
     expect(circle.start.y).toBe(0);
     expect(circle.end.y).toBe(0);
 
+    // The open marks used to take no inset at all, so a line ran straight
+    // into the asterisk's center. Bradley's brain is measured at its 21px.
     const openMarks = connectorSegment(
       { x: 10, y: 20, family: "identity" },
       { x: 70, y: 20, family: "story" },
+    )!;
+    expect(openMarks.start.x).toBeCloseTo(10 + 21 * 0.49 + 0.725 + 2, 5);
+    expect(openMarks.end.x).toBeCloseTo(
+      70 - (Math.hypot(0.43, 0.245) * 15 + 0.725 + 2),
+      5,
     );
 
-    expect(openMarks.start).toEqual({ x: 10, y: 20 });
-    expect(openMarks.end).toEqual({ x: 70, y: 20 });
+    // A triangle's circle is set by its base corners, not its apex, so a line
+    // arriving from any direction clears the whole shape.
+    const triangle = connectorSegment(
+      { x: 0, y: 0, family: "component" },
+      { x: 0, y: 100, family: "component" },
+    )!;
+    expect(triangle.start.y).toBeCloseTo(Math.hypot(0.51, 0.42) * 15 + 0.725 + 2, 5);
+  });
+
+  it("keeps a line off the label hanging beneath a mark, and drops one that cannot fit", () => {
+    const labelBox = { x: -30, y: 18, width: 60, height: 15 };
+    // Straight down through the label: the line starts under it.
+    const down = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox },
+      { x: 0, y: 200, family: "product" },
+    )!;
+    expect(down.start.y).toBe(35);
+    // Arriving from below, the target's label is in the way too.
+    const up = connectorSegment(
+      { x: 0, y: 200, family: "product" },
+      { x: 0, y: 0, family: "story", labelBox },
+    )!;
+    expect(up.end.y).toBe(35);
+    // Sideways, the label is not crossed and only the mark counts.
+    const across = connectorSegment(
+      { x: 0, y: 0, family: "story", labelBox },
+      { x: 200, y: 0, family: "product" },
+    )!;
+    expect(across.start.x).toBeCloseTo(Math.hypot(0.43, 0.245) * 15 + 0.725 + 2, 5);
+    // Two envelopes that touch leave nothing to draw.
+    expect(
+      connectorSegment(
+        { x: 0, y: 0, family: "product" },
+        { x: 15, y: 0, family: "product" },
+      ),
+    ).toBeNull();
   });
 
   it("reconstructs the authored overview composition at its reference viewport", () => {
@@ -223,22 +305,22 @@ describe("PortfolioWorld", () => {
     const fov = 621.6;
     const expectedCenters: Record<string, readonly [number, number]> = {
       bradley: [448.5, 153.5],
-      "thread-making-work-playable": [344.5, 261.5],
-      "thread-from-argument-to-instrument": [165.5, 421.5],
-      "thread-authorship": [558.5, 277.5],
-      "thread-philosophy": [345, 469.5],
-      dubs: [241, 331.5],
-      writ: [263.5, 431.5],
-      yoohoo: [474, 513.5],
-      kickoff: [677, 341.5],
-      pitching: [734.5, 424],
-      reporting: [597, 465],
-      touring: [733.5, 533],
-      "real-estate": [632.5, 606],
-      infamous: [160.5, 550],
-      "music-practice": [285, 599.5],
-      "systems-consulting": [438, 605],
-      "product-studio": [483, 453],
+      "thread-making-work-playable": [232, 348],
+      "thread-from-argument-to-instrument": [372, 410],
+      "thread-authorship": [525, 410],
+      "thread-philosophy": [665, 348],
+      infamous: [86.5, 415],
+      "music-practice": [101.2, 480.4],
+      kickoff: [144, 540.4],
+      pitching: [211.4, 590.3],
+      reporting: [298.1, 626],
+      "systems-consulting": [397, 644.6],
+      "real-estate": [500, 644.6],
+      touring: [598.9, 626],
+      "product-studio": [685.6, 590.3],
+      dubs: [753, 540.4],
+      writ: [795.8, 480.4],
+      yoohoo: [810.5, 415],
     };
 
     for (const [id, [expectedX, expectedY]] of Object.entries(expectedCenters)) {
@@ -377,13 +459,16 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).not.toContain("#4f585d");
   });
 
-  it("applies the Past alpha to the INFAMOUS mark and label", async () => {
+  it("applies the Past alpha to the INFAMOUS mark and label on top of the resting field", async () => {
     const record = paintWithConnector("rgb(1, 2, 3)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
-    expect(record.pathAlphas).toContain(PAST_WORLD_ALPHA);
-    expect(record.labelAlphas.get("INFAMOUS PR")).toBe(PAST_WORLD_ALPHA);
+    const past = REST_FIELD_ALPHA * PAST_WORLD_ALPHA;
+    expect(record.pathAlphas).toContain(past);
+    expect(record.labelAlphas.get("INFAMOUS PR")).toBe(past);
+    expect(record.labelAlphas.get("Dubs")).toBe(REST_FIELD_ALPHA);
     expect(record.labelAlphas.get("Authorship")).toBe(1);
+    expect(record.labelAlphas.get("Bradley Berkman")).toBe(1);
   });
 
   it("gives Bradley the stronger identity label while record labels stay notational", async () => {
@@ -399,5 +484,139 @@ describe("PortfolioWorld canvas paint", () => {
     expect(
       record.drawImageWidths.some((width) => Math.abs(width - 20.58) < 0.001),
     ).toBe(true);
+  });
+});
+
+describe("spotlight composition", () => {
+  const bradley = { x: 20, y: 541, z: 647 };
+  const centered = { x: 20, y: 100, z: 700 };
+  const eight = Array.from({ length: 8 }, (_, index) => `r${index}`);
+
+  it("hangs the spotlit node beneath Bradley and stars its relations clear of the trunk and the field below", () => {
+    const { bradley: root, spotlight, related } = composeSpotlightGoals(bradley, centered, eight);
+
+    // Even a record resting straight beneath him leans Bradley the minimum.
+    expect(root.y).toBe(bradley.y);
+    expect(Math.abs(root.x - bradley.x)).toBe(BRADLEY_MIN_LEAN);
+    expect(spotlight.x).toBe(bradley.x);
+    expect(spotlight.y).toBeLessThan(bradley.y);
+    for (const point of related.values()) {
+      const angle = screenAngle(spotlight, point);
+      expect(angle > 240 && angle < 300, `${angle} is in the trunk cone`).toBe(false);
+      expect(angle > 45 && angle < 135, `${angle} is in the bottom cone`).toBe(false);
+      const radius = screenDistance(spotlight, point);
+      expect(radius).toBeGreaterThanOrEqual(STAR_BAND[0]);
+      expect(radius).toBeLessThanOrEqual(STAR_BAND[1]);
+    }
+    // The first half take the right arc in order, the rest the left.
+    expect(inSector(screenAngle(spotlight, related.get("r0")!), STAR_ARCS.right)).toBe(true);
+    expect(inSector(screenAngle(spotlight, related.get("r3")!), STAR_ARCS.right)).toBe(true);
+    expect(inSector(screenAngle(spotlight, related.get("r4")!), STAR_ARCS.left)).toBe(true);
+    expect(screenAngle(spotlight, related.get("r1")!)).toBeGreaterThan(
+      screenAngle(spotlight, related.get("r0")!),
+    );
+  });
+
+  it("lands up to four relations loosely around the spotlit node instead of starring them", () => {
+    const { related, spotlight } = composeSpotlightGoals(bradley, centered, ["a", "b", "c"]);
+    const [above, below, far] = ["a", "b", "c"].map((id) => related.get(id)!);
+
+    expect(above.y).toBeGreaterThan(spotlight.y);
+    expect(below.y).toBeLessThan(spotlight.y);
+    expect(Math.abs(far.x - spotlight.x)).toBeGreaterThan(Math.abs(below.x - spotlight.x));
+    ["a", "b", "c"].forEach((id, index) => {
+      expect(inSector(screenAngle(spotlight, related.get(id)!), LOOSE_SLOTS[index].sector)).toBe(true);
+    });
+  });
+
+  it("lands an authored Story in its zones, grouped and ordered as authored", () => {
+    const map = AUTHORED_ZONES["thread-making-work-playable"];
+    const members = zoneMembers(map.zones);
+    const { spotlight, related } = composeSpotlightGoals(bradley, centered, members, map, createRng(7));
+
+    expect(inSector(screenAngle(bradley, spotlight), map.spotlight.sector)).toBe(true);
+    for (const zone of map.zones) {
+      let previous = -Infinity;
+      for (const id of zone.members) {
+        const point = related.get(id)!;
+        const angle = screenAngle(spotlight, point);
+        const offset = (angle - zone.sector[0] + 360) % 360;
+        expect(inSector(angle, zone.sector), `${id} at ${angle} outside ${zone.sector.join("–")}`).toBe(true);
+        expect(offset, `${id} out of order`).toBeGreaterThan(previous);
+        previous = offset;
+        const radius = screenDistance(spotlight, point);
+        expect(radius).toBeGreaterThanOrEqual(zone.band[0]);
+        expect(radius).toBeLessThanOrEqual(zone.band[1]);
+      }
+    }
+  });
+
+  it("authors both large Stories completely", () => {
+    for (const [nodeId, map] of Object.entries(AUTHORED_ZONES)) {
+      const thread = portfolioThreads.find((entry) => entry.nodeId === nodeId)!;
+      expect(zoneMembers(map.zones).sort()).toEqual([...thread.members].sort());
+    }
+  });
+
+  it("takes a different pose per seed, and the same pose for the same seed", () => {
+    const map = AUTHORED_ZONES["thread-authorship"];
+    const members = zoneMembers(map.zones);
+    const one = composeSpotlightGoals(bradley, centered, members, map, createRng(1));
+    const same = composeSpotlightGoals(bradley, centered, members, map, createRng(1));
+    const other = composeSpotlightGoals(bradley, centered, members, map, createRng(2));
+
+    expect(same.related).toEqual(one.related);
+    expect(other.related.get("dubs")).not.toEqual(one.related.get("dubs"));
+    const drift = Math.abs(other.spotlight.x - one.spotlight.x);
+    expect(drift).toBeGreaterThan(0);
+  });
+
+  it("keeps a seeded record composition inside its jitter budget", () => {
+    const still = composeSpotlightGoals(bradley, centered, eight);
+    const seeded = composeSpotlightGoals(bradley, centered, eight, undefined, createRng(3));
+
+    expect(Math.abs(seeded.spotlight.x - still.spotlight.x)).toBeLessThanOrEqual(SPOTLIGHT_JITTER.x);
+    expect(Math.abs(seeded.spotlight.y - still.spotlight.y)).toBeLessThanOrEqual(SPOTLIGHT_JITTER.y);
+    expect(seeded.bradley).toEqual(still.bradley);
+  });
+
+  it("caps how far the spotlit node hangs to the side, so far records still hang beneath Bradley", () => {
+    const far = composeSpotlightGoals(bradley, { x: 1000, y: 100, z: 700 }, ["a"]);
+    expect(far.spotlight.x - bradley.x).toBe(MAX_SPOTLIGHT_LEAN);
+  });
+
+  it("seats siblings with the same relations differently", () => {
+    const one = composeSpotlightGoals(bradley, centered, ["a", "b", "c"], undefined, stillRng, { signature: 7 });
+    const two = composeSpotlightGoals(bradley, centered, ["a", "b", "c"], undefined, stillRng, { signature: 8 });
+    expect(screenAngle(one.spotlight, one.related.get("a")!)).not.toBeCloseTo(
+      screenAngle(two.spotlight, two.related.get("a")!),
+    );
+  });
+
+  it("leans Bradley and the spotlit node toward where it rests, so each lands differently", () => {
+    const left = composeSpotlightGoals(bradley, { x: 400, y: 100, z: 700 }, eight);
+    const right = composeSpotlightGoals(bradley, { x: -400, y: 100, z: 700 }, eight);
+    const near = composeSpotlightGoals(bradley, { x: 30, y: 100, z: 700 }, eight);
+
+    expect(left.bradley.x).toBeGreaterThan(bradley.x);
+    expect(right.bradley.x).toBeLessThan(bradley.x);
+    // A record resting almost beneath him still leans him a legible amount.
+    expect(near.bradley.x - bradley.x).toBe(BRADLEY_MIN_LEAN);
+    expect(left.spotlight.x - bradley.x).toBeGreaterThan(left.bradley.x - bradley.x);
+    expect(left.bradley.y).toBe(bradley.y);
+  });
+});
+
+describe("Bradley spotlight", () => {
+  it("opens the tree around Bradley", () => {
+    const root = { x: 0, y: 500, z: 650 };
+    const base = { x: 300, y: 100, z: 700 };
+    const story = spreadFrom(root, base, BRADLEY_SPOTLIGHT_SPREAD);
+
+    expect(BRADLEY_SPOTLIGHT_SPREAD).toBeGreaterThan(1);
+    expect(story.x).toBeGreaterThan(base.x);
+    expect(story.y).toBeLessThan(base.y);
+    expect(story.z).toBe(700);
+    expect(spreadFrom(root, root, 2)).toEqual(root);
   });
 });

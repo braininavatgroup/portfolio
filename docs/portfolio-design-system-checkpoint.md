@@ -1,7 +1,8 @@
 # Portfolio design-system checkpoint
 
-Status: accepted design direction, 26 August 2026. This document records the
-client-facing composition. Its static HTML snapshot
+Status: accepted design direction, 26 August 2026; map composition grammar
+revised 2 September 2026. This document records the client-facing
+composition. Its static HTML snapshot
 (`public/design-system-current.html`) was retired once it drifted from the
 authored content; it remains recoverable from git history. This is not a
 production-integration specification.
@@ -44,9 +45,34 @@ production-integration specification.
   larger, medium-weight label is the sole hierarchy exception.
 - Relationships use one Silverpoint treatment: thin, straight, neutral, and
   arrowless. Their internal classifications remain backstage.
-- Bradley has no Story connectors at rest. Selecting Bradley reveals the four
-  Story links; selecting a Story foregrounds its authored constellation.
-- Nodes can be moved individually. Blank-space dragging does not move the
+- At rest the map is Bradley's own composition: Bradley at twelve o'clock,
+  one trunk down to a junction, and the four Stories branching from it.
+  Selecting Bradley opens that tree a little and reseats the field;
+  deselecting closes it.
+- Every spotlight — a Story or any record — is one composition: Bradley on
+  top, the spotlit node beneath him on the trunk, its relations around it.
+  There is no thread lock. Clicking any node lands on that node's own
+  composition; the four Stories are only the entry point.
+- Relations land in zones, not on coordinates. A zone is a sector and a
+  distance band with members in order. The two large Stories are authored as
+  zone maps; up to four relations take the loose fan, which hangs from the
+  trunk and rotates with the record's signature; more form a star grouped by
+  family. No relation lands in the trunk's cone. One seed per page load picks
+  the pose inside those rules, so a record returns to the same pose within a
+  visit and takes a fresh one after reload.
+- Records outside a composition form the field: dimmed, deeper, dispersed
+  evenly through the composition's own footprint, never under a lit label or
+  on a lit line, and never closer together than a label. The region grows
+  outward only when the footprint lacks room, so the map stays compact in a
+  small window without scaling.
+- Every connector stops outside each endpoint's envelope — the tightest
+  circle around the mark plus its label box — with a 2px clearance. A line
+  that cannot fit is not drawn.
+- Every map click moves something. Bradley leans at least a minimum toward
+  the spotlit record and shifts a minimum distance between compositions. The
+  only still click is empty map at rest.
+- Nodes can be held and dragged and spring back to their composition on
+  release; nothing is persisted. Blank-space dragging does not move the
   field, while a blank-space click resets the focused composition.
 
 ## Cursor and interaction
@@ -89,7 +115,10 @@ production-integration specification.
 ## Verification
 
 The checkpoint carries a semantic contract test for the combined canvas,
-dossier, cursor, avatar, AssistantModal, and Brain symbol. The composition was
-also exercised at 1440×900 in light and dark modes and at 390×844, including
-open/minimized chat, constrained drag, position restoration, node selection,
-and mobile dossier handoff.
+dossier, cursor, avatar, AssistantModal, and Brain symbol. The map's
+composition rules — zones, field, envelope, tree junction, minimum shift —
+carry unit tests under `lib/portfolio-world-*.test.ts`, which assert the
+rules rather than coordinates. The composition was also exercised at 1440×900
+in light and dark modes and at 390×844, including open/minimized chat,
+constrained drag, node selection, and mobile dossier handoff, and every record
+and Story state was reviewed at 1440×900 with a pinned seed.

@@ -189,17 +189,11 @@ export function PortfolioExperience() {
       setActiveVisual(null);
       setMobileMapOpen(false);
       setIndexOpen(false);
-      // Tapping the node that is already selected deselects it, falling back
-      // to the story it belongs to if there is one.
+      // Tapping the node that is already selected deselects it, back to home.
       if (selectedWorldId === node.id) {
         clearRecordSelection();
-        if (activeThreadId && node.outlineType !== "why") {
-          setSelectedWorldId(portfolioThreadById.get(activeThreadId)?.nodeId ?? null);
-          pushWorldLocation(null, activeThreadId);
-        } else {
-          showHome();
-          pushWorldLocation(null, null);
-        }
+        showHome();
+        pushWorldLocation(null, null);
         return;
       }
 
@@ -213,25 +207,21 @@ export function PortfolioExperience() {
         return;
       }
 
-      // Stay inside the open story only if this node is part of it.
-      const retainedStoryId = activeThreadId &&
-        portfolioThreadById.get(activeThreadId)?.members.includes(node.id)
-        ? activeThreadId
-        : null;
+      // Every record has its own composition. Choosing a member from inside
+      // a Story leaves the Story: the four Stories are the entry point at
+      // rest, not a mode the map stays locked in.
+      setActiveThreadId(null);
 
       if (!isPortfolioWhatNode(node)) {
-        setActiveThreadId(retainedStoryId);
         clearRecordSelection();
-        pushWorldLocation(node.id, retainedStoryId);
+        pushWorldLocation(node.id, null);
         return;
       }
 
       selectWhatWithAvatar(node.id);
-      setActiveThreadId(retainedStoryId);
-      pushWorldLocation(node.id, retainedStoryId);
+      pushWorldLocation(node.id, null);
     },
     [
-      activeThreadId,
       clearRecordSelection,
       selectedWorldId,
       selectWhatWithAvatar,
@@ -327,14 +317,20 @@ export function PortfolioExperience() {
       showHome();
 
       const { nodeId, threadId } = readWorldLocation();
-      const story = threadId ? portfolioThreadById.get(threadId) : undefined;
       const node = nodeId ? portfolioWorldNodeById.get(nodeId) : undefined;
+      // A record in the address wins: an older `#thread/<id>/<node>` link
+      // still opens the record, in its own composition. A Story node
+      // resolves to its thread either way.
+      const story = node?.outlineType === "why"
+        ? portfolioThreadById.get(node.threadId ?? "")
+        : node
+          ? undefined
+          : threadId
+            ? portfolioThreadById.get(threadId)
+            : undefined;
       if (story) {
         setActiveThreadId(story.id);
-        setSelectedWorldId(node?.id ?? story.nodeId);
-        if (node && isPortfolioWhatNode(node)) {
-          avatarActionState.selectWhat(node.id);
-        }
+        setSelectedWorldId(story.nodeId);
       } else if (node) {
         setSelectedWorldId(node.id);
         if (isPortfolioWhatNode(node)) {

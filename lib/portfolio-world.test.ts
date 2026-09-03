@@ -3,6 +3,7 @@ import contentDocument from "../content/portfolio-content.json";
 import {
   getVisibleWorldLinks,
   getWorldFocusIds,
+  isRestingWorldSelection,
   isWorldLinkActive,
   isPortfolioVisualReady,
   portfolioContact,
@@ -157,24 +158,32 @@ describe("accepted portfolio world", () => {
     ]);
   });
 
-  it("keeps Bradley disconnected at rest and reveals four Why lines on selection", () => {
-    const resting = getVisibleWorldLinks({ selectedId: null });
-    expect(resting.some(({ from, to }) => from === "bradley" || to === "bradley")).toBe(false);
-
-    const selected = getVisibleWorldLinks({ selectedId: "bradley" });
-    expect(
-      selected
-        .filter(({ layer }) => layer === "story-root")
-        .map(({ to }) => to),
-    ).toEqual([
+  it("reads rest as Bradley's composition: four Why lines rooted on him", () => {
+    const roots = [
       "thread-making-work-playable",
       "thread-from-argument-to-instrument",
       "thread-authorship",
       "thread-philosophy",
-    ]);
+    ];
+    for (const selectedId of [null, "bradley"]) {
+      expect(isRestingWorldSelection(selectedId)).toBe(true);
+      const links = getVisibleWorldLinks({ selectedId });
+      expect(
+        links.filter(({ layer }) => layer === "story-root").map(({ to }) => to),
+      ).toEqual(roots);
+      expect(
+        links
+          .filter((link) => isWorldLinkActive(link, selectedId))
+          .map(({ layer, to }) => `${layer}:${to}`),
+      ).toEqual(roots.map((to) => `story-root:${to}`));
+      expect(getWorldFocusIds({ activeThreadId: null, selectedId })).toEqual(
+        new Set(["bradley", ...roots]),
+      );
+    }
+    expect(isRestingWorldSelection("dubs")).toBe(false);
   });
 
-  it("draws the arc's three Why memberships while retaining its factual-field focus", () => {
+  it("draws the arc's three Why memberships while the factual field stays present", () => {
     const links = getVisibleWorldLinks({
       selectedId: "thread-from-argument-to-instrument",
     });
@@ -263,32 +272,46 @@ describe("accepted portfolio world", () => {
     expect(active).toEqual(expected);
   });
 
-  it("activates the arc root, memberships, and complete factual field", () => {
+  it("treats the arc like every other Why: its root and memberships, no factual field", () => {
     const selectedId = "thread-from-argument-to-instrument";
     const active = getVisibleWorldLinks({ selectedId }).filter((link) =>
       isWorldLinkActive(link, selectedId),
     );
 
-    expect(active.filter(({ layer }) => layer === "factual")).toHaveLength(11);
-    expect(
-      active
-        .filter(({ layer }) => layer !== "factual")
-        .map(({ layer, from, to }) => `${layer}:${from}->${to}`),
-    ).toEqual([
+    expect(active.map(({ layer, from, to }) => `${layer}:${from}->${to}`)).toEqual([
       "story-root:bradley->thread-from-argument-to-instrument",
       "story-membership:thread-from-argument-to-instrument->thread-philosophy",
       "story-membership:thread-from-argument-to-instrument->thread-making-work-playable",
       "story-membership:thread-from-argument-to-instrument->thread-authorship",
     ]);
-  });
-
-  it("keeps the complete factual field visible while the arc is open", () => {
     expect(
       getWorldFocusIds({
         activeThreadId: "from-argument-to-instrument",
-        selectedId: "thread-from-argument-to-instrument",
+        selectedId,
       }),
-    ).toEqual(new Set(portfolioWorldNodes.map(({ id }) => id)));
+    ).toEqual(
+      new Set([
+        "bradley",
+        selectedId,
+        "thread-philosophy",
+        "thread-making-work-playable",
+        "thread-authorship",
+      ]),
+    );
+  });
+
+  it("roots a selected record's own composition on Bradley", () => {
+    const links = getVisibleWorldLinks({ selectedId: "dubs" });
+    const root = links.filter(({ layer }) => layer === "spotlight-root");
+
+    expect(root).toEqual([
+      { from: "bradley", to: "dubs", type: "spotlight", layer: "spotlight-root" },
+    ]);
+    expect(isWorldLinkActive(root[0], "dubs")).toBe(true);
+    expect(getWorldFocusIds({ activeThreadId: null, selectedId: "dubs" })).toEqual(
+      new Set(["bradley", "dubs", "product-studio", "thread-making-work-playable", "thread-authorship"]),
+    );
+    expect(links.filter(({ layer }) => layer === "story-root")).toEqual([]);
   });
 
   it("assigns the exact Where status contract", () => {
