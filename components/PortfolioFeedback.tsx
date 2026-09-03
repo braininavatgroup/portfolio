@@ -2,10 +2,12 @@
 
 // Reviewer notes for Bradley. Mounts only when the worker has set the readable
 // `portfolio_reviewer` cookie from a `?r=<code>` link (worker/portfolio-feedback.ts).
-// A reviewer writes a note, optionally points at one element on the page, and
-// sends it. The visit's own notes stay in component state so the reviewer can
-// take one back; nothing is written into the page or into storage, so a later
-// session starts clean and no reviewer ever sees another's notes.
+// A reviewer writes a note, optionally points at one element on the page or
+// selects a run of text, and sends it. A selected quote can carry a suggested
+// replacement instead of a comment. The visit's own notes stay in component
+// state, shown as numbered pins, so the reviewer can find and take one back;
+// nothing is written into the page or into storage, so a later session starts
+// clean and no reviewer ever sees another's notes.
 
 import {
   useCallback,
@@ -15,10 +17,12 @@ import {
   useState,
   useSyncExternalStore,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type {
   FeedbackNote,
   FeedbackNoteInput,
+  FeedbackQuote,
   FeedbackTarget,
 } from "../worker/portfolio-feedback-store";
 import { PortfolioControlMark } from "./PortfolioNodeMark";
@@ -36,6 +40,8 @@ const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 const REGION_CLASS = /^(portfolio|reader|avatar|cursor|scene)-[a-z0-9-]+$/u;
 const SELECTOR_DEPTH = 6;
 const TEXT_LIMIT = 120;
+const QUOTE_LIMIT = 600;
+const CONTEXT_LIMIT = 40;
 
 export const portfolioFeedbackTransport: PortfolioFeedbackTransport = {
   async send(draft) {
@@ -94,6 +100,15 @@ function segmentFor(element: Element) {
   return segment;
 }
 
+function normalizeText(value: string) {
+  return value.replace(/\s+/gu, " ").trim();
+}
+
+function roundBox(box: DOMRect) {
+  const round = (value: number) => Math.round(value * 10) / 10;
+  return { x: round(box.left), y: round(box.top), width: round(box.width), height: round(box.height) };
+}
+
 /**
  * Describes one element well enough for an agent to find it: a short
  * selector path, the nearest named region, its visible text, and where it
@@ -122,13 +137,12 @@ export function describeElement(
   }
 
   if (element.tagName !== "CANVAS") {
-    const text = (element.textContent ?? "").replace(/\s+/gu, " ").trim();
+    const text = normalizeText(element.textContent ?? "");
     if (text) target.text = text.slice(0, TEXT_LIMIT);
   }
 
   const box = element.getBoundingClientRect();
-  const round = (value: number) => Math.round(value * 10) / 10;
-  target.rect = { x: round(box.left), y: round(box.top), width: round(box.width), height: round(box.height) };
+  target.rect = roundBox(box);
   if (point && box.width > 0 && box.height > 0) {
     target.offset = {
       x: Math.round(((point.x - box.left) / box.width) * 1_000) / 1_000,
@@ -138,7 +152,48 @@ export function describeElement(
   return target;
 }
 
+function rangeElement(range: Range): Element | null {
+  const node = range.commonAncestorContainer;
+  return node instanceof Element ? node : node.parentElement;
+}
+
+function rangeBox(range: Range, element: Element) {
+  const box = typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
+  return box && (box.width > 0 || box.height > 0) ? box : element.getBoundingClientRect();
+}
+
+/**
+ * Describes a text selection as a quote with a little context on each side,
+ * anchored to the element that contains it. The prefix and suffix let an
+ * agent find the exact run even if the same words appear twice on the page.
+ */
+export function describeSelection(range: Range): FeedbackTarget | null {
+  const element = rangeElement(range);
+  const text = normalizeText(range.toString()).slice(0, QUOTE_LIMIT);
+  if (!element || !text) return null;
+
+  const target = describeElement(element);
+  const before = document.createRange();
+  before.setStart(element, 0);
+  before.setEnd(range.startContainer, range.startOffset);
+  const after = document.createRange();
+  after.selectNodeContents(element);
+  after.setStart(range.endContainer, range.endOffset);
+
+  const quote: FeedbackQuote = { text };
+  const prefix = normalizeText(before.toString()).slice(-CONTEXT_LIMIT);
+  const suffix = normalizeText(after.toString()).slice(0, CONTEXT_LIMIT);
+  if (prefix) quote.prefix = prefix;
+  if (suffix) quote.suffix = suffix;
+  target.quote = quote;
+  target.text = text.slice(0, TEXT_LIMIT);
+  target.rect = roundBox(rangeBox(range, element));
+  return target;
+}
+
 type Box = { top: number; left: number; width: number; height: number };
+type Pin = { id: string; index: number; top: number; left: number };
+type Mode = "comment" | "suggest";
 
 const subscribeToNothing = () => () => {};
 const readCookieReviewer = () => readReviewerCookie(document.cookie);
@@ -146,6 +201,39 @@ const noReviewerOnServer = () => null;
 
 function currentPath() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function shorten(value: string, limit: number) {
+  return value.length > limit ? `${value.slice(0, limit)}…` : value;
+}
+
+function elementFor(selector: string): Element | null {
+  try {
+    return document.querySelector(selector);
+  } catch {
+    return null;
+  }
+}
+
+/** Where this visit's notes point right now: one pin per note whose element is still on the page. */
+function locatePins(notes: FeedbackNote[]): Pin[] {
+  const pins: Pin[] = [];
+  notes.forEach((note, index) => {
+    if (!note.target) return;
+    const element = elementFor(note.target.selector);
+    if (!element) return;
+    const box = element.getBoundingClientRect();
+    // A hidden element reports an all-zero box; leave it unpinned.
+    if (box.width === 0 && box.height === 0 && box.top === 0 && box.left === 0) return;
+    pins.push({ id: note.id, index: index + 1, top: box.top - 9, left: box.right - 9 });
+  });
+  return pins;
+}
+
+function sentSummary(note: FeedbackNote) {
+  if (note.suggestion) return `Edit: ${shorten(note.suggestion, 60)}`;
+  if (note.note) return note.note;
+  return note.target?.quote ? `“${shorten(note.target.quote.text, 60)}”` : "";
 }
 
 export function PortfolioFeedback({
@@ -167,23 +255,34 @@ export function PortfolioFeedback({
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [hover, setHover] = useState<Box | null>(null);
+  const [selection, setSelection] = useState<Box | null>(null);
   const [target, setTarget] = useState<FeedbackTarget | null>(null);
+  const [mode, setMode] = useState<Mode>("comment");
   const [text, setText] = useState("");
+  const [replacement, setReplacement] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<{ kind: "sent" | "error"; message: string } | null>(null);
   const [sent, setSent] = useState<FeedbackNote[]>([]);
+  const [pins, setPins] = useState<Pin[]>([]);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const rangeRef = useRef<Range | null>(null);
   const textareaId = useId();
+  const suggesting = mode === "suggest" && Boolean(target?.quote);
 
   useEffect(() => {
     if (open && !picking) textareaRef.current?.focus();
-  }, [open, picking]);
+  }, [open, picking, suggesting]);
 
+  const inWidget = useCallback(
+    (node: EventTarget | null) => node instanceof Node && Boolean(rootRef.current?.contains(node)),
+    [],
+  );
+
+  // Element picking: capture the next click anywhere on the page.
   useEffect(() => {
     if (!picking) return;
-    const inWidget = (node: EventTarget | null) =>
-      node instanceof Node && Boolean(rootRef.current?.contains(node));
     const stop = (event: Event) => {
       if (!inWidget(event.target)) event.stopPropagation();
     };
@@ -202,6 +301,7 @@ export function PortfolioFeedback({
       event.preventDefault();
       event.stopPropagation();
       setTarget(describeElement(element, { x: event.clientX, y: event.clientY }));
+      setMode("comment");
       setPicking(false);
     };
     const key = (event: KeyboardEvent) => {
@@ -222,23 +322,100 @@ export function PortfolioFeedback({
       document.removeEventListener("click", pick, true);
       document.removeEventListener("keydown", key, true);
     };
-  }, [picking]);
+  }, [inWidget, picking]);
+
+  // Text selection: offer a comment control under any selection inside the
+  // composition. The range is kept until the control is used.
+  useEffect(() => {
+    if (!reviewer || picking) return;
+    const read = () => {
+      const live = document.getSelection();
+      const range = live && live.rangeCount > 0 && !live.isCollapsed ? live.getRangeAt(0) : null;
+      const element = range ? rangeElement(range) : null;
+      if (!range || !element || inWidget(element) || !element.closest(".portfolio-composition")) {
+        rangeRef.current = null;
+        setSelection(null);
+        return;
+      }
+      rangeRef.current = range.cloneRange();
+      const box = rangeBox(range, element);
+      setSelection({ top: box.top, left: box.left, width: box.width, height: box.height });
+    };
+    document.addEventListener("selectionchange", read);
+    document.addEventListener("pointerup", read);
+    document.addEventListener("keyup", read);
+    return () => {
+      document.removeEventListener("selectionchange", read);
+      document.removeEventListener("pointerup", read);
+      document.removeEventListener("keyup", read);
+    };
+  }, [inWidget, picking, reviewer]);
+
+  // Pins follow their elements through pane scrolls and resizes.
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setPins(locatePins(sent)));
+    };
+    update();
+    document.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [sent]);
 
   const close = useCallback(() => {
     setOpen(false);
     setPicking(false);
+    setFocusedId(null);
   }, []);
+
+  const commentOnSelection = useCallback(() => {
+    const range = rangeRef.current;
+    const described = range ? describeSelection(range) : null;
+    if (!described) return;
+    document.getSelection()?.removeAllRanges();
+    rangeRef.current = null;
+    setSelection(null);
+    setTarget(described);
+    setMode("comment");
+    setReplacement("");
+    setPicking(false);
+    setOpen(true);
+  }, []);
+
+  const chooseMode = useCallback(
+    (next: Mode) => {
+      setMode(next);
+      if (next === "suggest" && target?.quote && !replacement) setReplacement(target.quote.text);
+    },
+    [replacement, target],
+  );
+
+  const clearTarget = useCallback(() => {
+    setTarget(null);
+    setMode("comment");
+    setReplacement("");
+  }, []);
+
+  const canSend = suggesting
+    ? replacement.trim().length > 0 && replacement.trim() !== target?.quote?.text
+    : text.trim().length > 0;
 
   const submit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
-      const note = text.trim();
-      if (!note || pending) return;
+      if (!canSend || pending) return;
       setPending(true);
       setStatus(null);
       try {
         const saved = await transport.send({
-          note,
+          note: text.trim(),
+          ...(suggesting ? { suggestion: replacement.trim() } : {}),
           path: currentPath(),
           pageTitle: document.title || undefined,
           target: target ?? undefined,
@@ -247,7 +424,9 @@ export function PortfolioFeedback({
         });
         setSent((current) => [...current, saved]);
         setText("");
+        setReplacement("");
         setTarget(null);
+        setMode("comment");
         setStatus({ kind: "sent", message: "Sent. Only Bradley sees it." });
       } catch {
         setStatus({ kind: "error", message: "That did not send. Try again." });
@@ -255,7 +434,7 @@ export function PortfolioFeedback({
         setPending(false);
       }
     },
-    [pending, target, text, transport],
+    [canSend, pending, replacement, suggesting, target, text, transport],
   );
 
   const remove = useCallback(
@@ -263,6 +442,7 @@ export function PortfolioFeedback({
       try {
         await transport.remove(id);
         setSent((current) => current.filter((note) => note.id !== id));
+        setFocusedId((current) => (current === id ? null : current));
       } catch {
         setStatus({ kind: "error", message: "That note could not be taken back." });
       }
@@ -271,6 +451,13 @@ export function PortfolioFeedback({
   );
 
   if (!reviewer) return null;
+
+  const escapeCloses = (event: ReactKeyboardEvent) => {
+    if (event.key === "Escape" && !picking) {
+      event.stopPropagation();
+      close();
+    }
+  };
 
   return (
     <div className="portfolio-feedback" data-open={open} data-picking={picking} ref={rootRef}>
@@ -288,15 +475,39 @@ export function PortfolioFeedback({
             <PortfolioControlMark aria-label="Close notes" kind="close" onClick={close} />
           </div>
 
-          {target ? (
+          {target?.quote ? (
+            <>
+              <blockquote className="portfolio-feedback-quote">“{shorten(target.quote.text, 160)}”</blockquote>
+              <p className="portfolio-feedback-target">
+                Quoting <span className="portfolio-feedback-target-name">{target.component ?? target.selector}</span>{" "}
+                <button className="portfolio-feedback-text-button" onClick={clearTarget} type="button">
+                  Clear
+                </button>
+              </p>
+              <div aria-label="What kind of note" className="portfolio-feedback-modes" role="group">
+                <button
+                  aria-pressed={mode === "comment"}
+                  className="portfolio-feedback-mode"
+                  onClick={() => chooseMode("comment")}
+                  type="button"
+                >
+                  Comment
+                </button>
+                <button
+                  aria-pressed={mode === "suggest"}
+                  className="portfolio-feedback-mode"
+                  onClick={() => chooseMode("suggest")}
+                  type="button"
+                >
+                  Suggest an edit
+                </button>
+              </div>
+            </>
+          ) : target ? (
             <p className="portfolio-feedback-target">
               Pointing at <span className="portfolio-feedback-target-name">{target.component ?? target.selector}</span>
-              {target.text ? <> — “{target.text.length > 48 ? `${target.text.slice(0, 48)}…` : target.text}”</> : null}{" "}
-              <button
-                className="portfolio-feedback-text-button"
-                onClick={() => setTarget(null)}
-                type="button"
-              >
+              {target.text ? <> — “{shorten(target.text, 48)}”</> : null}{" "}
+              <button className="portfolio-feedback-text-button" onClick={clearTarget} type="button">
                 Clear
               </button>
             </p>
@@ -312,31 +523,44 @@ export function PortfolioFeedback({
             </button>
           )}
 
-          <textarea
-            aria-label="Your note"
-            id={textareaId}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape" && !picking) {
-                event.stopPropagation();
-                close();
-              }
-            }}
-            placeholder="What would you change, keep, or ask about?"
-            ref={textareaRef}
-            value={text}
-          />
+          {suggesting ? (
+            <>
+              <textarea
+                aria-label="Suggested replacement"
+                id={textareaId}
+                onChange={(event) => setReplacement(event.target.value)}
+                onKeyDown={escapeCloses}
+                ref={textareaRef}
+                value={replacement}
+              />
+              <input
+                aria-label="Why, optionally"
+                className="portfolio-feedback-why"
+                onChange={(event) => setText(event.target.value)}
+                onKeyDown={escapeCloses}
+                placeholder="Why? (optional)"
+                type="text"
+                value={text}
+              />
+            </>
+          ) : (
+            <textarea
+              aria-label="Your note"
+              id={textareaId}
+              onChange={(event) => setText(event.target.value)}
+              onKeyDown={escapeCloses}
+              placeholder={target?.quote ? "What about this passage?" : "What would you change, keep, or ask about?"}
+              ref={textareaRef}
+              value={text}
+            />
+          )}
 
           <div className="portfolio-feedback-foot">
             <p aria-live="polite" className="portfolio-feedback-status" data-kind={status?.kind ?? "hint"}>
-              {status?.message ?? "Only Bradley sees this."}
+              {status?.message ?? (target ? "Only Bradley sees this." : "Select text on the page to quote it.")}
             </p>
-            <button
-              className="portfolio-feedback-send"
-              disabled={!text.trim() || pending}
-              type="submit"
-            >
-              {pending ? "Sending…" : "Send"}
+            <button className="portfolio-feedback-send" disabled={!canSend || pending} type="submit">
+              {pending ? "Sending…" : suggesting ? "Send edit" : "Send"}
             </button>
           </div>
 
@@ -344,9 +568,10 @@ export function PortfolioFeedback({
             <>
               <p className="portfolio-feedback-eyebrow">Sent this visit</p>
               <ul className="portfolio-feedback-sent">
-                {sent.map((note) => (
-                  <li className="portfolio-feedback-sent-row" key={note.id}>
-                    <span className="portfolio-feedback-sent-note">{note.note}</span>
+                {sent.map((note, index) => (
+                  <li className="portfolio-feedback-sent-row" data-focused={focusedId === note.id} key={note.id}>
+                    <span aria-hidden="true" className="portfolio-feedback-sent-index">{index + 1}</span>
+                    <span className="portfolio-feedback-sent-note">{sentSummary(note)}</span>
                     <button
                       className="portfolio-feedback-text-button"
                       onClick={() => void remove(note.id)}
@@ -370,6 +595,17 @@ export function PortfolioFeedback({
           Leave a note
         </button>
       )}
+      {selection && !picking ? (
+        <button
+          className="portfolio-feedback-select"
+          onClick={commentOnSelection}
+          onPointerDown={(event) => event.preventDefault()}
+          style={{ left: selection.left + selection.width / 2, top: selection.top + selection.height + 8 }}
+          type="button"
+        >
+          Comment on selection
+        </button>
+      ) : null}
       {picking && hover ? (
         <div
           aria-hidden="true"
@@ -377,6 +613,22 @@ export function PortfolioFeedback({
           style={{ height: hover.height, left: hover.left, top: hover.top, width: hover.width }}
         />
       ) : null}
+      {pins.map((pin) => (
+        <button
+          aria-label={`Your note ${pin.index}`}
+          className="portfolio-feedback-pin"
+          data-focused={focusedId === pin.id}
+          key={pin.id}
+          onClick={() => {
+            setFocusedId(pin.id);
+            setOpen(true);
+          }}
+          style={{ left: pin.left, top: pin.top }}
+          type="button"
+        >
+          {pin.index}
+        </button>
+      ))}
     </div>
   );
 }

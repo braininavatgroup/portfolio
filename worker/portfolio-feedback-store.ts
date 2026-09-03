@@ -4,18 +4,29 @@
 // object needs no per-reviewer read path beyond ownership checks on delete.
 // Bradley reads everything through the worker's admin route.
 
+/** A selected run of text, with a little context so an agent can find the exact run. */
+export type FeedbackQuote = {
+  text: string;
+  prefix?: string;
+  suffix?: string;
+};
+
 export type FeedbackTarget = {
   selector: string;
   component?: string;
   text?: string;
   rect?: { x: number; y: number; width: number; height: number };
   offset?: { x: number; y: number };
+  quote?: FeedbackQuote;
 };
 
 export type FeedbackNoteInput = {
   reviewer: string;
   path: string;
+  /** May be empty when `suggestion` carries the feedback. */
   note: string;
+  /** A replacement for `target.quote.text`, in suggesting mode. */
+  suggestion?: string;
   pageTitle?: string;
   target?: FeedbackTarget;
   viewport?: { width: number; height: number };
@@ -41,6 +52,8 @@ export const MAX_NOTES_TOTAL = 2_000;
 export const MAX_NOTES_PER_REVIEWER = 300;
 export const MAX_NOTE_LENGTH = 4_000;
 export const MAX_FIELD_LENGTH = 600;
+export const MAX_QUOTE_LENGTH = 600;
+export const MAX_CONTEXT_LENGTH = 80;
 export const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 
 /**
@@ -105,6 +118,17 @@ function readTarget(value: unknown): FeedbackTarget | undefined {
     const y = finiteNumber(Reflect.get(offset, "y"));
     if (x !== undefined && y !== undefined) target.offset = { x, y };
   }
+  const quote = Reflect.get(value, "quote");
+  if (quote && typeof quote === "object") {
+    const quoteText = shortString(Reflect.get(quote, "text"), MAX_QUOTE_LENGTH);
+    if (quoteText) {
+      target.quote = { text: quoteText };
+      const prefix = shortString(Reflect.get(quote, "prefix"), MAX_CONTEXT_LENGTH);
+      const suffix = shortString(Reflect.get(quote, "suffix"), MAX_CONTEXT_LENGTH);
+      if (prefix) target.quote.prefix = prefix;
+      if (suffix) target.quote.suffix = suffix;
+    }
+  }
   return target;
 }
 
@@ -120,15 +144,22 @@ export function readFeedbackNoteInput(
   if (!REVIEWER_CODE.test(reviewer)) return { error: "reviewer" };
   if (!body || typeof body !== "object") return { error: "body" };
   const note = shortString(Reflect.get(body, "note"), MAX_NOTE_LENGTH);
-  if (!note) return { error: "note" };
+  const suggestion = shortString(Reflect.get(body, "suggestion"), MAX_NOTE_LENGTH);
+  if (!note && !suggestion) return { error: "note" };
   const path = shortString(Reflect.get(body, "path"));
   if (!path || !path.startsWith("/")) return { error: "path" };
 
-  const input: FeedbackNoteInput = { reviewer, path, note };
+  const input: FeedbackNoteInput = { reviewer, path, note: note ?? "" };
   const pageTitle = shortString(Reflect.get(body, "pageTitle"), 200);
   if (pageTitle) input.pageTitle = pageTitle;
   const target = readTarget(Reflect.get(body, "target"));
   if (target) input.target = target;
+  if (suggestion) {
+    // A suggestion replaces a quoted run of text; without the quote it is just a note.
+    if (!target?.quote) return { error: "quote" };
+    if (suggestion === target.quote.text) return { error: "suggestion" };
+    input.suggestion = suggestion;
+  }
   const viewport = Reflect.get(body, "viewport");
   if (viewport && typeof viewport === "object") {
     const width = finiteNumber(Reflect.get(viewport, "width"));
@@ -239,13 +270,23 @@ export function feedbackNotesToMarkdown(notes: FeedbackNote[]) {
     lines.push(`## ${reviewer} (${reviewerNotes.length})`, "");
     for (const note of reviewerNotes) {
       lines.push(`### ${dateFormatter.format(note.createdAt)} UTC · \`${note.path}\``, "");
-      for (const paragraph of note.note.split(/\n+/u)) lines.push(`> ${paragraph}`);
-      lines.push("");
+      if (note.note) {
+        for (const paragraph of note.note.split(/\n+/u)) lines.push(`> ${paragraph}`);
+        lines.push("");
+      }
+      if (note.target?.quote && note.suggestion) {
+        lines.push("- Suggested edit:", "", "```diff", `- ${note.target.quote.text}`, `+ ${note.suggestion}`, "```", "");
+      }
       if (note.pageTitle) lines.push(`- Page: ${note.pageTitle}`);
+      if (note.target?.quote) {
+        const { text, prefix, suffix } = note.target.quote;
+        lines.push(`- Quote: “${text}”`);
+        if (prefix || suffix) lines.push(`- Around: …${prefix ?? ""}⟨${text}⟩${suffix ?? ""}…`);
+      }
       if (note.target) {
         const parts = [`- Target: \`${note.target.selector}\``];
         if (note.target.component) parts.push(`in \`${note.target.component}\``);
-        if (note.target.text) parts.push(`— “${note.target.text}”`);
+        if (note.target.text && !note.target.quote) parts.push(`— “${note.target.text}”`);
         lines.push(parts.join(" "));
         if (note.target.rect) {
           const { x, y, width, height } = note.target.rect;

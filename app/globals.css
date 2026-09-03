@@ -2222,7 +2222,12 @@ body:has(.portfolio-reading-room-mobile) {
   text-align: left;
 }
 
+/* The trigger is the one filled control at rest, like Send: ink on paper so
+   it reads against the dossier in both modes without introducing a colour. */
 .portfolio-feedback-trigger {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--reader-paper);
   filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
   height: 40px;
 }
@@ -2234,17 +2239,23 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-feedback-point[data-picking="true"] { border-color: var(--focus-ring); }
 
+/* One column pinned to the panel width: without minmax(0, 1fr) a long
+   single-line note row would widen the track and push every control out. */
 .portfolio-feedback-panel {
   background: var(--reader-paper);
   border: 1px solid var(--map-line-strong);
   border-radius: 6px;
+  box-sizing: border-box;
   display: grid;
   filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
   gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: var(--reader-space-2);
   width: min(320px, calc(100vw - 2 * var(--reader-space-3)));
 }
+
+.portfolio-feedback-panel > * { min-width: 0; }
 
 .portfolio-feedback-head,
 .portfolio-feedback-foot,
@@ -2267,6 +2278,7 @@ body:has(.portfolio-reading-room-mobile) {
   background: transparent;
   border: 1px solid var(--map-line);
   border-radius: 6px;
+  box-sizing: border-box;
   color: var(--ink);
   font: var(--reader-type-body) var(--font-reader);
   height: 96px;
@@ -2319,10 +2331,13 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-feedback-sent {
   display: grid;
   gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
+.portfolio-feedback-sent-row { min-width: 0; }
 
 .portfolio-feedback-sent-note {
   min-width: 0;
@@ -2340,8 +2355,98 @@ body:has(.portfolio-reading-room-mobile) {
   z-index: 899;
 }
 
+/* Quoting: the selected run, then which region holds it, then the mode. */
+.portfolio-feedback-quote {
+  border-left: 1px solid var(--map-line-strong);
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+  max-height: 64px;
+  overflow: hidden;
+  padding: 0 0 0 12px;
+}
+
+.portfolio-feedback-modes {
+  display: flex;
+  gap: 12px;
+}
+
+.portfolio-feedback-mode {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0;
+}
+
+.portfolio-feedback-mode[aria-pressed="true"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portfolio-feedback-why {
+  background: transparent;
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 32px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.portfolio-feedback-why::placeholder { color: var(--reader-muted); }
+
+/* The control that appears under a text selection. */
+.portfolio-feedback-select {
+  appearance: none;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  padding: 0 12px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 901;
+}
+
+/* Pins mark where this visit's notes point. They live only in memory. */
+.portfolio-feedback-pin {
+  appearance: none;
+  background: var(--ink);
+  border: 1px solid var(--reader-paper);
+  border-radius: 50%;
+  color: var(--reader-paper);
+  display: grid;
+  font: var(--reader-type-label) var(--font-reader);
+  height: 18px;
+  padding: 0;
+  place-items: center;
+  position: fixed;
+  width: 18px;
+  z-index: 898;
+}
+
+.portfolio-feedback-pin[data-focused="true"] { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.portfolio-feedback-sent-index {
+  color: var(--ink);
+  flex: 0 0 auto;
+}
+
+.portfolio-feedback-sent-row[data-focused="true"] .portfolio-feedback-sent-note { color: var(--ink); }
+
 @media (pointer: fine) {
-  .portfolio-feedback-trigger:hover,
+  .portfolio-feedback-trigger:hover {
+    background: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+    border-color: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+  }
+
   .portfolio-feedback-point:hover {
     background: color-mix(in srgb, var(--ink) 8%, var(--reader-paper));
   }
