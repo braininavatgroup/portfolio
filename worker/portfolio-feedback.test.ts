@@ -110,9 +110,22 @@ describe("reviewer links", () => {
     expect(cookie).toContain("SameSite=Lax");
   });
 
-  it("strips an invalid code without issuing a cookie", async () => {
+  it("normalizes a typed code so a link written by hand still counts", async () => {
     const response = await withPortfolioFeedback(
-      new Request("https://preview.example/?r=Not%20Valid"),
+      new Request("https://preview.example/?r=Sarah%20Smith"),
+      env(),
+      downstream().next,
+    );
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("/");
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toMatch(/^portfolio_reviewer=v1\.sarah-smith\./u);
+    expect(await readReviewer(new Request("https://x/", { headers: { cookie: cookie.split(";", 1)[0] } }), SECRET)).toBe("sarah-smith");
+  });
+
+  it("strips a code with nothing usable in it without issuing a cookie", async () => {
+    const response = await withPortfolioFeedback(
+      new Request("https://preview.example/?r=%21%21"),
       env(),
       downstream().next,
     );

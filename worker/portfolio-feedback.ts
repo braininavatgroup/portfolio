@@ -14,6 +14,7 @@
 
 import {
   feedbackNotesToMarkdown,
+  normalizeReviewerCode,
   readFeedbackNoteInput,
   REVIEWER_CODE,
   type FeedbackNote,
@@ -110,7 +111,7 @@ async function readBoundedJson(request: Request): Promise<unknown> {
 }
 
 async function handleReviewerLink(url: URL, secret: string) {
-  const code = url.searchParams.get(REVIEWER_PARAM) ?? "";
+  const code = normalizeReviewerCode(url.searchParams.get(REVIEWER_PARAM));
   const destination = new URL(url);
   destination.searchParams.delete(REVIEWER_PARAM);
   const location = `${destination.pathname}${destination.search}${destination.hash}`;
@@ -119,7 +120,7 @@ async function handleReviewerLink(url: URL, secret: string) {
     location,
     "x-robots-tag": "noindex, nofollow, noarchive",
   });
-  if (REVIEWER_CODE.test(code)) {
+  if (code) {
     const value = await createReviewerCookieValue(secret, code);
     // `Secure` only over https: the local dev server is plain http and some
     // embedded browsers drop Secure cookies there. Production is always https.

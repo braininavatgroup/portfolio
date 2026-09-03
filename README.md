@@ -140,8 +140,10 @@ tested `main` pushes still deploy automatically while the gate remains armed.
 
 Design partners leave notes on the password-protected preview without seeing
 each other's, and without a note ever persisting into their own later visits.
-Mint a link per person with `npm run feedback -- --link alice`; it is the site
-URL with `?r=alice`. Opening it (after the shared password) sets a signed,
+Any link with `?r=<code>` works; codes are not predefined. Type one by hand when
+you send the site to someone (`https://bradleyberkman.com/?r=Sarah Smith` counts
+as `sarah-smith`: the worker lowercases, hyphenates, and trims to 32
+characters), or mint the canonical form with `npm run feedback -- --link alice`. Opening it (after the shared password) sets a signed,
 90-day `portfolio_reviewer` cookie and redirects to the clean URL. From then
 on a "Leave a note" control sits in the bottom-left corner: a note, an
 optional pointer at one element on the page, and Send. Notes go to the

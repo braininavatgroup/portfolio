@@ -33,9 +33,26 @@ function parseArguments(argv) {
   return options;
 }
 
-export function reviewerLink(site, code) {
-  if (!REVIEWER_CODE.test(code)) {
-    throw new Error("A reviewer code is 2–32 lowercase letters, digits, or hyphens, e.g. alice or acme-team.");
+// Mirrors normalizeReviewerCode in worker/portfolio-feedback-store.ts: the
+// worker applies the same rule when the link is opened, so a hand-typed
+// `?r=Sarah Smith` still counts; this only shows the canonical form up front.
+export function normalizeReviewerCode(raw) {
+  const code = String(raw ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
+    .replace(/-{2,}/gu, "-")
+    .slice(0, 32)
+    .replace(/-+$/u, "");
+  return REVIEWER_CODE.test(code) ? code : null;
+}
+
+export function reviewerLink(site, raw) {
+  const code = normalizeReviewerCode(raw);
+  if (!code) {
+    throw new Error("A reviewer code needs at least two letters or digits, e.g. alice or \"Sarah Smith\".");
   }
   const url = new URL(site);
   url.pathname = "/";
