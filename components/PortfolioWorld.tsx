@@ -110,7 +110,7 @@ type RuntimeNode = PortfolioWorldNode & {
   labelWidth: number;
 };
 
-type PortfolioWorldProps = {
+export type PortfolioWorldProps = {
   activeThreadId: string | null;
   activeVisual?: PortfolioVisualBlock | null;
   brainFood?: {
@@ -119,6 +119,8 @@ type PortfolioWorldProps = {
     remaining: number;
     syncNodePositions: (nodes: readonly BrainFoodNodePosition[]) => void;
   };
+  compact?: boolean;
+  nodesInTabOrder?: boolean;
   selectedId: string | null;
   onCloseVisual?: () => void;
   onReset: () => void;
@@ -246,13 +248,15 @@ export function connectorSegment(
  */
 function labelBoxFor(
   node: RuntimeNode,
-  palette: Pick<WorldPalette, "compact" | "selectedNodeId" | "width">,
+  palette: Pick<
+    WorldPalette,
+    "compact" | "hoveredNodeId" | "selectedNodeId" | "width"
+  >,
 ): LayoutBox | null {
   const point = node.screen;
   if (!point || node.labelLines.length === 0) return null;
   const { compact } = palette;
-  const showLabel =
-    !compact || node.family === "story" || palette.selectedNodeId === node.id;
+  const showLabel = shouldShowLabel(node, palette);
   if (!showLabel) return null;
   const isBradley = node.id === "bradley";
   const scale = compact ? COMPACT_LABEL_SCALE : isBradley ? BRADLEY_LABEL_SCALE : 1;
@@ -267,9 +271,9 @@ function labelBoxFor(
       height,
     };
   }
-  const leftSide = point.x < palette.width / 2;
+  const onRight = compactLabelOnRight(point.x, palette.width);
   return {
-    x: leftSide ? point.x - COMPACT_LABEL_INSET - width : point.x + COMPACT_LABEL_INSET,
+    x: onRight ? point.x + COMPACT_LABEL_INSET : point.x - COMPACT_LABEL_INSET - width,
     y: point.y - height / 2,
     width,
     height,
@@ -523,20 +527,21 @@ type WorldPalette = {
   compact: boolean;
   connector: string;
   editingNodeId: string | undefined;
+  hoveredNodeId: string | undefined;
   ink: string;
   register: (name: string) => string;
   selectedNodeId: string | undefined;
   width: number;
 };
 
-function readWorldPalette(world: HTMLElement): WorldPalette {
+function readWorldPalette(world: HTMLElement, width: number): WorldPalette {
   const style = getComputedStyle(world);
   const registers = new Map<string, string>();
-  const width = world.clientWidth;
   return {
-    compact: width <= 600,
+    compact: world.dataset.compact === "true",
     connector: cssColor(style, "--map-connector", "#4f585d"),
     editingNodeId: world.dataset.editingLabel,
+    hoveredNodeId: world.dataset.hoveredNode,
     ink: cssColor(style, "--ink", "#201711"),
     register: (name) => {
       const cached = registers.get(name);
@@ -548,6 +553,23 @@ function readWorldPalette(world: HTMLElement): WorldPalette {
     selectedNodeId: world.dataset.selectedNode,
     width,
   };
+}
+
+function shouldShowLabel(
+  node: Pick<RuntimeNode, "family" | "id">,
+  palette: Pick<WorldPalette, "compact" | "hoveredNodeId" | "selectedNodeId">,
+) {
+  return (
+    !palette.compact ||
+    node.id === "bradley" ||
+    node.family === "story" ||
+    palette.selectedNodeId === node.id ||
+    palette.hoveredNodeId === node.id
+  );
+}
+
+function compactLabelOnRight(x: number, width: number) {
+  return x < width * 0.3;
 }
 
 function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string) {
@@ -678,6 +700,8 @@ export function PortfolioWorld({
   activeThreadId,
   activeVisual,
   brainFood,
+  compact = false,
+  nodesInTabOrder = true,
   onCloseVisual,
   onReset,
   onSelect,
@@ -710,6 +734,7 @@ export function PortfolioWorld({
   } | null>(null);
   const blankPress = useRef<{ pointerId: number; start: Point } | null>(null);
   const editorActive = useEditorActive();
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [labelAnchor, setLabelAnchor] = useState<CanvasLabelAnchor | null>(null);
   const measureRef = useRef<(value: string) => number>((value) => value.length * 6.2);
   const brainImage = useRef<HTMLImageElement | null>(null);
@@ -745,7 +770,7 @@ export function PortfolioWorld({
     if (typeof Image === "undefined") return;
     const image = new Image();
     const cache = brainCache.current;
-    image.src = "/biv-brain-symbol.png";
+    image.src = "/biv-brain-symbol.svg";
     brainImage.current = image;
     return () => {
       brainImage.current = null;
@@ -870,9 +895,10 @@ export function PortfolioWorld({
       });
     };
 
-    const resize = () => {
-      const bounds = world.getBoundingClientRect();
-      worldOrigin = { x: bounds.left, y: bounds.top };
+    const resize = (observedBounds?: Pick<DOMRectReadOnly, "height" | "width">) => {
+      const elementBounds = world.getBoundingClientRect();
+      const bounds = observedBounds ?? elementBounds;
+      worldOrigin = { x: elementBounds.left, y: elementBounds.top };
       const width = Math.max(1, bounds.width || world.clientWidth || 1);
       const height = Math.max(1, bounds.height || world.clientHeight || 1);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -915,8 +941,16 @@ export function PortfolioWorld({
     };
 
     resize();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
-    observer?.observe(world);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver((entries) => {
+            const entry = entries.find(({ target }) => target === world);
+            resize(entry?.contentRect);
+          });
+    const resizeFromViewport = () => resize();
+    if (observer) observer.observe(world);
+    else window.addEventListener("resize", resizeFromViewport);
     const updateMotion = () => {
       reduceMotion = motion?.matches ?? false;
     };
@@ -927,9 +961,9 @@ export function PortfolioWorld({
     const render = () => {
       // Read before the node buttons are written below, so the reads land on
       // clean style instead of forcing a recalculation per node.
-      const palette = readWorldPalette(world);
+      const palette = readWorldPalette(world, size.current.width);
       const { width, height } = size.current;
-      const labelWidth = width <= 600 ? 96 : LABEL_MAX_WIDTH;
+      const labelWidth = palette.compact ? 96 : LABEL_MAX_WIDTH;
       const nodes = runtime.current;
       const active = state.current;
       const currentCamera = camera.current;
@@ -1028,6 +1062,7 @@ export function PortfolioWorld({
       disposed = true;
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
+      if (!observer) window.removeEventListener("resize", resizeFromViewport);
       motion?.removeEventListener?.("change", updateMotion);
     };
   }, []);
@@ -1083,7 +1118,8 @@ export function PortfolioWorld({
     const x = clientX - bounds.left;
     const y = clientY - bounds.top;
     const context = canvas.getContext?.("2d") ?? null;
-    const compact = world.clientWidth <= 600;
+    const compact = world.dataset.compact === "true";
+    const width = size.current.width || bounds.width || world.clientWidth;
     const font = compact
       ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
       : FONT;
@@ -1097,22 +1133,23 @@ export function PortfolioWorld({
     for (const node of runtime.current) {
       const point = node.screen;
       if (!point || node.alpha < 0.22) continue;
-      const showLabel =
-        !compact ||
-        node.family === "story" ||
-        world.dataset.selectedNode === node.id;
+      const showLabel = shouldShowLabel(node, {
+        compact,
+        hoveredNodeId: world.dataset.hoveredNode,
+        selectedNodeId: world.dataset.selectedNode,
+      });
       if (!showLabel || node.labelLines.length === 0) continue;
       const labelWidth = Math.max(...node.labelLines.map(measure));
       const labelX = compact
-        ? point.x + (point.x < world.clientWidth / 2 ? -12 : 12)
+        ? point.x + (compactLabelOnRight(point.x, width) ? 12 : -12)
         : point.x;
       const firstLineY = compact
         ? point.y - ((node.labelLines.length - 1) * lineHeight) / 2
         : point.y + 18 + LABEL_LINE_HEIGHT * 0.5;
       const align: CanvasLabelAnchor["align"] = compact
-        ? point.x < world.clientWidth / 2
-          ? "right"
-          : "left"
+        ? compactLabelOnRight(point.x, width)
+          ? "left"
+          : "right"
         : "center";
       const left =
         align === "center"
@@ -1177,7 +1214,9 @@ export function PortfolioWorld({
       aria-label="Spatial portfolio world"
       className="portfolio-world"
       data-active-thread={activeThreadId ?? undefined}
+      data-compact={compact ? "true" : "false"}
       data-editing-label={labelAnchor?.nodeId}
+      data-hovered-node={hoveredNodeId ?? undefined}
       data-selected-node={selectedId ?? undefined}
       data-brain-food={brainFood?.active ? "true" : "false"}
       data-visual-open={activeVisual ? "true" : "false"}
@@ -1228,10 +1267,17 @@ export function PortfolioWorld({
             if (event.detail === 0) onSelect(node);
           }}
           onPointerDown={(event) => beginNodeDrag(event, node)}
+          onPointerEnter={() => setHoveredNodeId(node.id)}
+          onPointerLeave={() =>
+            setHoveredNodeId((current) =>
+              current === node.id ? null : current
+            )
+          }
           ref={(element) => {
             if (element) buttonRefs.current.set(node.id, element);
             else buttonRefs.current.delete(node.id);
           }}
+          tabIndex={nodesInTabOrder ? undefined : -1}
           type="button"
         />
       ))}
@@ -1694,10 +1740,7 @@ function drawNode(
   context.restore();
 
   const compact = palette.compact;
-  const showLabel =
-    !compact ||
-    node.family === "story" ||
-    palette.selectedNodeId === node.id;
+  const showLabel = shouldShowLabel(node, palette);
   // While the map-label input is open its canvas text stays hidden so the
   // draft renders exactly once, in the input.
   if (!showLabel || palette.editingNodeId === node.id) return;
@@ -1713,15 +1756,15 @@ function drawNode(
   context.textBaseline = "middle";
   const labelLineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
   const labelX = compact
-    ? point.x + (point.x < palette.width / 2 ? -12 : 12)
+    ? point.x + (compactLabelOnRight(point.x, palette.width) ? 12 : -12)
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
     : point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP) + LABEL_LINE_HEIGHT * 0.5;
   context.textAlign = compact
-    ? point.x < palette.width / 2
-      ? "right"
-      : "left"
+    ? compactLabelOnRight(point.x, palette.width)
+      ? "left"
+      : "right"
     : "center";
   node.labelLines.forEach((line, index) => {
     context.fillText(line, labelX, labelY + labelLineHeight * index);

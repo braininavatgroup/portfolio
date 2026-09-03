@@ -142,6 +142,8 @@ export function PortfolioWorldExample() {
       <section className="scene-shell">
         <PortfolioWorld
           activeThreadId={null}
+          compact
+          nodesInTabOrder={false}
           onReset={() => setSelectedId(null)}
           onSelect={(node) => setSelectedId(node.id)}
           selectedId={selectedId}
