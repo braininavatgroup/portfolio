@@ -33,12 +33,15 @@ import {
 const HOME_NODE_ID = "bradley";
 const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
 
+type OpenVisual = (
+  block: PortfolioVisualBlock,
+  trigger: HTMLButtonElement,
+  initialFrame?: number,
+) => void;
+
 type PortfolioReaderProps = {
   activeThreadId: string | null;
-  onOpenVisual?: (
-    block: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-  ) => void;
+  onOpenVisual?: OpenVisual;
   /** True when the footer's Index control has opened the index state. */
   indexOpen?: boolean;
   onOpenIndex?: () => void;
@@ -140,12 +143,14 @@ export function ReaderPlaceholderFrame({
   format,
   frame = 1,
   frameCount = 3,
+  showFrameCount = true,
   sourceStatus,
   treatment,
 }: {
   format: PortfolioVisualFormat;
   frame?: number;
   frameCount?: number;
+  showFrameCount?: boolean;
   sourceStatus?: string;
   treatment?: string;
 }) {
@@ -154,7 +159,7 @@ export function ReaderPlaceholderFrame({
     <div className="reader-placeholder-frame" data-format={format}>
       <span className="reader-placeholder-label">Planned {format}</span>
       {format === "video" ? <span className="reader-placeholder-play" /> : null}
-      {format === "gallery" ? (
+      {format === "gallery" && showFrameCount ? (
         <span className="reader-placeholder-count">
           {frame} / {frameCount}
         </span>
@@ -171,10 +176,7 @@ function VisualBlock({
 }: {
   block: PortfolioVisualBlock;
   contentBase: string;
-  onOpen?: (
-    block: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-  ) => void;
+  onOpen?: OpenVisual;
 }) {
   const format = portfolioVisualFormat(block);
   const thumbnailSrc =
@@ -187,35 +189,49 @@ function VisualBlock({
   if (ready && format === "gallery" && block.slides?.length) {
     return (
       <div className="reader-visual-gallery">
-        {block.slides.map((slide, slideIndex) => (
-          <button
-            aria-label={`Open gallery visual in map: ${slide.title}. ${block.purpose}`}
-            className="reader-visual-trigger"
-            data-format={format}
-            data-slide-index={slideIndex}
-            data-status={block.status}
-            key={slide.title}
-            onClick={(event) => onOpen?.(block, event.currentTarget)}
-            type="button"
-          >
-            <figure className="reader-visual-block" data-format={format}>
-              <div
-                className="reader-visual-slide"
-                data-asset-count={slide.assets.length}
-                data-media-field="silver-studio"
-                style={{ "--visual-asset-count": slide.assets.length } as CSSProperties}
-              >
-                {slide.assets.map((asset) => (
-                  <img alt={asset.alt} key={asset.src} loading="lazy" src={asset.src} />
-                ))}
-              </div>
-              <figcaption>
-                <strong>{slide.title}</strong>
-                <span>{slide.caption}</span>
-              </figcaption>
-            </figure>
-          </button>
-        ))}
+        {block.slides.map((slide, slideIndex) => {
+          const initialFrame = block.slides!
+            .slice(0, slideIndex)
+            .reduce((count, prior) => count + prior.assets.length, 0);
+          return (
+            <button
+              aria-label={`Open gallery visual in map: ${slide.title}. ${block.purpose}`}
+              className="reader-visual-trigger"
+              data-format={format}
+              data-slide-index={slideIndex}
+              data-status={block.status}
+              key={slide.title}
+              onClick={(event) =>
+                onOpen?.(block, event.currentTarget, initialFrame)
+              }
+              type="button"
+            >
+              <figure className="reader-visual-block" data-format={format}>
+                <div
+                  className="reader-visual-slide"
+                  data-asset-count={slide.assets.length}
+                  data-media-field="silver-studio"
+                  style={
+                    { "--visual-asset-count": slide.assets.length } as CSSProperties
+                  }
+                >
+                  {slide.assets.map((asset) => (
+                    <img
+                      alt={asset.alt}
+                      key={asset.src}
+                      loading="lazy"
+                      src={asset.src}
+                    />
+                  ))}
+                </div>
+                <figcaption>
+                  <strong>{slide.title}</strong>
+                  <span>{slide.caption}</span>
+                </figcaption>
+              </figure>
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -350,10 +366,7 @@ function PortfolioBody({
 }: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
   body: readonly PortfolioBodyBlock[];
   contentBase: string;
-  onOpenVisual?: (
-    block: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-  ) => void;
+  onOpenVisual?: OpenVisual;
 }) {
   return (
     <section className="reader-composed-body">
@@ -438,10 +451,7 @@ function ThreadRecord({
   onSelectThread,
   threadId,
 }: {
-  onOpenVisual?: (
-    block: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-  ) => void;
+  onOpenVisual?: OpenVisual;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
   threadId: string;
@@ -549,10 +559,7 @@ function WorldRecord({
    */
   home?: boolean;
   node: PortfolioWorldNode;
-  onOpenVisual?: (
-    block: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-  ) => void;
+  onOpenVisual?: OpenVisual;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
 }) {

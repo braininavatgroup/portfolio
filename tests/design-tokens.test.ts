@@ -17,7 +17,7 @@ async function readStylesheet() {
 const inlineSetTokens: Readonly<Record<string, string>> = {
   "--cursor-a": "components/CursorInstrument.tsx",
   "--cursor-b": "components/CursorInstrument.tsx",
-  "--visual-asset-count": "components/PortfolioWorld.tsx",
+  "--visual-asset-count": "components/PortfolioReader.tsx",
 };
 
 describe("design token contract", () => {

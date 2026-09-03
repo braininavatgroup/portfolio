@@ -67,7 +67,10 @@ production-integration specification.
   small window without scaling.
 - Every connector stops outside each endpoint's envelope — the tightest
   circle around the mark plus its label box — with a 2px clearance. A line
-  that cannot fit is not drawn.
+  that cannot fit is not drawn. Related nodes may land below the selected
+  record, but their rays clear its label; clearance changes the relation's
+  angle, not its screen-space radius or side. Every related label keeps 8px
+  clear of non-incident lit lines, including the Bradley-to-spotlight trunk.
 - Every map click moves something. Bradley leans at least a minimum toward
   the spotlit record and shifts a minimum distance between compositions. The
   only still click is empty map at rest.

@@ -1,19 +1,18 @@
 # PortfolioReader
 
-Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) ·
-Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
+Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) · Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
 The fixed dossier — the `<aside>` holding every piece of reading on the site.
 Four modes, derived from props and published as `data-reader-mode`: `home`
 (About, titled by its summary), `index`, `record`, and `thread`. All share one
 section model (64 above a label, rows as `ul > li > button`), one **Index**
-(or **Home**) control laid over the scroll's bottom-left corner, and Privacy
-as the last line. No kind chip, path line, or Threads section: a record's containing
-threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
+(or **Home**) control laid over the scroll's bottom-left corner, and Privacy as
+the last line. No kind chip, path line, or Threads section: a record's containing threads lead its Related rows. Paragraphs may carry `[phrase](record:<id>)` /
 `[phrase](thread:<id>)` (`.reader-inline-link` buttons) and `[phrase](https://…)`
 (new-tab anchors in ink); `- ` lines render as `.reader-list` bullets. It exports
 `ReaderPlaceholderFrame`, the draft frame the visual stage reuses. Content comes
-from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`. A ready grouped gallery renders every slide as a separate reader visual.
+from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content.json`.
+A ready grouped gallery renders every slide as a separate reader visual.
 
 ## Props
 
@@ -21,6 +20,8 @@ from `lib/portfolio-world.ts`; authored text lives in `content/portfolio-content
 required; `indexOpen`, `onOpenIndex`, and `onOpenVisual` optional. Mode:
 `record` for a non-`story`, non-`bradley` `selectedId`; else
 `thread` if `activeThreadId`; else `index` if `indexOpen`; else `home`.
+`onOpenVisual` receives the block, trigger, and optional flattened opening frame;
+each grouped-gallery trigger opens on its own first asset.
 
 ## Requires
 
@@ -66,3 +67,4 @@ export function PortfolioReaderExample() {
   state's own control. Escape and blank-space click still reset.
 - **`onOpenVisual` is optional, but visual blocks are not.** Omit it and the
   triggers open nothing.
+- **Reader gallery groups are not stage pages.** The dossier keeps the authored groups, while the map stage advances one flattened asset at a time.

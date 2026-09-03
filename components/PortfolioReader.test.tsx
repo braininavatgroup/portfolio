@@ -82,9 +82,9 @@ describe("PortfolioReader", () => {
       button.classList.contains("reader-inline-link"),
     );
     expect(links.map((link) => link.textContent)).toEqual([
-      "music promotions agency",
-      "systems and AI consulting practice",
-      "product studio",
+      "music promotions",
+      "systems and AI",
+      "software",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -93,10 +93,12 @@ describe("PortfolioReader", () => {
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
 
-    fireEvent.click(links[0]);
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "music-practice" }),
-    );
+    links.forEach((link) => fireEvent.click(link));
+    expect(onSelect.mock.calls.map(([node]) => node.id)).toEqual([
+      "music-practice",
+      "systems-consulting",
+      "product-studio",
+    ]);
   });
 
   it("draws every contact row as an index row with its own mark", () => {
@@ -309,6 +311,33 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
   });
 
+  it("opens each Dubs gallery group at that group's first image", () => {
+    const onOpenVisual = vi.fn();
+    render(
+      <PortfolioReader
+        {...baseProps}
+        onOpenVisual={onOpenVisual}
+        selectedId="dubs"
+      />,
+    );
+
+    const groups = screen.getAllByRole("button", {
+      name: /Open gallery visual in map:/,
+    });
+    fireEvent.click(groups[1]);
+    expect(onOpenVisual).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "dubs-loop" }),
+      groups[1],
+      4,
+    );
+    fireEvent.click(groups[2]);
+    expect(onOpenVisual).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "dubs-loop" }),
+      groups[2],
+      7,
+    );
+  });
+
   it("marks an in-progress summary as placeholder text", () => {
     const id = [...portfolioWorldNodeById.values()].find(
       (node) => node.summaryStatus === "placeholder",
@@ -346,10 +375,12 @@ describe("PortfolioReader", () => {
           });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
-      expect(onOpenVisual).toHaveBeenLastCalledWith(
+      const expected = [
         expect.objectContaining({ type: "visual", format }),
         trigger,
-      );
+        ...(id === "dubs" ? [0] : []),
+      ];
+      expect(onOpenVisual).toHaveBeenLastCalledWith(...expected);
       unmount();
     }
   });

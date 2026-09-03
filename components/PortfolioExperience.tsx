@@ -68,7 +68,10 @@ export function PortfolioExperience() {
   const reducedMotion = useReducedMotion();
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [activeVisual, setActiveVisual] = useState<PortfolioVisualBlock | null>(null);
+  const [activeVisual, setActiveVisual] = useState<{
+    block: PortfolioVisualBlock;
+    initialFrame: number;
+  } | null>(null);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   // The dossier's index state, opened from the footer. Any selection, reset,
   // or navigation closes it; it carries no URL of its own.
@@ -149,9 +152,10 @@ export function PortfolioExperience() {
   const openVisualInMap = useCallback((
     visual: PortfolioVisualBlock,
     trigger: HTMLButtonElement,
+    initialFrame = 0,
   ) => {
     visualTriggerRef.current = trigger;
-    setActiveVisual(visual);
+    setActiveVisual({ block: visual, initialFrame });
     setMobileMapOpen(true);
   }, []);
 
@@ -300,7 +304,8 @@ export function PortfolioExperience() {
       >
         <PortfolioWorld
           activeThreadId={activeThreadId}
-          activeVisual={activeVisual}
+          activeVisual={activeVisual?.block}
+          activeVisualFrame={activeVisual?.initialFrame}
           onCloseVisual={closeVisualInMap}
           brainFood={brainFood}
           onReset={showHomeAndSyncLocation}
