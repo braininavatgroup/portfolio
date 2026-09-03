@@ -911,7 +911,7 @@ body:has(.portfolio-composition) {
 }
 
 .portfolio-reader {
-  background: var(--map-paper-near);
+  background: var(--reader-paper);
   color: var(--ink);
   display: flex;
   flex-direction: column;

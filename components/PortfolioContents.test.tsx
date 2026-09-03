@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioThreads,
@@ -35,18 +37,35 @@ describe("PortfolioContents", () => {
     ).toEqual(portfolioWorldIndexSections.map(({ title }) => title));
   });
 
-  it("uses one responsive Contents row contract with trailing 18px marks", () => {
+  it("uses one responsive Contents row contract with trailing 18px marks", async () => {
     const { container } = render(<PortfolioContents {...baseProps} />);
 
     const rows = [...container.querySelectorAll(".portfolio-contents-row")];
     expect(rows).toHaveLength(16);
     for (const row of rows) {
       expect(row.tagName).toBe("BUTTON");
-      expect(row.getAttribute("data-row-size")).toBe("contents");
       expect(row.parentElement?.tagName).toBe("LI");
       expect(row.querySelectorAll(".portfolio-node-mark")).toHaveLength(1);
       expect(row.lastElementChild?.classList.contains("portfolio-node-mark")).toBe(true);
     }
+
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const desktopRule = stylesheet.match(/\.portfolio-contents-row\s*\{([^}]*)\}/)?.[1];
+    const mobileRule = stylesheet.match(
+      /@media \(max-width: 1019px\)\s*\{[\s\S]*?\.portfolio-contents-row\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(desktopRule?.match(/\bheight:\s*([^;]+);/)?.[1]).toBe("28px");
+    expect(mobileRule?.match(/\bheight:\s*([^;]+);/)?.[1]).toBe("36px");
+  });
+
+  it("uses the Reader paper token for the embedded Reader surface", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const readerRule = stylesheet.match(/\.portfolio-reader\s*\{([^}]*)\}/)?.[1];
+
+    expect(readerRule?.match(/\bbackground:\s*([^;]+);/)?.[1]).toBe(
+      "var(--reader-paper)",
+    );
   });
 
   it("uses the handoff's compact intent without replacing authoritative labels", () => {
