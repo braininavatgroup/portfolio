@@ -10,14 +10,11 @@ colours resolve from the enclosing `.portfolio-composition`.
 
 ## Props
 
-`activeThreadId`, `selectedId`, `onReset`, and `onSelect` are required.
-`compact` keeps Bradley, all Stories, the selected node, and the hovered node
-labeled. `nodesInTabOrder={false}` keeps buttons pointer-operable while routing
-keyboard navigation through Contents. `activeVisual`, `onCloseVisual`,
-`registerAvatarStage`, and `brainFood` are optional. See `PortfolioWorldProps`.
-Pure helpers are `connectorSegment` and `composeSpotlightGoals`; the placement
-rules live in `lib/portfolio-world-{zones,field,projection}.ts`,
-`portfolio-story-tree.ts`, and `portfolio-node-envelope.ts`.
+`activeThreadId`, `selectedId`, `onReset`, and `onSelect` are required. `compact`
+keeps the priority labels visible; `nodesInTabOrder={false}` routes keyboard
+navigation through Contents. Visual, avatar-stage, and Brain Food props are
+optional. See `PortfolioWorldProps`; placement helpers live in
+`lib/portfolio-world-*`, `portfolio-story-tree.ts`, and `portfolio-node-envelope.ts`.
 
 ## Requires
 
