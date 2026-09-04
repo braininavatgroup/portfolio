@@ -11,8 +11,8 @@ colours resolve from the enclosing `.portfolio-composition`.
 
 `activeThreadId`, `selectedId`, `onReset`, and `onSelect` are required. `compact`
 keeps the priority labels visible; `nodesInTabOrder={false}` routes keyboard
-navigation through Contents. `activeVisual`, `activeVisualFrame`, `onCloseVisual`,
-avatar-stage, and Brain Food props are optional. See `PortfolioWorldProps`;
+navigation through Contents. Avatar-stage and Brain Food props are optional.
+See `PortfolioWorldProps`;
 helpers live in `lib/portfolio-world-*`, `portfolio-story-tree.ts`, and
 `portfolio-node-envelope.ts`.
 
@@ -52,10 +52,8 @@ export function PortfolioWorldExample() {
 - **It fills its positioned slot.** Give the slot `position: relative`;
   `ResizeObserver` owns sizing. `compact` is explicit: the owner passes it, and
   compact labels sit right of nodes in the left 30 percent, else left.
-- **`activeVisual` and Brain Food disable node buttons.** Other nodes stay
-  clickable. Brain Food hides connectors; a visual hides map geometry and shows
-  one asset at a time with a close mark and gallery arrows, opening on
-  `activeVisualFrame`. `.portfolio-visual-open` belongs on the composition root.
+- **Brain Food disables node buttons and hides connectors.** Outside that
+  mode, every map node remains available; portfolio media never mounts here.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it);
   tests assert rules, not coordinates. The rest pose is centred in its slot

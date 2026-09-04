@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -8,10 +9,10 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type CSSProperties,
+  type ComponentPropsWithoutRef,
+  type ForwardedRef,
   type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import {
   PortfolioContactMark,
   PortfolioControlMark,
@@ -23,6 +24,7 @@ import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
+import { attachPortfolioVideoSource } from "../lib/portfolio-video";
 import {
   PortfolioAttention,
   trackPortfolioAttention,
@@ -46,6 +48,74 @@ import {
 
 const HOME_NODE_ID = "bradley";
 const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
+
+type PortfolioVideoProps = Omit<ComponentPropsWithoutRef<"video">, "src"> & {
+  captionsSrc: string;
+  fallbackSrc?: string;
+  muxPlaybackId?: string;
+};
+
+function setForwardedRef(
+  forwardedRef: ForwardedRef<HTMLVideoElement>,
+  video: HTMLVideoElement | null,
+) {
+  if (typeof forwardedRef === "function") {
+    forwardedRef(video);
+  } else if (forwardedRef) {
+    forwardedRef.current = video;
+  }
+}
+
+export const PortfolioVideo = forwardRef<HTMLVideoElement, PortfolioVideoProps>(
+  function PortfolioVideo(
+    { captionsSrc, fallbackSrc, muxPlaybackId, ...videoProps },
+    forwardedRef,
+  ) {
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const assignVideo = useCallback(
+      (video: HTMLVideoElement | null) => {
+        videoRef.current = video;
+        setForwardedRef(forwardedRef, video);
+      },
+      [forwardedRef],
+    );
+
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video || !muxPlaybackId) return;
+
+      let disposed = false;
+      let detach: (() => void) | undefined;
+      void attachPortfolioVideoSource(
+        video,
+        muxPlaybackId,
+        undefined,
+        fallbackSrc,
+      )
+        .then((cleanup) => {
+          if (disposed) cleanup();
+          else detach = cleanup;
+        })
+        .catch(() => {
+          if (!disposed && fallbackSrc) video.src = fallbackSrc;
+        });
+
+      return () => {
+        disposed = true;
+        detach?.();
+      };
+    }, [fallbackSrc, muxPlaybackId]);
+
+    return (
+      <video {...videoProps} ref={assignVideo}>
+        {fallbackSrc && !muxPlaybackId ? (
+          <source src={fallbackSrc} type="video/mp4" />
+        ) : null}
+        <track default kind="captions" src={captionsSrc} srcLang="en" />
+      </video>
+    );
+  },
+);
 
 function useVisibleVideoPlayback(forcedPaused: boolean) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -85,6 +155,69 @@ function useVisibleVideoPlayback(forcedPaused: boolean) {
   }, [forcedPaused]);
 
   return videoRef;
+}
+
+type NativeFullscreenVideo = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+};
+
+function useNativeVideoFullscreen(videoRef: React.RefObject<HTMLVideoElement | null>) {
+  const [controls, setControls] = useState(false);
+
+  const restoreInlineLoop = useCallback(() => {
+    const video = videoRef.current;
+    setControls(false);
+    if (!video) return;
+    video.controls = false;
+    const playback = video.play();
+    void playback?.catch(() => {
+      // The inline loop can still be denied by a browser-level preference.
+    });
+  }, [videoRef]);
+
+  useEffect(() => {
+    const video = videoRef.current as NativeFullscreenVideo | null;
+    if (!video) return;
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement !== video) restoreInlineLoop();
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    video.addEventListener("webkitendfullscreen", restoreInlineLoop);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      video.removeEventListener("webkitendfullscreen", restoreInlineLoop);
+    };
+  }, [restoreInlineLoop, videoRef]);
+
+  const enterFullscreen = useCallback(() => {
+    const video = videoRef.current as NativeFullscreenVideo | null;
+    if (!video) return;
+    setControls(true);
+    video.controls = true;
+
+    if (typeof video.requestFullscreen === "function") {
+      try {
+        void video.requestFullscreen().catch(restoreInlineLoop);
+        return;
+      } catch {
+        // A synchronous denial can still leave the iPhone video API available.
+      }
+    }
+
+    if (typeof video.webkitEnterFullscreen === "function") {
+      try {
+        video.webkitEnterFullscreen();
+        return;
+      } catch {
+        // Restore the embedded loop when native fullscreen is unavailable.
+      }
+    }
+
+    restoreInlineLoop();
+  }, [restoreInlineLoop, videoRef]);
+
+  return { controls, enterFullscreen };
 }
 
 type OpenVisual = (
@@ -154,7 +287,7 @@ function ThreadIndexRow({
  * The draft-state frame a planned visual shows in place of its asset: the
  * kind top-left in the label voice, `treatment · sourceStatus` bottom-left in
  * the caption voice, a play ring for video, a frame count for a gallery. The
- * visual stage draws the same frame over the map, so it is exported.
+ * placeholder overlay draws the same frame at Reader scale, so it is exported.
  */
 export function ReaderPlaceholderFrame({
   format,
@@ -207,72 +340,75 @@ function VisualBlock({
   const ready = isPortfolioVisualReady(block);
   const captionField = block.caption !== undefined ? "caption" : "purpose";
   const inlineVideoRef = useVisibleVideoPlayback(videoPaused);
+  const nativeFullscreen = useNativeVideoFullscreen(inlineVideoRef);
 
-  if (ready && format === "video" && block.src) {
+  if (ready && format === "video" && (block.muxPlaybackId || block.src)) {
     return (
-      <button
-        aria-label={`Open video in reader: ${block.purpose}`}
-        className="reader-visual-trigger"
+      <figure
+        className="reader-visual-block reader-inline-video"
         data-format={format}
-        data-status={block.status}
-        onClick={(event) => {
-          trackPortfolioInsight("evidence_open", {
-            content_id: insightContent.contentId,
-            content_kind: insightContent.contentKind,
-            evidence_id: block.id,
-            evidence_kind: format,
-          });
-          onOpen?.(block, event.currentTarget);
-        }}
-        type="button"
+        data-media-surface="floating"
       >
-        <figure
-          className="reader-visual-block reader-inline-video"
-          data-format={format}
-          data-media-surface="floating"
-        >
-          <div className="reader-device-video">
-            {block.poster ? (
-              // The frame composite needs ordinary layered image geometry.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                aria-hidden="true"
-                className="reader-device-poster"
-                src={block.poster}
-              />
-            ) : null}
-            <video
+        <div className="reader-device-video">
+          {block.poster ? (
+            // The frame composite needs ordinary layered image geometry.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              alt=""
+              aria-hidden="true"
+              className="reader-device-poster"
+              src={block.poster}
+            />
+          ) : null}
+          <div className="reader-device-screen">
+            <PortfolioVideo
               aria-label={block.alt ?? block.purpose}
               autoPlay
+              captionsSrc={block.captionsSrc!}
+              controls={nativeFullscreen.controls}
+              fallbackSrc={block.src}
               loop
               muted
+              muxPlaybackId={block.muxPlaybackId}
               playsInline
               preload="metadata"
               ref={inlineVideoRef}
-            >
-              <source src={block.src} type="video/mp4" />
-              <track default kind="captions" src={block.captionsSrc} srcLang="en" />
-            </video>
-            {block.frameSrc ? (
-              // This is a local, lossless Apple frame asset used as an overlay.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                aria-hidden="true"
-                className="reader-device-frame"
-                src={block.frameSrc}
-              />
-            ) : null}
-          </div>
-          <figcaption>
-            <EditableText
-              path={`${contentBase}.visuals.${block.id}.${captionField}`}
-              value={block.caption ?? block.purpose}
             />
-          </figcaption>
-        </figure>
-      </button>
+          </div>
+          {block.frameSrc ? (
+            // This is a local, lossless Apple frame asset used as an overlay.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              alt=""
+              aria-hidden="true"
+              className="reader-device-frame"
+              src={block.frameSrc}
+            />
+          ) : null}
+          <button
+            aria-label={`Open video in reader: ${block.purpose}`}
+            className="reader-visual-trigger reader-video-fullscreen-trigger"
+            data-format={format}
+            data-status={block.status}
+            onClick={() => {
+              trackPortfolioInsight("evidence_open", {
+                content_id: insightContent.contentId,
+                content_kind: insightContent.contentKind,
+                evidence_id: block.id,
+                evidence_kind: format,
+              });
+              nativeFullscreen.enterFullscreen();
+            }}
+            type="button"
+          />
+        </div>
+        <figcaption>
+          <EditableText
+            path={`${contentBase}.visuals.${block.id}.${captionField}`}
+            value={block.caption ?? block.purpose}
+          />
+        </figcaption>
+      </figure>
     );
   }
 
@@ -300,6 +436,13 @@ function VisualBlock({
           const initialFrame = block.slides!
             .slice(0, slideIndex)
             .reduce((count, prior) => count + prior.assets.length, 0);
+          const assetRows = [];
+          for (let index = 0; index < slide.assets.length;) {
+            const remaining = slide.assets.length - index;
+            const rowSize = remaining === 2 ? 1 : Math.min(3, remaining);
+            assetRows.push(slide.assets.slice(index, index + rowSize));
+            index += rowSize;
+          }
           return (
             <button
               aria-label={`Open gallery visual in reader: ${slide.title}. ${block.purpose}`}
@@ -328,17 +471,22 @@ function VisualBlock({
                   className="reader-visual-slide"
                   data-asset-count={slide.assets.length}
                   data-media-field="silver-studio"
-                  style={
-                    { "--visual-asset-count": slide.assets.length } as CSSProperties
-                  }
                 >
-                  {slide.assets.map((asset) => (
-                    <img
-                      alt={asset.alt}
-                      key={asset.src}
-                      loading="lazy"
-                      src={asset.src}
-                    />
+                  {assetRows.map((row, rowIndex) => (
+                    <div
+                      className="reader-visual-slide-row"
+                      data-asset-count={row.length}
+                      key={`${slide.title}:${rowIndex}`}
+                    >
+                      {row.map((asset) => (
+                        <img
+                          alt={asset.alt}
+                          key={asset.src}
+                          loading="lazy"
+                          src={asset.src}
+                        />
+                      ))}
+                    </div>
                   ))}
                 </div>
                 <figcaption>
@@ -405,11 +553,8 @@ function ReaderVisualOverlay({
   onClose: () => void;
 }) {
   const format = portfolioVisualFormat(block);
-  const videoSrc = format === "video" ? block.src : undefined;
-  const assets = format === "video"
-    ? []
-    : block.slides?.flatMap((slide) => slide.assets) ??
-      (block.src ? [{ alt: block.alt ?? "", src: block.src }] : []);
+  const assets = block.slides?.flatMap((slide) => slide.assets) ??
+    (format !== "video" && block.src ? [{ alt: block.alt ?? "", src: block.src }] : []);
   const [frame, setFrame] = useState(Math.min(initialFrame, Math.max(assets.length - 1, 0)));
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const asset = assets[frame];
@@ -428,27 +573,16 @@ function ReaderVisualOverlay({
 
   const overlay = (
     <section
-      aria-label={`${format === "video" ? "Video full screen" : "Visual in reader"}: ${block.purpose}`}
+      aria-label={`Visual in reader: ${block.purpose}`}
+      aria-modal="true"
       className="reader-visual-overlay"
       data-format={format}
       data-media-surface="floating"
-      data-scope={format === "video" ? "viewport" : "reader"}
+      data-scope="reader"
+      role="dialog"
     >
       <div className="reader-visual-overlay-media">
-        {videoSrc ? (
-          <video
-            aria-label={block.alt ?? block.purpose}
-            autoPlay
-            controls
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            src={videoSrc}
-          >
-            <track default kind="captions" src={block.captionsSrc} srcLang="en" />
-          </video>
-        ) : asset ? (
+        {asset ? (
           <img alt={asset.alt} src={asset.src} />
         ) : (
           <ReaderPlaceholderFrame
@@ -460,22 +594,26 @@ function ReaderVisualOverlay({
           />
         )}
       </div>
-      <p className="reader-visual-overlay-caption">{block.caption ?? block.purpose}</p>
-      {assets.length > 1 ? (
-        <div className="reader-visual-overlay-navigation">
-          <PortfolioControlMark
-            aria-label="Previous visual frame"
-            kind="previous"
-            onClick={() => setFrame((current) => (current - 1 + assets.length) % assets.length)}
-          />
-          <span aria-live="polite">{frame + 1} / {assets.length}</span>
-          <PortfolioControlMark
-            aria-label="Next visual frame"
-            kind="next"
-            onClick={() => setFrame((current) => (current + 1) % assets.length)}
-          />
-        </div>
-      ) : null}
+      <div className="reader-visual-overlay-footer">
+        <p className="reader-visual-overlay-caption">
+          {asset?.label ?? block.caption ?? block.purpose}
+        </p>
+        {assets.length > 1 ? (
+          <div className="reader-visual-overlay-navigation">
+            <PortfolioControlMark
+              aria-label="Previous visual frame"
+              kind="previous"
+              onClick={() => setFrame((current) => (current - 1 + assets.length) % assets.length)}
+            />
+            <span aria-live="polite">{frame + 1} of {assets.length}</span>
+            <PortfolioControlMark
+              aria-label="Next visual frame"
+              kind="next"
+              onClick={() => setFrame((current) => (current + 1) % assets.length)}
+            />
+          </div>
+        ) : null}
+      </div>
       <PortfolioControlMark
         aria-label="Close visual in reader"
         className="reader-visual-overlay-close"
@@ -485,10 +623,7 @@ function ReaderVisualOverlay({
       />
     </section>
   );
-
-  if (format !== "video" || typeof document === "undefined") return overlay;
-  const composition = document.querySelector<HTMLElement>(".portfolio-composition");
-  return createPortal(overlay, composition ?? document.body);
+  return overlay;
 }
 
 // Pairs each prose block with its stable paragraph ID (p1, p2, … in authored
@@ -911,6 +1046,9 @@ export function PortfolioReader({
     context: object;
     initialFrame: number;
   } | null>(null);
+  const activeReaderVisual = activeVisual?.context === visualContext
+    ? activeVisual
+    : null;
   const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   // The About record is the home state, so selecting it lands on home.
   const node = selected?.id === HOME_NODE_ID ? undefined : selected;
@@ -1045,6 +1183,7 @@ export function PortfolioReader({
     >
       <div
         className="reader-scroll"
+        inert={Boolean(activeReaderVisual)}
         ref={scrollRef}
       >
         {node && node.outlineType !== "why" ? (
@@ -1053,7 +1192,7 @@ export function PortfolioReader({
             onOpenVisual={openVisual}
             onSelect={onSelect}
             onSelectThread={onSelectThread}
-            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
+            videoPreviewsPaused={Boolean(activeReaderVisual)}
           />
         ) : thread ? (
           <ThreadRecord
@@ -1061,7 +1200,7 @@ export function PortfolioReader({
             onSelect={onSelect}
             onSelectThread={onSelectThread}
             threadId={thread.id}
-            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
+            videoPreviewsPaused={Boolean(activeReaderVisual)}
           />
         ) : (
           <WorldRecord
@@ -1070,7 +1209,7 @@ export function PortfolioReader({
             onOpenVisual={openVisual}
             onSelect={onSelect}
             onSelectThread={onSelectThread}
-            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
+            videoPreviewsPaused={Boolean(activeReaderVisual)}
           />
         )}
         <EditorStatusLine />
@@ -1083,11 +1222,11 @@ export function PortfolioReader({
           />
         </a>
       </div>
-      {activeVisual?.context === visualContext ? (
+      {activeReaderVisual ? (
         <ReaderVisualOverlay
-          block={activeVisual.block}
-          initialFrame={activeVisual.initialFrame}
-          key={`${activeVisual.block.id}:${activeVisual.initialFrame}`}
+          block={activeReaderVisual.block}
+          initialFrame={activeReaderVisual.initialFrame}
+          key={`${activeReaderVisual.block.id}:${activeReaderVisual.initialFrame}`}
           onClose={closeVisual}
         />
       ) : null}

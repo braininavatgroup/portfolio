@@ -61,6 +61,7 @@ export type PortfolioVisualSkeleton = {
   sourceStatus?: PortfolioVisualSourceStatus;
   format?: PortfolioVisualFormat;
   src?: string;
+  muxPlaybackId?: string;
   frameSrc?: string;
   captionsSrc?: string;
   poster?: string;
@@ -258,6 +259,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
         sourceStatus: "exists",
         format: "video",
         src: "/visuals/campaign/campaign-kickoff-raw.mp4",
+        muxPlaybackId: "D9YxmvvYr9qgleYmmupHYWsha9UHFCVIwarac64TemE",
         frameSrc: "/visuals/campaign/macbook-air-m5-13-midnight.png",
         captionsSrc: "/visuals/campaign/campaign-kickoff-captions.vtt",
         poster: "/visuals/campaign/campaign-kickoff-poster.png",
@@ -281,6 +283,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
         sourceStatus: "exists",
         format: "video",
         src: "/visuals/campaign/pitch-pipeline-raw.mp4",
+        muxPlaybackId: "esIwLmxOp8y8pzsWy9WbJt00XY2cDVk1onTN6ooYosLI",
         frameSrc: "/visuals/campaign/macbook-air-m5-13-midnight.png",
         captionsSrc: "/visuals/campaign/pitch-pipeline-captions.vtt",
         poster: "/visuals/campaign/pitch-pipeline-poster.png",

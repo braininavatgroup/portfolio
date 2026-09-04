@@ -19,7 +19,6 @@ import {
   galleryFamilies,
   galleryFamilyRegister,
   galleryAskPortfolio,
-  galleryPlannedVisual,
   galleryRenderTurnstile,
 } from "./fixtures";
 import { Section, Specimen, Stage, StateStrip } from "./gallery-ui";
@@ -148,9 +147,7 @@ const worldStates = [
 
 function WorldStates() {
   const [state, setState] = useState<(typeof worldStates)[number]["value"]>("overview");
-  const [visualOpen, setVisualOpen] = useState(false);
   const active = worldStates.find((candidate) => candidate.value === state)!;
-  const visual = visualOpen ? galleryPlannedVisual : null;
 
   return (
     <>
@@ -161,23 +158,13 @@ function WorldStates() {
         value={state}
       />
       <div className="design-lazy">
-        <button
-          aria-pressed={visualOpen}
-          className="design-gallery-control"
-          onClick={() => setVisualOpen((current) => !current)}
-          type="button"
-        >
-          {visualOpen ? "Close visual" : "Open visual"}
-        </button>
         <span>One instance — the camera eases between states, which three frozen stages could not show.</span>
       </div>
       <Stage bleed>
-        <Composition className={visual ? "portfolio-visual-open" : ""}>
+        <Composition>
           <section className="scene-shell">
             <PortfolioWorld
               activeThreadId={active.activeThreadId}
-              activeVisual={visual}
-              onCloseVisual={() => setVisualOpen(false)}
               onReset={() => setState("overview")}
               onSelect={noop}
               selectedId={active.selectedId}

@@ -389,6 +389,17 @@ describe("authored content contract", () => {
     expect(
       isPortfolioVisualReady({
         type: "visual",
+        id: "adaptive-captioned-video",
+        status: "ready",
+        purpose: "Show the interaction sharply",
+        format: "video",
+        muxPlaybackId: "mux-playback-id",
+        captionsSrc: "/visuals/demo.en.vtt",
+      }),
+    ).toBe(true);
+    expect(
+      isPortfolioVisualReady({
+        type: "visual",
         id: "uncaptioned-video",
         status: "ready",
         purpose: "Show the interaction",
@@ -396,6 +407,26 @@ describe("authored content contract", () => {
         src: "/visuals/demo.mp4",
       }),
     ).toBe(false);
+  });
+
+  it("publishes every ready campaign video through Mux with a local MP4 fallback", () => {
+    for (const nodeId of ["kickoff", "pitching"]) {
+      const visual = portfolioWorldNodeById
+        .get(nodeId)!
+        .body.find(
+          (block) =>
+            typeof block !== "string" &&
+            block.type === "visual" &&
+            block.format === "video",
+        );
+      if (!visual || typeof visual === "string" || visual.type !== "visual") {
+        throw new Error(`${nodeId} has no video visual`);
+      }
+
+      expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(visual.src).toMatch(/^\/visuals\/campaign\/.+\.mp4$/);
+      expect(isPortfolioVisualReady(visual)).toBe(true);
+    }
   });
 
   it("gives every node a complete working record", () => {

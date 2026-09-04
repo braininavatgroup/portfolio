@@ -29,24 +29,26 @@ meaningful handoff artifact.
 - Never crop a screenshot to manufacture a detail view.
 - Never duplicate the screenshot inside explanatory zoom panels.
 - Keep captions short and subordinate to the interface evidence.
-- Present every media format on the Silver Studio field: a quiet radial blend
-  from reader paper through the near-map neutral to map silver. The field has
-  no grid or texture and changes mode through the existing semantic aliases.
-- A slide may contain one or more complete assets. Previous and Next move
-  between slides, not between individual phones inside a slide.
-- The dossier renders all three slides as separate Silver Studio blocks in the
-  authored order. No reader evidence depends on opening the gallery.
+- The dossier renders all three authored groups in order using the shared
+  gallery rows: each row contains either three equal phones or one larger phone.
+  The four-image group becomes three plus one large; the three-image group stays
+  three; the final phone is large. All authored evidence remains present; this
+  rule does not select representative images.
+- Opening any group uses the shared Reader image viewer. It begins on that
+  group's first asset, then Previous and Next move through individual images.
+- The viewer stays over the Reader on desktop and mobile. It never opens in or
+  switches to the Map, and Dubs has no project-specific viewer behavior.
 
 ## Responsive behavior
 
-Desktop keeps the 4 → 3 → 1 arrangement inside the existing visual stage.
-Mobile preserves the same arrangement without horizontal scrolling. The four
-screens become smaller, but remain complete; the single MCP screen receives
-the full available height.
+Desktop and mobile use the same three-or-one inline gallery without horizontal
+scrolling. The shared viewer presents one complete image at a time over the
+Reader with a translucent paper wash and slight backdrop blur, a centered
+asset label, and centered `n of total` navigation.
 
 ## Acceptance
 
-The gallery is successful when all eight assets load, each slide fits without
-overflow, every screenshot uses `object-fit: contain`, keyboard-accessible
-Previous, Next, and Close controls retain their existing behavior, and the
-final visual-feel decision can be made by reviewing the live Dubs page.
+The gallery is successful when all eight assets load, each inline group fits
+without overflow, every viewer image uses `object-fit: contain`,
+keyboard-accessible Previous, Next, and Close controls retain their behavior,
+and the Map never opens.

@@ -129,8 +129,8 @@ export function PortfolioExperience() {
   }, []);
 
   const showHomeAndSyncLocation = useCallback(() => {
-    // Only a selection or thread is mirrored into the URL; an open visual is
-    // not, so closing one from home must not push a second home entry.
+    // Only a selection or thread is mirrored into the URL; Reader media is
+    // not, so returning home without a selection must not push another entry.
     const hadLocation = Boolean(selectedWorldId || activeThreadId);
     showHome();
     requestMobileTab("reader");

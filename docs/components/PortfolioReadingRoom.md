@@ -1,7 +1,6 @@
 # PortfolioReadingRoom
 
-Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadingRoom.tsx) · Gallery: `/design#reading-room` ·
-Tests: `components/PortfolioReadingRoom.test.tsx`, `components/PortfolioReadingRoom.drag.test.tsx`
+Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadingRoom.tsx) · Gallery: `/design#reading-room` · Tests: `components/PortfolioReadingRoom.test.tsx`, `components/PortfolioReadingRoom.drag.test.tsx`
 
 The controlled responsive shell. At 1020px and above, Contents sits beside a
 main view and two stacked side views; dragging a 40px bar swaps Reader, Map, or
@@ -99,4 +98,5 @@ export function PortfolioReadingRoomExample() {
   and its host is reparented, so the Guide thread and Map state survive a drag.
 - **Collapse belongs to the slot.** `hidden` names the views in collapsed slots;
   a swap re-derives it, main never collapses, and hidden views stay mounted.
+- **Escape belongs to native fullscreen.** The Room must not also reset Guide or return Home when the browser exits a Reader video.
 - **Pointer DnD needs a real browser.** Unit tests cover the pairs; `/design#reading-room` is the pointer fixture.

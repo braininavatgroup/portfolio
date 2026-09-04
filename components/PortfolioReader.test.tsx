@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioContact,
@@ -367,8 +369,8 @@ describe("PortfolioReader", () => {
     ]);
   });
 
-  it("loops a framed video inline and opens its raw recording over the full viewport", () => {
-    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+  it("keeps the framed loop inline and sends that video into native fullscreen", async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
     const kickoff = portfolioWorldNodeById.get("kickoff")!;
     const visual = kickoff.body.find(
       (block) => typeof block !== "string" && block.type === "visual",
@@ -376,46 +378,82 @@ describe("PortfolioReader", () => {
     if (!visual || typeof visual === "string" || visual.type !== "visual") {
       throw new Error("kickoff has no video visual");
     }
-    const { container } = render(
-      <PortfolioReader {...baseProps} selectedId="kickoff" />,
-    );
+    render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
     const reader = screen.getByRole("complementary", {
       name: "Music promo campaign kickoff record",
     });
     const trigger = screen.getByRole("button", {
       name: `Open video in reader: ${visual.purpose}`,
     });
-    const inlineVideo = trigger.querySelector("video")!;
+    const inlineVideo = screen.getByLabelText(
+      visual.alt ?? visual.purpose,
+    ) as HTMLVideoElement;
+    const inlineFigure = trigger.closest("figure")!;
+    const screenAperture = inlineVideo.closest(".reader-device-screen");
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(inlineVideo, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
 
     expect(inlineVideo.autoplay).toBe(true);
     expect(inlineVideo.loop).toBe(true);
     expect(inlineVideo.muted).toBe(true);
     expect(inlineVideo.controls).toBe(false);
-    expect(trigger.querySelector("[data-media-surface='floating']")).toBeTruthy();
-    expect(inlineVideo.querySelectorAll("source")).toHaveLength(1);
-    expect(inlineVideo.querySelector("source")?.getAttribute("src")).toBe(visual.src);
-    expect(inlineVideo.querySelector("source")?.getAttribute("type")).toBe("video/mp4");
+    expect(trigger).not.toContain(inlineVideo);
+    expect(screenAperture).toContain(inlineVideo);
+    expect(inlineFigure).toContain(inlineVideo);
+    expect(inlineFigure.getAttribute("data-media-surface")).toBe("floating");
+    expect(inlineVideo.querySelectorAll("source")).toHaveLength(0);
+    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(
-      trigger.querySelector<HTMLImageElement>(".reader-device-frame")?.getAttribute("src"),
+      inlineFigure.querySelector<HTMLImageElement>(".reader-device-frame")?.getAttribute("src"),
     ).toBe(visual.frameSrc);
 
     fireEvent.click(trigger);
 
-    const overlay = screen.getByRole("region", { name: /Video full screen:/ });
-    const rawVideo = overlay.querySelector("video")!;
-    const inlineSources = [...inlineVideo.querySelectorAll("source")].map(
-      (source) => source.getAttribute("src"),
-    );
-    expect(reader).not.toContain(overlay);
-    expect(document.body).toContain(overlay);
-    expect(rawVideo.autoplay).toBe(true);
-    expect(rawVideo.controls).toBe(true);
-    expect(inlineSources).toContain(rawVideo.getAttribute("src"));
-    expect(pause).toHaveBeenCalled();
-    expect(overlay.getAttribute("data-media-surface")).toBe("floating");
-    expect(overlay.getAttribute("data-scope")).toBe("viewport");
-    expect(container.querySelector(".reader-inline-video")).toContain(inlineVideo);
+    await waitFor(() => expect(requestFullscreen).toHaveBeenCalledTimes(1));
+    expect(reader).toContain(inlineVideo);
+    expect(inlineVideo.controls).toBe(true);
+    expect(screen.queryByRole("region", { name: /Video full screen:/ })).toBeNull();
     expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
+
+    await act(async () => document.dispatchEvent(new Event("fullscreenchange")));
+    expect(inlineVideo.controls).toBe(false);
+    expect(play).toHaveBeenCalled();
+  });
+
+  it("uses the iPhone native video fullscreen API when element fullscreen is unavailable", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+    const kickoff = portfolioWorldNodeById.get("kickoff")!;
+    const visual = kickoff.body.find(
+      (block) => typeof block !== "string" && block.type === "visual",
+    );
+    if (!visual || typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("kickoff has no video visual");
+    }
+    render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
+    const trigger = screen.getByRole("button", {
+      name: `Open video in reader: ${visual.purpose}`,
+    });
+    const inlineVideo = screen.getByLabelText(
+      visual.alt ?? visual.purpose,
+    ) as HTMLVideoElement;
+    expect(trigger).not.toContain(inlineVideo);
+    const webkitEnterFullscreen = vi.fn();
+    Object.defineProperties(inlineVideo, {
+      requestFullscreen: { configurable: true, value: undefined },
+      webkitEnterFullscreen: { configurable: true, value: webkitEnterFullscreen },
+    });
+
+    fireEvent.click(trigger);
+
+    await waitFor(() => expect(webkitEnterFullscreen).toHaveBeenCalledTimes(1));
+    expect(inlineVideo.controls).toBe(true);
+    expect(screen.queryByRole("region", { name: /Video full screen:/ })).toBeNull();
+
+    await act(async () => inlineVideo.dispatchEvent(new Event("webkitendfullscreen")));
+    expect(inlineVideo.controls).toBe(false);
   });
 
   it("decodes an inline video only while it is visible in the Reader", () => {
@@ -463,7 +501,7 @@ describe("PortfolioReader", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  it("composites the official Apple frame over a standard video in every browser", () => {
+  it("composites the official Apple frame over the adaptive video in every browser", () => {
     const kickoff = portfolioWorldNodeById.get("kickoff")!;
     const visual = kickoff.body.find(
       (block) => typeof block !== "string" && block.type === "visual",
@@ -474,9 +512,9 @@ describe("PortfolioReader", () => {
 
     render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
 
-    const source = screen.getByLabelText(visual.alt ?? visual.purpose).querySelector("source");
-    expect(source?.getAttribute("src")).toBe(visual.src);
-    expect(source?.getAttribute("type")).toBe("video/mp4");
+    const video = screen.getByLabelText(visual.alt ?? visual.purpose);
+    expect(video.querySelector("source")).toBeNull();
+    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(document.querySelector(".reader-device-frame")).toBeTruthy();
   });
 
@@ -490,8 +528,10 @@ describe("PortfolioReader", () => {
       name: /Open gallery visual in reader:/,
     })[0]!);
 
-    const overlay = screen.getByRole("region", { name: /Visual in reader:/ });
+    const overlay = screen.getByRole("dialog", { name: /Visual in reader:/ });
     expect(reader).toContain(overlay);
+    expect(overlay.getAttribute("aria-modal")).toBe("true");
+    expect(reader.querySelector(".reader-scroll")?.hasAttribute("inert")).toBe(true);
     expect(overlay.querySelector("img")).toBeTruthy();
     expect(overlay.getAttribute("data-media-surface")).toBe("floating");
     expect(
@@ -501,6 +541,112 @@ describe("PortfolioReader", () => {
     ).toBe(true);
     expect(container.querySelector(".reader-visual-overlay")).toBe(overlay);
     expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
+    expect(within(overlay).getByText("Available mid-stride")).toBeTruthy();
+    expect(within(overlay).getByText("1 of 8")).toBeTruthy();
+
+    fireEvent.click(within(overlay).getByRole("button", { name: "Next visual frame" }));
+    expect(within(overlay).getByText("Read and listen")).toBeTruthy();
+    expect(within(overlay).getByText("2 of 8")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close visual in reader" }));
+    expect(reader.querySelector(".reader-scroll")?.hasAttribute("inert")).toBe(false);
+  });
+
+  it("keeps Reader context visible behind image overlays", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const overlayRule = stylesheet.match(/\.reader-visual-overlay\s*\{([^}]*)\}/)?.[1];
+
+    expect(overlayRule).toMatch(/backdrop-filter:\s*blur\(/);
+    expect(overlayRule).toMatch(
+      /background:\s*color-mix\(in srgb, var\(--reader-paper\).*transparent\)/,
+    );
+  });
+
+  it("lets a fullscreen video leave the inline device-frame geometry", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const fullscreenRule = stylesheet.match(
+      /\.reader-device-screen\s*>\s*video:fullscreen\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(fullscreenRule).toMatch(/height:\s*100%/);
+    expect(fullscreenRule).toMatch(/cursor:\s*auto\s*!important/);
+    expect(fullscreenRule).toMatch(/inset:\s*0/);
+    expect(fullscreenRule).toMatch(/object-fit:\s*contain/);
+    expect(fullscreenRule).toMatch(/width:\s*100%/);
+  });
+
+  it("trims the laptop's transparent canvas and contains the full video in its screen", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const deviceRule = stylesheet.match(/\.reader-device-video\s*\{([^}]*)\}/)?.[1];
+    const screenRule = stylesheet.match(
+      /\.reader-device-screen\s*\{([^}]*)\}/,
+    )?.[1];
+    const videoRule = stylesheet.match(
+      /\.reader-device-screen\s*>\s*video\s*\{([^}]*)\}/,
+    )?.[1];
+    const layerRule = stylesheet.match(
+      /\.reader-visual-block \.reader-device-poster,\s*\.reader-visual-block \.reader-device-frame\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(deviceRule).toMatch(/aspect-ratio:\s*3205 \/ 1942/);
+    expect(deviceRule).toMatch(/overflow:\s*hidden/);
+    expect(deviceRule).toMatch(/width:\s*100%/);
+    expect(screenRule).toMatch(/height:\s*85\.684861%/);
+    expect(screenRule).toMatch(/left:\s*10\.078003%/);
+    expect(screenRule).toMatch(/overflow:\s*hidden/);
+    expect(screenRule).toMatch(/top:\s*3\.141092%/);
+    expect(screenRule).toMatch(/width:\s*79\.875195%/);
+    expect(videoRule).toMatch(/height:\s*100%/);
+    expect(videoRule).not.toMatch(/transform:\s*scale\(/);
+    expect(videoRule).toMatch(/width:\s*100%/);
+    expect(layerRule).toMatch(/height:\s*115\.345005%/);
+    expect(layerRule).toMatch(/left:\s*-3\.026521%/);
+    expect(layerRule).toMatch(/top:\s*-11\.68898%/);
+    expect(layerRule).toMatch(/width:\s*106\.084243%/);
+  });
+
+  it("shows the full recording inline and preserves it in fullscreen", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const fullscreenRule = stylesheet.match(
+      /\.reader-device-screen\s*>\s*video:fullscreen\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(stylesheet).not.toMatch(/transform:\s*scale\(1\.35\)/);
+    expect(fullscreenRule).toMatch(/transform:\s*none/);
+  });
+
+  it("uses only three-up or one-big rows for every inline gallery", async () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="dubs" />,
+    );
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const rowRule = stylesheet.match(/\.reader-visual-slide-row\s*\{([^}]*)\}/)?.[1];
+    const singleRule = stylesheet.match(
+      /\.reader-visual-slide-row\[data-asset-count="1"\]\s*\{([^}]*)\}/,
+    )?.[1];
+    const rowCounts = [...container.querySelectorAll(".reader-visual-slide-row")]
+      .map((row) => row.querySelectorAll("img").length);
+
+    expect(rowCounts).toEqual([3, 1, 3, 1]);
+    expect(rowCounts.every((count) => count === 1 || count === 3)).toBe(true);
+    expect(rowRule).toMatch(/grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+    expect(singleRule).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+  });
+
+  it("centers image-overlay labels and navigation in one footer", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const footerRule = stylesheet.match(/\.reader-visual-overlay-footer\s*\{([^}]*)\}/)?.[1];
+    const captionRule = stylesheet.match(/\.reader-visual-overlay-caption\s*\{([^}]*)\}/)?.[1];
+    const navigationRule = stylesheet.match(
+      /\.reader-visual-overlay-navigation\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(footerRule).toMatch(/justify-items:\s*center/);
+    expect(captionRule).toMatch(/color:\s*var\(--ink\)/);
+    expect(captionRule).toMatch(/font:\s*var\(--reader-type-secondary\) var\(--font-reader\)/);
+    expect(captionRule).toMatch(/text-align:\s*center/);
+    expect(navigationRule).toMatch(/font:\s*var\(--reader-type-caption\) var\(--font-reader\)/);
+    expect(navigationRule).toMatch(/font-variant-numeric:\s*tabular-nums/);
   });
 
   it("embeds the working dashboard without an empty planned visual", () => {
@@ -580,11 +726,11 @@ describe("PortfolioReader", () => {
       name: /Open gallery visual in reader:/,
     });
     fireEvent.click(groups[1]);
-    expect(screen.getByRole("region", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
+    expect(screen.getByRole("dialog", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
       .toBe(assets[4].src);
     fireEvent.click(screen.getByRole("button", { name: "Close visual in reader" }));
     fireEvent.click(groups[2]);
-    expect(screen.getByRole("region", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
+    expect(screen.getByRole("dialog", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
       .toBe(assets[7].src);
   });
 
@@ -619,7 +765,7 @@ describe("PortfolioReader", () => {
           });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
-      expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+      expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
       unmount();
     }
   });

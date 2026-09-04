@@ -18,17 +18,13 @@ import {
   isWorldLinkActive,
   portfolioInterfaceText,
   portfolioThreadById,
-  portfolioVisualFormat,
   portfolioWorldNodeById,
   portfolioWorldNodes,
-  type PortfolioVisualBlock,
   type PortfolioWorldFamily,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
 import { editorLiveText } from "../lib/editor/editor-store";
 import { EditableText, useEditorActive } from "./editor/EditableText";
-import { PortfolioControlMark } from "./PortfolioNodeMark";
-import { ReaderPlaceholderFrame } from "./PortfolioReader";
 import type { CanvasLabelAnchor } from "./editor/CanvasLabelEditor";
 
 const CanvasLabelEditor: ComponentType<{
@@ -118,8 +114,6 @@ type RuntimeNode = PortfolioWorldNode & {
 
 export type PortfolioWorldProps = {
   activeThreadId: string | null;
-  activeVisual?: PortfolioVisualBlock | null;
-  activeVisualFrame?: number;
   brainFood?: {
     active: boolean;
     eatenIds: ReadonlySet<string>;
@@ -129,7 +123,6 @@ export type PortfolioWorldProps = {
   compact?: boolean;
   nodesInTabOrder?: boolean;
   selectedId: string | null;
-  onCloseVisual?: () => void;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   registerAvatarStage?: (element: HTMLElement | null) => void;
@@ -575,116 +568,11 @@ function cssColor(style: CSSStyleDeclaration, variable: string, fallback: string
   return style.getPropertyValue(variable).trim() || fallback;
 }
 
-function PortfolioVisualStage({
-  block,
-  initialFrame = 0,
-  onClose,
-}: {
-  block: PortfolioVisualBlock;
-  initialFrame?: number;
-  onClose?: () => void;
-}) {
-  const format = portfolioVisualFormat(block);
-  const standaloneAssets =
-    block.src && format !== "video"
-      ? [{ src: block.src, alt: block.alt ?? "" }]
-      : [];
-  const slides = format === "gallery" ? block.slides ?? [] : [];
-  const galleryAssets = slides.flatMap((slide) => slide.assets);
-  const frameCount = format === "gallery"
-    ? galleryAssets.length || standaloneAssets.length || 3
-    : 1;
-  const [activeFrame, setActiveFrame] = useState(() =>
-    Math.max(0, Math.min(initialFrame, frameCount - 1)),
-  );
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const asset = galleryAssets[activeFrame] ?? standaloneAssets[activeFrame];
-
-  useEffect(() => {
-    closeButtonRef.current?.focus();
-  }, []);
-
-  return (
-    <section
-      aria-label={`Visual in map: ${block.purpose}`}
-      className="portfolio-visual-stage"
-      data-format={format}
-      data-status={block.status}
-    >
-      <div className="portfolio-visual-stage-media">
-        <div className="portfolio-visual-stage-image">
-          {format === "video" && block.src && block.captionsSrc ? (
-            <video
-              aria-label={block.alt ?? block.purpose}
-              controls
-              poster={block.poster}
-              preload="metadata"
-              src={block.src}
-            >
-              <track
-                default
-                kind="captions"
-                src={block.captionsSrc}
-                srcLang="en"
-              />
-            </video>
-          ) : asset ? (
-            <img alt={asset.alt} src={asset.src} />
-          ) : (
-            <div
-              aria-label={`Planned ${format} placeholder`}
-              className="portfolio-visual-stage-placeholder"
-              data-format={format}
-            >
-              <ReaderPlaceholderFrame
-                format={format}
-                frame={activeFrame + 1}
-                frameCount={frameCount}
-                showFrameCount={false}
-                sourceStatus={block.sourceStatus}
-                treatment={block.treatment}
-              />
-            </div>
-          )}
-        </div>
-        <PortfolioControlMark
-          aria-label="Close visual in map"
-          className="portfolio-visual-stage-close"
-          kind="close"
-          onClick={onClose}
-          ref={closeButtonRef}
-        />
-        {format === "gallery" && frameCount > 1 ? (
-          <nav aria-label="Visual frames" className="portfolio-visual-stage-nav">
-            <PortfolioControlMark
-              aria-label="Previous visual frame"
-              disabled={activeFrame === 0}
-              kind="previous"
-              onClick={() => setActiveFrame((frame) => Math.max(0, frame - 1))}
-            />
-            <PortfolioControlMark
-              aria-label="Next visual frame"
-              disabled={activeFrame === frameCount - 1}
-              kind="next"
-              onClick={() =>
-                setActiveFrame((frame) => Math.min(frameCount - 1, frame + 1))
-              }
-            />
-          </nav>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
 export function PortfolioWorld({
   activeThreadId,
-  activeVisual,
-  activeVisualFrame,
   brainFood,
   compact = false,
   nodesInTabOrder = true,
-  onCloseVisual,
   onReset,
   onSelect,
   registerAvatarStage,
@@ -1204,11 +1092,9 @@ export function PortfolioWorld({
       data-hovered-node={hoveredNodeId ?? undefined}
       data-selected-node={selectedId ?? undefined}
       data-brain-food={brainFood?.active ? "true" : "false"}
-      data-visual-open={activeVisual ? "true" : "false"}
       onPointerDown={(event) => {
         const target = event.target as HTMLElement;
         if (
-          activeVisual ||
           brainFood?.active ||
           event.button !== 0 ||
           !target.hasAttribute("data-world-surface")
@@ -1246,7 +1132,7 @@ export function PortfolioWorld({
           data-family={node.family}
           data-status={node.status}
           data-world-node={node.id}
-          disabled={Boolean(activeVisual || brainFood?.active)}
+          disabled={Boolean(brainFood?.active)}
           key={node.id}
           onClick={(event) => {
             if (event.detail === 0) onSelect(node);
@@ -1266,14 +1152,6 @@ export function PortfolioWorld({
           type="button"
         />
       ))}
-      {activeVisual ? (
-        <PortfolioVisualStage
-          block={activeVisual}
-          initialFrame={activeVisualFrame}
-          key={`${activeVisual.id}:${activeVisualFrame ?? 0}`}
-          onClose={onCloseVisual}
-        />
-      ) : null}
       {import.meta.env.DEV && CanvasLabelEditor && labelAnchor ? (
         <Suspense fallback={null}>
           <CanvasLabelEditor

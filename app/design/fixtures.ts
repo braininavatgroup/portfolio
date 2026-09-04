@@ -6,7 +6,6 @@ import type { AskPortfolio } from "../../lib/portfolio-chat-client";
 import type { PortfolioGroundingEvidence } from "../../lib/portfolio-grounding";
 import type { TurnstileRenderer } from "../../lib/portfolio-chat-turnstile";
 import type {
-  PortfolioVisualBlock,
   PortfolioWorldFamily,
   PortfolioWorldRegister,
 } from "../../lib/portfolio-world";
@@ -113,13 +112,3 @@ export function galleryAvatarSnapshot(
     ...overrides,
   };
 }
-
-export const galleryPlannedVisual: PortfolioVisualBlock = {
-  type: "visual",
-  id: "gallery-planned-visual",
-  status: "planned",
-  purpose: "Placeholder for the campaign reporting artifact.",
-  treatment: "artifact",
-  sourceStatus: "capture",
-  format: "image",
-};

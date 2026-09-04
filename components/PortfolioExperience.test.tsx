@@ -326,10 +326,10 @@ describe("PortfolioExperience Reading Room integration", () => {
     selectContentsRecord("Dubs");
     const visual = screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!;
     fireEvent.click(visual);
-    expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reader tab" }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("region", { name: /Visual in reader:/ })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /Visual in reader:/ })).toBeNull();
     expect(screen.getByRole("button", { name: "Reader tab" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
 
@@ -382,7 +382,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!);
 
     expect(document.querySelector<HTMLElement>('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')!.hidden).toBe(true);
-    expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Show side panes" })).toBeTruthy();
   });
 
@@ -400,11 +400,11 @@ describe("PortfolioExperience Reading Room integration", () => {
       const pushState = vi.spyOn(window.history, "pushState");
       fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
       fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!);
-      expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+      expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Close visual in reader" }));
 
-      expect(screen.queryByRole("region", { name: /Visual in reader:/ })).toBeNull();
+      expect(screen.queryByRole("dialog", { name: /Visual in reader:/ })).toBeNull();
       expect(pushState).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: "Show Contents" }));
@@ -429,7 +429,7 @@ describe("PortfolioExperience Reading Room integration", () => {
       name: /Open gallery visual in reader: What accumulates/,
     }));
 
-    const stage = screen.getByRole("region", {
+    const stage = screen.getByRole("dialog", {
       name: /Visual in reader:/,
     });
     expect(within(stage).getByAltText("The Dubs library showing saved documents and listening progress")).toBeTruthy();
