@@ -12,6 +12,23 @@ function getSelect(role: "combobox" | "listbox", name: string) {
 }
 
 describe("quarterly dashboard", () => {
+  it("uses the complete dashboard as an embedded reader region", () => {
+    render(<QuarterlyDashboard embedded />);
+
+    const dashboard = screen.getByRole("region", {
+      name: "Quarterly pitch conversion dashboard",
+    });
+    expect(dashboard.id).toBe("");
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: "Ryan + Ryan Quarterly Pitch Conversion",
+      }),
+    ).not.toBeNull();
+    expect(screen.getByRole("navigation", { name: "Dashboard pages" })).not.toBeNull();
+    expect(getSelect("combobox", "Year").value).toBe("2026");
+  });
+
   it("offers a canonical return to its portfolio case study", () => {
     render(
       <QuarterlyDashboard

@@ -281,7 +281,6 @@ function VisualBlock({
     return (
       <QuarterlyDashboardPreview
         href={block.href}
-        label={block.caption ?? block.purpose}
         onOpen={() => {
           trackPortfolioInsight("evidence_open", {
             content_id: insightContent.contentId,

@@ -19,6 +19,7 @@ import {
 type DashboardView = "summary" | "detail";
 
 type QuarterlyDashboardProps = {
+  embedded?: boolean;
   returnHref?: string;
   returnLabel?: string;
 };
@@ -437,6 +438,7 @@ function DashboardDetailView({ pitches }: { pitches: readonly Pitch[] }) {
 }
 
 export function QuarterlyDashboard({
+  embedded = false,
   returnHref,
   returnLabel,
 }: QuarterlyDashboardProps = {}) {
@@ -475,9 +477,16 @@ export function QuarterlyDashboard({
     setFilters((current) => ({ ...current, stages }));
     setView("detail");
   };
+  const DashboardHeading = embedded ? "h2" : "h1";
+  const DashboardRoot = embedded ? "section" : "main";
 
   return (
-    <main className="quarterly-dashboard" id="main-content">
+    <DashboardRoot
+      aria-label={embedded ? "Quarterly pitch conversion dashboard" : undefined}
+      className="quarterly-dashboard"
+      data-embedded={embedded}
+      id={embedded ? undefined : "main-content"}
+    >
       <div className="quarterly-dashboard-shell">
         {returnHref && returnLabel ? (
           <nav aria-label="Portfolio return" className="quarterly-dashboard-return">
@@ -508,7 +517,7 @@ export function QuarterlyDashboard({
         <header className="quarterly-dashboard-header">
           <div>
             <p>Quarterly review</p>
-            <h1>Ryan + Ryan Quarterly Pitch Conversion</h1>
+            <DashboardHeading>Ryan + Ryan Quarterly Pitch Conversion</DashboardHeading>
           </div>
           <div className="quarterly-dashboard-actions">
             <button onClick={() => window.print()} type="button">
@@ -539,6 +548,6 @@ export function QuarterlyDashboard({
 
         <footer className="quarterly-dashboard-footer">Updated 2 hours ago</footer>
       </div>
-    </main>
+    </DashboardRoot>
   );
 }

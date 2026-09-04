@@ -40,7 +40,7 @@ inventory, and `/design` for the same components rendered in their states.
 | Sheet | Component | Route |
 | --- | --- | --- |
 | [QuarterlyDashboard](./QuarterlyDashboard.md) | Interactive pitch-conversion dashboard | `/demos/quarterly-dashboard` |
-| [QuarterlyDashboardPreview](./QuarterlyDashboardPreview.md) | Compact reader entry point for the dashboard | `/design` |
+| [QuarterlyDashboardPreview](./QuarterlyDashboardPreview.md) | Working dashboard embed with a full-page link | `/design` |
 
 ## Writing mode
 

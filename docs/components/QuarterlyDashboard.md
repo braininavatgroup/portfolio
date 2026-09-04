@@ -10,9 +10,15 @@ print/PDF behavior.
 
 ## Props
 
-`returnHref` and `returnLabel` are optional but must be supplied together. The
-public route uses them to link back to the real-estate portfolio record. The
-fixed generator seed and initial 2026 Q2 period are part of the demo contract.
+`embedded` renders the complete dashboard as a labelled `section` with an
+`h2`, no page-level ID, no outer padding, and no shell shadow. Its controls
+and state remain live. Without it, the root is the route's `main#main-content`
+and the title is an `h1`.
+
+`returnHref` and `returnLabel` are optional but must be supplied together.
+The public route uses them to link back to the real-estate portfolio record.
+The fixed generator seed and initial 2026 Q2 period are part of the dashboard
+contract.
 
 ## Requires
 
@@ -41,5 +47,5 @@ export function QuarterlyDashboardExample() {
   buttons. Preserve both Enter and Space activation.
 - CSV download requires browser `Blob` and object-URL APIs. It must remain in a
   user event rather than running during server render.
-- The component owns a full page and should not be mounted inside the Reading
-  Room composition.
+- Use `embedded` inside another page. A page must not contain a nested
+  `main#main-content`.

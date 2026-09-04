@@ -503,13 +503,24 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
   });
 
-  it("embeds the quarterly dashboard preview in the real-estate record", () => {
+  it("embeds the working dashboard without an empty planned visual", () => {
     render(<PortfolioReader {...baseProps} selectedId="real-estate" />);
 
-    const link = screen.getByRole("link", { name: "Explore the dashboard" });
+    const link = screen.getByRole("link", { name: "Open full dashboard" });
     expect(link.getAttribute("href")).toBe("/demos/quarterly-dashboard");
     expect(link.closest(".reader-composed-body")).not.toBeNull();
-    expect(screen.getByText("2026 Q2")).not.toBeNull();
+    expect(
+      screen.getByRole("region", { name: "Quarterly pitch conversion dashboard" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("navigation", { name: "Dashboard pages" }),
+    ).not.toBeNull();
+    expect(screen.queryByText("Planned gallery")).toBeNull();
+    expect(
+      screen.queryByText(
+        "Compare the six-tool, attention-carried deal process with the explicit stages, advancement conditions, owners, and Google-based MVP.",
+      ),
+    ).toBeNull();
   });
 
   it("renders unfinished copy and planned visuals as part of the working composition", () => {
