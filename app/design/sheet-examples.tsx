@@ -25,6 +25,8 @@ import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "
 import { PortfolioReadingRoom } from "../../components/PortfolioReadingRoom";
 import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
+import { QuarterlyDashboard } from "../../components/QuarterlyDashboard";
+import { QuarterlyDashboardPreview } from "../../components/QuarterlyDashboardPreview";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
 import { AvatarBoundary } from "../../components/avatar/AvatarBoundary";
 import { AvatarOverlay } from "../../components/avatar/AvatarOverlay";
@@ -44,6 +46,23 @@ import {
   galleryAvatarSnapshot,
   galleryRenderTurnstile,
 } from "./fixtures";
+
+// #example:QuarterlyDashboard
+export function QuarterlyDashboardExample() {
+  return <QuarterlyDashboard />;
+}
+// #example-end
+
+// #example:QuarterlyDashboardPreview
+export function QuarterlyDashboardPreviewExample() {
+  return (
+    <QuarterlyDashboardPreview
+      href="/demos/quarterly-dashboard"
+      label="Quarterly pitch conversion dashboard"
+    />
+  );
+}
+// #example-end
 
 // #example:CursorInstrument
 export function CursorInstrumentExample() {

@@ -369,6 +369,15 @@ describe("PortfolioReader", () => {
     ]);
   });
 
+  it("embeds the quarterly dashboard preview in the real-estate record", () => {
+    render(<PortfolioReader {...baseProps} selectedId="real-estate" />);
+
+    const link = screen.getByRole("link", { name: "Explore the dashboard" });
+    expect(link.getAttribute("href")).toBe("/demos/quarterly-dashboard");
+    expect(link.closest(".reader-composed-body")).not.toBeNull();
+    expect(screen.getByText("2026 Q2")).not.toBeNull();
+  });
+
   it("renders unfinished copy and planned visuals as part of the working composition", () => {
     render(
       <PortfolioReader {...baseProps} selectedId="music-practice" />,

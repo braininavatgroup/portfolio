@@ -141,6 +141,26 @@ glyph-to-label gap, and the stage's 920px / 560px maxima.
 Two page-level aliases remain for routes outside the accepted composition.
 They are deprecated for new composition work.
 
+## Quarterly dashboard demo
+
+The `/demos/quarterly-dashboard` work sample preserves its original fixed
+client-facing palette. These tokens do not participate in portfolio light or
+dark mode and must not be reused by the accepted composition.
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--dashboard-teal` | `#6fb1b8` | Dashboard canvas and pitch series |
+| `--dashboard-teal-deep` | `#4a8c92` | Page ground, values, and active data points |
+| `--dashboard-sage` | `#7a9b5e` | Signed and positive states |
+| `--dashboard-terracotta` | `#b8553a` | Lost states and competitor bars |
+| `--dashboard-mustard` | `#c9a435` | Signed-exclusive trend series |
+| `--dashboard-peach` | `#e59a6e` | Conversion trend and open states |
+| `--dashboard-cream` | `#f5ebd5` | Dashboard panels |
+| `--dashboard-cream-soft` | `#fbf6e8` | Table heading surface |
+| `--dashboard-charcoal` | `#2c2a26` | Primary dashboard ink |
+| `--dashboard-charcoal-muted` | `#6b6661` | Secondary dashboard ink |
+| `--bar-width` | `0%` | Selector-local competitor bar width, replaced inline from the filtered count |
+
 | Token | Value | Current role | Pair |
 | --- | --- | --- | --- |
 | `--background` | `#f4f1e8` | Prototype page background | `--foreground` |

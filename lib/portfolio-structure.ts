@@ -34,7 +34,9 @@ export type PortfolioVisualTreatment =
   | "comparison"
   | "demo";
 
-export type PortfolioVisualFormat = "image" | "video" | "gallery";
+export type PortfolioVisualFormat = "image" | "video" | "gallery" | "interactive";
+
+export type PortfolioVisualPreview = "quarterly-dashboard";
 
 export type PortfolioVisualSourceStatus =
   | "exists"
@@ -61,6 +63,8 @@ export type PortfolioVisualSkeleton = {
   src?: string;
   captionsSrc?: string;
   poster?: string;
+  preview?: PortfolioVisualPreview;
+  href?: string;
   slides?: readonly PortfolioVisualSlideSkeleton[];
 };
 
@@ -138,6 +142,21 @@ const readyGallery = (
   sourceStatus: "exists",
   format: "gallery",
   slides,
+});
+
+const readyInteractive = (
+  id: string,
+  preview: PortfolioVisualPreview,
+  href: string,
+): PortfolioVisualSkeleton => ({
+  kind: "visual",
+  id,
+  status: "ready",
+  treatment: "demo",
+  sourceStatus: "exists",
+  format: "interactive",
+  preview,
+  href,
 });
 
 export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
@@ -266,6 +285,11 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     body: [
       draft("real-estate-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("real-estate-operation-map", "comparison", "recreate"),
+      readyInteractive(
+        "real-estate-quarterly-dashboard",
+        "quarterly-dashboard",
+        "/demos/quarterly-dashboard",
+      ),
     ],
   },
   {
