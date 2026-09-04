@@ -2,9 +2,9 @@
 //
 // A design partner opens the site through a link carrying `?r=<code>`. The
 // worker turns that into a signed, readable `portfolio_reviewer` cookie and
-// redirects to the same URL without the parameter. The feedback widget mounts
-// only when that cookie exists, posts notes here, and keeps the visit's own
-// notes in memory — nothing is written back into the page, so no reviewer's
+// redirects to a URL carrying the normalized reviewer name. The feedback
+// widget mounts only when that URL marker matches the cookie, posts notes here,
+// and keeps the visit's own notes in memory — nothing is written back into the page, so no reviewer's
 // later session, and no other reviewer, ever sees a note. Bradley reads the
 // whole ledger through the bearer-protected admin route.
 //
@@ -34,6 +34,7 @@ export type PortfolioFeedbackNamespace = {
 
 export const REVIEWER_COOKIE = "portfolio_reviewer";
 export const REVIEWER_PARAM = "r";
+export const REVIEWER_MARKER_PARAM = "reviewer";
 export const FEEDBACK_NOTES_PATH = "/_portfolio-feedback/notes";
 export const FEEDBACK_ADMIN_PATH = "/_portfolio-feedback/admin/notes";
 const REVIEWER_COOKIE_SECONDS = 90 * 24 * 60 * 60;
@@ -114,6 +115,8 @@ async function handleReviewerLink(url: URL, secret: string) {
   const code = normalizeReviewerCode(url.searchParams.get(REVIEWER_PARAM));
   const destination = new URL(url);
   destination.searchParams.delete(REVIEWER_PARAM);
+  destination.searchParams.delete(REVIEWER_MARKER_PARAM);
+  if (code) destination.searchParams.set(REVIEWER_MARKER_PARAM, code);
   const location = `${destination.pathname}${destination.search}${destination.hash}`;
   const headers = new Headers({
     "cache-control": "no-store",

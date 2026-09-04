@@ -59,6 +59,7 @@ export type PortfolioVisualSkeleton = {
   sourceStatus?: PortfolioVisualSourceStatus;
   format?: PortfolioVisualFormat;
   src?: string;
+  frameSrc?: string;
   captionsSrc?: string;
   poster?: string;
   slides?: readonly PortfolioVisualSlideSkeleton[];
@@ -230,7 +231,18 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     position: { x: 2.66, y: 72.39, z: 920 },
     body: [
       draft("kickoff-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("kickoff-sequence", "comparison", "capture"),
+      {
+        kind: "visual",
+        id: "kickoff-sequence",
+        status: "ready",
+        treatment: "demo",
+        sourceStatus: "exists",
+        format: "video",
+        src: "/visuals/campaign/campaign-kickoff-raw.mp4",
+        frameSrc: "/visuals/campaign/macbook-air-m5-13-midnight.png",
+        captionsSrc: "/visuals/campaign/campaign-kickoff-captions.vtt",
+        poster: "/visuals/campaign/campaign-kickoff-poster.png",
+      },
     ],
   },
   {
@@ -242,7 +254,18 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     summaryStatus: "placeholder",
     body: [
       draft("pitching-rewrite", ["q1", "q2", "q3", "q4", "q5"]),
-      plannedVisual("pitching-targeting-model", "sequence", "recreate"),
+      {
+        kind: "visual",
+        id: "pitching-targeting-model",
+        status: "ready",
+        treatment: "demo",
+        sourceStatus: "exists",
+        format: "video",
+        src: "/visuals/campaign/pitch-pipeline-raw.mp4",
+        frameSrc: "/visuals/campaign/macbook-air-m5-13-midnight.png",
+        captionsSrc: "/visuals/campaign/pitch-pipeline-captions.vtt",
+        poster: "/visuals/campaign/pitch-pipeline-poster.png",
+      },
     ],
   },
   {

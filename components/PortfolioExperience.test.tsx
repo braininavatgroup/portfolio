@@ -319,15 +319,17 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(screen.getByRole("button", { name: "Read Music promo campaign pitching" })).toBeTruthy();
   });
 
-  it("gives visual and Guide-thread Escape priority before returning the Reader to About", async () => {
+  it("gives reader visual and Guide-thread Escape priority before returning the Reader to About", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => guideResponse()));
     await renderExperience({ desktop: false });
     fireEvent.click(screen.getByRole("button", { name: "Contents tab" }));
     selectContentsRecord("Dubs");
-    const visual = screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!;
+    const visual = screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!;
     fireEvent.click(visual);
-    expect(screen.getByRole("button", { name: "Map tab" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reader tab" }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("region", { name: /Visual in reader:/ })).toBeNull();
     expect(screen.getByRole("button", { name: "Reader tab" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
 
@@ -349,7 +351,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio contents" })).getByRole("button", { name: "Dubs" }));
 
     const visualTrigger = screen.getByRole("button", {
-      name: /Open gallery visual in map: Catch the thought where it happens/,
+      name: /Open gallery visual in reader: Catch the thought where it happens/,
     });
     const guide = screen.getByRole("region", { name: "Portfolio Guide" });
 
@@ -361,7 +363,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(screen.getByRole("region", { name: "Portfolio Guide" })).toBe(guide);
 
     const closeButton = screen.getByRole("button", {
-      name: "Close visual in map",
+      name: "Close visual in reader",
     });
     await waitFor(() => expect(document.activeElement).toBe(closeButton));
     fireEvent.click(closeButton);
@@ -370,21 +372,18 @@ describe("PortfolioExperience Reading Room integration", () => {
     await waitFor(() => expect(document.activeElement).toBe(visualTrigger));
   });
 
-  it("reveals the collapsed desktop Map when a Reader visual opens", async () => {
+  it("keeps the collapsed desktop Map closed when a Reader visual opens", async () => {
     await renderExperience();
     fireEvent.click(screen.getByRole("button", { name: "Hide side panes" }));
     const mapPane = document.querySelector('[data-reading-room-slot][data-view="map"]')!;
     expect(mapPane.querySelector<HTMLElement>(".portfolio-reading-room-pane-body")!.hidden).toBe(true);
     selectContentsRecord("Dubs");
 
-    fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!);
 
-    expect(document.querySelector('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')).not.toBeNull();
-    await waitFor(() => expect(
-      document.querySelector<HTMLElement>('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')!.hidden,
-    ).toBe(false));
-    expect(screen.getByRole("region", { name: /Visual in map:/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Hide side panes" })).toBeTruthy();
+    expect(document.querySelector<HTMLElement>('[data-reading-room-slot][data-view="map"] .portfolio-reading-room-pane-body')!.hidden).toBe(true);
+    expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show side panes" })).toBeTruthy();
   });
 
   it("does not push history when a visual closes at the home URL", async () => {
@@ -400,18 +399,18 @@ describe("PortfolioExperience Reading Room integration", () => {
       await renderExperience();
       const pushState = vi.spyOn(window.history, "pushState");
       fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
-      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
-      expect(screen.getByRole("region", { name: /Visual in map:/ })).toBeTruthy();
+      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!);
+      expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
 
-      fireEvent.click(screen.getByRole("button", { name: "Return to About" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close visual in reader" }));
 
-      expect(screen.queryByRole("region", { name: /Visual in map:/ })).toBeNull();
+      expect(screen.queryByRole("region", { name: /Visual in reader:/ })).toBeNull();
       expect(pushState).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: "Show Contents" }));
       selectContentsRecord("Dubs");
       expect(pushState).toHaveBeenCalledTimes(1);
-      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in map:/ })[0]!);
+      fireEvent.click(screen.getAllByRole("button", { name: /Open .* visual in reader:/ })[0]!);
       fireEvent.click(screen.getByRole("button", { name: "Hide Contents" }));
       fireEvent.click(screen.getByRole("button", { name: "Return to About" }));
 
@@ -427,11 +426,11 @@ describe("PortfolioExperience Reading Room integration", () => {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio contents" })).getByRole("button", { name: "Dubs" }));
 
     fireEvent.click(screen.getByRole("button", {
-      name: /Open gallery visual in map: What accumulates/,
+      name: /Open gallery visual in reader: What accumulates/,
     }));
 
     const stage = screen.getByRole("region", {
-      name: /Visual in map:/,
+      name: /Visual in reader:/,
     });
     expect(within(stage).getByAltText("The Dubs library showing saved documents and listening progress")).toBeTruthy();
     expect(within(stage).queryByAltText("Dubs controls available from the iPhone Lock Screen")).toBeNull();

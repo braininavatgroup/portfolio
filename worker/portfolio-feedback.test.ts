@@ -74,7 +74,7 @@ function postNote(cookie: string | null, body: unknown, contentType = "applicati
 }
 
 describe("reviewer links", () => {
-  it("turns ?r=<code> into a signed cookie and redirects without the parameter", async () => {
+  it("turns ?r=<code> into a signed cookie and a named reviewer URL", async () => {
     const app = downstream();
     const response = await withPortfolioFeedback(
       new Request("https://preview.example/?view=graph&r=alice"),
@@ -83,7 +83,7 @@ describe("reviewer links", () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/?view=graph");
+    expect(response.headers.get("location")).toBe("/?view=graph&reviewer=alice");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
     const cookie = response.headers.get("set-cookie") ?? "";
     expect(cookie).toMatch(
@@ -117,7 +117,7 @@ describe("reviewer links", () => {
       downstream().next,
     );
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/");
+    expect(response.headers.get("location")).toBe("/?reviewer=sarah-smith");
     const cookie = response.headers.get("set-cookie") ?? "";
     expect(cookie).toMatch(/^portfolio_reviewer=v1\.sarah-smith\./u);
     expect(await readReviewer(new Request("https://x/", { headers: { cookie: cookie.split(";", 1)[0] } }), SECRET)).toBe("sarah-smith");

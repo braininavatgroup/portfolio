@@ -3,10 +3,10 @@
 Source: [`components/PortfolioFeedback.tsx`](../../components/PortfolioFeedback.tsx) ·
 No `/design` section (see Pitfalls) · Tests: `components/PortfolioFeedback.test.tsx`
 
-Reviewer notes for Bradley on the password-protected preview. Mounted once at
-the end of `PortfolioExperience`. It renders nothing unless the worker has set
-the readable `portfolio_reviewer` cookie, which a `?r=<code>` link does
-([`worker/portfolio-feedback.ts`](../../worker/portfolio-feedback.ts)).
+Reviewer notes for Bradley on the password-protected preview. Mounted once at the end of
+`PortfolioExperience`, it renders only when the worker cookie and URL name match.
+A `?r=<code>` link creates both ([worker](../../worker/portfolio-feedback.ts)); an
+ordinary site URL stays clean even when the browser retains an older cookie.
 
 With a reviewer present, "Leave a note" sits at the bottom-left page inset.
 "Point at something on the page" anchors a note to one element (selector
@@ -55,7 +55,7 @@ export function PortfolioFeedbackExample() {
 
 ## Pitfalls
 
-- **First paint is always empty.** The cookie is read through
+- **First paint is always empty.** The cookie and URL marker are read through
   `useSyncExternalStore` with a null server snapshot.
 - **The picker captures the click.** `pointerdown`, `pointerup`, and `click`
   are stopped at the document in the capture phase. Escape cancels.

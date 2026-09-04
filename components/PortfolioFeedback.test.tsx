@@ -104,9 +104,14 @@ describe("PortfolioFeedback", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("mounts for the cookie's reviewer", async () => {
+  it("mounts only when the signed cookie matches the named reviewer URL", async () => {
     document.cookie = "portfolio_reviewer=v1.alice.signature; Path=/";
-    render(<PortfolioFeedback transport={transport()} />);
+    window.history.replaceState(null, "", "/");
+    const { rerender } = render(<PortfolioFeedback transport={transport()} />);
+    expect(screen.queryByRole("button", { name: "Leave a note" })).toBeNull();
+
+    window.history.replaceState(null, "", "/?reviewer=alice");
+    rerender(<PortfolioFeedback transport={transport()} />);
     expect(await screen.findByRole("button", { name: "Leave a note" })).toBeTruthy();
   });
 

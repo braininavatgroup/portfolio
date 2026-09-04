@@ -16,6 +16,8 @@ import { PortfolioReader } from "./PortfolioReader";
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
   document.head.innerHTML = "";
   delete window.clarity;
@@ -341,11 +343,7 @@ describe("PortfolioReader", () => {
     }
     enableAnalytics();
     const { container } = render(
-      <PortfolioReader
-        {...baseProps}
-        onOpenVisual={() => {}}
-        selectedId={node.id}
-      />,
+      <PortfolioReader {...baseProps} selectedId={node.id} />,
     );
 
     fireEvent.click(
@@ -369,6 +367,142 @@ describe("PortfolioReader", () => {
     ]);
   });
 
+  it("loops a framed video inline and opens its raw recording over the full viewport", () => {
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    const kickoff = portfolioWorldNodeById.get("kickoff")!;
+    const visual = kickoff.body.find(
+      (block) => typeof block !== "string" && block.type === "visual",
+    );
+    if (!visual || typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("kickoff has no video visual");
+    }
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="kickoff" />,
+    );
+    const reader = screen.getByRole("complementary", {
+      name: "Music promo campaign kickoff record",
+    });
+    const trigger = screen.getByRole("button", {
+      name: `Open video in reader: ${visual.purpose}`,
+    });
+    const inlineVideo = trigger.querySelector("video")!;
+
+    expect(inlineVideo.autoplay).toBe(true);
+    expect(inlineVideo.loop).toBe(true);
+    expect(inlineVideo.muted).toBe(true);
+    expect(inlineVideo.controls).toBe(false);
+    expect(trigger.querySelector("[data-media-surface='floating']")).toBeTruthy();
+    expect(inlineVideo.querySelectorAll("source")).toHaveLength(1);
+    expect(inlineVideo.querySelector("source")?.getAttribute("src")).toBe(visual.src);
+    expect(inlineVideo.querySelector("source")?.getAttribute("type")).toBe("video/mp4");
+    expect(
+      trigger.querySelector<HTMLImageElement>(".reader-device-frame")?.getAttribute("src"),
+    ).toBe(visual.frameSrc);
+
+    fireEvent.click(trigger);
+
+    const overlay = screen.getByRole("region", { name: /Video full screen:/ });
+    const rawVideo = overlay.querySelector("video")!;
+    const inlineSources = [...inlineVideo.querySelectorAll("source")].map(
+      (source) => source.getAttribute("src"),
+    );
+    expect(reader).not.toContain(overlay);
+    expect(document.body).toContain(overlay);
+    expect(rawVideo.autoplay).toBe(true);
+    expect(rawVideo.controls).toBe(true);
+    expect(inlineSources).toContain(rawVideo.getAttribute("src"));
+    expect(pause).toHaveBeenCalled();
+    expect(overlay.getAttribute("data-media-surface")).toBe("floating");
+    expect(overlay.getAttribute("data-scope")).toBe("viewport");
+    expect(container.querySelector(".reader-inline-video")).toContain(inlineVideo);
+    expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
+  });
+
+  it("decodes an inline video only while it is visible in the Reader", () => {
+    const kickoff = portfolioWorldNodeById.get("kickoff")!;
+    const visual = kickoff.body.find(
+      (block) => typeof block !== "string" && block.type === "visual",
+    );
+    if (!visual || typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("kickoff has no video visual");
+    }
+    let reportIntersection: IntersectionObserverCallback | undefined;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(callback: IntersectionObserverCallback) {
+        reportIntersection = callback;
+      }
+
+      disconnect = disconnect;
+      observe = observe;
+      unobserve = vi.fn();
+      takeRecords = vi.fn(() => []);
+      root = null;
+      rootMargin = "0px";
+      thresholds = [0];
+    });
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+
+    render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
+    const inlineVideo = screen.getByLabelText(visual.alt ?? visual.purpose);
+
+    expect(observe).toHaveBeenCalledWith(inlineVideo);
+    act(() => reportIntersection?.([
+      { isIntersecting: false, target: inlineVideo } as unknown as IntersectionObserverEntry,
+    ], {} as IntersectionObserver));
+    expect(pause).toHaveBeenCalled();
+
+    act(() => reportIntersection?.([
+      { isIntersecting: true, target: inlineVideo } as unknown as IntersectionObserverEntry,
+    ], {} as IntersectionObserver));
+    expect(play).toHaveBeenCalled();
+
+    cleanup();
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("composites the official Apple frame over a standard video in every browser", () => {
+    const kickoff = portfolioWorldNodeById.get("kickoff")!;
+    const visual = kickoff.body.find(
+      (block) => typeof block !== "string" && block.type === "visual",
+    );
+    if (!visual || typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("kickoff has no video visual");
+    }
+
+    render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
+
+    const source = screen.getByLabelText(visual.alt ?? visual.purpose).querySelector("source");
+    expect(source?.getAttribute("src")).toBe(visual.src);
+    expect(source?.getAttribute("type")).toBe("video/mp4");
+    expect(document.querySelector(".reader-device-frame")).toBeTruthy();
+  });
+
+  it("opens gallery images over the Reader instead of the Map", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="dubs" />,
+    );
+    const reader = screen.getByRole("complementary", { name: "Dubs record" });
+
+    fireEvent.click(screen.getAllByRole("button", {
+      name: /Open gallery visual in reader:/,
+    })[0]!);
+
+    const overlay = screen.getByRole("region", { name: /Visual in reader:/ });
+    expect(reader).toContain(overlay);
+    expect(overlay.querySelector("img")).toBeTruthy();
+    expect(overlay.getAttribute("data-media-surface")).toBe("floating");
+    expect(
+      [...container.querySelectorAll(".reader-visual-gallery figure")].every(
+        (figure) => figure.getAttribute("data-media-surface") === "floating",
+      ),
+    ).toBe(true);
+    expect(container.querySelector(".reader-visual-overlay")).toBe(overlay);
+    expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
+  });
+
   it("renders unfinished copy and planned visuals as part of the working composition", () => {
     render(
       <PortfolioReader {...baseProps} selectedId="music-practice" />,
@@ -378,7 +512,7 @@ describe("PortfolioReader", () => {
     expect(screen.getAllByText("Copy in progress")).toHaveLength(1);
     expect(
       screen.getByRole("button", {
-        name: `Open gallery visual in map: ${galleryPurpose}`,
+        name: `Open gallery visual in reader: ${galleryPurpose}`,
       }),
     ).toBeTruthy();
 
@@ -389,7 +523,7 @@ describe("PortfolioReader", () => {
     }
 
     const visual = screen.getByRole("button", {
-      name: `Open gallery visual in map: ${galleryPurpose}`,
+      name: `Open gallery visual in reader: ${galleryPurpose}`,
     });
     expect(visual.classList.contains("reader-visual-draft")).toBe(true);
     expect(visual.classList.contains("reader-text-placeholder")).toBe(false);
@@ -413,30 +547,25 @@ describe("PortfolioReader", () => {
   });
 
   it("opens each Dubs gallery group at that group's first image", () => {
-    const onOpenVisual = vi.fn();
-    render(
-      <PortfolioReader
-        {...baseProps}
-        onOpenVisual={onOpenVisual}
-        selectedId="dubs"
-      />,
+    const block = portfolioWorldNodeById.get("dubs")!.body.find(
+      (candidate) => typeof candidate !== "string" && candidate.type === "visual",
     );
+    if (!block || typeof block === "string" || block.type !== "visual") {
+      throw new Error("Dubs has no gallery visual");
+    }
+    const assets = block.slides!.flatMap((slide) => slide.assets);
+    render(<PortfolioReader {...baseProps} selectedId="dubs" />);
 
     const groups = screen.getAllByRole("button", {
-      name: /Open gallery visual in map:/,
+      name: /Open gallery visual in reader:/,
     });
     fireEvent.click(groups[1]);
-    expect(onOpenVisual).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: "dubs-loop" }),
-      groups[1],
-      4,
-    );
+    expect(screen.getByRole("region", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
+      .toBe(assets[4].src);
+    fireEvent.click(screen.getByRole("button", { name: "Close visual in reader" }));
     fireEvent.click(groups[2]);
-    expect(onOpenVisual).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: "dubs-loop" }),
-      groups[2],
-      7,
-    );
+    expect(screen.getByRole("region", { name: /Visual in reader:/ }).querySelector("img")?.getAttribute("src"))
+      .toBe(assets[7].src);
   });
 
   it("marks an in-progress summary as placeholder text", () => {
@@ -450,9 +579,7 @@ describe("PortfolioReader", () => {
     expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
   });
 
-  it("opens image and gallery blocks through the same map control", () => {
-    const onOpenVisual = vi.fn();
-
+  it("opens image and gallery blocks through the same reader overlay", () => {
     const cases = [
       { id: "writ", format: "image" },
       { id: "dubs", format: "gallery" },
@@ -461,27 +588,18 @@ describe("PortfolioReader", () => {
 
     for (const { id, format } of cases) {
       const { unmount } = render(
-        <PortfolioReader
-          {...baseProps}
-          onOpenVisual={onOpenVisual}
-          selectedId={id}
-        />,
+        <PortfolioReader {...baseProps} selectedId={id} />,
       );
       const trigger = id === "dubs"
         ? screen.getAllByRole("button", {
-            name: /Open gallery visual in map:/,
+            name: /Open gallery visual in reader:/,
           })[0]
         : screen.getByRole("button", {
-            name: `Open ${format} visual in map: ${plannedVisualPurpose(id, format)}`,
+            name: `Open ${format} visual in reader: ${plannedVisualPurpose(id, format)}`,
           });
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
-      const expected = [
-        expect.objectContaining({ type: "visual", format }),
-        trigger,
-        ...(id === "dubs" ? [0] : []),
-      ];
-      expect(onOpenVisual).toHaveBeenLastCalledWith(...expected);
+      expect(screen.getByRole("region", { name: /Visual in reader:/ })).toBeTruthy();
       unmount();
     }
   });
@@ -584,7 +702,7 @@ describe("PortfolioReader", () => {
 
     const purpose = plannedVisualPurpose("music-practice", "gallery");
     const trigger = screen.getByRole("button", {
-      name: `Open gallery visual in map: ${purpose}`,
+      name: `Open gallery visual in reader: ${purpose}`,
     });
     const frame = trigger.querySelector(".reader-placeholder-frame")!;
     expect(frame.getAttribute("data-format")).toBe("gallery");

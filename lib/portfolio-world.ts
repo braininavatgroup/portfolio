@@ -62,6 +62,7 @@ export type PortfolioVisualBlock = {
   sourceStatus?: PortfolioVisualSourceStatus;
   format?: PortfolioVisualFormat;
   src?: string;
+  frameSrc?: string;
   alt?: string;
   caption?: string;
   captionsSrc?: string;
@@ -210,6 +211,7 @@ function mergeBody(
       ...(block.sourceStatus ? { sourceStatus: block.sourceStatus } : {}),
       ...(block.format ? { format: block.format } : {}),
       ...(block.src ? { src: block.src } : {}),
+      ...(block.frameSrc ? { frameSrc: block.frameSrc } : {}),
       ...(entry.alt ? { alt: entry.alt } : {}),
       ...(entry.caption ? { caption: entry.caption } : {}),
       ...(block.captionsSrc ? { captionsSrc: block.captionsSrc } : {}),
