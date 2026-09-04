@@ -35,6 +35,13 @@ inventory, and `/design` for the same components rendered in their states.
 | [useAvatarStage](./useAvatarStage.md) | Runtime, registrations and viewport effects | `/design#avatar` |
 | [useBrainFoodSession](./useBrainFoodSession.md) | Live-map Brain Food controls and state | `/design#composition` |
 
+## Standalone work samples
+
+| Sheet | Component | Route |
+| --- | --- | --- |
+| [QuarterlyDashboard](./QuarterlyDashboard.md) | Interactive pitch-conversion dashboard | `/demos/quarterly-dashboard` |
+| [QuarterlyDashboardPreview](./QuarterlyDashboardPreview.md) | Compact reader entry point for the dashboard | `/design` |
+
 ## Writing mode
 
 Development-only inline editing (`?edit=1`). None of it reaches a production

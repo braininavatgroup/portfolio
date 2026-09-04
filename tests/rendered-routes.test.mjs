@@ -51,6 +51,20 @@ test("canonical /index/<id> URLs redirect into the map reader", async () => {
   }
 });
 
+test("the quarterly dashboard demo renders as a complete public route", async () => {
+  const response = await render("/demos/quarterly-dashboard");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /Ryan \+ Ryan Quarterly Pitch Conversion/i);
+  assert.match(html, /Trend over time/i);
+  assert.match(html, /Quarterly Summary/i);
+  assert.match(html, /Pitch Detail/i);
+  assert.match(html, /Print or save as PDF/i);
+  assert.match(html, /href="\/\?view=graph#real-estate"/i);
+  assert.match(html, /Back to Real-estate deal tracker/i);
+});
+
 test("retired work routes stay retired", async () => {
   const indexResponse = await render("/work");
   assert.equal(indexResponse.status, 404);

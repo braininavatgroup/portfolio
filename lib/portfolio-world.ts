@@ -25,6 +25,7 @@ import {
   type PortfolioBodyBlockSkeleton,
   type PortfolioOutlineType,
   type PortfolioVisualFormat,
+  type PortfolioVisualPreview,
   type PortfolioVisualSourceStatus,
   type PortfolioVisualTreatment,
   type PortfolioRecordStatus,
@@ -36,6 +37,7 @@ import { stripInlineLinks } from "./portfolio-inline-links";
 export type {
   PortfolioOutlineType,
   PortfolioVisualFormat,
+  PortfolioVisualPreview,
   PortfolioVisualSourceStatus,
   PortfolioVisualTreatment,
   PortfolioWorldFamily,
@@ -66,6 +68,8 @@ export type PortfolioVisualBlock = {
   caption?: string;
   captionsSrc?: string;
   poster?: string;
+  preview?: PortfolioVisualPreview;
+  href?: string;
   slides?: readonly PortfolioVisualSlide[];
 };
 
@@ -158,6 +162,7 @@ export const isPortfolioVisualReady = (
   if (block.status !== "ready") return false;
 
   const format = portfolioVisualFormat(block);
+  if (format === "interactive") return Boolean(block.preview && block.href);
   if (format === "video") return Boolean(block.src && block.captionsSrc);
   if (format === "gallery" && block.slides?.length) {
     return block.slides.every((slide) => slide.assets.length > 0);
@@ -214,6 +219,8 @@ function mergeBody(
       ...(entry.caption ? { caption: entry.caption } : {}),
       ...(block.captionsSrc ? { captionsSrc: block.captionsSrc } : {}),
       ...(block.poster ? { poster: block.poster } : {}),
+      ...(block.preview ? { preview: block.preview } : {}),
+      ...(block.href ? { href: block.href } : {}),
       ...(slides ? { slides } : {}),
     };
   });

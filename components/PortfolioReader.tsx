@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { PortfolioContactMark, PortfolioNodeMark } from "./PortfolioNodeMark";
+import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
@@ -156,6 +157,24 @@ function VisualBlock({
   const thumbnailAlt = block.alt ?? "";
   const ready = isPortfolioVisualReady(block);
   const captionField = block.caption !== undefined ? "caption" : "purpose";
+
+  if (format === "interactive") {
+    if (block.preview !== "quarterly-dashboard" || !block.href) return null;
+    return (
+      <QuarterlyDashboardPreview
+        href={block.href}
+        label={block.caption ?? block.purpose}
+        onOpen={() => {
+          trackPortfolioInsight("evidence_open", {
+            content_id: insightContent.contentId,
+            content_kind: insightContent.contentKind,
+            evidence_id: block.id,
+            evidence_kind: format,
+          });
+        }}
+      />
+    );
+  }
 
   if (ready && format === "gallery" && block.slides?.length) {
     return (
