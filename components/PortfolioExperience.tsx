@@ -6,7 +6,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
@@ -17,17 +16,14 @@ import {
   portfolioThreadById,
   portfolioWorldNodeById,
   portfolioWorldNodes,
-  type PortfolioVisualBlock,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
-import type { ReadingRoomView } from "../lib/reading-room-layout";
 import { PortfolioChat } from "./PortfolioChat";
 import { PortfolioFeedback } from "./PortfolioFeedback";
 import {
   PortfolioReadingRoom,
   type ReadingRoomMobileTab,
   type ReadingRoomMobileTabRequest,
-  type ReadingRoomViewRequest,
 } from "./PortfolioReadingRoom";
 import { PortfolioReader } from "./PortfolioReader";
 import { PortfolioWorld } from "./PortfolioWorld";
@@ -76,15 +72,10 @@ export function PortfolioExperience() {
   const reducedMotion = useReducedMotion();
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [activeVisual, setActiveVisual] = useState<{
-    block: PortfolioVisualBlock;
-    initialFrame: number;
-  } | null>(null);
   const [guideVisible, setGuideVisible] = useState(false);
   const [guideHasThread, setGuideHasThread] = useState(false);
   const [guideResetSignal, setGuideResetSignal] = useState(0);
   const [mobileTabRequest, setMobileTabRequest] = useState<ReadingRoomMobileTabRequest>();
-  const [viewRequest, setViewRequest] = useState<ReadingRoomViewRequest>();
   const {
     avatarMounted,
     avatarRuntime,
@@ -98,7 +89,6 @@ export function PortfolioExperience() {
     enabled: avatarMounted,
     reducedMotion,
   });
-  const visualTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedWorldNode = selectedWorldId
     ? portfolioWorldNodeById.get(selectedWorldId)
     : undefined;
@@ -107,21 +97,15 @@ export function PortfolioExperience() {
     setMobileTabRequest((current) => ({ key: (current?.key ?? 0) + 1, tab }));
   }, []);
 
-  const requestView = useCallback((view: ReadingRoomView) => {
-    setViewRequest((current) => ({ key: (current?.key ?? 0) + 1, view }));
-  }, []);
-
   const showHome = useCallback(() => {
     setSelectedWorldId(null);
     setActiveThreadId(null);
-    setActiveVisual(null);
   }, []);
 
   const navigateToWorldNode = useCallback((
     node: PortfolioWorldNode,
     selectionSource: string,
   ) => {
-    setActiveVisual(null);
     setSelectedWorldId(node.id);
     if (node.outlineType === "why") {
       setActiveThreadId(node.threadId ?? null);
@@ -190,36 +174,13 @@ export function PortfolioExperience() {
     [selectThread],
   );
 
-  const openVisualInMap = useCallback((
-    visual: PortfolioVisualBlock,
-    trigger: HTMLButtonElement,
-    initialFrame = 0,
-  ) => {
-    visualTriggerRef.current = trigger;
-    setActiveVisual({ block: visual, initialFrame });
-    requestView("map");
-  }, [requestView]);
-
-  const closeVisualInMap = useCallback(() => {
-    const trigger = visualTriggerRef.current;
-    setActiveVisual(null);
-    requestMobileTab("reader");
-    window.setTimeout(() => {
-      if (trigger?.isConnected) trigger.focus();
-      if (visualTriggerRef.current === trigger) visualTriggerRef.current = null;
-    }, 0);
-  }, [requestMobileTab]);
-
   const resetGuide = useCallback(() => {
     setGuideResetSignal((signal) => signal + 1);
   }, []);
 
   const escapeBeforeRoom = useCallback(() => {
-    if (brainFood.active) return true;
-    if (!activeVisual) return false;
-    closeVisualInMap();
-    return true;
-  }, [activeVisual, brainFood.active, closeVisualInMap]);
+    return brainFood.active;
+  }, [brainFood.active]);
 
   const navigateGuideEvidence = useCallback((target: GuideEvidenceTarget) => {
     if (target.type === "home") {
@@ -318,7 +279,6 @@ export function PortfolioExperience() {
   const reader = (
     <PortfolioReader
       activeThreadId={activeThreadId}
-      onOpenVisual={openVisualInMap}
       onReset={showHomeAndSyncLocation}
       onSelect={selectFromReader}
       onSelectThread={selectThreadFromReader}
@@ -328,10 +288,7 @@ export function PortfolioExperience() {
   const map = (
     <PortfolioWorld
       activeThreadId={activeThreadId}
-      activeVisual={activeVisual?.block}
-      activeVisualFrame={activeVisual?.initialFrame}
       brainFood={brainFood}
-      onCloseVisual={closeVisualInMap}
       onReset={showHomeAndSyncLocation}
       onSelect={selectFromMap}
       registerAvatarStage={registerAvatarStage}
@@ -352,7 +309,7 @@ export function PortfolioExperience() {
 
   return (
     <main
-      className={`experience portfolio-composition${activeVisual ? " portfolio-visual-open" : ""}`}
+      className="experience portfolio-composition"
       id="main-content"
       tabIndex={-1}
     >
@@ -372,7 +329,6 @@ export function PortfolioExperience() {
         reader={reader}
         selectedId={selectedWorldId}
         selectedSubject={selectedWorldNode ?? null}
-        viewRequest={viewRequest}
       />
       {avatarOverlay}
       <PortfolioFeedback />

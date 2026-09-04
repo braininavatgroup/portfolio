@@ -1,14 +1,22 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { PortfolioContactMark, PortfolioNodeMark } from "./PortfolioNodeMark";
+import { createPortal } from "react-dom";
+import {
+  PortfolioContactMark,
+  PortfolioControlMark,
+  PortfolioNodeMark,
+} from "./PortfolioNodeMark";
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { EditableText } from "./editor/EditableText";
@@ -39,6 +47,46 @@ import {
 const HOME_NODE_ID = "bradley";
 const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
 
+function useVisibleVideoPlayback(forcedPaused: boolean) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (forcedPaused) {
+      video.pause();
+      return;
+    }
+    if (typeof IntersectionObserver === "undefined") return;
+
+    let isVisible = false;
+    const syncPlayback = () => {
+      if (!isVisible || document.visibilityState !== "visible") {
+        video.pause();
+        return;
+      }
+      void video.play().catch(() => {
+        // Autoplay can still be denied by a browser-level preference.
+      });
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry?.isIntersecting ?? false;
+      syncPlayback();
+    });
+
+    video.pause();
+    observer.observe(video);
+    document.addEventListener("visibilitychange", syncPlayback);
+    return () => {
+      document.removeEventListener("visibilitychange", syncPlayback);
+      observer.disconnect();
+      video.pause();
+    };
+  }, [forcedPaused]);
+
+  return videoRef;
+}
+
 type OpenVisual = (
   block: PortfolioVisualBlock,
   trigger: HTMLButtonElement,
@@ -52,7 +100,6 @@ type InsightContent = {
 
 type PortfolioReaderProps = {
   activeThreadId: string | null;
-  onOpenVisual?: OpenVisual;
   onReset: () => void;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
@@ -144,11 +191,13 @@ function VisualBlock({
   contentBase,
   insightContent,
   onOpen,
+  videoPaused = false,
 }: {
   block: PortfolioVisualBlock;
   contentBase: string;
   insightContent: InsightContent;
   onOpen?: OpenVisual;
+  videoPaused?: boolean;
 }) {
   const format = portfolioVisualFormat(block);
   const thumbnailSrc =
@@ -157,6 +206,75 @@ function VisualBlock({
   const thumbnailAlt = block.alt ?? "";
   const ready = isPortfolioVisualReady(block);
   const captionField = block.caption !== undefined ? "caption" : "purpose";
+  const inlineVideoRef = useVisibleVideoPlayback(videoPaused);
+
+  if (ready && format === "video" && block.src) {
+    return (
+      <button
+        aria-label={`Open video in reader: ${block.purpose}`}
+        className="reader-visual-trigger"
+        data-format={format}
+        data-status={block.status}
+        onClick={(event) => {
+          trackPortfolioInsight("evidence_open", {
+            content_id: insightContent.contentId,
+            content_kind: insightContent.contentKind,
+            evidence_id: block.id,
+            evidence_kind: format,
+          });
+          onOpen?.(block, event.currentTarget);
+        }}
+        type="button"
+      >
+        <figure
+          className="reader-visual-block reader-inline-video"
+          data-format={format}
+          data-media-surface="floating"
+        >
+          <div className="reader-device-video">
+            {block.poster ? (
+              // The frame composite needs ordinary layered image geometry.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt=""
+                aria-hidden="true"
+                className="reader-device-poster"
+                src={block.poster}
+              />
+            ) : null}
+            <video
+              aria-label={block.alt ?? block.purpose}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              ref={inlineVideoRef}
+            >
+              <source src={block.src} type="video/mp4" />
+              <track default kind="captions" src={block.captionsSrc} srcLang="en" />
+            </video>
+            {block.frameSrc ? (
+              // This is a local, lossless Apple frame asset used as an overlay.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt=""
+                aria-hidden="true"
+                className="reader-device-frame"
+                src={block.frameSrc}
+              />
+            ) : null}
+          </div>
+          <figcaption>
+            <EditableText
+              path={`${contentBase}.visuals.${block.id}.${captionField}`}
+              value={block.caption ?? block.purpose}
+            />
+          </figcaption>
+        </figure>
+      </button>
+    );
+  }
 
   if (format === "interactive") {
     if (block.preview !== "quarterly-dashboard" || !block.href) return null;
@@ -185,7 +303,7 @@ function VisualBlock({
             .reduce((count, prior) => count + prior.assets.length, 0);
           return (
             <button
-              aria-label={`Open gallery visual in map: ${slide.title}. ${block.purpose}`}
+              aria-label={`Open gallery visual in reader: ${slide.title}. ${block.purpose}`}
               className="reader-visual-trigger"
               data-format={format}
               data-slide-index={slideIndex}
@@ -202,7 +320,11 @@ function VisualBlock({
               }}
               type="button"
             >
-              <figure className="reader-visual-block" data-format={format}>
+              <figure
+                className="reader-visual-block"
+                data-format={format}
+                data-media-surface="floating"
+              >
                 <div
                   className="reader-visual-slide"
                   data-asset-count={slide.assets.length}
@@ -234,7 +356,7 @@ function VisualBlock({
 
   return (
     <button
-      aria-label={`Open ${format} visual in map: ${block.purpose}`}
+      aria-label={`Open ${format} visual in reader: ${block.purpose}`}
       className={`reader-visual-trigger${ready ? "" : " reader-visual-draft"}`}
       data-format={format}
       data-status={block.status}
@@ -252,6 +374,7 @@ function VisualBlock({
       <figure
         className={ready ? "reader-visual-block" : "reader-visual-placeholder"}
         data-format={format}
+        {...(ready ? { "data-media-surface": "floating" } : {})}
       >
         {ready && thumbnailSrc ? (
           <img alt={thumbnailAlt} loading="lazy" src={thumbnailSrc} />
@@ -271,6 +394,102 @@ function VisualBlock({
       </figure>
     </button>
   );
+}
+
+function ReaderVisualOverlay({
+  block,
+  initialFrame,
+  onClose,
+}: {
+  block: PortfolioVisualBlock;
+  initialFrame: number;
+  onClose: () => void;
+}) {
+  const format = portfolioVisualFormat(block);
+  const videoSrc = format === "video" ? block.src : undefined;
+  const assets = format === "video"
+    ? []
+    : block.slides?.flatMap((slide) => slide.assets) ??
+      (block.src ? [{ alt: block.alt ?? "", src: block.src }] : []);
+  const [frame, setFrame] = useState(Math.min(initialFrame, Math.max(assets.length - 1, 0)));
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const asset = assets[frame];
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [onClose]);
+
+  const overlay = (
+    <section
+      aria-label={`${format === "video" ? "Video full screen" : "Visual in reader"}: ${block.purpose}`}
+      className="reader-visual-overlay"
+      data-format={format}
+      data-media-surface="floating"
+      data-scope={format === "video" ? "viewport" : "reader"}
+    >
+      <div className="reader-visual-overlay-media">
+        {videoSrc ? (
+          <video
+            aria-label={block.alt ?? block.purpose}
+            autoPlay
+            controls
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            src={videoSrc}
+          >
+            <track default kind="captions" src={block.captionsSrc} srcLang="en" />
+          </video>
+        ) : asset ? (
+          <img alt={asset.alt} src={asset.src} />
+        ) : (
+          <ReaderPlaceholderFrame
+            format={portfolioVisualFormat(block)}
+            frame={frame + 1}
+            frameCount={Math.max(assets.length, 1)}
+            sourceStatus={block.sourceStatus}
+            treatment={block.treatment}
+          />
+        )}
+      </div>
+      <p className="reader-visual-overlay-caption">{block.caption ?? block.purpose}</p>
+      {assets.length > 1 ? (
+        <div className="reader-visual-overlay-navigation">
+          <PortfolioControlMark
+            aria-label="Previous visual frame"
+            kind="previous"
+            onClick={() => setFrame((current) => (current - 1 + assets.length) % assets.length)}
+          />
+          <span aria-live="polite">{frame + 1} / {assets.length}</span>
+          <PortfolioControlMark
+            aria-label="Next visual frame"
+            kind="next"
+            onClick={() => setFrame((current) => (current + 1) % assets.length)}
+          />
+        </div>
+      ) : null}
+      <PortfolioControlMark
+        aria-label="Close visual in reader"
+        className="reader-visual-overlay-close"
+        kind="close"
+        onClick={onClose}
+        ref={closeRef}
+      />
+    </section>
+  );
+
+  if (format !== "video" || typeof document === "undefined") return overlay;
+  const composition = document.querySelector<HTMLElement>(".portfolio-composition");
+  return createPortal(overlay, composition ?? document.body);
 }
 
 // Pairs each prose block with its stable paragraph ID (p1, p2, … in authored
@@ -391,11 +610,13 @@ function PortfolioBody({
   onOpenVisual,
   onSelect,
   onSelectThread,
+  videoPreviewsPaused,
 }: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
   body: readonly PortfolioBodyBlock[];
   contentBase: string;
   insightContent: InsightContent;
   onOpenVisual?: OpenVisual;
+  videoPreviewsPaused?: boolean;
 }) {
   return (
     <section className="reader-composed-body">
@@ -470,6 +691,7 @@ function PortfolioBody({
             insightContent={insightContent}
             key={block.id}
             onOpen={onOpenVisual}
+            videoPaused={videoPreviewsPaused}
           />
         );
       })}
@@ -482,11 +704,13 @@ function ThreadRecord({
   onSelect,
   onSelectThread,
   threadId,
+  videoPreviewsPaused,
 }: {
   onOpenVisual?: OpenVisual;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
   threadId: string;
+  videoPreviewsPaused?: boolean;
 }) {
   const thread = portfolioThreadById.get(threadId);
   if (!thread) return null;
@@ -506,6 +730,7 @@ function ThreadRecord({
         onOpenVisual={onOpenVisual}
         onSelect={onSelect}
         onSelectThread={onSelectThread}
+        videoPreviewsPaused={videoPreviewsPaused}
       />
       <section className="reader-record-section">
         <EditableText
@@ -591,6 +816,7 @@ function WorldRecord({
   onOpenVisual,
   onSelect,
   onSelectThread,
+  videoPreviewsPaused,
 }: {
   /**
    * The About record doubles as the home state: its summary is the title
@@ -602,6 +828,7 @@ function WorldRecord({
   onOpenVisual?: OpenVisual;
   onSelect: (node: PortfolioWorldNode) => void;
   onSelectThread: (threadId: string) => void;
+  videoPreviewsPaused?: boolean;
 }) {
   const relatedIds = new Set<string>();
   for (const { from, to } of portfolioWorldLinks) {
@@ -638,6 +865,7 @@ function WorldRecord({
           onOpenVisual={onOpenVisual}
           onSelect={onSelect}
           onSelectThread={onSelectThread}
+          videoPreviewsPaused={videoPreviewsPaused}
         />
       ) : null}
       {node.id === HOME_NODE_ID ? <ContactSection /> : null}
@@ -669,12 +897,21 @@ function WorldRecord({
 
 export function PortfolioReader({
   activeThreadId,
-  onOpenVisual,
   onSelect,
   onSelectThread,
   selectedId,
 }: PortfolioReaderProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const visualTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const visualContext = useMemo(
+    () => ({ activeThreadId, selectedId }),
+    [activeThreadId, selectedId],
+  );
+  const [activeVisual, setActiveVisual] = useState<{
+    block: PortfolioVisualBlock;
+    context: object;
+    initialFrame: number;
+  } | null>(null);
   const selected = selectedId ? portfolioWorldNodeById.get(selectedId) : undefined;
   // The About record is the home state, so selecting it lands on home.
   const node = selected?.id === HOME_NODE_ID ? undefined : selected;
@@ -703,6 +940,24 @@ export function PortfolioReader({
     () => new URLSearchParams(window.location.search).get("review") === "clean",
     () => false,
   );
+
+  const openVisual = useCallback<OpenVisual>((block, trigger, initialFrame = 0) => {
+    visualTriggerRef.current = trigger;
+    setActiveVisual({
+      block,
+      context: visualContext,
+      initialFrame,
+    });
+  }, [visualContext]);
+
+  const closeVisual = useCallback(() => {
+    const trigger = visualTriggerRef.current;
+    setActiveVisual(null);
+    window.setTimeout(() => {
+      if (trigger?.isConnected) trigger.focus();
+      if (visualTriggerRef.current === trigger) visualTriggerRef.current = null;
+    }, 0);
+  }, []);
 
   // Every selection opens at its top. The scroll element stays mounted so the
   // Reading Room can move this Reader between slots without replacing it.
@@ -796,24 +1051,27 @@ export function PortfolioReader({
         {node && node.outlineType !== "why" ? (
           <WorldRecord
             node={node}
-            onOpenVisual={onOpenVisual}
+            onOpenVisual={openVisual}
             onSelect={onSelect}
             onSelectThread={onSelectThread}
+            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
           />
         ) : thread ? (
           <ThreadRecord
-            onOpenVisual={onOpenVisual}
+            onOpenVisual={openVisual}
             onSelect={onSelect}
             onSelectThread={onSelectThread}
             threadId={thread.id}
+            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
           />
         ) : (
           <WorldRecord
             home
             node={homeNode}
-            onOpenVisual={onOpenVisual}
+            onOpenVisual={openVisual}
             onSelect={onSelect}
             onSelectThread={onSelectThread}
+            videoPreviewsPaused={Boolean(activeVisual?.context === visualContext)}
           />
         )}
         <EditorStatusLine />
@@ -826,6 +1084,14 @@ export function PortfolioReader({
           />
         </a>
       </div>
+      {activeVisual?.context === visualContext ? (
+        <ReaderVisualOverlay
+          block={activeVisual.block}
+          initialFrame={activeVisual.initialFrame}
+          key={`${activeVisual.block.id}:${activeVisual.initialFrame}`}
+          onClose={closeVisual}
+        />
+      ) : null}
     </aside>
   );
 }

@@ -766,6 +766,8 @@ describe("Reading Room stylesheet", () => {
     expect(dropTarget).toContain("border: 1px solid var(--ink)");
     expect(dropTarget).not.toContain("font:");
     expect(stylesheet).not.toContain(".portfolio-reading-room-drag-overlay");
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-view-bar\s*\{[^}]*cursor:\s*grab/);
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-view-bar\[data-dragging="true"\]\s*\{[^}]*cursor:\s*grabbing/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-view-bar\[data-dnd-dragging\]\s*\{[^}]*visibility:\s*hidden/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-view-bar\[data-dnd-placeholder\][^{]*\{[^}]*background/);
     expect(stylesheet).toContain("--reader-drop-fill-light: rgb(32 23 17 / 8%)");

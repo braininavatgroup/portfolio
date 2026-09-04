@@ -92,7 +92,7 @@ export function PortfolioReadingRoomExample() {
 - **Persistence restores after hydration.** The first client markup uses the
   server-safe defaults, then applies stored slots and panel sizes after mount.
 - **Bars are drag handles, not control containers.** Their marks use the
-  non-interactive `PortfolioControlGlyph`; every button is a positioned sibling.
+  non-interactive `PortfolioControlGlyph`; buttons are positioned siblings, and fine pointers show `grab` or `grabbing`.
 - **Dragging adds no ghost and no text.** dnd-kit feedback is `clone` with the
   moving bar hidden; the in-place bar darkens and the target shows fill and border.
 - **A swap moves DOM, not React.** Each view renders once in its first-run slot

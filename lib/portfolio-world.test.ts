@@ -1,3 +1,5 @@
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import contentDocument from "../content/portfolio-content.json";
 import {
@@ -332,6 +334,28 @@ describe("accepted portfolio world", () => {
 });
 
 describe("authored content contract", () => {
+  it("ships every ready visual asset within the Cloudflare per-file limit", () => {
+    const assetUrls = new Set<string>();
+    for (const node of portfolioWorldNodes) {
+      for (const block of node.body) {
+        if (typeof block === "string" || block.type !== "visual" || block.status !== "ready") {
+          continue;
+        }
+        for (const url of [block.src, block.frameSrc, block.captionsSrc, block.poster]) {
+          if (url) assetUrls.add(url);
+        }
+        for (const slide of block.slides ?? []) {
+          for (const asset of slide.assets) assetUrls.add(asset.src);
+        }
+      }
+    }
+
+    for (const url of assetUrls) {
+      const size = statSync(join(process.cwd(), "public", url.slice(1))).size;
+      expect(size, url).toBeLessThanOrEqual(25 * 1024 * 1024);
+    }
+  });
+
   it("publishes the Dubs visual as three complete Apple-framed slides", () => {
     const dubsVisual = portfolioWorldNodeById
       .get("dubs")!

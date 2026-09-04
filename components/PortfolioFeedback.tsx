@@ -1,7 +1,8 @@
 "use client";
 
 // Reviewer notes for Bradley. Mounts only when the worker has set the readable
-// `portfolio_reviewer` cookie from a `?r=<code>` link (worker/portfolio-feedback.ts).
+// `portfolio_reviewer` cookie and the current URL carries the matching named
+// marker from a `?r=<code>` link (worker/portfolio-feedback.ts).
 // A reviewer writes a note, optionally points at one element on the page or
 // selects a run of text, and sends it. A selected quote can carry a suggested
 // replacement instead of a comment. The visit's own notes stay in component
@@ -37,6 +38,7 @@ export type PortfolioFeedbackTransport = {
 
 const NOTES_PATH = "/_portfolio-feedback/notes";
 const REVIEWER_COOKIE = "portfolio_reviewer";
+const REVIEWER_PARAM = "reviewer";
 const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 const REGION_CLASS = /^(portfolio|reader|avatar|cursor|scene)-[a-z0-9-]+$/u;
 const SELECTOR_DEPTH = 6;
@@ -198,6 +200,10 @@ type Mode = "comment" | "suggest";
 
 const subscribeToNothing = () => () => {};
 const readCookieReviewer = () => readReviewerCookie(document.cookie);
+const readUrlReviewer = () => {
+  const reviewer = new URLSearchParams(window.location.search).get(REVIEWER_PARAM);
+  return reviewer && REVIEWER_CODE.test(reviewer) ? reviewer : null;
+};
 const noReviewerOnServer = () => null;
 
 function currentPath() {
@@ -245,14 +251,20 @@ export function PortfolioFeedback({
   reviewer?: string;
   transport?: PortfolioFeedbackTransport;
 }) {
-  // The server never knows the cookie, so the first client render agrees with
-  // it (no reviewer) and the control appears after hydration.
+  // The server never knows the cookie or browser URL, so the first client
+  // render agrees with it (no reviewer) and the control appears after hydration.
   const cookieReviewer = useSyncExternalStore(
     subscribeToNothing,
     readCookieReviewer,
     noReviewerOnServer,
   );
-  const reviewer = reviewerOverride ?? cookieReviewer;
+  const urlReviewer = useSyncExternalStore(
+    subscribeToNothing,
+    readUrlReviewer,
+    noReviewerOnServer,
+  );
+  const reviewer = reviewerOverride ??
+    (cookieReviewer && cookieReviewer === urlReviewer ? cookieReviewer : null);
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [hover, setHover] = useState<Box | null>(null);
