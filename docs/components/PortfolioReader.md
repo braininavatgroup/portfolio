@@ -2,25 +2,20 @@
 
 Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx) · Gallery: `/design#reader` · Tests: `components/PortfolioReader.test.tsx`
 
-The dossier `<aside>` handles `about`, `record`, and `thread` reading modes with
-Privacy as its final in-flow line. Paragraphs support inline links and lists;
-visuals support image, gallery, video, and interactive dashboard evidence.
-Videos pause offscreen or behind their full-viewport player; dashboards mount
-in place with a separate full-page link. `.reader-scroll` owns position and
-attention tracking, which stops while hidden, unfocused, or idle.
+The dossier `<aside>` handles `about`, `record`, and `thread` modes, linked prose,
+and image, gallery, video, and dashboard evidence. Privacy stays last in flow;
+`.reader-scroll` owns position and attention tracking.
 
 ## Props
 
-`activeThreadId`, `selectedId`, `onReset`, `onSelect`, and `onSelectThread` are
-required. Each grouped-gallery trigger opens the Reader overlay on its own
-first asset. Mode is `record` for a non-Why, non-`bradley` `selectedId`, then
-`thread` when `activeThreadId` resolves, and `about` otherwise.
+All five props are required. Each gallery group opens on its first asset. Mode
+resolves to an ordinary selected record, then an active thread, then About.
 
 ## Requires
 
-A `.portfolio-composition` ancestor for tokens and a parent with a resolved
-height. The Reader fills its slot. Its scroll column is centered at up to
-680px with 24px gutters, which caps content at 632px; narrower slots reflow it.
+A `.portfolio-composition` token ancestor and resolved parent height. The
+680px column has 24px gutters. Laptop shells fit its 632px content track after
+their transparent canvas is trimmed; the full recording fills the screen aperture.
 
 ## Example
 
@@ -51,19 +46,22 @@ export function PortfolioReaderExample() {
 
 ## Pitfalls
 
-- **A `story`-family node in `selectedId` does not open a record.** Stories
-  are reached through `activeThreadId`.
-- **`?review=clean` changes the rendering,** adding
-  `.portfolio-reader-clean-review`; it is not the default surface.
+- **A story-family `selectedId` does not open a record.** Use `activeThreadId`.
+- **`?review=clean` adds `.portfolio-reader-clean-review`;** it is not default.
 - **The content area (`.reader-scroll`) scrolls, not the aside.** Each About,
   record, or thread opens at the top. Moving the Reader preserves this element,
   and analytics must observe it rather than document scroll.
-- **Reader has no route back to Contents.** The Reading Room mast and Contents
-  panel own Home and selection navigation.
-- **Visual state belongs to the Reader.** Escape and close return focus to the
-  trigger. Videos use a static device shell and hardware-decodable inline MP4;
-  the controlled raw player portals to the viewport. Other overlays stay bounded.
+- **Reader has no route back to Contents.** Its mast and panel own navigation.
+- **The Reader owns visual state.** Image and gallery overlays stay bounded
+  over a translucent paper wash and slight blur. The overlay names the current
+  asset, centers the label and `n of total` navigation, and restores trigger
+  focus on close.
+- **Ready videos do not use the Reader overlay.** A framed, silent loop prefers
+  Mux HLS (`muxPlaybackId`) and keeps its MP4 fail-safe. Capable browsers use
+  size-aware HLS.js; native HLS is the fallback. The same element enters native
+  fullscreen, with iPhone fallback; exit restores the loop, full composition,
+  and system cursor.
 - **Reader gallery groups are not overlay pages.** The dossier keeps the
-  authored groups, while the overlay advances one flattened asset at a time.
-- **`onOpenVisual` serves staged visuals.** Interactive dashboards stay in
-  the Reader and their full-page links report their own opens.
+  authored groups in shared rows of either three equal phones or one larger
+  phone, while the overlay advances one flattened asset at a time.
+- **Interactive dashboards stay in the Reader;** their full-page links report their own opens.

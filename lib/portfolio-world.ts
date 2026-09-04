@@ -64,6 +64,7 @@ export type PortfolioVisualBlock = {
   sourceStatus?: PortfolioVisualSourceStatus;
   format?: PortfolioVisualFormat;
   src?: string;
+  muxPlaybackId?: string;
   frameSrc?: string;
   alt?: string;
   caption?: string;
@@ -164,7 +165,9 @@ export const isPortfolioVisualReady = (
 
   const format = portfolioVisualFormat(block);
   if (format === "interactive") return Boolean(block.preview && block.href);
-  if (format === "video") return Boolean(block.src && block.captionsSrc);
+  if (format === "video") {
+    return Boolean((block.muxPlaybackId || block.src) && block.captionsSrc);
+  }
   if (format === "gallery" && block.slides?.length) {
     return block.slides.every((slide) => slide.assets.length > 0);
   }
@@ -216,6 +219,7 @@ function mergeBody(
       ...(block.sourceStatus ? { sourceStatus: block.sourceStatus } : {}),
       ...(block.format ? { format: block.format } : {}),
       ...(block.src ? { src: block.src } : {}),
+      ...(block.muxPlaybackId ? { muxPlaybackId: block.muxPlaybackId } : {}),
       ...(block.frameSrc ? { frameSrc: block.frameSrc } : {}),
       ...(entry.alt ? { alt: entry.alt } : {}),
       ...(entry.caption ? { caption: entry.caption } : {}),

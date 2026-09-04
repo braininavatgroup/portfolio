@@ -6,13 +6,12 @@ Gallery: `/design#composition` · Tests: `components/PortfolioExperience.test.ts
 The whole accepted composition in one component. It renders the
 `.experience.portfolio-composition` root and supplies one Reader, Map, and Guide
 to [`PortfolioReadingRoom`](./PortfolioReadingRoom.md). It remains the sole
-owner of selection, URL/history, active visuals, citation routing, the avatar
-lifecycle, and live-map Brain Food.
+owner of selection, URL/history, citation routing, the avatar lifecycle, and
+live-map Brain Food. The Reader owns its image and gallery viewer.
 Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 `pushState`; `popstate` reads it back. Only a selection or thread is in the
-URL, so returning home pushes one entry only when one was set; an open visual
-never pushes. Opening a visual sends the Room a `viewRequest` for the Map so
-it is revealed on every breakpoint, even with the side panes collapsed.
+URL, so returning home pushes one entry only when one was set; opening or
+closing Reader media never pushes or changes the active Reading Room view.
 The same callbacks report a generic selection source with the current record
 or thread ID. Accepted Guide evidence gets its own target signal; invalid
 targets remain no-ops.
@@ -47,8 +46,6 @@ export function PortfolioExperienceExample() {
 - **Two instances fight.** Both push history and install global game controls.
   Render exactly one.
 - **Keyboard bindings are ordered globally**: Escape first cancels Brain Food,
-  then closes a visual, then resets a Guide thread, then returns to About.
-  Exact Shift+G starts Brain Food on the live Map.
-- **Visual state includes its opening frame.** Reader gallery groups pass their
-  flattened asset offset so the map stage opens on the thumbnail that was
-  selected; closing restores focus to that trigger.
+  while the Reader's capture handler closes an open image or gallery viewer
+  before the Room resets a Guide thread or returns to About. Exact Shift+G
+  starts Brain Food on the live Map.

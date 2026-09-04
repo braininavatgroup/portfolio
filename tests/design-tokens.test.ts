@@ -12,12 +12,11 @@ async function readStylesheet() {
  * Custom properties the stylesheet reads but deliberately does not declare,
  * because JavaScript sets them inline. Each entry names the file that must
  * still do so — an orphaned reader paints `transparent` in silence otherwise,
- * which is exactly how three gallery specimens shipped painting nothing.
+ * which is exactly how dynamic composition values can fail in silence.
  */
 const inlineSetTokens: Readonly<Record<string, string>> = {
   "--cursor-a": "components/CursorInstrument.tsx",
   "--cursor-b": "components/CursorInstrument.tsx",
-  "--visual-asset-count": "components/PortfolioReader.tsx",
 };
 
 describe("design token contract", () => {

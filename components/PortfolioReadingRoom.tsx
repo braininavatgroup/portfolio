@@ -528,6 +528,7 @@ export function PortfolioReadingRoom({
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (document.fullscreenElement) return;
       if (onEscapeBeforeRoom?.()) return;
       if (guideHasThread) {
         onGuideReset();

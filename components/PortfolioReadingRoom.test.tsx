@@ -538,6 +538,21 @@ describe("PortfolioReadingRoom desktop", () => {
     expect(onGuideReset).toHaveBeenCalledTimes(2);
     expect(onHome).toHaveBeenCalledTimes(1);
   });
+
+  it("leaves Escape to a fullscreen video instead of returning the Reader home", () => {
+    const onHome = vi.fn();
+    const fullscreenVideo = document.createElement("video");
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: fullscreenVideo,
+    });
+    render(<PortfolioReadingRoom {...roomProps()} onHome={onHome} />);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onHome).not.toHaveBeenCalled();
+    Reflect.deleteProperty(document, "fullscreenElement");
+  });
 });
 
 describe("PortfolioReadingRoom mobile", () => {

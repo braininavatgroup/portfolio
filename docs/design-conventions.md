@@ -172,8 +172,8 @@ same everywhere the voice appears.
 | `--reader-type-row` | 400 15/24 | `--ink` | Contents, related, explore, and contact rows |
 | `--reader-type-body` | 400 15/24 | `--reader-body`, `text-wrap: pretty` | Paragraphs; the copy-placeholder prompt at weight 500 in `--ink` |
 | `--reader-type-mast` | 500 15/20 | `--ink` | Contents mast and group titles |
-| `--reader-type-secondary` | 400 13/18 | `--reader-muted` | Guide status copy |
-| `--reader-type-caption` | 400 12/16 | `--reader-muted`; `--ink` for control labels | Figure captions, placeholder meta, footer controls, node-control labels, the stage count and title |
+| `--reader-type-secondary` | 400 13/18 | `--reader-muted`; `--ink` for the active image label | Guide status copy, Reader image-overlay label |
+| `--reader-type-caption` | 400 12/16 | `--reader-muted`; `--ink` for control labels | Figure captions, placeholder meta, footer and overlay controls, node-control labels |
 | `--reader-type-label` | 500 11/16 | +0.06em, uppercase, `--reader-muted` | Section labels, placeholder labels, the stage eyebrow |
 | `--reader-type-tab` | 400 10/12 | +0.02em | Mobile tab labels only |
 
@@ -265,8 +265,7 @@ position (`PortfolioChat`). Everything else is a class.
   `.portfolio-world-mast`, `.portfolio-world-node`, `.portfolio-reader`,
   `.portfolio-reader-footer`, `.portfolio-chat`, `.portfolio-chat-panel`,
   `.portfolio-chat-head`, `.portfolio-chat-thread`, `.portfolio-chat-composer`,
-  `.portfolio-chat-trigger`, `.portfolio-visual-stage`,
-  `.portfolio-visual-stage-media`, `.portfolio-node-mark`,
+  `.portfolio-chat-trigger`, `.portfolio-node-mark`,
   `.portfolio-control-mark`, `.portfolio-mobile-view-control`,
   `.portfolio-feedback`.
 - `.reader-<part>` names the dossier's interior, once you are inside
@@ -281,12 +280,11 @@ shared with the legacy surface.
 
 **Rule 5.5** — Boolean state is a `data-` attribute on the element, selected as
 `[data-state="true"]`: `data-open`, `data-visible`, `data-action`, `data-held`,
-`data-has-thread`, `data-input-focused`, `data-visual-open`, `data-register`,
+`data-has-thread`, `data-input-focused`, `data-register`,
 `data-control`. A modifier class is used only when a whole region changes
-mode, and it is appended to that region's own class:
-`.portfolio-visual-open` and `.portfolio-mobile-map-open` on the composition
-root, `.portfolio-reader-clean-review` on the dossier. Never a `.is-` or
-`.active` class.
+mode, and it is appended to that region's own class, as with
+`.portfolio-reader-clean-review` on the dossier. Never a `.is-` or `.active`
+class.
 
 **Rule 5.6** — Declarations inside a rule are alphabetical. Selectors are flat;
 no CSS nesting is used. Related one-line rules may be written on a single line
@@ -374,10 +372,9 @@ the Reading Room namespace. Reader content is a centred column of at most
 narrower than 680px reflows it rather than clipping it.
 
 **Rule 6.8 — One page inset.** The map mast, the dossier's first line, the
-chat dock's corner, and the stage all sit 24 from the map area's edges; the
-mast and the dossier title share the display voice and the same top, so they
-sit on one baseline across the seam. The stage's top edge clears the mast row
-(24 + 40 + 24).
+chat dock's corner, and the dossier content all sit 24 from their area's edges;
+the mast and the dossier title share the display voice and the same top, so
+they sit on one baseline across the seam.
 
 **Rule 6.9 — Privacy is the bottom line.** The former Index/Home footer control
 is removed. About has no Contents row, and the Bradley mast is its Home control.
@@ -396,6 +393,9 @@ globally and `.cursor-instrument` is the only pointer. Consequences for new UI:
   custom property the cursor reads.
 - Do not set `cursor:` on a composition element — it is overridden by
   `!important` on fine pointers and the instrument is hidden on coarse ones.
+- A true-fullscreen video is the exception: restore `cursor: auto !important`
+  on the fullscreen element because the browser's top layer cannot contain the
+  fixed custom cursor.
 
 **Rule 6.11 — Escape and empty space reset.** Blank-space click, the Index
 control, and Escape return the world to overview. Blank-space drag does not
@@ -491,5 +491,5 @@ spacing token.
 - [ ] Selection added no new color; one label voice; one row shape.
 - [ ] `docs/design-tokens.md` updated if you added or retired a token.
 - [ ] Checked at 1440×900 and 390×844, in light and dark: home, Index, a
-      thread, a record, a record with the stage open, chat open. The mast and
-      the dossier title share a top edge at 24.
+      thread, a record, a record with an image overlay open, chat open. The mast
+      and the dossier title share a top edge at 24.
