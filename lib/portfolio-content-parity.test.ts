@@ -8,10 +8,12 @@
 import { describe, expect, it } from "vitest";
 import contentDocument from "../content/portfolio-content.json";
 import {
+  isPortfolioVisualReady,
   portfolioContact,
   portfolioThreads,
   portfolioWorldNodes,
   type PortfolioBodyBlock,
+  type PortfolioVisualBlock,
 } from "./portfolio-world";
 
 type TextBody = {
@@ -132,5 +134,24 @@ describe("portfolio content adapter fidelity", () => {
         portfolioContact.socials.map(({ key, label }) => [key, label]),
       ),
     ).toEqual(contentDocument.contact.socialLabels);
+  });
+
+  it("publishes the quarterly dashboard after the real-estate operation map", () => {
+    const realEstate = portfolioWorldNodes.find((node) => node.id === "real-estate");
+    const interactive = realEstate?.body.at(-1);
+
+    expect(realEstate?.body.at(-2)).toMatchObject({
+      id: "real-estate-operation-map",
+      type: "visual",
+    });
+    expect(interactive).toMatchObject({
+      format: "interactive",
+      href: "/demos/quarterly-dashboard",
+      id: "real-estate-quarterly-dashboard",
+      preview: "quarterly-dashboard",
+      status: "ready",
+      type: "visual",
+    });
+    expect(isPortfolioVisualReady(interactive as PortfolioVisualBlock)).toBe(true);
   });
 });
