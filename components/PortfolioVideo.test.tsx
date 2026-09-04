@@ -25,7 +25,7 @@ describe("PortfolioVideo", () => {
     const video = screen.getByLabelText("Campaign walkthrough");
     await waitFor(() =>
       expect(video.getAttribute("src")).toBe(
-        "https://stream.mux.com/mux123.m3u8",
+        "https://stream.mux.com/mux123.m3u8?min_resolution=720p",
       ),
     );
     expect(video.querySelector("source")).toBeNull();

@@ -57,8 +57,8 @@ export function PortfolioReaderExample() {
   asset, centers the label and `n of total` navigation, and restores trigger
   focus on close.
 - **Ready videos do not use the Reader overlay.** A framed, silent loop prefers
-  Mux HLS (`muxPlaybackId`) and keeps its MP4 fail-safe. Capable browsers use
-  size-aware HLS.js; native HLS is the fallback. The same element enters native
+  Mux HLS (`muxPlaybackId`) with a sharp-screen floor and keeps its MP4 fail-safe.
+  Capable browsers use size-aware HLS.js; native HLS is the fallback. It enters
   fullscreen, with iPhone fallback; exit restores the loop, full composition,
   and system cursor.
 - **Reader gallery groups are not overlay pages.** The dossier keeps the

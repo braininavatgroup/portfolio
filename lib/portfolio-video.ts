@@ -1,5 +1,8 @@
 const MUX_PLAYBACK_ID = /^[A-Za-z0-9_-]+$/;
 const MUX_STREAM_ORIGIN = "https://stream.mux.com";
+// For these 2940×1912 assets, Mux's 720p threshold leaves 1080p, 1440p,
+// and source-resolution renditions while omitting the visibly soft tiers.
+const MUX_SCREEN_RECORDING_FLOOR = "min_resolution=720p";
 
 type PortfolioHlsInstance = {
   attachMedia(video: HTMLVideoElement): void;
@@ -25,7 +28,7 @@ export function muxPortfolioVideoUrl(playbackId: string): string {
   if (!MUX_PLAYBACK_ID.test(playbackId)) {
     throw new Error("Invalid Mux playback ID");
   }
-  return `${MUX_STREAM_ORIGIN}/${playbackId}.m3u8`;
+  return `${MUX_STREAM_ORIGIN}/${playbackId}.m3u8?${MUX_SCREEN_RECORDING_FLOOR}`;
 }
 
 const loadHlsJs: PortfolioHlsLoader = async () => {

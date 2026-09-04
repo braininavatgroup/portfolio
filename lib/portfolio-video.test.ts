@@ -9,7 +9,7 @@ import {
 describe("portfolio video delivery", () => {
   it("builds only the portfolio's canonical Mux HLS URL", () => {
     expect(muxPortfolioVideoUrl("abc123XYZ")).toBe(
-      "https://stream.mux.com/abc123XYZ.m3u8",
+      "https://stream.mux.com/abc123XYZ.m3u8?min_resolution=720p",
     );
     expect(() => muxPortfolioVideoUrl("https://attacker.example/video")).toThrow(
       /Invalid Mux playback ID/,
@@ -38,7 +38,7 @@ describe("portfolio video delivery", () => {
     );
 
     expect(video.getAttribute("src")).toBe(
-      "https://stream.mux.com/native123.m3u8",
+      "https://stream.mux.com/native123.m3u8?min_resolution=720p",
     );
     expect(loadHls).toHaveBeenCalledTimes(1);
 
@@ -78,7 +78,7 @@ describe("portfolio video delivery", () => {
 
     expect(construct).toHaveBeenCalledWith({ capLevelToPlayerSize: true });
     expect(loadSource).toHaveBeenCalledWith(
-      "https://stream.mux.com/adaptive123.m3u8",
+      "https://stream.mux.com/adaptive123.m3u8?min_resolution=720p",
     );
     expect(attachMedia).toHaveBeenCalledWith(video);
     expect(video.hasAttribute("src")).toBe(false);
