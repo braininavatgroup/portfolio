@@ -136,14 +136,16 @@ describe("portfolio content adapter fidelity", () => {
     ).toEqual(contentDocument.contact.socialLabels);
   });
 
-  it("publishes the quarterly dashboard after the real-estate operation map", () => {
+  it("publishes the quarterly dashboard without an empty real-estate visual", () => {
     const realEstate = portfolioWorldNodes.find((node) => node.id === "real-estate");
     const interactive = realEstate?.body.at(-1);
 
-    expect(realEstate?.body.at(-2)).toMatchObject({
-      id: "real-estate-operation-map",
-      type: "visual",
-    });
+    expect(realEstate?.body).toHaveLength(2);
+    expect(
+      realEstate?.body.some(
+        (block) => typeof block !== "string" && block.id === "real-estate-operation-map",
+      ),
+    ).toBe(false);
     expect(interactive).toMatchObject({
       format: "interactive",
       href: "/demos/quarterly-dashboard",

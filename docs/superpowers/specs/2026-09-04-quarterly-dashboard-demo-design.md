@@ -37,13 +37,28 @@ The fixed corpus spans eight quarters from 2024 Q3 through 2026 Q2. Reloading th
 
 The route has no API dependency. Filtering, aggregation, CSV serialization, and chart geometry all run locally.
 
-`components/QuarterlyDashboardPreview.tsx` is a separate compact rendering for the portfolio reader. It imports the same generator and reporting functions as the full dashboard but does not import or scale the full-page component. The portfolio visual contract gains an `interactive` format with an explicit preview identifier and destination. That keeps the preview in the authored body order while allowing later interactive artifacts to use the same path.
+`components/QuarterlyDashboardPreview.tsx` mounts the same
+`QuarterlyDashboard` component used by the full route in its embedded mode.
+The portfolio visual contract has an `interactive` format with an explicit
+preview identifier and destination. That keeps the dashboard in the authored
+body order while allowing later interactive artifacts to use the same path.
 
 ## Portfolio journey
 
-The existing `real-estate` record remains the entry point. Its body places the compact dashboard after the planned operation-map visual. The preview contains the selected-quarter label, three headline metrics, a small trend, and a clear `Explore the dashboard` action. It is HTML rendered from the same deterministic runtime data as the full route. It is not an iframe or an image.
+The existing `real-estate` record remains the entry point. Its body places the
+working dashboard directly after the draft case-study copy. The empty planned
+operation-map visual is not rendered. The embedded dashboard is the real
+component: its tabs, filters, scorecards, full trend, drill-down, export, and
+print controls work inside the Reader. It is not an iframe, image, or visual
+approximation.
 
-The whole preview is one accessible link to `/demos/quarterly-dashboard`. It opens in the same tab. The full route places a slim portfolio-return bar above the dashboard with a link to `/?view=graph#real-estate`. Browser Back also returns to the prior portfolio state; the explicit link supplies a reliable destination for direct visits and bookmarks.
+A separate `Open full dashboard` link goes to
+`/demos/quarterly-dashboard` in the same tab. Keeping the link outside the
+dashboard preserves every embedded control. The full route places a slim
+portfolio-return bar above the dashboard with a link to
+`/?view=graph#real-estate`. Browser Back also returns to the prior portfolio
+state; the explicit link supplies a reliable destination for direct visits and
+bookmarks.
 
 The full route does not mount a second portfolio experience, map, reader, or Guide. The dashboard gets the full viewport, while the return bar makes its relationship to the case study explicit.
 
@@ -83,4 +98,8 @@ The generator is total for the fixed seed. Filters that produce zero matches kee
 
 Pure tests prove deterministic generation, filter composition, conversion-rate math, quarterly trend order, and CSV escaping. Component tests prove tab state, trend cross-filtering, scorecard drill-down, competitor filtering, and the empty state. Route tests prove metadata and rendered availability. Browser verification covers desktop and phone widths, console errors, failed requests, and screenshots.
 
-Reader integration tests prove that the real-estate record renders the compact preview in authored order, that its link reaches the dashboard route, and that the full route links back to the real-estate record. Browser verification covers the complete reader-to-dashboard-to-reader journey at desktop and phone widths.
+Reader integration tests prove that the real-estate record renders the working
+dashboard with no planned-gallery placeholder, that its link reaches the
+dashboard route, and that the full route links back to the real-estate record.
+Browser verification covers the complete reader-to-dashboard-to-reader journey
+at desktop and phone widths.

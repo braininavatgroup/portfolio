@@ -1,29 +1,32 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 
 afterEach(cleanup);
 
 describe("QuarterlyDashboardPreview", () => {
-  it("links a compact 2026 Q2 summary to the full dashboard", () => {
+  it("embeds the working dashboard and links to its full-page route", () => {
     render(
-      <QuarterlyDashboardPreview
-        href="/demos/quarterly-dashboard"
-        label="Quarterly pitch conversion dashboard"
-      />,
+      <QuarterlyDashboardPreview href="/demos/quarterly-dashboard" />,
     );
 
+    const dashboard = screen.getByRole("region", {
+      name: "Quarterly pitch conversion dashboard",
+    });
     expect(
-      screen.getByRole("link", { name: "Explore the dashboard" }).getAttribute("href"),
-    ).toBe("/demos/quarterly-dashboard");
-    expect(screen.getByText("2026 Q2")).not.toBeNull();
-    expect(screen.getByText("48", { selector: "strong" })).not.toBeNull();
-    expect(screen.getByText("16", { selector: "strong" })).not.toBeNull();
-    expect(screen.getByText("48.5%", { selector: "strong" })).not.toBeNull();
-    expect(
-      screen.getByRole("img", { name: "Eight-quarter pitch trend" }),
+      within(dashboard).getByRole("navigation", { name: "Dashboard pages" }),
     ).not.toBeNull();
+    expect(within(dashboard).getByRole("combobox", { name: "Year" })).not.toBeNull();
+    expect(
+      within(dashboard).getByRole("heading", {
+        level: 2,
+        name: "Ryan + Ryan Quarterly Pitch Conversion",
+      }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Open full dashboard" }).getAttribute("href"),
+    ).toBe("/demos/quarterly-dashboard");
   });
 });

@@ -56,10 +56,7 @@ export function QuarterlyDashboardExample() {
 // #example:QuarterlyDashboardPreview
 export function QuarterlyDashboardPreviewExample() {
   return (
-    <QuarterlyDashboardPreview
-      href="/demos/quarterly-dashboard"
-      label="Quarterly pitch conversion dashboard"
-    />
+    <QuarterlyDashboardPreview href="/demos/quarterly-dashboard" />
   );
 }
 // #example-end

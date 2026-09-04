@@ -4,11 +4,10 @@ Source: [`components/PortfolioReader.tsx`](../../components/PortfolioReader.tsx)
 
 The dossier `<aside>` handles `about`, `record`, and `thread` reading modes with
 Privacy as its final in-flow line. Paragraphs support inline links and lists;
-visuals support image, gallery, and video evidence. Images and galleries stay
-transparent and open over the Reader. Videos loop muted inside an official
-Apple frame composited over standard video, pausing offscreen or behind their
-full-viewport raw player. `.reader-scroll` owns position and attention tracking;
-time stops while hidden, unfocused, or idle. Analytics emit only safe IDs and kinds.
+visuals support image, gallery, video, and interactive dashboard evidence.
+Videos pause offscreen or behind their full-viewport player; dashboards mount
+in place with a separate full-page link. `.reader-scroll` owns position and
+attention tracking, which stops while hidden, unfocused, or idle.
 
 ## Props
 
@@ -66,3 +65,5 @@ export function PortfolioReaderExample() {
   the controlled raw player portals to the viewport. Other overlays stay bounded.
 - **Reader gallery groups are not overlay pages.** The dossier keeps the
   authored groups, while the overlay advances one flattened asset at a time.
+- **`onOpenVisual` serves staged visuals.** Interactive dashboards stay in
+  the Reader and their full-page links report their own opens.

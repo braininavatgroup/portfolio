@@ -307,7 +307,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     position: { x: 56.21, y: 86.84, z: 860 },
     body: [
       draft("real-estate-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("real-estate-operation-map", "comparison", "recreate"),
       readyInteractive(
         "real-estate-quarterly-dashboard",
         "quarterly-dashboard",
