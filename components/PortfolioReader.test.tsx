@@ -104,15 +104,15 @@ describe("PortfolioReader", () => {
     ]);
   });
 
-  it("opens on the About record as home, titled by its throughline", () => {
+  it("opens on the About record as home, titled by name with the throughline beneath", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
 
     const reader = screen.getByRole("complementary", { name: "Portfolio home" });
     expect(reader.getAttribute("data-reader-mode")).toBe("about");
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Bradley Berkman");
+    expect(container.querySelector(".reader-summary")?.textContent).toBe(
       portfolioWorldNodeById.get("bradley")!.summary,
     );
-    expect(container.querySelector(".reader-summary")).toBeNull();
     expect(container.querySelector(".reader-kind")).toBeNull();
     expect(container.querySelector(".reader-topbar")).toBeNull();
     expect(
@@ -122,14 +122,14 @@ describe("PortfolioReader", () => {
     expect(screen.getByRole("link", { name: portfolioContact.email })).toBeTruthy();
   });
 
-  it("treats Bradley's own node as home rather than a titled record", () => {
+  it("treats Bradley's own node as home, headed by his name without a topbar", () => {
     const { container } = render(
       <PortfolioReader {...baseProps} selectedId="bradley" />,
     );
 
     expect(screen.getByRole("complementary", { name: "Portfolio home" })).toBeTruthy();
     expect(container.querySelector(".reader-topbar")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Bradley Berkman" })).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Bradley Berkman" })).toBeTruthy();
   });
 
   it("links About's paragraphs to the practices, themes, and INFAMOUS in their registers", () => {

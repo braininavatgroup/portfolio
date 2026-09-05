@@ -91,7 +91,7 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.doesNotMatch(html, /Avatar developer controls|avatarDebug/i);
 });
 
-test("the homepage opens directly on the map with About as the untitled home", async () => {
+test("the homepage opens directly on the map with About as home, headed by name", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -100,7 +100,7 @@ test("the homepage opens directly on the map with About as the untitled home", a
   assert.doesNotMatch(html, /class=["'][^"']*portfolio-header[^"']*["']/i);
   assert.match(html, /data-reader-mode=["']about["']/i);
   assert.doesNotMatch(html, /<h1>Index<\/h1>/i);
-  assert.doesNotMatch(html, /<h1>Bradley Berkman<\/h1>/i);
+  assert.match(html, /<h1>Bradley Berkman<\/h1>/i);
   assert.match(html, /aria-label=["']Spatial portfolio world["']/i);
   assert.match(html, /aria-label=["']Portfolio home["']/i);
   // The Contents column and the inline practice links ship in the HTML.
