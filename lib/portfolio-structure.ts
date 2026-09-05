@@ -326,7 +326,30 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     summaryStatus: "placeholder",
     body: [
       draft("touring-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("touring-field-registry", "sequence", "recreate"),
+      readyGallery("touring-field-registry", [
+        {
+          assets: [
+            { src: "/visuals/touring/manager-advance.png" },
+            { src: "/visuals/touring/promoter-form.png" },
+            { src: "/visuals/touring/artist-dashboard.png" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/touring/day-sheet.png" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/touring/promoter-draft.png" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/touring/calendar-plan.png" },
+          ],
+        },
+      ]),
     ],
   },
   {

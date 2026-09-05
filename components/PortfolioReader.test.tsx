@@ -712,6 +712,36 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
   });
 
+  it("shows the Touring workflow as role screens followed by full-width outputs", () => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId="touring" />,
+    );
+
+    const groups = [...container.querySelectorAll(".reader-visual-gallery .reader-visual-trigger")];
+    expect(groups).toHaveLength(4);
+    expect(groups.map((group) => group.querySelectorAll("img").length)).toEqual([
+      3,
+      1,
+      1,
+      1,
+    ]);
+    expect(
+      groups.map((group) =>
+        [...group.querySelectorAll("img")].map((image) => image.getAttribute("src")),
+      ),
+    ).toEqual([
+      [
+        "/visuals/touring/manager-advance.png",
+        "/visuals/touring/promoter-form.png",
+        "/visuals/touring/artist-dashboard.png",
+      ],
+      ["/visuals/touring/day-sheet.png"],
+      ["/visuals/touring/promoter-draft.png"],
+      ["/visuals/touring/calendar-plan.png"],
+    ]);
+    expect(container.querySelector(".reader-placeholder-frame")).toBeNull();
+  });
+
   it("opens each Dubs gallery group at that group's first image", () => {
     const block = portfolioWorldNodeById.get("dubs")!.body.find(
       (candidate) => typeof candidate !== "string" && candidate.type === "visual",
