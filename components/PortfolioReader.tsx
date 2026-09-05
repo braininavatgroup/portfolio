@@ -21,8 +21,6 @@ import {
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 import { MacPanelFrame } from "./MacMenuBar";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
-import { EditableText } from "./editor/EditableText";
-import { EditorStatusLine } from "./editor/EditorStatusLine";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { attachPortfolioVideoSource } from "../lib/portfolio-video";
@@ -252,7 +250,7 @@ function IndexRow({
   return (
     <li>
       <button aria-label={node.label} className="reader-index-row" onClick={() => onSelect(node)} type="button">
-        <EditableText path={`records.${node.id}.label`} value={node.label} />
+        <span>{node.label}</span>
         <PortfolioNodeMark family={node.family} register={node.register} />
       </button>
     </li>
@@ -277,7 +275,7 @@ function ThreadIndexRow({
         onClick={() => onSelect(thread.id)}
         type="button"
       >
-        <EditableText path={`threads.${thread.id}.title`} value={thread.title} />
+        <span>{thread.title}</span>
         <PortfolioNodeMark family={node.family} register={node.register} />
       </button>
     </li>
@@ -322,13 +320,11 @@ export function ReaderPlaceholderFrame({
 
 function VisualBlock({
   block,
-  contentBase,
   insightContent,
   onOpen,
   videoPaused = false,
 }: {
   block: PortfolioVisualBlock;
-  contentBase: string;
   insightContent: InsightContent;
   onOpen?: OpenVisual;
   videoPaused?: boolean;
@@ -339,7 +335,6 @@ function VisualBlock({
     (format !== "video" ? block.src : undefined);
   const thumbnailAlt = block.alt ?? "";
   const ready = isPortfolioVisualReady(block);
-  const captionField = block.caption !== undefined ? "caption" : "purpose";
   const inlineVideoRef = useVisibleVideoPlayback(videoPaused);
   const nativeFullscreen = useNativeVideoFullscreen(inlineVideoRef);
 
@@ -404,10 +399,7 @@ function VisualBlock({
           />
         </div>
         <figcaption>
-          <EditableText
-            path={`${contentBase}.visuals.${block.id}.${captionField}`}
-            value={block.caption ?? block.purpose}
-          />
+          <span>{block.caption ?? block.purpose}</span>
         </figcaption>
       </figure>
     );
@@ -543,10 +535,7 @@ function VisualBlock({
           />
         )}
         <figcaption>
-          <EditableText
-            path={`${contentBase}.visuals.${block.id}.${captionField}`}
-            value={block.caption ?? block.purpose}
-          />
+          <span>{block.caption ?? block.purpose}</span>
         </figcaption>
       </figure>
     </button>
@@ -636,22 +625,6 @@ function ReaderVisualOverlay({
     </section>
   );
   return overlay;
-}
-
-// Pairs each prose block with its stable paragraph ID (p1, p2, … in authored
-// order), matching the content document's path grammar.
-function bodyWithParagraphIds(body: readonly PortfolioBodyBlock[]) {
-  const entries: Array<{ block: PortfolioBodyBlock; paragraphId: string | null }> = [];
-  let paragraphCount = 0;
-  for (const block of body) {
-    if (typeof block === "string") {
-      paragraphCount += 1;
-      entries.push({ block, paragraphId: `p${paragraphCount}` });
-    } else {
-      entries.push({ block, paragraphId: null });
-    }
-  }
-  return entries;
 }
 
 // A paragraph's inline `[label](record:id)` links become in-dossier controls:
@@ -751,7 +724,6 @@ function ParagraphFlow({
 
 function PortfolioBody({
   body,
-  contentBase,
   insightContent,
   onOpenVisual,
   onSelect,
@@ -759,42 +731,32 @@ function PortfolioBody({
   videoPreviewsPaused,
 }: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
   body: readonly PortfolioBodyBlock[];
-  contentBase: string;
   insightContent: InsightContent;
   onOpenVisual?: OpenVisual;
   videoPreviewsPaused?: boolean;
 }) {
   return (
     <section className="reader-composed-body">
-      {bodyWithParagraphIds(body).map(({ block, paragraphId }, index) => {
+      {body.map((block, index) => {
         if (typeof block === "string") {
-          const listed = paragraphHasList(block);
-          return (
-            <EditableText
-              as={listed ? "div" : "p"}
-              {...(listed ? { className: "reader-paragraph-group" } : {})}
-              key={`paragraph-${index}`}
-              multiline
-              path={`${contentBase}.paragraphs.${paragraphId}`}
-              render={(text) =>
-                listed ? (
-                  <ParagraphFlow
-                    insightContent={insightContent}
-                    onSelect={onSelect}
-                    onSelectThread={onSelectThread}
-                    text={text}
-                  />
-                ) : (
-                  <LinkedParagraph
-                    insightContent={insightContent}
-                    onSelect={onSelect}
-                    onSelectThread={onSelectThread}
-                    text={text}
-                  />
-                )
-              }
-              value={block}
-            />
+          return paragraphHasList(block) ? (
+            <div className="reader-paragraph-group" key={`paragraph-${index}`}>
+              <ParagraphFlow
+                insightContent={insightContent}
+                onSelect={onSelect}
+                onSelectThread={onSelectThread}
+                text={block}
+              />
+            </div>
+          ) : (
+            <p key={`paragraph-${index}`}>
+              <LinkedParagraph
+                insightContent={insightContent}
+                onSelect={onSelect}
+                onSelectThread={onSelectThread}
+                text={block}
+              />
+            </p>
           );
         }
         if (block.type === "copy-placeholder") {
@@ -804,26 +766,14 @@ function PortfolioBody({
               className="reader-copy-placeholder reader-text-placeholder"
               key={block.id}
             >
-              <EditableText
-                as="span"
-                className="reader-placeholder-label"
-                path="interface.reader.copyInProgress"
-                value={portfolioInterfaceText["reader.copyInProgress"]}
-              />
-              <EditableText
-                as="strong"
-                path={`${contentBase}.placeholders.${block.id}.prompt`}
-                value={block.prompt}
-              />
+              <span className="reader-placeholder-label">
+                {portfolioInterfaceText["reader.copyInProgress"]}
+              </span>
+              <strong>{block.prompt}</strong>
               {block.questions?.length ? (
                 <ul>
                   {block.questions.map((question, questionIndex) => (
-                    <EditableText
-                      as="li"
-                      key={`question-${questionIndex}`}
-                      path={`${contentBase}.placeholders.${block.id}.questions.q${questionIndex + 1}`}
-                      value={question}
-                    />
+                    <li key={`question-${questionIndex}`}>{question}</li>
                   ))}
                 </ul>
               ) : null}
@@ -833,7 +783,6 @@ function PortfolioBody({
         return (
           <VisualBlock
             block={block}
-            contentBase={contentBase}
             insightContent={insightContent}
             key={block.id}
             onOpen={onOpenVisual}
@@ -862,16 +811,10 @@ function ThreadRecord({
   if (!thread) return null;
   return (
     <div className="reader-content reader-thread-content">
-      <EditableText as="h1" path={`threads.${thread.id}.title`} value={thread.title} />
-      <EditableText
-        as="p"
-        className="reader-summary"
-        path={`threads.${thread.id}.lede`}
-        value={thread.lede}
-      />
+      <h1>{thread.title}</h1>
+      <p className="reader-summary">{thread.lede}</p>
       <PortfolioBody
         body={thread.body}
-        contentBase={`threads.${thread.id}`}
         insightContent={{ contentId: thread.id, contentKind: "thread" }}
         onOpenVisual={onOpenVisual}
         onSelect={onSelect}
@@ -879,11 +822,7 @@ function ThreadRecord({
         videoPreviewsPaused={videoPreviewsPaused}
       />
       <section className="reader-record-section">
-        <EditableText
-          as="h2"
-          path="interface.reader.exploreThread"
-          value={portfolioInterfaceText["reader.exploreThread"]}
-        />
+        <h2>{portfolioInterfaceText["reader.exploreThread"]}</h2>
         <ul className="reader-rows">
           {thread.members.map((nodeId) => {
             const node = portfolioWorldNodeById.get(nodeId);
@@ -928,17 +867,13 @@ function ContactRow({
 function ContactSection() {
   return (
     <section className="reader-record-section reader-contact">
-      <EditableText
-        as="h2"
-        path="interface.reader.contactTitle"
-        value={portfolioInterfaceText["reader.contactTitle"]}
-      />
+      <h2>{portfolioInterfaceText["reader.contactTitle"]}</h2>
       <ul className="reader-rows">
         <ContactRow href={`mailto:${portfolioContact.email}`} kind="email">
-          <EditableText path="contact.email" value={portfolioContact.email} />
+          <span>{portfolioContact.email}</span>
         </ContactRow>
         <ContactRow download href={portfolioContact.cv.href} kind="cv">
-          <EditableText path="contact.cvLabel" value={portfolioContact.cv.label} />
+          <span>{portfolioContact.cv.label}</span>
         </ContactRow>
         {portfolioContact.socials.map(({ label, href, key }) => (
           <ContactRow
@@ -948,7 +883,7 @@ function ContactSection() {
             rel="noreferrer"
             target="_blank"
           >
-            <EditableText path={`contact.socialLabels.${key}`} value={label} />
+            <span>{label}</span>
           </ContactRow>
         ))}
       </ul>
@@ -991,22 +926,20 @@ function WorldRecord({
   return (
     <div className="reader-content reader-record-content">
       {home ? (
-        <EditableText as="h1" path={`records.${node.id}.summary`} value={node.summary} />
+        <h1>{node.summary}</h1>
       ) : (
         <>
-          <EditableText as="h1" path={`records.${node.id}.label`} value={node.label} />
-          <EditableText
-            as="p"
+          <h1>{node.label}</h1>
+          <p
             className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
-            path={`records.${node.id}.summary`}
-            value={node.summary}
-          />
+          >
+            {node.summary}
+          </p>
         </>
       )}
       {node.body.length > 0 ? (
         <PortfolioBody
           body={node.body}
-          contentBase={`records.${node.id}`}
           insightContent={{ contentId: node.id, contentKind: "record" }}
           onOpenVisual={onOpenVisual}
           onSelect={onSelect}
@@ -1017,11 +950,7 @@ function WorldRecord({
       {node.id === HOME_NODE_ID ? <ContactSection /> : null}
       {!home && hasRelated ? (
         <section className="reader-record-section">
-          <EditableText
-            as="h2"
-            path="interface.reader.relatedTitle"
-            value={portfolioInterfaceText["reader.relatedTitle"]}
-          />
+          <h2>{portfolioInterfaceText["reader.relatedTitle"]}</h2>
           <ul className="reader-rows">
             {containingThreads.map((thread) => (
               <ThreadIndexRow
@@ -1224,14 +1153,10 @@ export function PortfolioReader({
             videoPreviewsPaused={Boolean(activeReaderVisual)}
           />
         )}
-        <EditorStatusLine />
         {/* Privacy is the dossier's last line and appears only once the
             reader has scrolled to the end. */}
         <a className="reader-privacy" href="/privacy">
-          <EditableText
-            path="interface.reader.privacyLink"
-            value={portfolioInterfaceText["reader.privacyLink"]}
-          />
+          {portfolioInterfaceText["reader.privacyLink"]}
         </a>
       </div>
       {activeReaderVisual ? (

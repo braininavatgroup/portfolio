@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { CursorInstrument } from "../components/CursorInstrument";
 import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
-import { ContentEditorProvider } from "../components/editor/ContentEditorProvider";
-import { EditableText } from "../components/editor/EditableText";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import "./globals.css";
 
@@ -30,18 +28,12 @@ export default function RootLayout({
       <body>
         <PortfolioAnalytics />
         <CursorInstrument />
-        <ContentEditorProvider>
-          <div id="app-shell">
-            <EditableText
-              as="a"
-              className="skip-link"
-              href="#main-content"
-              path="interface.layout.skipLink"
-              value={portfolioInterfaceText["layout.skipLink"]}
-            />
-            {children}
-          </div>
-        </ContentEditorProvider>
+        <div id="app-shell">
+          <a className="skip-link" href="#main-content">
+            {portfolioInterfaceText["layout.skipLink"]}
+          </a>
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -61,7 +61,6 @@ import {
 } from "../lib/portfolio-world";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import { PortfolioNodeMark } from "./PortfolioNodeMark";
-import { useEditableContent } from "./editor/EditableText";
 
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments
@@ -360,10 +359,7 @@ export function PortfolioChat({
   renderTurnstile: renderTurnstileWidget = renderTurnstile,
   turnstileSiteKey,
 }: PortfolioChatProps) {
-  const composerPlaceholder = useEditableContent(
-    "interface.chat.composerPlaceholder",
-    portfolioInterfaceText["chat.composerPlaceholder"],
-  );
+  const composerPlaceholder = portfolioInterfaceText["chat.composerPlaceholder"];
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
   const [failedQuestion, setFailedQuestion] = useState<{

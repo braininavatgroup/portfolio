@@ -4,7 +4,7 @@
 // injected into the right block, every contact label carried through. The
 // one-time migration-parity fixture (BIV-357) proved the migration itself and
 // retired with the frozen fixture; this test guards the adapter as the copy
-// keeps changing through the writing mode.
+// keeps changing through the copy deck.
 import { describe, expect, it } from "vitest";
 import contentDocument from "../content/portfolio-content.json";
 import {

@@ -1,7 +1,6 @@
 "use client";
 
 import { PortfolioControlMark, PortfolioNodeMark } from "./PortfolioNodeMark";
-import { EditableText } from "./editor/EditableText";
 import {
   portfolioInterfaceText,
   portfolioThreads,
@@ -106,21 +105,14 @@ export function PortfolioContents({
           onClick={() => navigate(onHome)}
           type="button"
         >
-          <EditableText
-            path="interface.world.mast"
-            value={portfolioInterfaceText["world.mast"]}
-          />
+          {portfolioInterfaceText["world.mast"]}
         </button>
       </div>
       <div className="portfolio-contents-scroll">
         <div className="portfolio-contents-groups">
           {portfolioWorldIndexSections.map((section) => (
             <section className="portfolio-contents-group" key={section.id}>
-              <EditableText
-                as="h2"
-                path={`interface.${section.titleKey}`}
-                value={section.title}
-              />
+              <h2>{section.title}</h2>
               <ul>
                 {section.type === "threads"
                   ? portfolioThreads.map((thread) => (
