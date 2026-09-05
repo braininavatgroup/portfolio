@@ -1,66 +1,76 @@
 "use client";
 
 import { useState } from "react";
+import type { CopyDeckPage } from "../../lib/portfolio-copy-deck";
 
-const OBSIDIAN_NEW_NOTE = "obsidian://new";
-const GOOGLE_DOCS_NEW = "https://docs.new";
+// Chrome and Edge expose the File System Access API; TypeScript's DOM lib
+// does not, so the two calls this component needs are declared here.
+type WritableFile = { write(data: string): Promise<void>; close(): Promise<void> };
+type FileHandle = { createWritable(): Promise<WritableFile> };
+type DirectoryHandle = {
+  name: string;
+  getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<DirectoryHandle>;
+  getFileHandle(name: string, options?: { create?: boolean }): Promise<FileHandle>;
+};
+type DirectoryPicker = (options?: { mode?: "read" | "readwrite" }) => Promise<DirectoryHandle>;
+
+function directoryPicker(): DirectoryPicker | null {
+  const picker = (window as unknown as { showDirectoryPicker?: DirectoryPicker }).showDirectoryPicker;
+  return typeof picker === "function" ? picker : null;
+}
+
+async function writePages(root: DirectoryHandle, folderName: string, pages: readonly CopyDeckPage[]) {
+  const folder = await root.getDirectoryHandle(folderName, { create: true });
+  for (const page of pages) {
+    const segments = page.path.split("/");
+    const fileName = segments.pop() as string;
+    let directory = folder;
+    for (const segment of segments) {
+      directory = await directory.getDirectoryHandle(segment, { create: true });
+    }
+    const file = await directory.getFileHandle(fileName, { create: true });
+    const writable = await file.createWritable();
+    await writable.write(page.content);
+    await writable.close();
+  }
+}
 
 export function CopyDeckActions({
-  fileName,
-  markdown,
+  folderName,
+  pages,
 }: {
-  fileName: string;
-  markdown: string;
+  folderName: string;
+  pages: readonly CopyDeckPage[];
 }) {
   const [status, setStatus] = useState<string | null>(null);
+  const canWriteFolder = typeof window !== "undefined" && directoryPicker() !== null;
 
-  async function copyDeck(): Promise<boolean> {
+  // Pick the vault (or any folder inside it); the notes land in a
+  // "Portfolio copy" folder there, overwriting the previous export so
+  // Obsidian keeps the same notes between rounds.
+  async function saveIntoVault() {
+    const picker = directoryPicker();
+    if (!picker) return;
     try {
-      await navigator.clipboard.writeText(markdown);
-      return true;
-    } catch {
-      setStatus("The browser refused the clipboard. Download the file instead.");
-      return false;
+      const root = await picker({ mode: "readwrite" });
+      await writePages(root, folderName, pages);
+      setStatus(`Saved ${pages.length} notes to ${root.name}/${folderName}.`);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setStatus("Could not write there. Download the folder instead.");
     }
-  }
-
-  // Open the tab first: a window opened after an await is a popup to most
-  // browsers. Google Docs turns pasted Markdown into headings and code spans
-  // when Tools > Preferences > "Enable Markdown" is on.
-  async function newGoogleDoc() {
-    window.open(GOOGLE_DOCS_NEW, "_blank", "noopener");
-    if (await copyDeck()) {
-      setStatus("Deck copied. Paste it into the new document.");
-    }
-  }
-
-  // Obsidian's URI reads the clipboard when asked, which keeps the whole deck
-  // out of the URL. The note lands in the last-opened vault.
-  async function newObsidianNote() {
-    if (!(await copyDeck())) return;
-    const name = fileName.replace(/\.md$/, "");
-    window.location.href = `${OBSIDIAN_NEW_NOTE}?name=${encodeURIComponent(name)}&clipboard`;
-    setStatus("Deck copied. Obsidian is opening it as a new note.");
-  }
-
-  async function copyOnly() {
-    if (await copyDeck()) setStatus("Deck copied.");
   }
 
   return (
     <div className="copy-deck-actions">
-      <button onClick={() => void newGoogleDoc()} type="button">
-        New Google Doc
-      </button>
-      <button onClick={() => void newObsidianNote()} type="button">
-        New Obsidian note
-      </button>
-      <a download={fileName} href="/copy-deck.md">
-        Download {fileName}
+      {canWriteFolder ? (
+        <button onClick={() => void saveIntoVault()} type="button">
+          Save into Obsidian vault
+        </button>
+      ) : null}
+      <a download={`${folderName}.zip`} href="/copy-deck.zip">
+        Download folder (.zip)
       </a>
-      <button onClick={() => void copyOnly()} type="button">
-        Copy Markdown
-      </button>
       <p aria-live="polite" className="copy-deck-status">
         {status}
       </p>
