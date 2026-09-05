@@ -925,18 +925,12 @@ function WorldRecord({
   const hasRelated = containingThreads.length > 0 || relatedIds.size > 0;
   return (
     <div className="reader-content reader-record-content">
-      {home ? (
-        <h1>{node.summary}</h1>
-      ) : (
-        <>
-          <h1>{node.label}</h1>
-          <p
-            className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
-          >
-            {node.summary}
-          </p>
-        </>
-      )}
+      <h1>{node.label}</h1>
+      <p
+        className={`reader-summary${node.summaryStatus === "placeholder" ? " reader-summary-placeholder reader-text-placeholder" : ""}`}
+      >
+        {node.summary}
+      </p>
       {node.body.length > 0 ? (
         <PortfolioBody
           body={node.body}
