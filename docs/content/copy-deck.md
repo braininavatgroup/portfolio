@@ -34,7 +34,9 @@ applies the edits by hand.
 | Contact | Email, CV label, social labels |
 | Interface strings | Buttons, headings, status lines, privacy page |
 
-Each section carries context lines (`> …`) saying where the text appears. A
+Each section carries context lines (`> …`) saying where the text appears.
+Not every field is visible: a record's `kind`, and a thread node's `node.kind`
+and `node.summary`, reach only screen readers and the Guide chat. A
 record's body follows the authored block order: paragraphs, copy placeholders
 (prompt and questions), and visual text (purpose, caption, alt). Gallery slide
 titles and captions appear as context only; the schema has no path for them.

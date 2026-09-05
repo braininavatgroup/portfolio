@@ -164,7 +164,9 @@ function renderRecord(
   }
   out.push(
     context(
-      "Label is the map node and the dossier heading. Kind is the small line under it. Summary is the one-sentence lead.",
+      structure.id === HOME_RECORD_ID
+        ? "Label is the record's name on the map. Summary is the headline at the top of the home page. Kind never shows on screen; screen readers and the Guide chat read it."
+        : "Label is the record's name: the dot on the map, its index row, and the heading when it opens. Summary is the one-sentence opener under that heading. Kind never shows on screen; screen readers and the Guide chat read it.",
     ),
   );
   out.push(field("label", record.label, false));
@@ -223,7 +225,7 @@ export function renderCopyDeck(
     if (node && nodeStructure) {
       parts.push(
         context(
-          "The thread's map node: node.label is the dot on the map and the index row, node.kind the small line, node.summary the one-sentence lead before the essay opens.",
+          "The thread's own map node. node.label is the dot on the map and its index row. node.kind and node.summary never show on screen; the Guide chat reads them when it talks about this thread.",
         ),
       );
       parts.push(field("node.label", node.label, false));
