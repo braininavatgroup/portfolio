@@ -23,6 +23,7 @@ inventory, and `/design` for the same components rendered in their states.
 | [CursorInstrument](./CursorInstrument.md) | The site cursor | `/design#cursor` |
 | [PortfolioAnalytics](./PortfolioAnalytics.md) | Replay consent and its control | `/design#analytics` |
 | [PortfolioFeedback](./PortfolioFeedback.md) | Reviewer notes for Bradley on the preview | none, see sheet |
+| [MacMenuBar](./MacMenuBar.md) | Live macOS menu bar over a captured panel | none, see sheet |
 
 ## Avatar
 

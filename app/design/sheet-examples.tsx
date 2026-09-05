@@ -13,6 +13,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useState } from "react";
 import { CursorInstrument } from "../../components/CursorInstrument";
+import { MacMenuBar, MacPanelFrame } from "../../components/MacMenuBar";
 import {
   PortfolioAnalytics,
   PortfolioAnalyticsPreference,
@@ -107,6 +108,24 @@ export function PortfolioAnalyticsExample() {
       {/* The opt-out control, as /privacy renders it. */}
       <PortfolioAnalyticsPreference storage={createMemoryStorage("granted")} />
     </>
+  );
+}
+// #example-end
+
+// #example:MacMenuBar
+export function MacMenuBarExample() {
+  // The bar fills whatever column it sits in, keeps the Writ icon on the
+  // midline, and re-spaces or sheds items as the column resizes. The panel
+  // frame hangs a captured panel from it; the capture's canvas is centred on
+  // the panel so centring the image centres the panel under the icon.
+  return (
+    <div className="portfolio-composition" style={{ width: 560 }}>
+      <MacMenuBar />
+      <MacPanelFrame
+        alt="Writ output priority list"
+        src="/visuals/writ/output-priority.png"
+      />
+    </div>
   );
 }
 // #example-end

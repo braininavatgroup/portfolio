@@ -131,6 +131,9 @@ only voice below 11px and appears only in mobile navigation. Nothing is
 | `--world-hit-area` | `34px` | World node button hit area | None |
 | `--cursor-size` | `34px` | Segmented cursor envelope | None |
 | `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile chat inset | None |
+| `--mac-menu-bar-gap-left` | `16px` | Spacing between live menu bar glyphs left of the centre icon; set inline by `MacMenuBar` from the measured column | None |
+| `--mac-menu-bar-gap-right` | `16px` | The same for the right side, chosen independently so both halves fill the column | None |
+| `--mac-menu-bar-glyph-invert` | `0` | Amount the dark template glyphs in a live menu bar are inverted; `1` in dark mode | Light `0` / Dark `1` |
 
 Geometry that is not spacing stays literal: the 18px mark box and 15-unit
 envelope, the 40px control hit box, the 12px figure-frame padding, the 6px

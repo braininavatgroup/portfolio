@@ -19,6 +19,7 @@ import {
   PortfolioNodeMark,
 } from "./PortfolioNodeMark";
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
+import { MacPanelFrame } from "./MacMenuBar";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { EditableText } from "./editor/EditableText";
 import { EditorStatusLine } from "./editor/EditorStatusLine";
@@ -478,14 +479,23 @@ function VisualBlock({
                       data-asset-count={row.length}
                       key={`${slide.title}:${rowIndex}`}
                     >
-                      {row.map((asset) => (
-                        <img
-                          alt={asset.alt}
-                          key={asset.src}
-                          loading="lazy"
-                          src={asset.src}
-                        />
-                      ))}
+                      {row.map((asset) =>
+                        asset.chrome === "mac-menu-bar" ? (
+                          <MacPanelFrame
+                            alt={asset.alt}
+                            key={asset.src}
+                            loading="lazy"
+                            src={asset.src}
+                          />
+                        ) : (
+                          <img
+                            alt={asset.alt}
+                            key={asset.src}
+                            loading="lazy"
+                            src={asset.src}
+                          />
+                        ),
+                      )}
                     </div>
                   ))}
                 </div>
@@ -582,7 +592,9 @@ function ReaderVisualOverlay({
       role="dialog"
     >
       <div className="reader-visual-overlay-media">
-        {asset ? (
+        {asset?.chrome === "mac-menu-bar" ? (
+          <MacPanelFrame alt={asset.alt} src={asset.src} />
+        ) : asset ? (
           <img alt={asset.alt} src={asset.src} />
         ) : (
           <ReaderPlaceholderFrame

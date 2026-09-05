@@ -70,8 +70,10 @@ export type PortfolioVisualSkeleton = {
   slides?: readonly PortfolioVisualSlideSkeleton[];
 };
 
+export type PortfolioVisualAssetChrome = "mac-menu-bar";
+
 export type PortfolioVisualSlideSkeleton = {
-  assets: readonly { src: string }[];
+  assets: readonly { src: string; chrome?: PortfolioVisualAssetChrome }[];
 };
 
 export type PortfolioBodyBlockSkeleton =
@@ -396,7 +398,25 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     summaryStatus: "placeholder",
     body: [
       draft("writ-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("writ-priority-behavior", "annotation", "capture"),
+      readyGallery("writ-priority-behavior", [
+        {
+          assets: [
+            { src: "/visuals/writ/output-priority.png", chrome: "mac-menu-bar" },
+            { src: "/visuals/writ/input-priority.png", chrome: "mac-menu-bar" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/writ/device-rules.png", chrome: "mac-menu-bar" },
+            { src: "/visuals/writ/settings-menu.png", chrome: "mac-menu-bar" },
+          ],
+        },
+        {
+          assets: [
+            { src: "/visuals/writ/keyboard-shortcuts.png" },
+          ],
+        },
+      ]),
     ],
   },
   {

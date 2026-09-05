@@ -777,7 +777,7 @@ describe("PortfolioReader", () => {
 
   it("opens image and gallery blocks through the same reader overlay", () => {
     const cases = [
-      { id: "writ", format: "image" },
+      { id: "writ", format: "gallery" },
       { id: "dubs", format: "gallery" },
       { id: "music-practice", format: "gallery" },
     ] as const;
@@ -786,7 +786,7 @@ describe("PortfolioReader", () => {
       const { unmount } = render(
         <PortfolioReader {...baseProps} selectedId={id} />,
       );
-      const trigger = id === "dubs"
+      const trigger = id === "dubs" || id === "writ"
         ? screen.getAllByRole("button", {
             name: /Open gallery visual in reader:/,
           })[0]
@@ -797,6 +797,29 @@ describe("PortfolioReader", () => {
       fireEvent.click(trigger);
       expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
       unmount();
+    }
+  });
+
+  it("hangs Writ panel captures from a live menu bar and leaves plain frames alone", () => {
+    render(<PortfolioReader {...baseProps} selectedId="writ" />);
+    const frames = document.querySelectorAll(".mac-panel-frame");
+    const chromeAssets = portfolioWorldNodeById
+      .get("writ")!
+      .body.flatMap((block) =>
+        typeof block !== "string" && block.type === "visual"
+          ? (block.slides ?? []).flatMap((slide) => slide.assets)
+          : [],
+      );
+    expect(chromeAssets.some((asset) => !asset.chrome)).toBe(true);
+    expect(frames).toHaveLength(
+      chromeAssets.filter((asset) => asset.chrome === "mac-menu-bar").length,
+    );
+    for (const frame of frames) {
+      const bar = frame.querySelector(".mac-menu-bar");
+      expect(bar).toBeTruthy();
+      // The Writ icon is the pinned centre item and every side icon is decorative.
+      expect(bar!.querySelector(".mac-menu-bar-center img")!.getAttribute("src")).toContain("/menu-bar/writ.png");
+      expect(frame.querySelector(":scope > img")!.getAttribute("src")).toContain("/visuals/writ/");
     }
   });
 

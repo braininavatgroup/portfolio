@@ -24,6 +24,7 @@ import {
   portfolioThreadStructures,
   type PortfolioBodyBlockSkeleton,
   type PortfolioOutlineType,
+  type PortfolioVisualAssetChrome,
   type PortfolioVisualFormat,
   type PortfolioVisualPreview,
   type PortfolioVisualSourceStatus,
@@ -37,6 +38,7 @@ import { stripInlineLinks } from "./portfolio-inline-links";
 export type {
   PortfolioOutlineType,
   PortfolioVisualFormat,
+  PortfolioVisualAssetChrome,
   PortfolioVisualPreview,
   PortfolioVisualSourceStatus,
   PortfolioVisualTreatment,
@@ -79,6 +81,8 @@ export type PortfolioVisualAsset = {
   src: string;
   alt: string;
   label?: string;
+  /** Live chrome rendered around the image, such as a macOS menu bar. */
+  chrome?: PortfolioVisualAssetChrome;
 };
 
 export type PortfolioVisualSlide = {
@@ -206,6 +210,7 @@ function mergeBody(
             src: asset.src,
             alt: assetText?.alt ?? "",
             ...(assetText?.label ? { label: assetText.label } : {}),
+            ...(asset.chrome ? { chrome: asset.chrome } : {}),
           };
         }),
       };

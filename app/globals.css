@@ -1107,6 +1107,7 @@ input:focus-visible {
 
 @media (prefers-color-scheme: dark) {
   .portfolio-composition {
+    --mac-menu-bar-glyph-invert: 1;
     --focus-ring: var(--world-acid);
     --ink: var(--reader-ink-dark);
     --map-muted: var(--map-muted-dark);
@@ -2252,6 +2253,86 @@ body:has(.portfolio-reading-room-mobile) {
   text-underline-offset: 3px;
 }
 
+/* A captured macOS panel hanging from a live menu bar. The bar fills the
+   column; the panel image is centred so its own centre sits under the active
+   icon. Glyphs are dark templates and invert with the reader theme. */
+.mac-panel-frame {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
+/* The capture renders at its native scale and only shrinks with the column,
+   so every panel is the same size on screen; the reader's image height cap
+   does not apply to it. */
+.mac-panel-frame > img,
+.reader-visual-block .reader-visual-slide-row .mac-panel-frame > img {
+  filter: drop-shadow(0 6px 9px var(--reader-media-shadow));
+  height: auto;
+  max-height: none;
+  max-width: 100%;
+  width: min(100%, 600px);
+}
+
+.mac-menu-bar {
+  --mac-menu-bar-gap-left: 16px;
+  --mac-menu-bar-gap-right: 16px;
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  height: 30px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.mac-menu-bar-side {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.mac-menu-bar-side[data-side="left"] {
+  gap: var(--mac-menu-bar-gap-left);
+  justify-content: flex-end;
+  padding-right: calc(var(--mac-menu-bar-gap-left) / 2);
+}
+
+.mac-menu-bar-side[data-side="right"] {
+  gap: var(--mac-menu-bar-gap-right);
+  justify-content: flex-start;
+  padding-left: calc(var(--mac-menu-bar-gap-right) / 2);
+}
+
+.mac-menu-bar-center {
+  border-radius: 5px;
+  display: grid;
+  padding: 3px 5px;
+  place-items: center;
+}
+
+.mac-menu-bar-center[data-active="true"] {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+/* Reader visual blocks stretch images to the column; bar glyphs keep their
+   intrinsic size from the width and height attributes instead. */
+.mac-menu-bar img,
+.reader-visual-block .mac-menu-bar img {
+  display: block;
+  filter: invert(var(--mac-menu-bar-glyph-invert, 0));
+  flex: none;
+  height: auto;
+  max-height: none;
+  max-width: none;
+  width: auto;
+}
+
+.mac-menu-bar img[data-color="true"] {
+  filter: none;
+}
+
 .reader-visual-gallery {
   display: grid;
   gap: var(--reader-space-4);
@@ -3263,6 +3344,7 @@ body:has(.portfolio-reading-room-mobile) {
 :where([data-theme="light"]) .portfolio-composition,
 .portfolio-composition[data-theme="light"],
 .design-gallery[data-theme="light"] {
+  --mac-menu-bar-glyph-invert: 0;
   --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-light);
   --map-muted: var(--map-muted-light);
@@ -3288,6 +3370,7 @@ body:has(.portfolio-reading-room-mobile) {
 :where([data-theme="dark"]) .portfolio-composition,
 .portfolio-composition[data-theme="dark"],
 .design-gallery[data-theme="dark"] {
+  --mac-menu-bar-glyph-invert: 1;
   --focus-ring: var(--world-acid);
   --ink: var(--reader-ink-dark);
   --map-muted: var(--map-muted-dark);

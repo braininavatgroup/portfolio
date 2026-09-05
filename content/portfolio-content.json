@@ -318,7 +318,33 @@
       },
       "visuals": {
         "writ-priority-behavior": {
-          "purpose": "Show the separate input and output priority lists and the cases where Writ deliberately leaves the current device untouched."
+          "purpose": "Show the separate input and output priority lists and the cases where Writ deliberately leaves the current device untouched.",
+          "caption": "One menu bar panel holds the standing order for output and input, the rules for when it steps aside, and the shortcuts that reach it without looking.",
+          "slides": [
+            {
+              "title": "Two lists, because the right answers differ",
+              "caption": "Output and input each keep their own priority order, with the device in use and the ones set to Never both visible.",
+              "assets": [
+                { "alt": "Writ output priority list with MacBook Air speakers in use and HomePod and AirPods ahead of it", "label": "Output order" },
+                { "alt": "Writ input priority list with the MOVO GM-7 receiving audio, a live level meter, and Voice Isolation on", "label": "Input order" }
+              ]
+            },
+            {
+              "title": "Where Writ leaves you alone",
+              "caption": "Each device carries its own rule, the built-in microphone steps aside when the lid is closed, and the app itself settles into a quiet menu bar item.",
+              "assets": [
+                { "alt": "Per-device menu in Writ on the MacBook microphone with Never Use This Device, Use Regardless of Lid, Icon and Label, and Move to Top", "label": "Per-device rules" },
+                { "alt": "Writ settings menu with Open at Login, Restore Priority Order, Keyboard Shortcuts, and update options", "label": "Quiet by default" }
+              ]
+            },
+            {
+              "title": "Reach it without looking",
+              "caption": "Global shortcuts for mute, push to talk, pausing enforcement, and stepping through devices, registered only for the combinations listed.",
+              "assets": [
+                { "alt": "Writ keyboard shortcuts window listing mute, push to talk, show or hide, pause enforcing, restore priority order, and next input or output", "label": "Shortcuts" }
+              ]
+            }
+          ]
         }
       }
     },

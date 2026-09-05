@@ -17,6 +17,8 @@ async function readStylesheet() {
 const inlineSetTokens: Readonly<Record<string, string>> = {
   "--cursor-a": "components/CursorInstrument.tsx",
   "--cursor-b": "components/CursorInstrument.tsx",
+  "--mac-menu-bar-gap-left": "components/MacMenuBar.tsx",
+  "--mac-menu-bar-gap-right": "components/MacMenuBar.tsx",
 };
 
 describe("design token contract", () => {
