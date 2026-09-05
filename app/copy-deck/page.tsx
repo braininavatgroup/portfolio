@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { copyDeckFileName, renderCopyDeck } from "../../lib/portfolio-copy-deck";
+import { COPY_DECK_FOLDER, renderCopyDeckPages } from "../../lib/portfolio-copy-deck";
 import { portfolioContentDocument } from "../../lib/portfolio-world";
 import { CopyDeckActions } from "./CopyDeckActions";
 
@@ -12,23 +12,22 @@ export const metadata: Metadata = {
 };
 
 // The unlisted export page for the copy deck. Bradley opens it on the live
-// site, sends the deck into a fresh Google Doc or Obsidian note, edits there,
-// and hands the edited deck to an agent. Nothing here writes anywhere.
+// site and writes the folder of notes into his Obsidian vault, edits there,
+// and hands the edited folder to an agent. Nothing here writes to the site.
 export default function CopyDeckPage() {
-  const exportedOn = new Date().toISOString().slice(0, 10);
-  const deck = renderCopyDeck(portfolioContentDocument, { exportedOn });
+  const pages = renderCopyDeckPages(portfolioContentDocument);
   return (
     <main className="privacy-page copy-deck-page" id="main-content" tabIndex={-1}>
       <Link href="/">Back to the portfolio</Link>
       <h1>Copy deck</h1>
       <p>
-        Every piece of text on the site, once, in reading order, as Markdown. Content revision{" "}
-        {portfolioContentDocument.revision}.
+        One clean Markdown note per page of the site, in a folder called {COPY_DECK_FOLDER}. Revision{" "}
+        {portfolioContentDocument.revision}, {pages.length} notes.
       </p>
-      <CopyDeckActions fileName={copyDeckFileName(exportedOn)} markdown={deck} />
+      <CopyDeckActions folderName={COPY_DECK_FOLDER} pages={pages} />
       <p>
-        Edit in the document, then give it to an agent and ask it to apply the copy deck edits. The
-        agent diffs your deck against the live copy and changes only what you changed.
+        Edit the notes, then give the folder to an agent and ask it to apply the copy deck edits. The
+        agent diffs your notes against the live copy and changes only what you changed.
       </p>
     </main>
   );
