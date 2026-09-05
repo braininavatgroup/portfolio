@@ -99,7 +99,7 @@ test("the copy deck is served as a zip of notes and from its export page", async
   assert.deepEqual(Array.from(bytes.slice(0, 4)), [0x50, 0x4b, 0x03, 0x04]);
   const text = new TextDecoder().decode(bytes);
   assert.ok(text.includes("Portfolio copy/Bradley Berkman.md"));
-  assert.ok(text.includes("Portfolio copy/Threads/Making work playable.md"));
+  assert.ok(text.includes(`Portfolio copy/${content.interface["index.section.threads"]}/Making work playable.md`));
   assert.ok(text.includes("Portfolio copy/Site text.md"));
   assert.ok(text.includes(content.records.bradley.paragraphs.p1));
 

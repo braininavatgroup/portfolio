@@ -52,10 +52,9 @@ describe("renderCopyDeckPages", () => {
   it("writes one note per page of the site, in site order, plus the site text", () => {
     expect(pages.map((page) => page.path)).toEqual([
       "Bradley Berkman.md",
-      "Threads/Making work playable.md",
-      "Threads/From argument to instrument.md",
-      "Threads/Authorship.md",
-      "Threads/Philosophy.md",
+      ...["making-work-playable", "from-argument-to-instrument", "philosophy"].map(
+        (id) => `${document.interface["index.section.threads"]}/${copyDeckNoteName(document.threads[id].title)}`,
+      ),
       ...["music-practice", "systems-consulting", "product-studio", "infamous"].map(
         (id) => `${document.interface["index.section.operations"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
@@ -117,7 +116,7 @@ describe("renderCopyDeckPages", () => {
   it("renders a thread as its title and bold lede, and parks its map node text in the site text", () => {
     const thread = document.threads["making-work-playable"];
     const node = document.records["thread-making-work-playable"];
-    expect(pageAt("Threads/Making work playable.md").startsWith(`# ${thread.title}\n\n**${thread.lede}**\n\n`)).toBe(true);
+    expect(pageAt(`${document.interface["index.section.threads"]}/Making work playable.md`).startsWith(`# ${thread.title}\n\n**${thread.lede}**\n\n`)).toBe(true);
     const siteText = pageAt(COPY_DECK_SITE_TEXT_NOTE);
     expect(siteText).toContain(`### ${node.label}\n\n${node.summary}`);
   });

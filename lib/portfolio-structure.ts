@@ -175,6 +175,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p2"),
       para("p3"),
       para("p4"),
+      para("p5"),
+      para("p6"),
     ],
   },
   {
@@ -241,7 +243,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     status: "active",
     summaryStatus: "placeholder",
     body: [
-      draft("product-studio-record", ["q1", "q2"]),
+      draft("product-studio-record", ["q1"]),
       plannedVisual("product-studio-relationship", "sequence", "recreate"),
     ],
   },
@@ -463,15 +465,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     body: [para("p1")],
   },
   {
-    id: "thread-authorship",
-    outlineType: "why",
-    family: "story",
-    register: "story",
-    position: { x: 58.82, y: 52.08, z: 700 },
-    summaryStatus: "placeholder",
-    body: [draft("authorship-record")],
-  },
-  {
     id: "thread-philosophy",
     outlineType: "why",
     family: "story",
@@ -531,25 +524,6 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     members: [
       "thread-philosophy",
       "thread-making-work-playable",
-      "thread-authorship",
-    ],
-  },
-  {
-    id: "authorship",
-    nodeId: "thread-authorship",
-    body: [draft("authorship-thread")],
-    members: [
-      "music-practice",
-      "systems-consulting",
-      "product-studio",
-      "kickoff",
-      "pitching",
-      "reporting",
-      "real-estate",
-      "touring",
-      "dubs",
-      "writ",
-      "yoohoo",
     ],
   },
   {
