@@ -323,19 +323,14 @@
     "writ": {
       "label": "Writ",
       "kind": "In Production",
-      "summary": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "writ-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The problem: macOS has no concept of audio-device priority and follows the last thing you plugged in. Writ is the standing order the audio system obeys.",
-            "q2": "Input and output get separate lists, because the right answers differ.",
-            "q3": "The pain-earned details: the built-in mic is skipped when the lid is closed, AirPlay speakers keep the name you give them, a device picked by hand is respected, AirPlay is never overridden, and with nothing eligible connected Writ leaves you where you are.",
-            "q4": "Status: signed and notarized, in daily use on my own machine, being prepared for public release."
-          }
-        }
+      "summary": "A macOS menu bar app that gives audio devices a priority order the system follows.",
+      "paragraphs": {
+        "p1": "macOS has no concept of audio device priority. It switches to whatever connected most recently, so taking your AirPods out of their case steals the output, a closed lid leaves the built-in microphone selected while it hears nothing, until every call opens with the same silent panic: which mic is live, and where is the audio about to come out? Writ replaces that with a ranked list per direction. It keeps the Mac on the highest-ranked device that is actually available and returns to it whenever something else takes over.",
+        "p2": "Input and output have separate lists because the right answers differ. You almost always want your good microphone, yet when you put on headphones you do want the output to follow. On first run the list is ranked by what each device is: a USB microphone above a headset, a monitor at the bottom. Two rules are applied automatically. Display audio is never used, and the built-in microphone is only used when the lid is open.",
+        "p3": "Most of the engineering went into the cases where the obvious rule is wrong. On Apple silicon the built-in microphone is disconnected in hardware when the lid closes, below anything software can observe, so it still appears in every menu while capturing silence. Writ polls the lid and skips it. AirPlay speakers all report their name as \"AirPlay\" and change identifier each time they reconnect, so a HomePod kept appearing as a new device until entries were keyed on the stable part of the identifier. Label a speaker once and it becomes permanent. Writ never takes you off AirPlay, since nobody sends audio to a HomePod by accident.",
+        "p4": "A tool that runs in the background has to earn trust in small ways. A device you pick by hand is left alone. Two shortcuts ship bound, mute and show, while four more wait unassigned, because a global shortcut is taken from every other app. They are registered through the system hot key service, so Writ never asks for Accessibility permission and cannot read the keyboard. The input meter measures level and discards the audio. Writ is signed, notarized, and in daily use, with public release waiting on a licensing decision."
       },
+      "placeholders": {},
       "visuals": {
         "writ-priority-behavior": {
           "purpose": "Show the separate input and output priority lists and the cases where Writ deliberately leaves the current device untouched.",

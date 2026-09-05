@@ -403,9 +403,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "product",
     register: "cool",
     position: { x: 100.06, y: 63.03, z: 890 },
-    summaryStatus: "placeholder",
     body: [
-      draft("writ-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
       readyGallery("writ-priority-behavior", [
         {
           assets: [
@@ -425,6 +425,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
           ],
         },
       ]),
+      para("p3"),
+      para("p4"),
     ],
   },
   {
