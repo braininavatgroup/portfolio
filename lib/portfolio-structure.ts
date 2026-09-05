@@ -323,9 +323,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "engagement",
     register: "bridge",
     position: { x: 71.04, y: 84.77, z: 890 },
-    summaryStatus: "placeholder",
     body: [
-      draft("touring-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
       readyGallery("touring-field-registry", [
         {
           assets: [
@@ -350,6 +350,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
           ],
         },
       ]),
+      para("p3"),
+      para("p4"),
     ],
   },
   {
