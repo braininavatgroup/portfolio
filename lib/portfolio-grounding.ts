@@ -39,7 +39,7 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
     `Summary: ${node.summary}`,
     ...portfolioBodyText(node.body),
     ...(threads.length
-      ? [`Threads: ${threads.map(({ title }) => title).join("; ")}`]
+      ? [`Themes: ${threads.map(({ title }) => title).join("; ")}`]
       : []),
   ];
   return {

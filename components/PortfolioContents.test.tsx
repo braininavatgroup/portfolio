@@ -42,7 +42,7 @@ describe("PortfolioContents", () => {
     const { container } = render(<PortfolioContents {...baseProps} />);
 
     const rows = [...container.querySelectorAll(".portfolio-contents-row")];
-    expect(rows).toHaveLength(16);
+    expect(rows).toHaveLength(15);
     for (const row of rows) {
       expect(row.tagName).toBe("BUTTON");
       expect(row.parentElement?.tagName).toBe("LI");
@@ -109,7 +109,7 @@ describe("PortfolioContents", () => {
       />,
     );
 
-    const threadGroup = screen.getByRole("heading", { name: "Threads" }).closest("section")!;
+    const threadGroup = screen.getByRole("heading", { name: "Themes" }).closest("section")!;
     const threadRow = within(threadGroup).getByRole("button", { name: thread.title });
     expect(threadRow.getAttribute("data-selected")).toBe("true");
     fireEvent.click(threadRow);

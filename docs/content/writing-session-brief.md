@@ -51,13 +51,12 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
    chat already carry the detail), real LinkedIn/GitHub/Instagram URLs in
    `portfolioContact`, and the CV file at `public/cv/bradley-berkman-cv.pdf`
    (the link exists and 404s until the file lands).
-3. **4 Threads as serialized essays** — expand each `lede`/`body` into a real
+3. **3 Themes as serialized essays** — expand each `lede`/`body` into a real
    piece. The current structural contracts are:
    - *Making work playable* → kickoff, pitching, reporting, real estate,
      touring, Dubs, Writ, and Yoohoo.
-   - *From argument to instrument* → Philosophy, Making work playable, and
-     Authorship as a chronological arc.
-   - *Authorship* → the three active practices and all eight What records.
+   - *From argument to instrument* → Philosophy and Making work playable as
+     a chronological arc.
    - *Philosophy* → pitching, reporting, real estate, touring, and Writ.
    A useful lens: each thread answers a question a visitor arrives with
    ("how would this person run my operation?" / "can they build?" /

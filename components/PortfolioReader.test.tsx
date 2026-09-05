@@ -117,7 +117,7 @@ describe("PortfolioReader", () => {
     expect(container.querySelector(".reader-topbar")).toBeNull();
     expect(
       container.querySelector(".reader-composed-body > p")?.textContent,
-    ).toMatch(/^Hey, I'm Bradley\. I run Brain in a Vat Group/);
+    ).toMatch(/^Hey, I'm Bradley\.$/);
     expect(container.querySelector(".reader-index-group")).toBeNull();
     expect(screen.getByRole("link", { name: portfolioContact.email })).toBeTruthy();
   });
@@ -132,22 +132,29 @@ describe("PortfolioReader", () => {
     expect(screen.queryByRole("heading", { name: "Bradley Berkman" })).toBeNull();
   });
 
-  it("links About's first sentence to the three practices in their register", () => {
+  it("links About's paragraphs to the practices, themes, and INFAMOUS in their registers", () => {
     const onSelect = vi.fn();
-    render(<PortfolioReader {...baseProps} onSelect={onSelect} />);
+    const onSelectThread = vi.fn();
+    render(<PortfolioReader {...baseProps} onSelect={onSelect} onSelectThread={onSelectThread} />);
 
     const links = screen.getAllByRole("button").filter((button) =>
       button.classList.contains("reader-inline-link"),
     );
     expect(links.map((link) => link.textContent)).toEqual([
       "music promotions",
-      "systems and AI",
-      "software",
+      "systems and AI consulting",
+      "software product studio",
+      "internal tooling and automations",
+      "INFAMOUS PR",
+      "Philosophy",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
       "warm",
       "warm",
+      "story",
+      "warm",
+      "story",
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
 
@@ -156,6 +163,11 @@ describe("PortfolioReader", () => {
       "music-practice",
       "systems-consulting",
       "product-studio",
+      "infamous",
+    ]);
+    expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual([
+      "making-work-playable",
+      "philosophy",
     ]);
   });
 
@@ -214,7 +226,6 @@ describe("PortfolioReader", () => {
   });
 
   it.each([
-    ["authorship", "thread-authorship"],
     ["philosophy", "thread-philosophy"],
   ])("renders the %s Why as copy in progress", (activeThreadId, selectedId) => {
     render(
@@ -922,7 +933,7 @@ describe("PortfolioReader", () => {
       />,
     );
 
-    expect(screen.queryByRole("heading", { name: "Threads" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Themes" })).toBeNull();
     expect(container.querySelector(".reader-path")).toBeNull();
     const sections = [...container.querySelectorAll(".reader-record-section")];
     const related = sections.find((section) => section.querySelector("h2")?.textContent === "Related")!;

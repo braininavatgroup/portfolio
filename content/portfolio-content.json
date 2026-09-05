@@ -1,16 +1,18 @@
 {
   "version": 1,
-  "revision": 5,
+  "revision": 6,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
       "kind": "About",
       "summary": "I make complexity legible enough to act on.",
       "paragraphs": {
-        "p1": "Hey, I'm Bradley. I run Brain in a Vat Group, which includes a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consulting practice, and a product studio focused on [software](record:product-studio).",
-        "p2": "Before founding BiV, I launched and led the music-promotions division at INFAMOUS PR. Prior to that, I studied Philosophy, Politics, and Law, with a Music Industry minor, at the University of Southern California.",
-        "p3": "Beyond my work, I enjoy: raving, arguing about the philosophy of consciousness, trading sheep for brick over a Catan board, and the ongoing search for New York City's finest hamburger.",
-        "p4": "Thanks for checking out my portfolio!"
+        "p1": "Hey, I'm Bradley.",
+        "p2": "I founded and run Brain in a Vat Group, a company with three arms: [music promotions](record:music-practice), [systems and AI consulting](record:systems-consulting), and a [software product studio](record:product-studio). I get a real kick out of wrapping my head around messy processes and turning them into systems that anyone can see, run, measure, and improve.",
+        "p3": "Day to day, that means running promotions campaigns for electronic artists and record labels, helping other teams level up their operations, and scratching a few itches of my own that have turned into shipped software. Across the board, I’m designing, building, and iterating on the [internal tooling and automations](thread:making-work-playable) that drive the businesses.",
+        "p4": "Before BiV, I launched and led the Music Promotions division at [INFAMOUS PR](record:infamous). Prior to that, I completed my degree in [Philosophy](thread:philosophy), Politics, and Law at the University of Southern California, with a secondary focus in Music Industry.",
+        "p5": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
+        "p6": "Thanks for stopping by."
       },
       "placeholders": {},
       "visuals": {}
@@ -98,14 +100,13 @@
         "product-studio-record": {
           "prompt": "Draft the Product Studio record and explain how Dubs, Writ, and Yoohoo emerge from the operating practices.",
           "questions": {
-            "q1": "What makes this a studio rather than simply a collection of personal tools?",
-            "q2": "What is the honest current operating model and maturity?"
+            "q1": "What makes this a studio rather than simply a collection of personal tools?"
           }
         }
       },
       "visuals": {
         "product-studio-relationship": {
-          "purpose": "Show the relationship between the operating practices, recurring problems, and Dubs, Writ, and Yoohoo."
+          "purpose": "Show the relationship between the operating practices, recurring problems, and Dubs, Writ, and my other work/themes."
         }
       }
     },
@@ -221,9 +222,18 @@
               "title": "Manager, promoter, artist",
               "caption": "Each person sees the same show through the details they own.",
               "assets": [
-                { "alt": "Manager advance screen for Maya Vale at Public Records", "label": "Manager advance" },
-                { "alt": "Promoter advance form for Maya Vale at Public Records", "label": "Promoter form" },
-                { "alt": "Artist dashboard showing Maya Vale's Public Records show", "label": "Artist dashboard" }
+                {
+                  "alt": "Manager advance screen for Maya Vale at Public Records",
+                  "label": "Manager advance"
+                },
+                {
+                  "alt": "Promoter advance form for Maya Vale at Public Records",
+                  "label": "Promoter form"
+                },
+                {
+                  "alt": "Artist dashboard showing Maya Vale's Public Records show",
+                  "label": "Artist dashboard"
+                }
               ]
             }
           ]
@@ -236,7 +246,10 @@
               "title": "Day sheet",
               "caption": "The same record becomes the document the team uses on show day.",
               "assets": [
-                { "alt": "Completed Maya Vale day sheet with venue, schedule, travel, and contact details", "label": "Day sheet" }
+                {
+                  "alt": "Completed Maya Vale day sheet with venue, schedule, travel, and contact details",
+                  "label": "Day sheet"
+                }
               ]
             }
           ]
@@ -249,7 +262,10 @@
               "title": "Gmail draft",
               "caption": "Missing promoter details return to Gmail for manager review. Nothing sends automatically.",
               "assets": [
-                { "alt": "Unsent Gmail draft asking the promoter to confirm missing advance details", "label": "Unsent promoter draft" }
+                {
+                  "alt": "Unsent Gmail draft asking the promoter to confirm missing advance details",
+                  "label": "Unsent promoter draft"
+                }
               ]
             }
           ]
@@ -262,7 +278,10 @@
               "title": "Calendar event",
               "caption": "The artist gets the venue, time, contact, and day-sheet context in Google Calendar.",
               "assets": [
-                { "alt": "Google Calendar event for Maya Vale's set at Public Records", "label": "Artist calendar event" }
+                {
+                  "alt": "Google Calendar event for Maya Vale's set at Public Records",
+                  "label": "Artist calendar event"
+                }
               ]
             }
           ]
@@ -294,26 +313,50 @@
               "title": "Catch the thought where it happens",
               "caption": "Four frames make the continuity of the interaction visible.",
               "assets": [
-                { "alt": "Dubs controls available from the iPhone Lock Screen", "label": "Available mid-stride" },
-                { "alt": "Reading and listening to a document in Dubs", "label": "Read and listen" },
-                { "alt": "Writing an inline note while reading in Dubs", "label": "Capture the reaction" },
-                { "alt": "A Dubs markup attached to its source passage", "label": "Keep the context" }
+                {
+                  "alt": "Dubs controls available from the iPhone Lock Screen",
+                  "label": "Available mid-stride"
+                },
+                {
+                  "alt": "Reading and listening to a document in Dubs",
+                  "label": "Read and listen"
+                },
+                {
+                  "alt": "Writing an inline note while reading in Dubs",
+                  "label": "Capture the reaction"
+                },
+                {
+                  "alt": "A Dubs markup attached to its source passage",
+                  "label": "Keep the context"
+                }
               ]
             },
             {
               "title": "What accumulates",
               "caption": "The product moves from interaction craft to a library that records attention and taste.",
               "assets": [
-                { "alt": "The Dubs library showing saved documents and listening progress", "label": "A linked library" },
-                { "alt": "A tagged view of documents in Dubs", "label": "Recorded taste" },
-                { "alt": "Rules for a Perspective in Dubs", "label": "A chosen perspective" }
+                {
+                  "alt": "The Dubs library showing saved documents and listening progress",
+                  "label": "A linked library"
+                },
+                {
+                  "alt": "A tagged view of documents in Dubs",
+                  "label": "Recorded taste"
+                },
+                {
+                  "alt": "Rules for a Perspective in Dubs",
+                  "label": "A chosen perspective"
+                }
               ]
             },
             {
               "title": "Connect your agent",
               "caption": "The library becomes context an agent can use, with its scope and authority kept visible.",
               "assets": [
-                { "alt": "Dubs MCP setup with token and pending authorization controls", "label": "MCP connection" }
+                {
+                  "alt": "Dubs MCP setup with token and pending authorization controls",
+                  "label": "MCP connection"
+                }
               ]
             }
           ]
@@ -340,23 +383,38 @@
               "title": "Two lists, because the right answers differ",
               "caption": "Output and input each keep their own priority order, with the device in use and the ones set to Never both visible.",
               "assets": [
-                { "alt": "Writ output priority list with MacBook Air speakers in use and HomePod and AirPods ahead of it", "label": "Output order" },
-                { "alt": "Writ input priority list with the MOVO GM-7 receiving audio, a live level meter, and Voice Isolation on", "label": "Input order" }
+                {
+                  "alt": "Writ output priority list with MacBook Air speakers in use and HomePod and AirPods ahead of it",
+                  "label": "Output order"
+                },
+                {
+                  "alt": "Writ input priority list with the MOVO GM-7 receiving audio, a live level meter, and Voice Isolation on",
+                  "label": "Input order"
+                }
               ]
             },
             {
               "title": "Where Writ leaves you alone",
               "caption": "Each device carries its own rule, the built-in microphone steps aside when the lid is closed, and the app itself settles into a quiet menu bar item.",
               "assets": [
-                { "alt": "Per-device menu in Writ on the MacBook microphone with Never Use This Device, Use Regardless of Lid, Icon and Label, and Move to Top", "label": "Per-device rules" },
-                { "alt": "Writ settings menu with Open at Login, Restore Priority Order, Keyboard Shortcuts, and update options", "label": "Quiet by default" }
+                {
+                  "alt": "Per-device menu in Writ on the MacBook microphone with Never Use This Device, Use Regardless of Lid, Icon and Label, and Move to Top",
+                  "label": "Per-device rules"
+                },
+                {
+                  "alt": "Writ settings menu with Open at Login, Restore Priority Order, Keyboard Shortcuts, and update options",
+                  "label": "Quiet by default"
+                }
               ]
             },
             {
               "title": "Reach it without looking",
               "caption": "Global shortcuts for mute, push to talk, pausing enforcement, and stepping through devices, registered only for the combinations listed.",
               "assets": [
-                { "alt": "Writ keyboard shortcuts window listing mute, push to talk, show or hide, pause enforcing, restore priority order, and next input or output", "label": "Shortcuts" }
+                {
+                  "alt": "Writ keyboard shortcuts window listing mute, push to talk, show or hide, pause enforcing, restore priority order, and next input or output",
+                  "label": "Shortcuts"
+                }
               ]
             }
           ]
@@ -387,8 +445,8 @@
     },
     "thread-making-work-playable": {
       "label": "Making work playable",
-      "kind": "Thread",
-      "summary": "A thread about responsive tools that become fluent enough to think and work through.",
+      "kind": "Theme",
+      "summary": "A theme about responsive tools that become fluent enough to think and work through.",
       "paragraphs": {
         "p1": "Music promo campaign kickoff, pitching, reporting, the real-estate deal tracker, the tour advancing system, Dubs, Writ, and Yoohoo compose this reading."
       },
@@ -397,29 +455,17 @@
     },
     "thread-from-argument-to-instrument": {
       "label": "From argument to instrument",
-      "kind": "Thread",
-      "summary": "A thread about the route from argument and operating work into software as a medium.",
+      "kind": "Theme",
+      "summary": "A theme about the route from argument and operating work into software as a medium.",
       "paragraphs": {
         "p1": "The operating contexts and every software project compose this reading."
       },
       "placeholders": {},
       "visuals": {}
     },
-    "thread-authorship": {
-      "label": "Authorship",
-      "kind": "Thread",
-      "summary": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "authorship-record": {
-          "prompt": "Draft the Authorship record."
-        }
-      },
-      "visuals": {}
-    },
     "thread-philosophy": {
       "label": "Philosophy",
-      "kind": "Thread",
+      "kind": "Theme",
       "summary": "[Summary in progress]",
       "paragraphs": {},
       "placeholders": {
@@ -439,9 +485,9 @@
         "playable-rewrite": {
           "prompt": "Rewrite in progress. The direction:",
           "questions": {
-            "q1": "The opening scene: a script that watches the dictation engine's log so the confirming keystroke lands the instant the transcript finishes pasting. An unreasonable amount of engineering for a quarter of a second, and the whole thesis: a tool you have to think about is a tool you are not thinking through.",
-            "q2": "What fluency does to a day: instant, trusted capture makes a stray idea stop being an interruption, cheap frequent actions make the right move and the easy move the same move, and work starts to reward repetition the way an instrument does.",
-            "q3": "Where each product holds the standard: Dubs as a thought captured mid-stride, Writ as a tool that passes by disappearing, Yoohoo as notifications that hold state without adding noise."
+            "q1": "What fluency does to a day: instant, trusted capture makes a stray idea stop being an interruption, cheap frequent actions make the right move and the easy move the same move, and work starts to reward repetition the way an instrument does.",
+            "q2": "Where each product holds the standard: Dubs as a thought captured mid-stride, Writ as a tool that passes by disappearing",
+            "q3": "Other systems/examples?"
           }
         }
       },
@@ -473,17 +519,6 @@
           "purpose": "Recompose the strongest operating and product visuals as a chronological path from argument to software as the medium of the work."
         }
       }
-    },
-    "authorship": {
-      "title": "Authorship",
-      "lede": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "authorship-thread": {
-          "prompt": "Draft the Authorship thread."
-        }
-      },
-      "visuals": {}
     },
     "philosophy": {
       "title": "Philosophy",
@@ -518,16 +553,16 @@
     "visualStage.eyebrow": "Map visual",
     "reader.indexTitle": "Index",
     "reader.backButton": "Home",
-    "reader.exploreThread": "Explore this thread",
+    "reader.exploreThread": "Explore this theme",
     "reader.contactTitle": "Contact",
     "reader.relatedTitle": "Related",
     "reader.copyInProgress": "Copy in progress",
     "reader.privacyLink": "Privacy",
-    "index.section.threads": "Threads",
+    "index.section.threads": "Themes",
     "index.section.operations": "Operations",
-    "index.section.campaign": "Music promotions systems",
-    "index.section.client": "Client systems",
-    "index.section.products": "In Production",
+    "index.section.campaign": "Music Promotions Systems",
+    "index.section.client": "Consulting Systems",
+    "index.section.products": "Consumer Apps",
     "indexPage.threadsSubtitle": "Narrated paths through the work.",
     "chat.title": "Chat about the portfolio",
     "chat.backButton": "Home",

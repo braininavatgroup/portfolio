@@ -1002,7 +1002,7 @@ export function PortfolioReader({
   const label = node && node.outlineType !== "why"
     ? `${node.label} record`
     : thread
-      ? `${thread.title} thread`
+      ? `${thread.title} theme`
       : "Portfolio home";
   const insightContentId = thread && (!node || node.outlineType === "why")
     ? thread.id

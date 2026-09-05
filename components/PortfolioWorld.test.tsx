@@ -364,7 +364,6 @@ describe("PortfolioWorld", () => {
       bradley: [448.5, 153.5],
       "thread-making-work-playable": [232, 348],
       "thread-from-argument-to-instrument": [372, 410],
-      "thread-authorship": [525, 410],
       "thread-philosophy": [665, 348],
       infamous: [86.5, 415],
       "music-practice": [101.2, 480.4],
@@ -741,7 +740,7 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.pathAlphas).toContain(past);
     expect(record.labelAlphas.get("INFAMOUS PR")).toBe(past);
     expect(record.labelAlphas.get("Dubs")).toBe(REST_FIELD_ALPHA);
-    expect(record.labelAlphas.get("Authorship")).toBe(1);
+    expect(record.labelAlphas.get("Philosophy")).toBe(1);
     expect(record.labelAlphas.get("Bradley Berkman")).toBe(1);
   });
 
@@ -752,7 +751,7 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.labelFonts.get("Bradley Berkman")).toBe(
       '500 14px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
     );
-    expect(record.labelFonts.get("Authorship")).toBe(
+    expect(record.labelFonts.get("Philosophy")).toBe(
       '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
     );
     expect(
@@ -770,7 +769,6 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.fillTexts).toContain("Bradley Berkman");
     expect(record.fillTexts).toContain("Making work");
     expect(record.fillTexts).toContain("From argument");
-    expect(record.fillTexts).toContain("Authorship");
     expect(record.fillTexts).toContain("Philosophy");
     expect(record.fillTexts).toContain("Dubs");
     expect(record.fillTexts).not.toContain("Yoohoo");
@@ -786,7 +784,7 @@ describe("PortfolioWorld canvas paint", () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     const node = screen.getByRole("button", {
-      name: "Thread Making work playable",
+      name: "Theme Making work playable",
     });
     const nodeX = Number.parseFloat(node.style.left) / 100 * width;
     const label = record.fillTextCalls.find(({ value }) => value === "Making work");
@@ -1047,7 +1045,7 @@ describe("spotlight composition", () => {
   });
 
   it("takes a different pose per seed, and the same pose for the same seed", () => {
-    const map = AUTHORED_ZONES["thread-authorship"];
+    const map = AUTHORED_ZONES["thread-making-work-playable"];
     const members = zoneMembers(map.zones);
     const one = composeSpotlightGoals(bradley, centered, members, map, createRng(1));
     const same = composeSpotlightGoals(bradley, centered, members, map, createRng(1));

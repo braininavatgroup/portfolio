@@ -256,22 +256,6 @@ export const AUTHORED_ZONES: Record<string, ZoneMap> = {
       { sector: [334, 382], band: [500, 790], members: ["real-estate", "touring"] },
     ],
   },
-  "thread-authorship": {
-    spotlight: { sector: [113, 121], band: [900, 960], z: 660 },
-    zones: [
-      // The agency, up and left.
-      { sector: [236, 248], band: [680, 760], members: ["music-practice"] },
-      // Components, above.
-      { sector: [262, 338], band: [430, 540], members: ["kickoff", "pitching", "reporting"] },
-      // Systems, left and further out; its two engagements, left and close.
-      { sector: [168, 184], band: [700, 800], members: ["systems-consulting"] },
-      { sector: [150, 200], band: [400, 540], members: ["touring", "real-estate"] },
-      // Products, right.
-      { sector: [350, 382], band: [700, 960], members: ["dubs", "yoohoo", "writ"] },
-      // The studio, right and below.
-      { sector: [18, 28], band: [1020, 1090], members: ["product-studio"] },
-    ],
-  },
 };
 
 /**
