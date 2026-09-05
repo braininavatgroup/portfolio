@@ -336,24 +336,32 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
             { src: "/visuals/touring/artist-dashboard.png" },
           ],
         },
+      ]),
+      para("p3"),
+      readyGallery("touring-day-sheet", [
         {
           assets: [
             { src: "/visuals/touring/day-sheet.png" },
           ],
         },
+      ]),
+      para("p4"),
+      readyGallery("touring-gmail-draft", [
         {
           assets: [
             { src: "/visuals/touring/promoter-draft.png" },
           ],
         },
+      ]),
+      para("p5"),
+      readyGallery("touring-calendar-event", [
         {
           assets: [
             { src: "/visuals/touring/calendar-plan.png" },
           ],
         },
       ]),
-      para("p3"),
-      para("p4"),
+      para("p6"),
     ],
   },
   {
