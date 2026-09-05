@@ -712,10 +712,31 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
   });
 
-  it("shows the Touring workflow as role screens followed by full-width outputs", () => {
+  it("places each Touring visual directly after the article passage it supports", () => {
     const { container } = render(
       <PortfolioReader {...baseProps} selectedId="touring" />,
     );
+
+    const articleFlow = [...container.querySelectorAll(".reader-composed-body > *")]
+      .map((element) => element.classList.contains("reader-visual-gallery")
+        ? [...element.querySelectorAll("img")].map((image) => image.getAttribute("src"))
+        : "paragraph");
+    expect(articleFlow).toEqual([
+      "paragraph",
+      "paragraph",
+      [
+        "/visuals/touring/manager-advance.png",
+        "/visuals/touring/promoter-form.png",
+        "/visuals/touring/artist-dashboard.png",
+      ],
+      "paragraph",
+      ["/visuals/touring/day-sheet.png"],
+      "paragraph",
+      ["/visuals/touring/promoter-draft.png"],
+      "paragraph",
+      ["/visuals/touring/calendar-plan.png"],
+      "paragraph",
+    ]);
 
     const groups = [...container.querySelectorAll(".reader-visual-gallery .reader-visual-trigger")];
     expect(groups).toHaveLength(4);

@@ -206,13 +206,15 @@
       "paragraphs": {
         "p1": "Advancing a show means assembling venue details, set times, riders, ground transport, hotels, and guest lists from people who each hold a different part of the answer. Promoters reply in email, artists text screenshots of flights, and the manager has to remember what is still missing. The day sheet is only as reliable as that memory.",
         "p2": "I started by making ownership explicit. A field registry names every piece of information, who supplies it, whether it is required, and where it should appear. The manager starts with a short intake: artist, date, artist email, and whether the routing includes hotel and transport. From there, the registry drives the manager view, promoter form, artist dashboard, day sheet, and missing-information logic. Each person sees the same show through the fields they own.",
-        "p3": "When something is missing, the system drafts a reply in the existing promoter thread, in the manager's voice and addressed only to the promoter. It never sends. The same show record renders the day-sheet PDF and creates the artist's arrival, departure, and set-time events in Google Calendar. When a detail changes, the system updates those outputs instead of leaving them to drift apart.",
-        "p4": "Running the system again does not create duplicate drafts, events, or PDFs. After a partial failure, it resumes from the last durable step. Past shows stay untouched, superseded files are removed, and the artist receives access to the PDF before its link appears in Calendar. The system works inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
+        "p3": "That shared record renders the day-sheet PDF the team uses on show day, with venue, schedule, travel, and contact details pulled from the same source.",
+        "p4": "When something is missing, the system drafts a reply in the existing promoter thread, in the manager's voice and addressed only to the promoter. It never sends.",
+        "p5": "Confirmed arrival, departure, and set times become events in the artist's Google Calendar. Each event carries the venue, contact, and current day-sheet link. When a detail changes, the system updates these outputs instead of leaving them to drift apart.",
+        "p6": "Running the system again does not create duplicate drafts, events, or PDFs. After a partial failure, it resumes from the last durable step. Past shows stay untouched, superseded files are removed, and the artist receives access to the PDF before its link appears in Calendar. The system works inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
       },
       "placeholders": {},
       "visuals": {
         "touring-field-registry": {
-          "purpose": "Follow one advance through each person's view, then into the working day sheet, Gmail draft, and Google Calendar event.",
+          "purpose": "Compare the manager, promoter, and artist views of the same advance.",
           "caption": "One show record, shaped for the manager, promoter, and artist.",
           "slides": [
             {
@@ -223,21 +225,39 @@
                 { "alt": "Promoter advance form for Maya Vale at Public Records", "label": "Promoter form" },
                 { "alt": "Artist dashboard showing Maya Vale's Public Records show", "label": "Artist dashboard" }
               ]
-            },
+            }
+          ]
+        },
+        "touring-day-sheet": {
+          "purpose": "Open the day sheet built from the shared show record.",
+          "caption": "The same record becomes the document the team uses on show day.",
+          "slides": [
             {
               "title": "Day sheet",
               "caption": "The same record becomes the document the team uses on show day.",
               "assets": [
                 { "alt": "Completed Maya Vale day sheet with venue, schedule, travel, and contact details", "label": "Day sheet" }
               ]
-            },
+            }
+          ]
+        },
+        "touring-gmail-draft": {
+          "purpose": "Open the unsent promoter follow-up in Gmail.",
+          "caption": "Missing promoter details return to Gmail for manager review. Nothing sends automatically.",
+          "slides": [
             {
               "title": "Gmail draft",
               "caption": "Missing promoter details return to Gmail for manager review. Nothing sends automatically.",
               "assets": [
                 { "alt": "Unsent Gmail draft asking the promoter to confirm missing advance details", "label": "Unsent promoter draft" }
               ]
-            },
+            }
+          ]
+        },
+        "touring-calendar-event": {
+          "purpose": "Open the artist's Google Calendar event.",
+          "caption": "The artist gets the venue, time, contact, and day-sheet context in Google Calendar.",
+          "slides": [
             {
               "title": "Calendar event",
               "caption": "The artist gets the venue, time, contact, and day-sheet context in Google Calendar.",
