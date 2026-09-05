@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 6,
+  "revision": 7,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -421,44 +421,12 @@
         }
       }
     },
-    "yoohoo": {
-      "label": "Yoohoo",
-      "kind": "In Production",
-      "summary": "Notifications that hold state: one durable record that agents, automations, and households can update, ask questions through, and resolve.",
-      "paragraphs": {},
-      "placeholders": {
-        "yoohoo-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The problem: a push notification fires once and then rots. Yoohoo replaces it with one durable record per situation, where state updates in place, a question can go to several people and be answered exactly once, and the waiting workflow resumes with an authoritative result.",
-            "q2": "The model: the notification is a view and the server owns the record. The first valid answer wins, and a resolved question can never execute twice.",
-            "q3": "The line on AI: a model may draft content and quiet routine updates. It may never suppress a question, and it never decides authorization, recipients, or resolution. Every failure falls back to a deterministic path.",
-            "q4": "Status: specified. An approved product contract, awaiting implementation."
-          }
-        }
-      },
-      "visuals": {
-        "yoohoo-state": {
-          "purpose": "Show one durable server-owned record moving from open question through first valid answer to an exactly-once resolved state."
-        }
-      }
-    },
     "thread-making-work-playable": {
       "label": "Making work playable",
       "kind": "Theme",
       "summary": "A theme about responsive tools that become fluent enough to think and work through.",
       "paragraphs": {
         "p1": "Music promo campaign kickoff, pitching, reporting, the real-estate deal tracker, the tour advancing system, Dubs, Writ, and Yoohoo compose this reading."
-      },
-      "placeholders": {},
-      "visuals": {}
-    },
-    "thread-from-argument-to-instrument": {
-      "label": "From argument to instrument",
-      "kind": "Theme",
-      "summary": "A theme about the route from argument and operating work into software as a medium.",
-      "paragraphs": {
-        "p1": "The operating contexts and every software project compose this reading."
       },
       "placeholders": {},
       "visuals": {}
@@ -497,33 +465,12 @@
         }
       }
     },
-    "from-argument-to-instrument": {
-      "title": "From argument to instrument",
-      "lede": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "argument-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "INFAMOUS: inventing the services meant living their costs. Days went to compiling evidence of finished work and midnights to personalizing pitches by hand. The first instruments were small (text snippets, mail merge) but proved the shape of the work was something I could change.",
-            "q2": "The defining move was teaching: handing the reporting process to an assistant with no domain background forced me to define it better than I ever had for myself, and directing work from outside the weeds became the skill the rest runs on.",
-            "q3": "Independence compounded it: at Brain in a Vat there were no approvals to wait on and no inherited systems. The low-context executor became as often an AI agent as a person, and agent-driven automation matured into a real operating advantage built to my own judgment and taste.",
-            "q4": "The advantage became a second practice: consulting is doing for other teams what I did for my own operation, turning fuzzy workflows into explicit states and owners inside the tools people already use.",
-            "q5": "The products came from the same habit: Writ because my audio kept landing on the wrong device, Dubs because I was briefing agents from memory on walks. Neither started as a product; at some point I stopped treating the fixing as a distraction from the work.",
-            "q6": "The specs once written for a human assistant now go to agents, the same discipline with a faster executor. Software stopped being the tool that supported the work and became the medium the work happens in."
-          }
-        }
-      },
-      "visuals": {
-        "thread-from-argument-to-instrument": {
-          "purpose": "Recompose the strongest operating and product visuals as a chronological path from argument to software as the medium of the work."
-        }
-      }
-    },
     "philosophy": {
       "title": "Philosophy",
       "lede": "[Summary in progress]",
-      "paragraphs": {},
+      "paragraphs": {
+        "p1": "- Contemplation"
+      },
       "placeholders": {
         "philosophy-thread": {
           "prompt": "Draft the Philosophy thread. The direction:",
@@ -531,6 +478,22 @@
             "q1": "The first discipline was argument: years of debate and a Philosophy, Politics, and Law degree set the standard everything since still answers to.",
             "q2": "A claim counts only if it survives contact with another mind.",
             "q3": "A decision should be legible to the people it affects."
+          }
+        },
+        "argument-rewrite": {
+          "prompt": "From argument to instrument. [Summary in progress]",
+          "questions": {
+            "q1": "INFAMOUS: inventing the services meant living their costs. Days went to compiling evidence of finished work and midnights to personalizing pitches by hand. The first instruments were small (text snippets, mail merge) but proved the shape of the work was something I could change.",
+            "q2": "The defining move was teaching: handing the reporting process to an assistant with no domain background forced me to define it better than I ever had for myself, and directing work from outside the weeds became the skill the rest runs on.",
+            "q3": "Independence compounded it: at Brain in a Vat there were no approvals to wait on and no inherited systems. The low-context executor became as often an AI agent as a person, and agent-driven automation matured into a real operating advantage built to my own judgment and taste.",
+            "q4": "The advantage became a second practice: consulting is doing for other teams what I did for my own operation, turning fuzzy workflows into explicit states and owners inside the tools people already use.",
+            "q5": "The products came from the same habit: Writ because my audio kept landing on the wrong device, Dubs because I was briefing agents from memory on walks. Neither started as a product; at some point I stopped treating the fixing as a distraction from the work.",
+            "q6": "The specs once written for a human assistant now go to agents, the same discipline with a faster executor. Software stopped being the tool that supported the work and became the medium the work happens in.",
+            "q7": "Philosophy of Mind",
+            "q8": "Epistemology",
+            "q9": "Metaphysics",
+            "q10": "Logic",
+            "q11": "Ethics"
           }
         }
       },

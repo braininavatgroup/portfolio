@@ -42,7 +42,7 @@ describe("PortfolioContents", () => {
     const { container } = render(<PortfolioContents {...baseProps} />);
 
     const rows = [...container.querySelectorAll(".portfolio-contents-row")];
-    expect(rows).toHaveLength(15);
+    expect(rows).toHaveLength(13);
     for (const row of rows) {
       expect(row.tagName).toBe("BUTTON");
       expect(row.parentElement?.tagName).toBe("LI");

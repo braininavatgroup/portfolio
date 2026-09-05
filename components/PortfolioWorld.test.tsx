@@ -363,7 +363,6 @@ describe("PortfolioWorld", () => {
     const expectedCenters: Record<string, readonly [number, number]> = {
       bradley: [448.5, 153.5],
       "thread-making-work-playable": [232, 348],
-      "thread-from-argument-to-instrument": [372, 410],
       "thread-philosophy": [665, 348],
       infamous: [86.5, 415],
       "music-practice": [101.2, 480.4],
@@ -376,7 +375,6 @@ describe("PortfolioWorld", () => {
       "product-studio": [685.6, 590.3],
       dubs: [753, 540.4],
       writ: [795.8, 480.4],
-      yoohoo: [810.5, 415],
     };
 
     for (const [id, [expectedX, expectedY]] of Object.entries(expectedCenters)) {
@@ -768,14 +766,13 @@ describe("PortfolioWorld canvas paint", () => {
 
     expect(record.fillTexts).toContain("Bradley Berkman");
     expect(record.fillTexts).toContain("Making work");
-    expect(record.fillTexts).toContain("From argument");
     expect(record.fillTexts).toContain("Philosophy");
     expect(record.fillTexts).toContain("Dubs");
-    expect(record.fillTexts).not.toContain("Yoohoo");
+    expect(record.fillTexts).not.toContain("Writ");
 
-    fireEvent.pointerEnter(screen.getByRole("button", { name: "In Production Yoohoo" }));
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "In Production Writ" }));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-    expect(record.fillTexts).toContain("Yoohoo");
+    expect(record.fillTexts).toContain("Writ");
   });
 
   it("places compact labels to the right of nodes left of thirty percent", async () => {

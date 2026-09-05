@@ -32,9 +32,7 @@ describe("accepted portfolio world", () => {
       "touring",
       "dubs",
       "writ",
-      "yoohoo",
       "thread-making-work-playable",
-      "thread-from-argument-to-instrument",
       "thread-philosophy",
     ]);
   });
@@ -54,14 +52,13 @@ describe("accepted portfolio world", () => {
       "touring",
       "dubs",
       "writ",
-      "yoohoo",
     ]);
     for (const { id, label } of records) {
       expect(label).toBe(contentDocument.records[id as keyof typeof contentDocument.records].label);
     }
   });
 
-  it("derives the eight Whats from the canonical record structures", () => {
+  it("derives the seven Whats from the canonical record structures", () => {
     expect(portfolioWhatNodes.map(({ id }) => id)).toEqual([
       "kickoff",
       "pitching",
@@ -70,14 +67,13 @@ describe("accepted portfolio world", () => {
       "touring",
       "dubs",
       "writ",
-      "yoohoo",
     ]);
     expect(portfolioWhatNodes.every(({ outlineType }) => outlineType === "what")).toBe(
       true,
     );
   });
 
-  it("keeps the three Whys and their exact outline-v5 memberships", () => {
+  it("keeps the two Whys and their exact outline-v5 memberships", () => {
     expect(portfolioThreads.map(({ id, title, members }) => ({ id, title, members }))).toEqual([
       {
         id: "making-work-playable",
@@ -90,15 +86,6 @@ describe("accepted portfolio world", () => {
           "touring",
           "dubs",
           "writ",
-          "yoohoo",
-        ],
-      },
-      {
-        id: "from-argument-to-instrument",
-        title: contentDocument.threads["from-argument-to-instrument"].title,
-        members: [
-          "thread-philosophy",
-          "thread-making-work-playable",
         ],
       },
       {
@@ -136,16 +123,14 @@ describe("accepted portfolio world", () => {
       ["systems-consulting", "touring"],
       ["product-studio", "dubs"],
       ["product-studio", "writ"],
-      ["product-studio", "yoohoo"],
       ["kickoff", "pitching"],
       ["pitching", "reporting"],
     ]);
   });
 
-  it("reads rest as Bradley's composition: three Why lines rooted on him", () => {
+  it("reads rest as Bradley's composition: two Why lines rooted on him", () => {
     const roots = [
       "thread-making-work-playable",
-      "thread-from-argument-to-instrument",
       "thread-philosophy",
     ];
     for (const selectedId of [null, "bradley"]) {
@@ -166,32 +151,12 @@ describe("accepted portfolio world", () => {
     expect(isRestingWorldSelection("dubs")).toBe(false);
   });
 
-  it("draws the arc's two Why memberships while the factual field stays present", () => {
-    const links = getVisibleWorldLinks({
-      selectedId: "thread-from-argument-to-instrument",
-    });
-
-    expect(
-      links.filter(
-        ({ layer, threadId }) =>
-          layer === "story-membership" &&
-          threadId === "from-argument-to-instrument",
-      ).map(({ to }) => to),
-    ).toEqual([
-      "thread-philosophy",
-      "thread-making-work-playable",
-    ]);
-    expect(
-      links.filter(({ layer }) => layer === "factual"),
-    ).toHaveLength(portfolioWorldLinks.length);
-  });
-
   it("keeps the factual field present while another Why is foregrounded", () => {
     const links = getVisibleWorldLinks({
       selectedId: "thread-philosophy",
     });
 
-    expect(links.filter(({ layer }) => layer === "factual")).toHaveLength(11);
+    expect(links.filter(({ layer }) => layer === "factual")).toHaveLength(10);
   });
 
   it.each([
@@ -199,7 +164,6 @@ describe("accepted portfolio world", () => {
       "bradley",
       [
         "story-root:bradley->thread-making-work-playable",
-        "story-root:bradley->thread-from-argument-to-instrument",
         "story-root:bradley->thread-philosophy",
       ],
     ],
@@ -214,7 +178,6 @@ describe("accepted portfolio world", () => {
         "story-membership:thread-making-work-playable->touring",
         "story-membership:thread-making-work-playable->dubs",
         "story-membership:thread-making-work-playable->writ",
-        "story-membership:thread-making-work-playable->yoohoo",
       ],
     ],
     [
@@ -234,32 +197,6 @@ describe("accepted portfolio world", () => {
       .map(({ layer, from, to }) => `${layer}:${from}->${to}`);
 
     expect(active).toEqual(expected);
-  });
-
-  it("treats the arc like every other Why: its root and memberships, no factual field", () => {
-    const selectedId = "thread-from-argument-to-instrument";
-    const active = getVisibleWorldLinks({ selectedId }).filter((link) =>
-      isWorldLinkActive(link, selectedId),
-    );
-
-    expect(active.map(({ layer, from, to }) => `${layer}:${from}->${to}`)).toEqual([
-      "story-root:bradley->thread-from-argument-to-instrument",
-      "story-membership:thread-from-argument-to-instrument->thread-philosophy",
-      "story-membership:thread-from-argument-to-instrument->thread-making-work-playable",
-    ]);
-    expect(
-      getWorldFocusIds({
-        activeThreadId: "from-argument-to-instrument",
-        selectedId,
-      }),
-    ).toEqual(
-      new Set([
-        "bradley",
-        selectedId,
-        "thread-philosophy",
-        "thread-making-work-playable",
-      ]),
-    );
   });
 
   it("roots a selected record's own composition on Bradley", () => {

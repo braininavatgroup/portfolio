@@ -249,7 +249,7 @@ export const AUTHORED_ZONES: Record<string, ZoneMap> = {
     spotlight: { sector: [94, 101], band: [710, 760], z: 660 },
     zones: [
       // Products, up and left.
-      { sector: [220, 256], band: [500, 800], members: ["dubs", "yoohoo", "writ"] },
+      { sector: [220, 256], band: [500, 800], members: ["dubs", "writ"] },
       // Components, left.
       { sector: [174, 208], band: [660, 900], members: ["reporting", "kickoff", "pitching"] },
       // Engagements, right.

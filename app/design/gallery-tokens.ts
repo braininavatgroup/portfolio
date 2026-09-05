@@ -19,7 +19,7 @@ export const semanticAliases: readonly { token: string; role: string }[] = [
   { token: "--reader-muted", role: "Labels and metadata" },
   { token: "--world-identity", role: "Bradley identity mark" },
   { token: "--world-story", role: "Story marks" },
-  { token: "--world-arc", role: "From argument to instrument marks" },
+  { token: "--world-arc", role: "Arc register marks" },
   { token: "--world-warm", role: "Operations marks" },
   { token: "--world-bridge", role: "Bridge marks" },
   { token: "--world-cool", role: "In Production marks" },

@@ -217,7 +217,7 @@ describe("portfolio chat runtime", () => {
   it("budgets an unsupported question before the full-context agent answers conversationally", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ evidence }) {
-        expect(evidence).toHaveLength(17);
+        expect(evidence).toHaveLength(15);
         yield "I don't see any quantum-computing patents in Bradley's portfolio.";
       },
     };
