@@ -24,9 +24,6 @@ export type PortfolioWorldRegister =
 export type PortfolioRecordStatus = "active" | "past";
 export type PortfolioOutlineType = "who" | "where" | "what" | "why";
 
-export const PORTFOLIO_ARC_THREAD_ID = "from-argument-to-instrument";
-export const PORTFOLIO_ARC_NODE_ID = "thread-from-argument-to-instrument";
-
 export type PortfolioVisualTreatment =
   | "artifact"
   | "annotation"
@@ -438,30 +435,11 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     ],
   },
   {
-    id: "yoohoo",
-    outlineType: "what",
-    family: "product",
-    register: "cool",
-    position: { x: 103.06, y: 53.44, z: 920 },
-    body: [
-      draft("yoohoo-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("yoohoo-state", "sequence", "recreate"),
-    ],
-  },
-  {
     id: "thread-making-work-playable",
     outlineType: "why",
     family: "story",
     register: "story",
     position: { x: 20.62, y: 43.99, z: 700 },
-    body: [para("p1")],
-  },
-  {
-    id: PORTFOLIO_ARC_NODE_ID,
-    outlineType: "why",
-    family: "story",
-    register: "arc",
-    position: { x: 38.83, y: 52.08, z: 700 },
     body: [para("p1")],
   },
   {
@@ -490,7 +468,6 @@ export const portfolioFactualLinkStructures = [
   { from: "systems-consulting", to: "touring", type: "direct" },
   { from: "product-studio", to: "dubs", type: "direct" },
   { from: "product-studio", to: "writ", type: "direct" },
-  { from: "product-studio", to: "yoohoo", type: "direct" },
   { from: "kickoff", to: "pitching", type: "direct" },
   { from: "pitching", to: "reporting", type: "direct" },
 ] as const satisfies readonly PortfolioFactualLinkStructure[];
@@ -511,25 +488,16 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
       "touring",
       "dubs",
       "writ",
-      "yoohoo",
-    ],
-  },
-  {
-    id: PORTFOLIO_ARC_THREAD_ID,
-    nodeId: PORTFOLIO_ARC_NODE_ID,
-    body: [
-      draft("argument-rewrite", ["q1", "q2", "q3", "q4", "q5", "q6"]),
-      plannedVisual("thread-from-argument-to-instrument", "sequence"),
-    ],
-    members: [
-      "thread-philosophy",
-      "thread-making-work-playable",
     ],
   },
   {
     id: "philosophy",
     nodeId: "thread-philosophy",
-    body: [draft("philosophy-thread", ["q1", "q2", "q3"])],
+    body: [
+      draft("philosophy-thread", ["q1", "q2", "q3"]),
+      draft("argument-rewrite", ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"]),
+      para("p1"),
+    ],
     members: ["pitching", "reporting", "real-estate", "touring", "writ"],
   },
 ] as const;

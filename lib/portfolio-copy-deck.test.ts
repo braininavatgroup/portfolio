@@ -52,7 +52,7 @@ describe("renderCopyDeckPages", () => {
   it("writes one note per page of the site, in site order, plus the site text", () => {
     expect(pages.map((page) => page.path)).toEqual([
       "Bradley Berkman.md",
-      ...["making-work-playable", "from-argument-to-instrument", "philosophy"].map(
+      ...["making-work-playable", "philosophy"].map(
         (id) => `${document.interface["index.section.threads"]}/${copyDeckNoteName(document.threads[id].title)}`,
       ),
       ...["music-practice", "systems-consulting", "product-studio", "infamous"].map(
@@ -64,7 +64,7 @@ describe("renderCopyDeckPages", () => {
       ...["real-estate", "touring"].map(
         (id) => `${document.interface["index.section.client"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
-      ...["dubs", "writ", "yoohoo"].map(
+      ...["dubs", "writ"].map(
         (id) => `${document.interface["index.section.products"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
       COPY_DECK_SITE_TEXT_NOTE,

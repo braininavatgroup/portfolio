@@ -44,20 +44,19 @@ replace a Bradley-owned copy placeholder with invented portfolio prose.
 
 ## What to produce
 
-1. **12 records** — every non-About, non-Why node in `portfolioWorldNodes`: `summary`
+1. **11 records** — every non-About, non-Why node in `portfolioWorldNodes`: `summary`
    (one sentence) and `body` paragraphs. Records have no principle field; the
    pull-quotes were retired on 2026-09-02.
 2. **The Bradley/About record** — a short bio paragraph (careful; the map and
    chat already carry the detail), real LinkedIn/GitHub/Instagram URLs in
    `portfolioContact`, and the CV file at `public/cv/bradley-berkman-cv.pdf`
    (the link exists and 404s until the file lands).
-3. **3 Themes as serialized essays** — expand each `lede`/`body` into a real
+3. **2 Themes as serialized essays** — expand each `lede`/`body` into a real
    piece. The current structural contracts are:
    - *Making work playable* → kickoff, pitching, reporting, real estate,
-     touring, Dubs, Writ, and Yoohoo.
-   - *From argument to instrument* → Philosophy and Making work playable as
-     a chronological arc.
-   - *Philosophy* → pitching, reporting, real estate, touring, and Writ.
+     touring, Dubs, and Writ.
+   - *Philosophy* → pitching, reporting, real estate, touring, and Writ; it
+     also carries the "From argument to instrument" arc as a second note.
    A useful lens: each thread answers a question a visitor arrives with
    ("how would this person run my operation?" / "can they build?" /
    "who is this?").

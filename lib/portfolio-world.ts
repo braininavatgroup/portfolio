@@ -45,11 +45,6 @@ export type {
   PortfolioWorldFamily,
   PortfolioWorldRegister,
 } from "./portfolio-structure";
-export {
-  PORTFOLIO_ARC_NODE_ID,
-  PORTFOLIO_ARC_THREAD_ID,
-} from "./portfolio-structure";
-
 export type PortfolioCopyPlaceholderBlock = {
   type: "copy-placeholder";
   id: string;
@@ -462,5 +457,5 @@ export const portfolioWorldIndexSections: readonly PortfolioWorldIndexSection[] 
   indexSection("operations", "index.section.operations", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
   indexSection("campaign", "index.section.campaign", ["kickoff", "pitching", "reporting"]),
   indexSection("client", "index.section.client", ["real-estate", "touring"]),
-  indexSection("products", "index.section.products", ["dubs", "writ", "yoohoo"]),
+  indexSection("products", "index.section.products", ["dubs", "writ"]),
 ];

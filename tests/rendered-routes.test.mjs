@@ -30,7 +30,7 @@ test("canonical /index/<id> URLs redirect into the map reader", async () => {
     await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
   );
   const nodeIds = Object.keys(content.records).filter((id) => !id.startsWith("thread-"));
-  assert.equal(nodeIds.length, 13, "thirteen nodes carry canonical URLs");
+  assert.equal(nodeIds.length, 12, "twelve nodes carry canonical URLs");
 
   const flatIndex = await render("/index");
   assert.equal(flatIndex.status, 404, "/index is no longer a page");

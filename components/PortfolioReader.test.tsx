@@ -236,7 +236,7 @@ describe("PortfolioReader", () => {
       />,
     );
 
-    expect(screen.getByText("Copy in progress")).toBeTruthy();
+    expect(screen.getAllByText("Copy in progress").length).toBeGreaterThan(0);
   });
 
   it("uses one summary treatment at the start of every record", () => {

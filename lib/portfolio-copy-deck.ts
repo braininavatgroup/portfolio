@@ -32,7 +32,7 @@ const RECORD_GROUPS: readonly { titleKey: string; recordIds: readonly string[] }
   { titleKey: "index.section.operations", recordIds: ["music-practice", "systems-consulting", "product-studio", "infamous"] },
   { titleKey: "index.section.campaign", recordIds: ["kickoff", "pitching", "reporting"] },
   { titleKey: "index.section.client", recordIds: ["real-estate", "touring"] },
-  { titleKey: "index.section.products", recordIds: ["dubs", "writ", "yoohoo"] },
+  { titleKey: "index.section.products", recordIds: ["dubs", "writ"] },
 ];
 
 const HOME_RECORD_ID = "bradley";

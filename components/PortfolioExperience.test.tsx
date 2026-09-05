@@ -262,7 +262,7 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     fireEvent.keyDown(document, { key: "G", shiftKey: true });
 
-    expect(await screen.findByText(/Brain Food · 15 left/)).toBeTruthy();
+    expect(await screen.findByText(/Brain Food · 13 left/)).toBeTruthy();
     expect(document.querySelector(".avatar-toybox")).toBeNull();
     expect(document.querySelector('[data-world-node="bradley"]')).toBeTruthy();
     expect((document.querySelector('[data-world-node="bradley"]') as HTMLButtonElement).disabled).toBe(true);
@@ -298,9 +298,9 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
 
-    window.history.pushState({}, "", "/?view=graph#yoohoo");
+    window.history.pushState({}, "", "/?view=graph#writ");
     fireEvent.popState(window);
-    await waitFor(() => expect(screen.getByRole("complementary", { name: "Yoohoo record" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("complementary", { name: "Writ record" })).toBeTruthy());
   });
 
   it("routes a Guide citation into owner selection while mobile remains on Map", async () => {
