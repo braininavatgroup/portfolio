@@ -277,6 +277,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     summaryStatus: "placeholder",
     body: [
       draft("pitching-rewrite", ["q1", "q2", "q3", "q4", "q5"]),
+      para("p1"),
       {
         kind: "visual",
         id: "pitching-targeting-model",
