@@ -217,7 +217,40 @@
       },
       "visuals": {
         "touring-field-registry": {
-          "purpose": "Show the field registry projecting one authoritative advance into forms, the day-sheet, calendar entry, and draft-only chase engine."
+          "purpose": "Follow one advance through each person's view, then into the working day sheet, Gmail draft, and Google Calendar event.",
+          "caption": "One show record, shaped for the manager, promoter, and artist.",
+          "slides": [
+            {
+              "title": "Manager, promoter, artist",
+              "caption": "Each person sees the same show through the details they own.",
+              "assets": [
+                { "alt": "Manager advance screen for Maya Vale at Public Records", "label": "Manager advance" },
+                { "alt": "Promoter advance form for Maya Vale at Public Records", "label": "Promoter form" },
+                { "alt": "Artist dashboard showing Maya Vale's Public Records show", "label": "Artist dashboard" }
+              ]
+            },
+            {
+              "title": "Day sheet",
+              "caption": "The same record becomes the document the team uses on show day.",
+              "assets": [
+                { "alt": "Completed Maya Vale day sheet with venue, schedule, travel, and contact details", "label": "Day sheet" }
+              ]
+            },
+            {
+              "title": "Gmail draft",
+              "caption": "Missing promoter details return to Gmail for manager review. Nothing sends automatically.",
+              "assets": [
+                { "alt": "Unsent Gmail draft asking the promoter to confirm missing advance details", "label": "Unsent promoter draft" }
+              ]
+            },
+            {
+              "title": "Calendar event",
+              "caption": "The artist gets the venue, time, contact, and day-sheet context in Google Calendar.",
+              "assets": [
+                { "alt": "Google Calendar event for Maya Vale's set at Public Records", "label": "Artist calendar event" }
+              ]
+            }
+          ]
         }
       }
     },
