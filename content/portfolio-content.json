@@ -202,19 +202,14 @@
     "touring": {
       "label": "Tour advancing system",
       "kind": "Client systems",
-      "summary": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "touring-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The problem: advancing a show means pulling venue details, set times, riders, transport, and hotels out of a promoter, each one sending them differently across scattered email threads, while artists text screenshots of their flights.",
-            "q2": "The tool: one structured record per artist and show, a clean day-sheet as a PDF and a calendar entry, and a chase for whatever is missing.",
-            "q3": "The chase happens in email, drafted into the live thread in the manager's voice, addressed to the promoter alone, and it never sends.",
-            "q4": "The keystone: a field registry naming each field's owner (manager, promoter, artist, or system), whether it is required, and where it appears. Forms, day-sheet, and chase engine are projections of that table, and starting an advance takes four fields."
-          }
-        }
+      "summary": "A tour-advancing system that turns one show record into role-specific forms, a day sheet, an artist calendar, and email drafts the manager reviews before sending.",
+      "paragraphs": {
+        "p1": "Advancing a show means assembling venue details, set times, riders, ground transport, hotels, and guest lists from people who each hold a different part of the answer. Promoters reply in email, artists text screenshots of flights, and the manager has to remember what is still missing. The day sheet is only as reliable as that memory.",
+        "p2": "I started by making ownership explicit. A field registry names every piece of information, who supplies it, whether it is required, and where it should appear. The manager starts with a short intake: artist, date, artist email, and whether the routing includes hotel and transport. From there, the registry drives the manager view, promoter form, artist dashboard, day sheet, and missing-information logic. Each person sees the same show through the fields they own.",
+        "p3": "When something is missing, the system drafts a reply in the existing promoter thread, in the manager's voice and addressed only to the promoter. It never sends. The same show record renders the day-sheet PDF and creates the artist's arrival, departure, and set-time events in Google Calendar. When a detail changes, the system updates those outputs instead of leaving them to drift apart.",
+        "p4": "Running the system again does not create duplicate drafts, events, or PDFs. After a partial failure, it resumes from the last durable step. Past shows stay untouched, superseded files are removed, and the artist receives access to the PDF before its link appears in Calendar. The system works inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
       },
+      "placeholders": {},
       "visuals": {
         "touring-field-registry": {
           "purpose": "Follow one advance through each person's view, then into the working day sheet, Gmail draft, and Google Calendar event.",
