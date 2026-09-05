@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import contentJson from "../content/portfolio-content.json";
 import {
-  COPY_DECK_TITLE,
-  renderCopyDeck,
+  COPY_DECK_INTERFACE_LABELS,
+  COPY_DECK_SITE_TEXT_NOTE,
+  copyDeckNoteName,
+  renderCopyDeckPages,
 } from "./portfolio-copy-deck";
 import {
   portfolioInterfaceTextKeys,
@@ -10,118 +12,127 @@ import {
 } from "./portfolio-content-schema";
 
 const document = contentJson as PortfolioContentDocument;
-const deck = renderCopyDeck(document, { exportedOn: "5 September 2026" });
-const lines = deck.split("\n");
-const fieldKeys = lines
-  .map((line) => line.match(/^`([^`]+)`( \(one line\))?$/))
-  .filter((match): match is RegExpMatchArray => match !== null);
+const pages = renderCopyDeckPages(document);
+const all = pages.map((page) => page.content).join("\n");
+const pageAt = (path: string) => {
+  const page = pages.find((candidate) => candidate.path === path);
+  if (!page) throw new Error(`no page ${path}; have ${pages.map((p) => p.path).join(", ")}`);
+  return page.content;
+};
 
-// Every leaf string the content document holds, minus gallery slide text,
-// which the deck shows as context because the schema has no path for it.
-function countEditableStrings(): number {
-  let count = 0;
-  const body = (text: {
-    paragraphs: Record<string, string>;
-    placeholders: Record<string, { prompt: string; questions?: Record<string, string> }>;
-    visuals: Record<string, { purpose: string; alt?: string; caption?: string }>;
-  }) => {
-    count += Object.keys(text.paragraphs).length;
+// Every string a visitor, screen reader, or the Guide chat can meet.
+function everyEditableString(): string[] {
+  const values: string[] = [];
+  const body = (text: PortfolioContentDocument["records"][string] | PortfolioContentDocument["threads"][string]) => {
+    values.push(...Object.values(text.paragraphs));
     for (const placeholder of Object.values(text.placeholders)) {
-      count += 1 + Object.keys(placeholder.questions ?? {}).length;
+      values.push(placeholder.prompt, ...Object.values(placeholder.questions ?? {}));
     }
     for (const visual of Object.values(text.visuals)) {
-      count += 1 + (visual.alt !== undefined ? 1 : 0) + (visual.caption !== undefined ? 1 : 0);
+      values.push(visual.purpose);
+      if (visual.alt !== undefined) values.push(visual.alt);
+      if (visual.caption !== undefined) values.push(visual.caption);
+      for (const slide of visual.slides ?? []) values.push(slide.title, slide.caption);
     }
   };
   for (const record of Object.values(document.records)) {
-    count += 3;
+    values.push(record.label, record.kind, record.summary);
     body(record);
   }
   for (const thread of Object.values(document.threads)) {
-    count += 2;
+    values.push(thread.title, thread.lede);
     body(thread);
   }
-  count += 2 + Object.keys(document.contact.socialLabels).length;
-  count += portfolioInterfaceTextKeys.length;
-  return count;
+  values.push(document.contact.email, document.contact.cvLabel, ...Object.values(document.contact.socialLabels));
+  values.push(...portfolioInterfaceTextKeys.map((key) => document.interface[key]));
+  return values;
 }
 
-describe("renderCopyDeck", () => {
-  it("names the export and the content revision it came from", () => {
-    expect(lines[0]).toBe(`# ${COPY_DECK_TITLE}`);
-    expect(deck).toContain(`Exported 5 September 2026 from content revision ${document.revision}.`);
+describe("renderCopyDeckPages", () => {
+  it("writes one note per page of the site, in site order, plus the site text", () => {
+    expect(pages.map((page) => page.path)).toEqual([
+      "Bradley Berkman.md",
+      "Threads/Making work playable.md",
+      "Threads/From argument to instrument.md",
+      "Threads/Authorship.md",
+      "Threads/Philosophy.md",
+      ...["music-practice", "systems-consulting", "product-studio", "infamous"].map(
+        (id) => `${document.interface["index.section.operations"]}/${copyDeckNoteName(document.records[id].label)}`,
+      ),
+      ...["kickoff", "pitching", "reporting"].map(
+        (id) => `${document.interface["index.section.campaign"]}/${copyDeckNoteName(document.records[id].label)}`,
+      ),
+      ...["real-estate", "touring"].map(
+        (id) => `${document.interface["index.section.client"]}/${copyDeckNoteName(document.records[id].label)}`,
+      ),
+      ...["dubs", "writ", "yoohoo"].map(
+        (id) => `${document.interface["index.section.products"]}/${copyDeckNoteName(document.records[id].label)}`,
+      ),
+      COPY_DECK_SITE_TEXT_NOTE,
+    ]);
   });
 
-  it("carries every editable string exactly once", () => {
-    expect(fieldKeys).toHaveLength(countEditableStrings());
-    for (const record of Object.values(document.records)) {
-      for (const paragraph of Object.values(record.paragraphs)) {
-        expect(deck.split(`\n${paragraph}\n`)).toHaveLength(2);
-      }
+  it("carries every editable string somewhere in the folder", () => {
+    for (const value of everyEditableString()) {
+      expect(all).toContain(value);
     }
   });
 
-  it("reads in site order: About, Threads, then the index groups, Contact, Interface", () => {
-    const groups = lines.filter((line) => /^# /.test(line));
-    expect(groups).toEqual([
-      `# ${COPY_DECK_TITLE}`,
-      "# About",
-      "# Threads",
-      `# ${document.interface["index.section.operations"]}`,
-      `# ${document.interface["index.section.campaign"]}`,
-      `# ${document.interface["index.section.client"]}`,
-      `# ${document.interface["index.section.products"]}`,
-      "# Contact",
-      "# Interface strings",
-    ]);
-    const sections = lines
-      .map((line) => line.match(/^## .* · `([^`]+)`$/)?.[1])
-      .filter((scope): scope is string => scope !== undefined);
-    expect(sections.slice(0, 6)).toEqual([
-      "record:bradley",
-      "thread:making-work-playable",
-      "thread:from-argument-to-instrument",
-      "thread:authorship",
-      "thread:philosophy",
-      "record:music-practice",
-    ]);
-    expect(sections.slice(-2)).toEqual(["contact", "interface"]);
+  it("keeps keys, IDs, and site jargon out of every note", () => {
+    expect(all).not.toMatch(/`/);
+    expect(all).not.toMatch(/\brecord:[a-z-]+`|\b(records|threads|interface|placeholders|visuals)\./);
+    for (const key of portfolioInterfaceTextKeys) {
+      expect(all).not.toContain(key);
+      expect(COPY_DECK_INTERFACE_LABELS[key]).toBeDefined();
+    }
+    expect(all).not.toMatch(/\(one line\)|dossier|lede|summary:/i);
   });
 
-  it("follows each body's authored block order", () => {
-    const infamous = deck.slice(deck.indexOf("`record:infamous`"), deck.indexOf("# Music promotions"));
-    const order = ["`p1`", "`p2`", "`placeholder.infamous-early-days.prompt`", "`p3`", "`visual.infamous-service-evolution.purpose`", "`p4`"];
-    const positions = order.map((key) => infamous.indexOf(key));
+  it("renders a page as its title, a bold opener, then the body in authored order", () => {
+    const record = document.records.infamous;
+    const page = pageAt(`${document.interface["index.section.operations"]}/INFAMOUS PR.md`);
+    expect(page.startsWith(`# INFAMOUS PR\n\n**${record.summary}**\n\n${record.paragraphs.p1}\n\n`)).toBe(true);
+    const order = [
+      record.paragraphs.p2,
+      `> [!note] ${record.placeholders["infamous-early-days"].prompt}`,
+      record.paragraphs.p3,
+      `> [!todo] ${record.visuals["infamous-service-evolution"].purpose}`,
+      record.paragraphs.p4,
+    ];
+    const positions = order.map((needle) => page.indexOf(needle));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+    expect(page.endsWith(`${record.paragraphs.p4}\n`)).toBe(true);
   });
 
-  it("marks single-line fields and leaves paragraphs unannotated", () => {
-    expect(deck).toContain("`summary` (one line)\n");
-    expect(deck).toContain("`p1`\n");
-    expect(deck).not.toContain("`p1` (one line)");
-    expect(deck).toContain("`privacy.p1`\n");
-    expect(deck).toContain("`privacy.title` (one line)\n");
-  });
-
-  it("keeps a thread's own map node with it under node.* keys", () => {
-    const playable = deck.slice(
-      deck.indexOf("`thread:making-work-playable`"),
-      deck.indexOf("`thread:from-argument-to-instrument`"),
+  it("keeps a note's questions and a visual's caption and slides inside their callouts", () => {
+    const kickoff = document.records.kickoff.placeholders["kickoff-rewrite"];
+    expect(all).toContain(`> [!note] ${kickoff.prompt}\n> - ${kickoff.questions?.q1}\n> - ${kickoff.questions?.q2}`);
+    const daySheet = document.records.touring.visuals["touring-day-sheet"];
+    expect(all).toContain(
+      `> [!info] ${daySheet.purpose}\n> ${daySheet.caption}\n> 1. ${daySheet.slides?.[0].title}: ${daySheet.slides?.[0].caption}`,
     );
-    expect(playable).toContain("`title` (one line)\nMaking work playable");
-    expect(playable).toContain(`\`node.label\` (one line)\n${document.records["thread-making-work-playable"].label}`);
-    expect(playable).toContain(`\`node.summary\` (one line)\n${document.records["thread-making-work-playable"].summary}`);
   });
 
-  it("says where a record appears and which threads carry it", () => {
-    expect(deck).toContain("> Work record · https://bradleyberkman.com/index/kickoff");
-    expect(deck).toContain("> Practice record · past · https://bradleyberkman.com/index/infamous");
-    expect(deck).toMatch(/`record:kickoff`\n\n> Work record[^\n]*\n\n> Appears in: Making work playable; Authorship\./);
+  it("renders a thread as its title and bold lede, and parks its map node text in the site text", () => {
+    const thread = document.threads["making-work-playable"];
+    const node = document.records["thread-making-work-playable"];
+    expect(pageAt("Threads/Making work playable.md").startsWith(`# ${thread.title}\n\n**${thread.lede}**\n\n`)).toBe(true);
+    const siteText = pageAt(COPY_DECK_SITE_TEXT_NOTE);
+    expect(siteText).toContain(`### ${node.label}\n\n${node.summary}`);
   });
 
-  it("shows gallery slide text as context, not as a field", () => {
-    expect(deck).toContain("> Gallery slides (title and caption, edited through the agent, not here): 1. Day sheet");
-    expect(deck).not.toMatch(/^`visual\.[a-z-]+\.slides/m);
+  it("labels site text by where it shows and lists record kinds under Guide chat only", () => {
+    const siteText = pageAt(COPY_DECK_SITE_TEXT_NOTE);
+    expect(siteText).toContain(`Email: ${document.contact.email}`);
+    expect(siteText).toContain(`Back button: ${document.interface["reader.backButton"]}`);
+    expect(siteText).toContain(`First paragraph: ${document.interface["privacy.p1"]}`);
+    expect(siteText.slice(siteText.indexOf("## Guide chat only"))).toContain(
+      `${document.records.kickoff.label}: ${document.records.kickoff.kind}`,
+    );
+  });
+
+  it("makes safe note names", () => {
+    expect(copyDeckNoteName("Systems / AI: consulting")).toBe("Systems - AI- consulting.md");
   });
 });

@@ -1,21 +1,8 @@
 // Canonical schema for content/portfolio-content.json — the single store for
-// every editable user-facing string on the public portfolio. This module owns
-// document validation, the stable content-path grammar, and edit application.
-// It has no browser, filesystem, or Git dependency so both the running app and
-// the local writing endpoint validate with the same code.
-//
-// Stable content paths:
-//   records.<recordId>.label|kind|summary
-//   records.<recordId>.paragraphs.<paragraphId>
-//   records.<recordId>.placeholders.<blockId>.prompt
-//   records.<recordId>.placeholders.<blockId>.questions.<questionId>
-//   records.<recordId>.visuals.<blockId>.purpose|alt|caption
-//   threads.<threadId>.title|lede
-//   threads.<threadId>.paragraphs.<paragraphId>
-//   threads.<threadId>.visuals.<blockId>.purpose|alt|caption
-//   contact.email|cvLabel
-//   contact.socialLabels.<socialKey>
-//   interface.<catalogKey>
+// every user-facing string on the public portfolio. This module owns the
+// document types and validation. It has no browser, filesystem, or Git
+// dependency. Edits to the document are made by hand (see
+// docs/content/copy-deck.md); validation runs before anything renders.
 
 import {
   portfolioContactStructure,
@@ -116,8 +103,7 @@ export const portfolioInterfaceTextKeys = [
 export type PortfolioInterfaceTextKey =
   (typeof portfolioInterfaceTextKeys)[number];
 
-// Paths that accept embedded line breaks. Everything else is single-line and
-// line breaks are stripped on write.
+// Paths that accept embedded line breaks. Everything else is single-line.
 const MULTI_LINE_PATH_PATTERN = /^(records|threads)\.[^.]+\.paragraphs\.[^.]+$/;
 const MULTI_LINE_INTERFACE_KEYS = new Set([
   "privacy.p1",
@@ -125,7 +111,7 @@ const MULTI_LINE_INTERFACE_KEYS = new Set([
   "privacy.p3",
 ]);
 
-export function isMultiLineContentPath(path: string): boolean {
+function isMultiLineContentPath(path: string): boolean {
   if (MULTI_LINE_PATH_PATTERN.test(path)) return true;
   if (path.startsWith("interface.")) {
     return MULTI_LINE_INTERFACE_KEYS.has(path.slice("interface.".length));
@@ -466,229 +452,4 @@ export function assertValidPortfolioContentDocument(
       .join("; ");
     throw new Error(`Invalid portfolio content document — ${detail}`);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Content-path resolution and edit application.
-
-type ResolvedContentPath = {
-  read: (doc: PortfolioContentDocument) => string | undefined;
-  write: (doc: PortfolioContentDocument, value: string) => void;
-};
-
-function resolveBodyTextPath(
-  body: readonly PortfolioBodyBlockSkeleton[],
-  segments: readonly string[],
-  container: (doc: PortfolioContentDocument) => PortfolioContentBodyText,
-): ResolvedContentPath | null {
-  const [section, id, field, subId] = segments;
-  if (section === "paragraphs" && id && field === undefined) {
-    if (!body.some((block) => block.kind === "paragraph" && block.id === id)) {
-      return null;
-    }
-    return {
-      read: (doc) => container(doc).paragraphs[id],
-      write: (doc, value) => {
-        container(doc).paragraphs[id] = value;
-      },
-    };
-  }
-  if (section === "placeholders" && id) {
-    const block = body.find(
-      (candidate) => candidate.kind === "copy-placeholder" && candidate.id === id,
-    );
-    if (!block || block.kind !== "copy-placeholder") return null;
-    if (field === "prompt" && subId === undefined) {
-      return {
-        read: (doc) => container(doc).placeholders[id]?.prompt,
-        write: (doc, value) => {
-          container(doc).placeholders[id].prompt = value;
-        },
-      };
-    }
-    if (field === "questions" && subId && block.questionIds?.includes(subId)) {
-      return {
-        read: (doc) => container(doc).placeholders[id]?.questions?.[subId],
-        write: (doc, value) => {
-          const entry = container(doc).placeholders[id];
-          entry.questions = { ...entry.questions, [subId]: value };
-        },
-      };
-    }
-    return null;
-  }
-  if (section === "visuals" && id && field && subId === undefined) {
-    if (!body.some((block) => block.kind === "visual" && block.id === id)) {
-      return null;
-    }
-    if (!["purpose", "alt", "caption"].includes(field)) return null;
-    return {
-      read: (doc) => container(doc).visuals[id]?.[field as "purpose" | "alt" | "caption"],
-      write: (doc, value) => {
-        container(doc).visuals[id][field as "purpose" | "alt" | "caption"] = value;
-      },
-    };
-  }
-  return null;
-}
-
-export function resolveContentPath(path: string): ResolvedContentPath | null {
-  if (path.startsWith("interface.")) {
-    const key = path.slice("interface.".length);
-    if (!(portfolioInterfaceTextKeys as readonly string[]).includes(key)) {
-      return null;
-    }
-    return {
-      read: (doc) => doc.interface[key],
-      write: (doc, value) => {
-        doc.interface[key] = value;
-      },
-    };
-  }
-
-  const segments = path.split(".");
-  const [root, id, ...rest] = segments;
-
-  if (root === "records" && id) {
-    const structure = portfolioRecordStructures.find(
-      (candidate) => candidate.id === id,
-    );
-    if (!structure) return null;
-    const [field] = rest;
-    if (rest.length === 1 && ["label", "kind", "summary"].includes(field)) {
-      return {
-        read: (doc) => doc.records[id]?.[field as "label" | "kind" | "summary"],
-        write: (doc, value) => {
-          doc.records[id][field as "label" | "kind" | "summary"] = value;
-        },
-      };
-    }
-    return resolveBodyTextPath(structure.body, rest, (doc) => doc.records[id]);
-  }
-
-  if (root === "threads" && id) {
-    const structure = portfolioThreadStructures.find(
-      (candidate) => candidate.id === id,
-    );
-    if (!structure) return null;
-    const [field] = rest;
-    if (rest.length === 1 && ["title", "lede"].includes(field)) {
-      return {
-        read: (doc) => doc.threads[id]?.[field as "title" | "lede"],
-        write: (doc, value) => {
-          doc.threads[id][field as "title" | "lede"] = value;
-        },
-      };
-    }
-    return resolveBodyTextPath(structure.body, rest, (doc) => doc.threads[id]);
-  }
-
-  if (root === "contact") {
-    if (segments.length === 2 && ["email", "cvLabel"].includes(id)) {
-      return {
-        read: (doc) => doc.contact[id as "email" | "cvLabel"],
-        write: (doc, value) => {
-          doc.contact[id as "email" | "cvLabel"] = value;
-        },
-      };
-    }
-    if (
-      segments.length === 3 &&
-      id === "socialLabels" &&
-      portfolioContactStructure.socials.some((social) => social.key === rest[0])
-    ) {
-      const key = rest[0];
-      return {
-        read: (doc) => doc.contact.socialLabels[key],
-        write: (doc, value) => {
-          doc.contact.socialLabels[key] = value;
-        },
-      };
-    }
-  }
-
-  return null;
-}
-
-export function normalizeContentValue(path: string, value: string): string {
-  let normalized = value.replace(/\r\n?/g, "\n");
-  if (!isMultiLineContentPath(path)) {
-    normalized = normalized.replace(/\n+/g, " ");
-  }
-  return normalized;
-}
-
-export type ContentEditResult =
-  | { ok: true; unchanged?: boolean; document: PortfolioContentDocument }
-  | {
-      ok: false;
-      code: "invalid-path" | "invalid-value" | "stale-revision";
-      message: string;
-      currentRevision?: number;
-    };
-
-export function applyContentEdit(
-  document: PortfolioContentDocument,
-  edit: { path: unknown; value: unknown; revision: unknown },
-): ContentEditResult {
-  if (typeof edit.path !== "string" || edit.path.length === 0) {
-    return { ok: false, code: "invalid-path", message: "content path must be a string" };
-  }
-  const resolved = resolveContentPath(edit.path);
-  if (!resolved) {
-    return {
-      ok: false,
-      code: "invalid-path",
-      message: `unknown or structural content path: ${edit.path}`,
-    };
-  }
-  if (typeof edit.value !== "string") {
-    return { ok: false, code: "invalid-value", message: "value must be a plain string" };
-  }
-  if (typeof edit.revision !== "number" || edit.revision !== document.revision) {
-    return {
-      ok: false,
-      code: "stale-revision",
-      message: "edit is based on an old content revision",
-      currentRevision: document.revision,
-    };
-  }
-  const value = normalizeContentValue(edit.path, edit.value);
-  const limit = isMultiLineContentPath(edit.path)
-    ? MULTI_LINE_MAX_LENGTH
-    : SINGLE_LINE_MAX_LENGTH;
-  if (value.length > limit) {
-    return {
-      ok: false,
-      code: "invalid-value",
-      message: `value exceeds the ${limit} character limit`,
-    };
-  }
-  // eslint-disable-next-line no-control-regex -- rejecting raw control characters is the point
-  if (/[\u0000-\u0008\u000B-\u001F\u007F]/.test(value)) {
-    return {
-      ok: false,
-      code: "invalid-value",
-      message: "value must not contain control characters",
-    };
-  }
-
-  // A value identical to the current one is a no-op: the revision must not
-  // advance and nothing should be written or committed for it.
-  if (resolved.read(document) === value) {
-    return { ok: true, unchanged: true, document };
-  }
-
-  const next = structuredClone(document);
-  resolved.write(next, value);
-  next.revision = document.revision + 1;
-  const issues = validatePortfolioContentDocument(next);
-  if (issues.length > 0) {
-    return {
-      ok: false,
-      code: "invalid-value",
-      message: `edit produces an invalid document: ${issues[0].path}: ${issues[0].message}`,
-    };
-  }
-  return { ok: true, document: next };
 }
