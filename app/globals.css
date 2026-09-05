@@ -181,12 +181,6 @@ body {
   color: var(--ink);
 }
 
-.reader-scroll > [data-editor-status] {
-  color: var(--reader-muted);
-  font: var(--reader-type-caption) var(--font-reader);
-  margin: var(--reader-space-4) var(--reader-space-3) 0;
-}
-
 .privacy-page {
   margin: 0 auto;
   max-width: 720px;
@@ -220,6 +214,32 @@ body {
   padding: 0;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Copy deck export page: the privacy page's frame with a row of actions. */
+.copy-deck-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 26px 0;
+}
+
+.copy-deck-actions button,
+.copy-deck-actions a {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: 500 13px/1.3 var(--font-reader);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.copy-deck-status {
+  flex-basis: 100%;
+  min-height: 1.65em;
 }
 
 @media (prefers-reduced-motion: reduce) {

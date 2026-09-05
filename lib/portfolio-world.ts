@@ -145,6 +145,8 @@ export type PortfolioWorldLink = {
 // content document fails application startup rather than serving wrong copy.
 assertValidPortfolioContentDocument(portfolioContentJson);
 const contentDocument: PortfolioContentDocument = portfolioContentJson;
+/** The validated content document, for surfaces that export it whole. */
+export const portfolioContentDocument: PortfolioContentDocument = contentDocument;
 
 export const portfolioInterfaceText: Record<PortfolioInterfaceTextKey, string> =
   contentDocument.interface as Record<PortfolioInterfaceTextKey, string>;

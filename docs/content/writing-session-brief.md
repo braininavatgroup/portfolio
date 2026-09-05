@@ -12,6 +12,8 @@ Bradley writes; the agent is the writing partner. The agent's jobs:
 - Propose outlines and orderings for Bradley to react to.
 - Edit Bradley's drafts — tighten, cut, challenge — and wire his words into
   the content files.
+- Apply an edited copy deck when Bradley brings one; `docs/content/copy-deck.md`
+  is the procedure.
 
 The agent does **not** draft the pieces. If a file is about to receive prose
 Bradley didn't say or write, stop and ask instead.

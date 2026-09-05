@@ -86,6 +86,31 @@ test("the privacy route discloses analytics, replay masking, and opt-out", async
   assert.match(html, /mailto:bradley@bradleyberkman\.com/i);
 });
 
+test("the copy deck is served as Markdown and from its export page", async () => {
+  const content = JSON.parse(
+    await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
+  );
+
+  const markdown = await render("/copy-deck.md");
+  assert.equal(markdown.status, 200);
+  assert.match(markdown.headers.get("content-type"), /^text\/markdown/);
+  assert.match(markdown.headers.get("content-disposition"), /portfolio-copy-deck-\d{4}-\d{2}-\d{2}\.md/);
+  const deck = await markdown.text();
+  assert.match(deck, /^# Portfolio copy deck\n/);
+  assert.ok(deck.includes(`from content revision ${content.revision}.`));
+  assert.ok(deck.includes("## Bradley Berkman · `record:bradley`"));
+  assert.ok(deck.includes(`\n${content.records.bradley.paragraphs.p1}\n`));
+
+  const page = await render("/copy-deck");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /<h1>Copy deck<\/h1>/);
+  assert.match(html, /New Google Doc/);
+  assert.match(html, /New Obsidian note/);
+  assert.match(html, /href="\/copy-deck\.md"/);
+  assert.match(html, /noindex/);
+});
+
 test("the retired design-system snapshot is no longer shipped", async () => {
   const snapshotUrl = new URL(
     "../dist/client/design-system-current.html",

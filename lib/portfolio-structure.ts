@@ -3,7 +3,7 @@
 // map positions, body-block ordering, visual metadata, and link topology.
 // Every user-facing string lives in content/portfolio-content.json and is
 // merged in by lib/portfolio-world.ts. IDs, positions, and block order
-// are not editable through the writing mode.
+// are not part of the copy deck.
 
 export type PortfolioWorldFamily =
   | "identity"

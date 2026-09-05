@@ -1,14 +1,11 @@
 "use client";
 
 import {
-  lazy,
-  Suspense,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ComponentType,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -23,18 +20,6 @@ import {
   type PortfolioWorldFamily,
   type PortfolioWorldNode,
 } from "../lib/portfolio-world";
-import { editorLiveText } from "../lib/editor/editor-store";
-import { EditableText, useEditorActive } from "./editor/EditableText";
-import type { CanvasLabelAnchor } from "./editor/CanvasLabelEditor";
-
-const CanvasLabelEditor: ComponentType<{
-  anchor: CanvasLabelAnchor;
-  onClose: () => void;
-}> | null = import.meta.env.DEV
-  ? lazy(() => import("./editor/CanvasLabelEditor"))
-  : null;
-
-const recordLabelPath = (nodeId: string) => `records.${nodeId}.label`;
 import {
   clonePoint as clone,
   cameraBasis,
@@ -104,7 +89,6 @@ type RuntimeNode = PortfolioWorldNode & {
   /** The painted label's box on screen this frame, part of the envelope. */
   labelBox: LayoutBox | null;
   labelLines: string[];
-  labelSource: string;
   point: Point3;
   rawBase: Point3;
   screen: ProjectedPoint | null;
@@ -474,7 +458,6 @@ function createRuntimeNodes(): RuntimeNode[] {
       goalAlpha: alpha,
       labelBox: null,
       labelLines: [node.label],
-      labelSource: node.label,
       point: clone(point),
       rawBase: clone(point),
       screen: null,
@@ -603,9 +586,7 @@ export function PortfolioWorld({
     moved: boolean;
   } | null>(null);
   const blankPress = useRef<{ pointerId: number; start: Point } | null>(null);
-  const editorActive = useEditorActive();
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [labelAnchor, setLabelAnchor] = useState<CanvasLabelAnchor | null>(null);
   const measureRef = useRef<(value: string) => number>((value) => value.length * 6.2);
   const brainImage = useRef<HTMLImageElement | null>(null);
   const brainCache = useRef(new Map<string, HTMLCanvasElement>());
@@ -865,13 +846,9 @@ export function PortfolioWorld({
           width,
           height,
         );
-        // Re-wrap only when something that affects the wrap has changed. The
-        // label is live-editable, so the cache key is the resolved text as
-        // well as the width — width alone would freeze an in-progress edit.
-        const liveLabel = editorLiveText(recordLabelPath(node.id), node.label);
-        if (labelWidth !== lastLabelWidth || liveLabel !== node.labelSource) {
-          node.labelSource = liveLabel;
-          node.labelLines = wrapLabel(liveLabel, measure, labelWidth);
+        // Re-wrap only when the available width has changed.
+        if (labelWidth !== lastLabelWidth) {
+          node.labelLines = wrapLabel(node.label, measure, labelWidth);
           node.labelWidth = Math.max(...node.labelLines.map(measure));
         }
         node.labelBox = labelBoxFor(node, palette);
@@ -981,78 +958,6 @@ export function PortfolioWorld({
     active.last = { x: event.clientX, y: event.clientY };
   }
 
-  // Locates the canvas-drawn label under a click so writing mode can anchor
-  // its single-line input there. Mirrors the geometry in drawNode.
-  function findLabelAnchorAt(clientX: number, clientY: number): CanvasLabelAnchor | null {
-    const world = worldRef.current;
-    const canvas = canvasRef.current;
-    if (!world || !canvas) return null;
-    const bounds = world.getBoundingClientRect();
-    const x = clientX - bounds.left;
-    const y = clientY - bounds.top;
-    const context = canvas.getContext?.("2d") ?? null;
-    const compact = world.dataset.compact === "true";
-    const width = size.current.width || bounds.width || world.clientWidth;
-    const font = compact
-      ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
-      : FONT;
-    const measure = (value: string) => {
-      if (!context) return value.length * 6.2;
-      context.font = font;
-      return context.measureText(value).width;
-    };
-    const lineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
-    const padding = 4;
-    for (const node of runtime.current) {
-      const point = node.screen;
-      if (!point || node.alpha < 0.22) continue;
-      const showLabel = shouldShowLabel(node, {
-        compact,
-        hoveredNodeId: world.dataset.hoveredNode,
-        selectedNodeId: world.dataset.selectedNode,
-      });
-      if (!showLabel || node.labelLines.length === 0) continue;
-      const labelWidth = Math.max(...node.labelLines.map(measure));
-      const labelX = compact
-        ? point.x + (compactLabelOnRight(point.x, width) ? 12 : -12)
-        : point.x;
-      const firstLineY = compact
-        ? point.y - ((node.labelLines.length - 1) * lineHeight) / 2
-        : point.y + 18 + LABEL_LINE_HEIGHT * 0.5;
-      const align: CanvasLabelAnchor["align"] = compact
-        ? compactLabelOnRight(point.x, width)
-          ? "left"
-          : "right"
-        : "center";
-      const left =
-        align === "center"
-          ? labelX - labelWidth / 2
-          : align === "right"
-            ? labelX - labelWidth
-            : labelX;
-      const top = firstLineY - lineHeight / 2;
-      const height = node.labelLines.length * lineHeight;
-      if (
-        x >= left - padding &&
-        x <= left + labelWidth + padding &&
-        y >= top - padding &&
-        y <= top + height + padding
-      ) {
-        const path = recordLabelPath(node.id);
-        return {
-          nodeId: node.id,
-          path,
-          initial: editorLiveText(path, node.label),
-          base: node.label,
-          rect: { left, top, width: labelWidth, height },
-          align,
-          compact,
-        };
-      }
-    }
-    return null;
-  }
-
   function endPointer(event: ReactPointerEvent<HTMLElement>) {
     if (brainFoodRef.current?.active) return;
     const active = drag.current;
@@ -1071,13 +976,6 @@ export function PortfolioWorld({
       blank.pointerId === event.pointerId &&
       Math.hypot(event.clientX - blank.start.x, event.clientY - blank.start.y) < 7
     ) {
-      if (import.meta.env.DEV && editorActive) {
-        const anchor = findLabelAnchorAt(event.clientX, event.clientY);
-        if (anchor) {
-          setLabelAnchor(anchor);
-          return;
-        }
-      }
       onReset();
     }
   }
@@ -1088,7 +986,6 @@ export function PortfolioWorld({
       className="portfolio-world"
       data-active-thread={activeThreadId ?? undefined}
       data-compact={compact ? "true" : "false"}
-      data-editing-label={labelAnchor?.nodeId}
       data-hovered-node={hoveredNodeId ?? undefined}
       data-selected-node={selectedId ?? undefined}
       data-brain-food={brainFood?.active ? "true" : "false"}
@@ -1109,13 +1006,9 @@ export function PortfolioWorld({
       ref={setWorldElement}
     >
       <canvas aria-hidden="true" data-world-surface ref={canvasRef} />
-      <EditableText
-        aria-hidden="true"
-        as="div"
-        className="portfolio-world-mast"
-        path="interface.world.mast"
-        value={portfolioInterfaceText["world.mast"]}
-      />
+      <div aria-hidden="true" className="portfolio-world-mast">
+        {portfolioInterfaceText["world.mast"]}
+      </div>
       {brainFood?.active ? (
         <p aria-live="polite" className="portfolio-world-brain-food-status">
           Brain Food · {brainFood.remaining} left · Arrows/WASD · Esc exits
@@ -1152,15 +1045,6 @@ export function PortfolioWorld({
           type="button"
         />
       ))}
-      {import.meta.env.DEV && CanvasLabelEditor && labelAnchor ? (
-        <Suspense fallback={null}>
-          <CanvasLabelEditor
-            anchor={labelAnchor}
-            key={labelAnchor.nodeId}
-            onClose={() => setLabelAnchor(null)}
-          />
-        </Suspense>
-      ) : null}
     </section>
   );
 }
