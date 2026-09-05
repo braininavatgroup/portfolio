@@ -296,10 +296,15 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "component",
     register: "bridge",
     position: { x: 26.28, y: 84.77, z: 890 },
-    summaryStatus: "placeholder",
     body: [
-      draft("reporting-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
+      para("p3"),
+      para("p4"),
       plannedVisual("reporting-pipeline", "sequence", "recreate"),
+      para("p5"),
+      para("p6"),
+      para("p7"),
     ],
   },
   {
