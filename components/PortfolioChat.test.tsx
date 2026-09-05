@@ -189,14 +189,22 @@ describe("docked portfolio Guide", () => {
     // Catches a premature or stale slow indicator.
     vi.useFakeTimers();
     render(<PortfolioChat askPortfolio={() => new Promise(() => {})} resetSignal={0} />);
-    submit("A slow question");
-    await vi.waitFor(() =>
-      expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("true"),
-    );
+    // Flush the run start inside act rather than polling with vi.waitFor:
+    // under fake timers, waitFor advances the mocked clock on every poll, so
+    // a starved worker could burn the ten seconds before the assertions ran.
+    await act(async () => {
+      submit("A slow question");
+      // The runtime starts the run on its next tick; let that tick fire
+      // without moving the clock, so the slow timer is armed at t = 0.
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("true");
 
-    await vi.advanceTimersByTimeAsync(9_999);
+    // Advance inside act so the state change the timer makes is committed
+    // before each assertion reads the DOM.
+    await act(() => vi.advanceTimersByTimeAsync(9_999));
     expect(screen.queryByText("Still thinking. The records are long.")).toBeNull();
-    await vi.advanceTimersByTimeAsync(1);
+    await act(() => vi.advanceTimersByTimeAsync(1));
     expect(screen.getByText("Still thinking. The records are long.")).toBeTruthy();
     expect(document.querySelector(".portfolio-guide-twirl")).toBeTruthy();
   });
@@ -403,7 +411,10 @@ describe("docked portfolio Guide", () => {
       const retry = await screen.findByRole("button", { name: "Try again" });
       expect(askPortfolio).not.toHaveBeenCalled();
       expect(screen.getByText("Something went wrong.")).toBeTruthy();
-      expect(screen.getAllByText("Was this lost?")).toHaveLength(1);
+      // The failure notice is component state; the user bubble is the
+      // runtime's own subscription and can commit a beat later on a starved
+      // worker, so wait for it instead of reading it synchronously.
+      expect(await screen.findAllByText("Was this lost?")).toHaveLength(1);
       expect(
         screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending"),
       ).toBe("false");
