@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 4,
+  "revision": 5,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -157,22 +157,20 @@
     "reporting": {
       "label": "Music promo campaign reporting",
       "kind": "Music promotions systems",
-      "summary": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "reporting-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The cost: reporting once ate close to three days of every week, all of it collecting evidence of work already done.",
-            "q2": "The path: invented the process, refined it by hand for years, automated fragments with macros, then handed it to an assistant with no music background, which forced the judgment onto paper. Full automation is the same discipline with a faster executor.",
-            "q3": "Where the judgment lives now: a versioned rules document the model reads on every run (silence is not a pass, never invent, never downgrade an outcome), code that re-checks every conclusion, and the auto-pitchable decision kept outside the model in a small deterministic gate.",
-            "q4": "Today: the pipeline runs daily, dashboards refresh through the day, client emails arrive as drafts for a personal pass, and roughly sixteen hours of reporting per campaign became about an hour of my week."
-          }
-        }
+      "summary": "A hosted reporting system that turns curator replies and platform activity into verified campaign outcomes, refreshed client dashboards, and send-ready email drafts.",
+      "paragraphs": {
+        "p1": "Reporting used to eat close to three days of every week. The data existed, but it was scattered across streaming activity, curator replies, campaign history, playlist identities, and submission platforms. Every client update meant collecting the same evidence again, resolving duplicates, deciding what counted as a real outcome, and rebuilding the report without overstating what had happened.",
+        "p2": "I developed the method by hand over years, then automated pieces of it with macros. The useful breakthrough came when I taught the work to an assistant with no music-industry background. Every step that felt obvious to me had to become an instruction someone else could follow. That separated the method from the person doing it and made full automation possible.",
+        "p3": "The rules are concrete. Silence is not a pass. A promise is not an earned placement. New evidence can strengthen an outcome, but automation cannot downgrade a confirmed result. When the evidence is ambiguous, the record goes to review instead of becoming a confident-looking client claim.",
+        "p4": "The hosted workflow follows one visible chain: source evidence to model interpretation, deterministic verification, the auto-pitchable gate, refreshed client dashboards, and drafted client emails. The model reads language in context. Code then checks identity, campaign linkage, outcome hierarchy, duplicates, and review conditions. The auto-pitchable decision stays outside the model in a small deterministic gate.",
+        "p5": "Moving the workflow off my Mac exposed how much the first version depended on local credentials, scheduled jobs, installed scripts, and cached assumptions. The hosted version assembles an immutable run tree from reviewed commits. It receives only the credentials required for the job, uses short-lived access to private runtime code, and keeps dry-run and live execution as separate capabilities.",
+        "p6": "Activation turned hidden assumptions into evidence. One run rejected the application credential before it could read private code. Another exposed a provider schema rule. A live-like dry run caught a create helper on a path that promised zero writes. Each failure produced a narrower repair and a permanent check. The final dry run proved the exact reviewed source with no production writes before the live refresh ran.",
+        "p7": "The system now converts current campaign evidence into structured outcomes, verifies the records, packages reports as immutable artifacts, and prepares client emails around the refreshed dashboard. I still review the framing and press send. The work that once took roughly sixteen hours per campaign now asks for about one hour of my attention each week."
       },
+      "placeholders": {},
       "visuals": {
         "reporting-pipeline": {
-          "purpose": "Trace the daily pipeline from source evidence through model judgment, deterministic verification, the auto-pitchable gate, dashboards, and drafted client reports."
+          "purpose": "Trace source evidence through model interpretation, deterministic verification, the auto-pitchable gate, refreshed client dashboards, and drafted client emails."
         }
       }
     },
