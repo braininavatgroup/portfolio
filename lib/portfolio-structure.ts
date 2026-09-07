@@ -176,6 +176,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p6"),
       para("p7"),
       para("p8"),
+      para("p9"),
     ],
   },
   {
@@ -479,7 +480,7 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     id: "making-work-playable",
     nodeId: "thread-making-work-playable",
     body: [
-      draft("playable-rewrite", ["q1", "q2", "q3"]),
+      draft("playable-rewrite", ["q1", "q2", "q3", "q4"]),
       plannedVisual("thread-playable-instruments", "sequence"),
     ],
     members: [
