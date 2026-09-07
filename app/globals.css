@@ -2205,6 +2205,51 @@ body:has(.portfolio-reading-room-mobile) {
   text-decoration-color: currentColor;
 }
 
+/* While a fine pointer rests on an inline link, or keyboard focus reaches
+   it, a still of the target's lead visual floats beneath the phrase. The
+   anchor is inline so the card hangs off the link's own line box. */
+.reader-inline-link-anchor {
+  display: inline;
+  position: relative;
+}
+
+.reader-inline-link-preview {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  box-shadow: 0 6px 9px var(--reader-media-shadow);
+  display: block;
+  left: 0;
+  padding: var(--reader-space-1);
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + var(--reader-space-1));
+  width: 240px;
+  z-index: 5;
+}
+
+.reader-inline-link-preview > img {
+  border-radius: 3px;
+  display: block;
+  height: 150px;
+  object-fit: cover;
+  object-position: top;
+  width: 100%;
+}
+
+.reader-inline-link-preview-label {
+  color: var(--reader-muted);
+  display: block;
+  font: var(--reader-type-caption) var(--font-reader);
+  padding-top: var(--reader-space-1);
+}
+
+@media (pointer: coarse) {
+  .reader-inline-link-preview {
+    display: none;
+  }
+}
+
 .reader-placeholder-label {
   color: var(--reader-muted);
   display: block;

@@ -230,7 +230,7 @@ export function TokenGallery() {
                   data-theme={mode}
                   key={mode}
                 >
-                  {specimen.render("Make complexity legible enough to act on.")}
+                  {specimen.render("Work should be playable. I build the systems that make it so.")}
                 </div>
               ))}
             </div>

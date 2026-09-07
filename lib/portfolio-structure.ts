@@ -174,6 +174,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p4"),
       para("p5"),
       para("p6"),
+      para("p7"),
+      para("p8"),
     ],
   },
   {

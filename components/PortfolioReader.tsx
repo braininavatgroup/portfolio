@@ -22,6 +22,7 @@ import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 import { MacPanelFrame } from "./MacMenuBar";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
+import { portfolioLinkPreview } from "../lib/portfolio-link-preview";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { attachPortfolioVideoSource } from "../lib/portfolio-video";
 import {
@@ -665,23 +666,63 @@ function LinkedParagraph({
     const node = target.kind === "record" ? portfolioWorldNodeById.get(target.id) : undefined;
     const thread = target.kind === "thread" ? portfolioThreadById.get(target.id) : undefined;
     if (!node && !thread) return segment.text;
-    // The link wears its target's map register, so the phrase reads in the
-    // same colour as the node it opens.
-    const register = node
-      ? node.register
-      : portfolioWorldNodeById.get(thread!.nodeId)?.register;
     return (
-      <button
-        className="reader-inline-link"
-        data-register={register}
+      <InlineRecordLink
         key={`link-${index}`}
-        onClick={() => (node ? onSelect(node) : onSelectThread(target.id))}
-        type="button"
-      >
-        {segment.text}
-      </button>
+        label={segment.text}
+        node={node}
+        onSelect={onSelect}
+        onSelectThread={onSelectThread}
+        thread={thread}
+      />
     );
   });
+}
+
+// One in-dossier link. It wears its target's map register, so the phrase
+// reads in the same colour as the node it opens, and while a fine pointer
+// rests on it (or keyboard focus reaches it) a still of the target's lead
+// visual floats beneath the phrase. The still mounts only then, so the
+// home page does not fetch every record's image on open.
+function InlineRecordLink({
+  label,
+  node,
+  onSelect,
+  onSelectThread,
+  thread,
+}: Pick<PortfolioReaderProps, "onSelect" | "onSelectThread"> & {
+  label: string;
+  node?: PortfolioWorldNode;
+  thread?: PortfolioThread;
+}) {
+  const [previewing, setPreviewing] = useState(false);
+  const targetNode = node ?? portfolioWorldNodeById.get(thread!.nodeId);
+  const preview = useMemo(
+    () => portfolioLinkPreview((node ?? thread!).body),
+    [node, thread],
+  );
+  return (
+    <span className="reader-inline-link-anchor">
+      <button
+        className="reader-inline-link"
+        data-register={targetNode?.register}
+        onBlur={() => setPreviewing(false)}
+        onClick={() => (node ? onSelect(node) : onSelectThread(thread!.id))}
+        onFocus={() => setPreviewing(true)}
+        onMouseEnter={() => setPreviewing(true)}
+        onMouseLeave={() => setPreviewing(false)}
+        type="button"
+      >
+        {label}
+      </button>
+      {preview && previewing ? (
+        <span aria-hidden="true" className="reader-inline-link-preview">
+          <img alt="" src={preview.src} />
+          <span className="reader-inline-link-preview-label">{targetNode?.label}</span>
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 // One authored paragraph: a single <p>, or, when the string carries `- `

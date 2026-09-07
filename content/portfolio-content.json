@@ -1,18 +1,20 @@
 {
   "version": 1,
-  "revision": 7,
+  "revision": 8,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
       "kind": "About",
-      "summary": "I make complexity legible enough to act on.",
+      "summary": "Work should be playable. I build the systems that make it so.",
       "paragraphs": {
         "p1": "Hey, I'm Bradley.",
-        "p2": "I founded and run Brain in a Vat Group, a company with three arms: [music promotions](record:music-practice), [systems and AI consulting](record:systems-consulting), and a [software product studio](record:product-studio). I get a real kick out of wrapping my head around messy processes and turning them into systems that anyone can see, run, measure, and improve.",
-        "p3": "Day to day, that means running promotions campaigns for electronic artists and record labels, helping other teams level up their operations, and scratching a few itches of my own that have turned into shipped software. Across the board, I’m designing, building, and iterating on the [internal tooling and automations](thread:making-work-playable) that drive the businesses.",
-        "p4": "Before BiV, I launched and led the Music Promotions division at [INFAMOUS PR](record:infamous). Prior to that, I completed my degree in [Philosophy](thread:philosophy), Politics, and Law at the University of Southern California, with a secondary focus in Music Industry.",
-        "p5": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
-        "p6": "Thanks for stopping by."
+        "p2": "I founded and run Brain in a Vat Group, a company with three divisions: a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consultancy, and a product studio focused on [software](record:product-studio). I love untangling messy information and turning it into a playable instrument that anyone can see, run, and improve.",
+        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating from the University of Southern California with a PPL major and Music Industry minor in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous), where I first began developing my own workflows. When demand for the services outpaced manual capacity, I pivoted from executing the work to architecting and orchestrating systems to sustain quality and scale.",
+        "p4": "When I founded [Brain in a Vat Music Promotions](record:music-practice) in 2024, building a strong systems infrastructure for the business was top of mind. This is around the time AI harnesses were becoming quite capable, and ever since, I’ve been enthralled with using this technology, alongside tools like n8n, Airtable, and Keyboard Maestro, to customize the business’ processes to suit my exact mental model, preferences, and innovations. I developed automated workflows for key parts of the campaign lifecycle, like [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), which replace much of the manual labor that was previously required to produce a high-quality service.",
+        "p5": "The value gained goes well beyond the time, cost, and accuracy gains these improved workflows produce. Once I shifted the bulk of my focus towards working on the systems rather than in them, the quality of the services we offer has reached a new height: campaigns receive more deliberation at the highest leverage points, client relationships get the attention they deserve, and the agency's long-term strategy has sharpened. [I want work to be playable](thread:making-work-playable) for everyone. Lately, I've been applying this same systems-first methodology beyond BiV music promotions operations. I realized that the problems I'd been solving for myself, like manual labor, fragmented data, and constant context switching, are all too pervasive in modern knowledge work.",
+        "p6": "Through [Brain in a Vat Systems and AI Consulting](record:systems-consulting), I build and deploy infrastructure for other businesses, like a [deal flow and commission tracking dashboard](record:real-estate) for a real estate brokerage or a [tour-advancing suite](record:touring) for an artist manager. At [Brain in a Vat Product Studio](record:product-studio), I build software designed to make work feel more fluid, like [Dubs](record:dubs), which lets you listen to your documents and capture in-line notes via dictation, and [Writ](record:writ), a Mac menu bar app for setting conditional logic and automating your audio setup. Both were originally built to solve pain points I encounter in my own workflows.",
+        "p7": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
+        "p8": "Thanks for stopping by."
       },
       "placeholders": {},
       "visuals": {}
@@ -511,7 +513,7 @@
   },
   "interface": {
     "layout.skipLink": "Skip to portfolio content",
-    "index.throughline": "Make complexity legible enough to act on.",
+    "index.throughline": "Work should be playable. I build the systems that make it so.",
     "world.mast": "Bradley Berkman",
     "visualStage.eyebrow": "Map visual",
     "reader.indexTitle": "Index",

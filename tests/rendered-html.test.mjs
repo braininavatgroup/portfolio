@@ -50,7 +50,7 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Bradley Berkman \| Make complexity legible enough to act on<\/title>/i);
+  assert.match(html, /<title>Bradley Berkman \| Work should be playable\. I build the systems that make it so<\/title>/i);
   assert.match(
     html,
     /<meta[^>]*name=["']viewport["'][^>]*content=["'][^"']*interactive-widget=resizes-content/i,

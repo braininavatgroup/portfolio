@@ -132,7 +132,7 @@ describe("PortfolioReader", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Bradley Berkman" })).toBeTruthy();
   });
 
-  it("links About's paragraphs to the practices, themes, and INFAMOUS in their registers", () => {
+  it("links About's paragraphs to the practices, systems, products, and INFAMOUS in their registers", () => {
     const onSelect = vi.fn();
     const onSelectThread = vi.fn();
     render(<PortfolioReader {...baseProps} onSelect={onSelect} onSelectThread={onSelectThread} />);
@@ -142,11 +142,21 @@ describe("PortfolioReader", () => {
     );
     expect(links.map((link) => link.textContent)).toEqual([
       "music promotions",
-      "systems and AI consulting",
-      "software product studio",
-      "internal tooling and automations",
-      "INFAMOUS PR",
+      "systems and AI",
+      "software",
       "Philosophy",
+      "INFAMOUS PR",
+      "Brain in a Vat Music Promotions",
+      "kickoff",
+      "pitching",
+      "reporting",
+      "I want work to be playable",
+      "Brain in a Vat Systems and AI Consulting",
+      "deal flow and commission tracking dashboard",
+      "tour-advancing suite",
+      "Brain in a Vat Product Studio",
+      "Dubs",
+      "Writ",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -154,7 +164,17 @@ describe("PortfolioReader", () => {
       "warm",
       "story",
       "warm",
+      "warm",
+      "bridge",
+      "bridge",
+      "bridge",
       "story",
+      "warm",
+      "bridge",
+      "bridge",
+      "warm",
+      "cool",
+      "cool",
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
 
@@ -164,11 +184,49 @@ describe("PortfolioReader", () => {
       "systems-consulting",
       "product-studio",
       "infamous",
+      "music-practice",
+      "kickoff",
+      "pitching",
+      "reporting",
+      "systems-consulting",
+      "real-estate",
+      "touring",
+      "product-studio",
+      "dubs",
+      "writ",
     ]);
-    expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual([
-      "making-work-playable",
-      "philosophy",
-    ]);
+    expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual(["philosophy", "making-work-playable"]);
+  });
+
+  it("floats a still of the target's lead visual under a hovered or focused inline link", () => {
+    const { container } = render(<PortfolioReader {...baseProps} />);
+    const link = (name: string) =>
+      screen.getAllByRole("button", { name }).find((button) =>
+        button.classList.contains("reader-inline-link"),
+      )!;
+    const preview = () => container.querySelector<HTMLElement>(".reader-inline-link-preview");
+
+    expect(preview()).toBeNull();
+    fireEvent.mouseEnter(link("Dubs"));
+    expect(preview()?.getAttribute("aria-hidden")).toBe("true");
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
+    expect(preview()?.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(preview()?.textContent).toBe("Dubs");
+    fireEvent.mouseLeave(link("Dubs"));
+    expect(preview()).toBeNull();
+
+    fireEvent.focus(link("kickoff"));
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+      "/visuals/campaign/campaign-kickoff-poster.png",
+    );
+    fireEvent.blur(link("kickoff"));
+    expect(preview()).toBeNull();
+
+    // A record without a ready still, and a thread, show nothing.
+    fireEvent.mouseEnter(link("INFAMOUS PR"));
+    expect(preview()).toBeNull();
+    fireEvent.mouseEnter(link("Philosophy"));
+    expect(preview()).toBeNull();
   });
 
   it("draws every contact row as an index row with its own mark", () => {
