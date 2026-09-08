@@ -2902,14 +2902,14 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 @media (max-width: 1019px) {
-  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
-    display: none;
-  }
-
   .portfolio-contents-row {
     min-height: 36px;
     padding-bottom: 6px;
     padding-top: 6px;
+  }
+
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+    display: none;
   }
 
   .reader-scroll {
