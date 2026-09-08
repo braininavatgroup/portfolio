@@ -75,10 +75,10 @@ describe("portfolio chat grounding", () => {
   });
 
   it("marks unfinished copy and planned visuals as editorial notes", () => {
-    const music = groundPortfolioQuestion("Any question").evidence.find(
-      ({ id }) => id === "node:music-practice",
-    );
-    expect(music?.excerpt).toContain(
+    const evidence = groundPortfolioQuestion("Any question").evidence;
+    const music = evidence.find(({ id }) => id === "node:music-practice");
+    const playable = evidence.find(({ id }) => id.endsWith("making-work-playable") && !id.startsWith("node:"));
+    expect(playable?.excerpt).toContain(
       "[DRAFT COPY PLACEHOLDER — not a Bradley fact]",
     );
     expect(music?.excerpt).toContain(
@@ -87,10 +87,10 @@ describe("portfolio chat grounding", () => {
   });
 
   it("reads list lines and external addresses as plain text", () => {
-    const music = groundPortfolioQuestion("Any question").evidence.find(
-      ({ id }) => id === "node:music-practice",
-    );
-    expect(music?.excerpt).toMatch(/\n- \S/);
+    const evidence = groundPortfolioQuestion("Any question").evidence;
+    const music = evidence.find(({ id }) => id === "node:music-practice");
+    const consulting = evidence.find(({ id }) => id === "node:systems-consulting");
+    expect(consulting?.excerpt).toMatch(/\n- \S/);
     expect(music?.excerpt).toMatch(/ \(https:\/\/[^)]+\)/);
     expect(music?.excerpt).not.toMatch(/\]\((record|thread|https?):/);
   });

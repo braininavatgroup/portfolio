@@ -140,7 +140,7 @@ describe("portfolio content adapter fidelity", () => {
     const realEstate = portfolioWorldNodes.find((node) => node.id === "real-estate");
     const interactive = realEstate?.body.at(-1);
 
-    expect(realEstate?.body).toHaveLength(2);
+    expect(realEstate?.body).toHaveLength(4);
     expect(
       realEstate?.body.some(
         (block) => typeof block !== "string" && block.id === "real-estate-operation-map",

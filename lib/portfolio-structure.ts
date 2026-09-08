@@ -175,8 +175,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p5"),
       para("p6"),
       para("p7"),
-      para("p8"),
-      para("p9"),
     ],
   },
   {
@@ -188,10 +186,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     status: "past",
     body: [
       para("p1"),
+      plannedVisual("infamous-clients", "artifact", "capture", "gallery"),
       para("p2"),
-      draft("infamous-early-days"),
       para("p3"),
-      plannedVisual("infamous-service-evolution", "sequence", "recreate"),
       para("p4"),
     ],
   },
@@ -211,11 +208,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p5"),
       para("p6"),
       para("p7"),
-      para("p8"),
-      para("p9"),
-      para("p10"),
-      draft("music-practice-automation", ["q1", "q2"]),
-      para("p11"),
     ],
   },
   {
@@ -226,10 +218,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     position: { x: 40.83, y: 88.28, z: 920 },
     status: "active",
     body: [
-      draft("consulting-bridge"),
       para("p1"),
       para("p2"),
-      plannedVisual("consulting-engagement-loop", "sequence", "recreate"),
       para("p3"),
       para("p4"),
     ],
@@ -241,10 +231,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "warm",
     position: { x: 84.51, y: 79.99, z: 920 },
     status: "active",
-    summaryStatus: "placeholder",
     body: [
-      draft("product-studio-record", ["q1"]),
-      plannedVisual("product-studio-relationship", "sequence", "recreate"),
+      para("p1"),
+      para("p2"),
     ],
   },
   {
@@ -254,7 +243,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "bridge",
     position: { x: 2.66, y: 72.39, z: 920 },
     body: [
-      draft("kickoff-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
+      para("p3"),
+      para("p4"),
       {
         kind: "visual",
         id: "kickoff-sequence",
@@ -276,10 +268,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "component",
     register: "bridge",
     position: { x: 14.1, y: 78.85, z: 860 },
-    summaryStatus: "placeholder",
     body: [
-      draft("pitching-rewrite", ["q1", "q2", "q3", "q4", "q5"]),
       para("p1"),
+      para("p2"),
+      para("p3"),
       {
         kind: "visual",
         id: "pitching-targeting-model",
@@ -293,6 +285,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
         captionsSrc: "/visuals/campaign/pitch-pipeline-captions.vtt",
         poster: "/visuals/campaign/pitch-pipeline-poster.png",
       },
+      para("p4"),
+      para("p5"),
     ],
   },
   {
@@ -305,11 +299,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p1"),
       para("p2"),
       para("p3"),
-      para("p4"),
       plannedVisual("reporting-pipeline", "sequence", "recreate"),
-      para("p5"),
-      para("p6"),
-      para("p7"),
+      para("p4"),
     ],
   },
   {
@@ -319,7 +310,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     register: "bridge",
     position: { x: 56.21, y: 86.84, z: 860 },
     body: [
-      draft("real-estate-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
+      para("p3"),
       readyInteractive(
         "real-estate-quarterly-dashboard",
         "quarterly-dashboard",
@@ -378,9 +371,9 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "product",
     register: "cool",
     position: { x: 93.03, y: 71.52, z: 860 },
-    summaryStatus: "placeholder",
     body: [
-      draft("dubs-rewrite", ["q1", "q2", "q3", "q4"]),
+      para("p1"),
+      para("p2"),
       readyGallery("dubs-loop", [
         {
           assets: [
@@ -403,6 +396,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
           ],
         },
       ]),
+      para("p3"),
+      para("p4"),
     ],
   },
   {
@@ -414,6 +409,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     body: [
       para("p1"),
       para("p2"),
+      para("p3"),
       readyGallery("writ-priority-behavior", [
         {
           assets: [
@@ -433,8 +429,8 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
           ],
         },
       ]),
-      para("p3"),
       para("p4"),
+      para("p5"),
     ],
   },
   {
@@ -480,8 +476,13 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     id: "making-work-playable",
     nodeId: "thread-making-work-playable",
     body: [
-      draft("playable-rewrite", ["q1", "q2", "q3", "q4"]),
-      plannedVisual("thread-playable-instruments", "sequence"),
+      para("p1"),
+      para("p2"),
+      para("p3"),
+      draft("playable-revisit"),
+      draft("playable-consulting"),
+      para("p4"),
+      para("p5"),
     ],
     members: [
       "kickoff",
@@ -497,9 +498,14 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
     id: "philosophy",
     nodeId: "thread-philosophy",
     body: [
-      draft("philosophy-thread", ["q1", "q2", "q3"]),
-      draft("argument-rewrite", ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"]),
       para("p1"),
+      para("p2"),
+      para("p3"),
+      para("p4"),
+      para("p5"),
+      para("p6"),
+      para("p7"),
+      para("p8"),
     ],
     members: ["pitching", "reporting", "real-estate", "touring", "writ"],
   },

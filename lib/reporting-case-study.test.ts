@@ -15,14 +15,11 @@ describe("reporting case study", () => {
       "p1",
       "p2",
       "p3",
-      "p4",
       "reporting-pipeline",
-      "p5",
-      "p6",
-      "p7",
+      "p4",
     ]);
     expect(record?.summary).toContain("hosted reporting system");
-    expect(record?.body.filter((block) => typeof block === "string")).toHaveLength(7);
+    expect(record?.body.filter((block) => typeof block === "string")).toHaveLength(4);
     expect(
       record?.body.some(
         (block) =>

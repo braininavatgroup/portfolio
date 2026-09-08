@@ -92,10 +92,9 @@ describe("renderCopyDeckPages", () => {
     const page = pageAt(`${document.interface["index.section.operations"]}/INFAMOUS PR.md`);
     expect(page.startsWith(`# INFAMOUS PR\n\n**${record.summary}**\n\n${record.paragraphs.p1}\n\n`)).toBe(true);
     const order = [
+      `> [!todo] ${record.visuals["infamous-clients"].purpose}`,
       record.paragraphs.p2,
-      `> [!note] ${record.placeholders["infamous-early-days"].prompt}`,
       record.paragraphs.p3,
-      `> [!todo] ${record.visuals["infamous-service-evolution"].purpose}`,
       record.paragraphs.p4,
     ];
     const positions = order.map((needle) => page.indexOf(needle));
@@ -104,9 +103,9 @@ describe("renderCopyDeckPages", () => {
     expect(page.endsWith(`${record.paragraphs.p4}\n`)).toBe(true);
   });
 
-  it("keeps a note's questions and a visual's caption and slides inside their callouts", () => {
-    const kickoff = document.records.kickoff.placeholders["kickoff-rewrite"];
-    expect(all).toContain(`> [!note] ${kickoff.prompt}\n> - ${kickoff.questions?.q1}\n> - ${kickoff.questions?.q2}`);
+  it("keeps a note and a visual's caption and slides inside their callouts", () => {
+    const revisit = document.threads["making-work-playable"].placeholders["playable-revisit"];
+    expect(all).toContain(`> [!note] ${revisit.prompt}\n`);
     const daySheet = document.records.touring.visuals["touring-day-sheet"];
     expect(all).toContain(
       `> [!info] ${daySheet.purpose}\n> ${daySheet.caption}\n> 1. ${daySheet.slides?.[0].title}: ${daySheet.slides?.[0].caption}`,

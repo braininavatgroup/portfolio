@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 9,
+  "revision": 10,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -9,13 +9,11 @@
       "paragraphs": {
         "p1": "Hey, I'm Bradley.",
         "p2": "I founded and run Brain in a Vat Group, a company with three divisions: a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consultancy, and a product studio focused on [software](record:product-studio). I love untangling messy information and turning it into a playable instrument that anyone can see, run, and improve.",
-        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating from the University of Southern California with a PPL major and Music Industry minor in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous), where I first began developing my own workflows. When demand for the services outpaced manual capacity, I pivoted from executing the work to architecting and orchestrating systems to sustain quality and scale.",
-        "p4": "When I founded [Brain in a Vat Music Promotions](record:music-practice) in 2024, building a strong systems infrastructure for the business was top of mind. This is around the time AI harnesses were becoming quite capable, and ever since, I’ve been enthralled with using this technology, alongside tools like n8n, Airtable, and Keyboard Maestro, to customize the business’ processes to suit my exact mental model, preferences, and innovations. I developed automated workflows for key parts of the campaign lifecycle, like [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), which replace much of the manual labor that was previously required to produce a high-quality service.",
-        "p5": "The value created goes well beyond the time, cost, and accuracy gains these improved workflows produce. Once I shifted the bulk of my focus towards working on the systems rather than in them, the quality of the services we offer has reached a new height: campaigns receive more deliberation at the highest leverage points, client relationships get the attention they deserve, and the agency's long-term strategy has sharpened.",
-        "p6": "[I want work to be playable](thread:making-work-playable) for everyone, so I've been applying this same systems-first methodology beyond BiV music promotions operations. I realized that the problems I'd been solving for myself, like manual labor, fragmented data, and constant context switching, are all too pervasive in modern knowledge work.",
-        "p7": "Through [Brain in a Vat Systems and AI Consulting](record:systems-consulting), I build and deploy infrastructure for other businesses, like a [deal flow and commission tracking dashboard](record:real-estate) for a real estate brokerage or a [tour-advancing suite](record:touring) for an artist manager. At [Brain in a Vat Product Studio](record:product-studio), I build software designed to make work feel more fluid, like [Dubs](record:dubs), which lets you listen to your documents and capture in-line notes via dictation, and [Writ](record:writ), a Mac menu bar app for setting conditional logic and automating your audio setup. Both were originally built to solve pain points I encounter in my own workflows.",
-        "p8": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
-        "p9": "Thanks for stopping by."
+        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating from the University of Southern California with a PPL major and Music Industry minor in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous), where as demand for the services outpaced manual capacity, I pivoted from executing the work to architecting and orchestrating systems to scale without compromising quality.",
+        "p4": "When I founded [Brain in a Vat Music Promotions](record:music-practice) in 2024, building a strong systems infrastructure for the business was top of mind. I’ve been enthralled with using AI harnesses, alongside tools like n8n, Airtable, and Keyboard Maestro, to customize the business’ processes to suit my exact mental model, preferences, and innovations. I developed automated workflows for key parts of the campaign lifecycle, like [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), which replace much of the manual labor that was previously required to produce a high-quality service.",
+        "p5": "I want [work to be playable](thread:making-work-playable) for everyone, and I realized that the problems I'd been solving for myself are all too pervasive in modern knowledge work. Through [Brain in a Vat Systems and AI Consulting](record:systems-consulting), I build and deploy infrastructure for other businesses, like a [deal tracking dashboard](record:real-estate) for a real estate brokerage or a [tour-advancing suite](record:touring) for an artist manager. At [Brain in a Vat Product Studio](record:product-studio), I build software designed to make work feel more fluid, like [Dubs](record:dubs), which lets you listen to your documents and capture in-line notes via dictation, and [Writ](record:writ), a Mac menu bar app for setting conditional logic and automating your audio setup.",
+        "p6": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
+        "p7": "Thanks for stopping by."
       },
       "placeholders": {},
       "visuals": {}
@@ -23,50 +21,34 @@
     "infamous": {
       "label": "INFAMOUS PR",
       "kind": "Music promotion",
-      "summary": "Launching an experimental suite of new-media services that grew into a department I ran within electronic music's premiere PR agency.",
+      "summary": "Launching an experimental suite of new-media promotions services that grew into a department I ran within electronic music's premiere PR agency.",
       "paragraphs": {
-        "p1": "By 2021, INFAMOUS PR had spent fifteen years at the top of electronic music PR, with a roster including Live Nation, TheDoLab, Teksupport, Pabst Blue Ribbon, Red Bull, Rockstar Games, RÜFÜS DU SOL, Carl Craig, Pete Tong, CircoLoco Records, Desert Hearts, and Dirtybird.",
-        "p2": "The agency specialized in long, narrative driven campaigns, which often narrowed campaigns to albums, tours, and larger activations, while the incentives of streaming economy were shifting dance music's release cycle towards ephemeral, less narrative oriented singles and EPs. There was lots of inbound business from the agency's clients wanting to market these releases, but INFAMOUS was turning the campaigns away — without a strong narrative and a multi-month retainer, these sorts of campaigns can be difficult to land traditional media placements. I was hired to solve this problem.",
-        "p3": "The services were shaped by client feedback, evolving each campaign — DSP playlist promotion first, then additional services including radio plugging, DJ promotion, YouTube distribution, and social media post seeding and influencer campaigns.",
-        "p4": "It is also where I first learned the lesson that has continued to appear throughout my career: the shape and feel of the work is itself something I can improve."
+        "p1": "By the time I joined the agency in 2021, INFAMOUS PR had spent fifteen years at the top of electronic music PR.",
+        "p2": "INFAMOUS specialized in narrative driven campaigns that run over many months, which often narrowed the projects taken on to albums, tours, and larger activations. Meanwhile, the streaming economy was pushing dance music's release cycle toward singles and EPs with a short shelf life and not much of story for journalists to pitch their editors. There was lots of inbound business from the agency's clients who wanted to promote these releases, but the agency was turning them away due to the difficulty landing placements for these sorts of campaigns through the confines of a traditional PR campaign. I was hired to solve that problem.",
+        "p3": "There was no playbook, so the early campaigns were experiments. The services I offer have always been heavily shaped by client feedback, and in the early days, there was a lot of evolution between campaigns. Pitching music to be supported by playlist curators across streaming platforms was the first service launched, but I went on to offer a suite of service including radio plugging, a modified-release focused PR service, YouTube distribution, and social media post seeding and influencer campaigns.",
+        "p4": "When demand for the services outpaced what I could do by hand, I started building the workflows that carried them. The first ones were small, browser macros, text snippets, and mail merge, but it was made me realize that the shape and feel of the work is itself something I can iterate on and improve."
       },
-      "placeholders": {
-        "infamous-early-days": {
-          "prompt": "Early days experimenting."
-        }
-      },
+      "placeholders": {},
       "visuals": {
-        "infamous-service-evolution": {
-          "purpose": "Show how the fourth department and its service offering developed release by release."
+        "infamous-clients": {
+          "purpose": "Carousel of marquee clients."
         }
       }
     },
     "music-practice": {
       "label": "Brain in a Vat Music Promotions Agency",
       "kind": "Music promotion",
-      "summary": "Brain in a Vat Music Promotions is the boutique digital marketing agency behind some of today's most influential dance music releases.",
+      "summary": "The boutique promotions agency behind some of today's most influential electronic music releases.",
       "paragraphs": {
-        "p1": "I offer artists and record labels a suite of services that include:\n- Playlist promotion\n- Radio plugging\n- Social media seeding and influencer campaigns\n- Press campaigns",
-        "p2": "Regardless of the services, each campaign is the same core process.",
-        "p3": "Before taking on a campaign, listen to the music to map it sonically, understand the context surrounding the music, like the current state of affairs for the artist, record label, and relevant genres. Then, I need to talk to my client to understand their goals for the release. They're trying to influence the outcome of their upcoming release, and this can mean many things for many different artists and record labels. BiV takes a unique stance against the industry norm business model where agencies keep a cut of their campaign fees, and produce the promotion results through paid placements. I've managed to build my network exclusively pitching to curators who are willing to be sent my music with no strings attached.",
-        "p4": "Constraining the service to only include pitching curators for organic, earned placements in a music promotion landscape massively dominated by payola and fake endorsements means that we keep the entire campaign fee as profit less our administrative and technical costs. However, the value I provide to the curators I pitch is sending them music that they enjoy, suited to their taste.",
-        "p5": "Another common strategy in the industry is casting a wide net, pitching to a broad range of curator-niches is also not feasible. Some of these curators receive hundreds of pitches per day, others a handful per month, but in both cases, sending music that's low quality or a poor genre fit one too many times will land all @braininavat.dance emails blocked or reported as spam.",
-        "p6": "The model is only sustainable by maintaining a high quality roster of artists and record labels, and a high quality network of tastemakers open to considering unpaid placements.",
-        "p7": "Because of this, a campaign is only taken on after understanding the music and the context around it, understanding the clients' goals for the release, and being confident I can create value for my client, as well as my network of curators.",
-        "p8": "Every campaign crosses the same three high level systems: [kickoff](record:kickoff); [pitching](record:pitching); and [reporting](record:reporting). When you zoom in, this includes collecting assets and metadata from the client, researching and identifying bespoke targets, crafting and sending pitches, coordinating placements with curators and clients, collecting data documenting the campaign and its results, compiling reports, and communicating this to the client.",
-        "p9": "This is a difficult operation to scale up without compromising the quality of the service on a purely operational level. But there are still many additional considerations.",
-        "p10": "At first I thought it would be wise to focus my clientele within a narrow range of genres and offer services that cover only a narrow range of promotional media in order to multiply the potential placements I could earn for each pitch sent each week. However, I soon found that the campaigns were competing for a finite amount of openings that curator has for a given week. The alternative route is broadening the range of genres and media that I pitch, which adds many additional layers of operational complexity.",
-        "p11": "More at [braininavat.dance](https://braininavat.dance/)."
+        "p1": "Brain in a Vat Music Promotions is the agency I founded in 2024. We specialize promoting electronic music through playlist placements, radio airplay, social post seeding and influencer campaigns, and press features.",
+        "p2": "Every campaign starts the same way. I need to understand the surrounding context: what the music sounds like, and where the artist, the label, and the genre are right now. Then I talk to the client to understand what their goals are for the release and how my  campaign may or may not be aligned with these goals. The campaign is only taken on once these two steps have taken place and I am confident I can create value for the client and for the curators I'll be pitching.",
+        "p3": "That bit about the curators matters because of how the agency is built. The industry norm for music marketing is for agencies to keep a cut of their fees, and spend the rest to buy their campaign results through paid placements. With the exception of social media seeding, Brain in a Vat only pitches for organic, earned placements, to curators who are happy to be sent music with no strings attached. In a landscape dominated by payola and fake endorsements, the value I offer a curator is simple: I'm very careful to send them new music that is consistently suited to their taste and that they'll be excited to include in their editorial curation. In return, I've built a network of influential curators who continue to opening my emails because they've come to expect a thoughtful pitch, not spam or quid pro quo.",
+        "p4": "This extreme care for my pitch target lists was simple enough to manage while I was offering one service and had one, perhaps two new campaigns kicking off each week. But as the business grew, it became very difficult to maintain these standards with scale. The same logic rules out casting a wide net with pitches. Some curators receive hundreds of pitches a day, others a handful a month, but either way, pitching a release that's a one poor fit one time too many will ruin the relationship and land your emails in spam. So the model only works when the quality of the roster, and the quality of the network, remain high, and I only accept campaigns from clients that I am confident that I'll be able secure impactful, earned placements aligned with their goals for the release.",
+        "p5": "I've experimented with narrowing the roster to a limited number of related genres and a limited number of service offerings to get more placements out of every pitch, and found the campaigns competing for the same finite openings each week. Intentionally broadening the genres and media I pitch was the alternative, which costs operational complexity and loses the advantage I have with the network I've built within my clients' most popular genre niches.",
+        "p6": "Building strong systems is the only way to keep the quality standard high and grow rapidly. Every promo campaign crosses three main stages: [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting). Between them, campaign assets and metadata from the client, bespoke targets for the release are researched and identified, pitches are drafted using dynamic templates, hundreds of personalized emails are sent, placements with curators are tracked and coordinated and clients, evidence of what happened is collected, transformed into automatically updated reports. Yes, these automations have removed a lot of the tedious labor. But the real value is the attention I've gained for things like creative and strategic calls on each campaign, strengthening my relationships with clients and curators, and for improving the processes themselves.",
+        "p7": "More at [braininavat.dance](https://braininavat.dance/)."
       },
-      "placeholders": {
-        "music-practice-automation": {
-          "prompt": "Close the record: automation, and what it freed up.",
-          "questions": {
-            "q1": "Automating much of the business in order to remove tedious labor, improve speed and quality of the service, and focus on high leverage creative and strategic judgements, client and curator relationships, iterating our existing processes, and building new ones.",
-            "q2": "Freed up capacity to take …"
-          }
-        }
-      },
+      "placeholders": {},
       "visuals": {
         "music-practice-clients": {
           "purpose": "Carousel of marquee clients."
@@ -76,59 +58,38 @@
     "systems-consulting": {
       "label": "Brain in a Vat Systems & AI Consulting",
       "kind": "Systems & AI consulting",
-      "summary": "Audit the operation, implement the high leverage opportunities, maintain and improve the systems.",
+      "summary": "Systems optimization, custom software, and AI deployment, built around the operations a team already has.",
       "paragraphs": {
-        "p1": "This can be anything from bespoke, purpose-built apps that replace expensive third-party software, to automated workflows that take the repetitive manual work off a team's plate, to AI systems built on properly structured data and context so they reliably produce good results.",
-        "p2": "Each engagement starts by mapping how your team actually operates: what tools are in place, what's getting in the way, where work is still manual that shouldn't be. That becomes a prioritized, costed plan — what to build, in what order, and why — shaped with you. Then the build: standing up the systems and getting them live in your operations. And once they're running, the work keeps going: monitoring, tuning, and scaling what's there, plus new capability as the business grows.",
-        "p3": "Two engagements are documented here as case studies: [a deal-stage and commission tracking tool for a real-estate team](record:real-estate), and [an artist/promoter tour advancing tool for an artist manager](record:touring).",
+        "p1": "My consulting work spans three areas.\n- Systems optimization: data infrastructure that consolidates what's spread across a team's tools, workflow automation for the repetitive work a computer should be doing, and documentation systems that capture how the business runs so agents and new hires can act on it.\n- Custom software: internal tooling and client-facing surfaces, built for the exact audience they serve.\n- AI deployment: agent layers that work on top of structured knowledge and documented playbooks, grounded in the business's real context instead of generic training data.",
+        "p2": "Each engagement starts by mapping how your team actually operates: what tools are in place, what's getting in the way, where work is still manual that shouldn't be. That becomes a prioritized, costed plan, what to build, in what order, and why, shaped with you. Then the build: standing up the systems and getting them live in your operations. Once they're running, the work keeps going: monitoring, tuning, and scaling what's there, plus new capability as the business grows.",
+        "p3": "Two engagements are documented here as case studies: a [deal tracking dashboard](record:real-estate) for a real-estate team, and a [tour advancing system](record:touring) for an artist manager.",
         "p4": "More at [braininavat.systems](https://braininavat.systems/consulting/)."
       },
-      "placeholders": {
-        "consulting-bridge": {
-          "prompt": "Bridge from the Brain in a Vat Music Promo systems to consulting."
-        }
-      },
-      "visuals": {
-        "consulting-engagement-loop": {
-          "purpose": "Explain the audit, implementation, and ongoing maintenance loop as one legible engagement model."
-        }
-      }
+      "placeholders": {},
+      "visuals": {}
     },
     "product-studio": {
       "label": "Brain in a Vat Product Studio",
       "kind": "Product studio",
-      "summary": "[Summary in progress]",
-      "paragraphs": {},
-      "placeholders": {
-        "product-studio-record": {
-          "prompt": "Draft the Product Studio record and explain how Dubs, Writ, and Yoohoo emerge from the operating practices.",
-          "questions": {
-            "q1": "What makes this a studio rather than simply a collection of personal tools?"
-          }
-        }
+      "summary": "The studio where the tools I built for my own day become software other people can use.",
+      "paragraphs": {
+        "p1": "Every product in the Brain in a Vat Product Studio started as a fix for a part of my own day that was just a bit worse than it ought to be. [Dubs](record:dubs) exists because I was briefing agents from memory after walks. [Writ](record:writ) exists because my audio kept landing on the wrong device between calls. Neither began as a product, at some point I stopped treating these instances of scratching my own itch as a distraction from the work and made it another side of the work.",
+        "p2": "The products share a thesis with everything else here. [Work should be playable](thread:making-work-playable), and the tools that make that the case are responsive enough to practice on and, eventually, stop noticing. Dubs holds that standard with its frictionless document and idea capture. Writ holds it by never needing to be reopened."
       },
-      "visuals": {
-        "product-studio-relationship": {
-          "purpose": "Show the relationship between the operating practices, recurring problems, and Dubs, Writ, and my other work/themes."
-        }
-      }
+      "placeholders": {},
+      "visuals": {}
     },
     "kickoff": {
       "label": "Music promo campaign kickoff",
       "kind": "Music promotions systems",
-      "summary": "The keyboard shortcut that turns a client’s “let’s do it” into the correct Airtable records, Google Drive folders, Fillout form, a live invoice, a folder, and a drafted kickoff email in under a minute.",
-      "paragraphs": {},
-      "placeholders": {
-        "kickoff-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The moment: a signed confirmation means the client is ready to pay, and it is the worst time to disappear into administrative work.",
-            "q2": "One keyboard shortcut assembles the client and deal records, the invoice, the campaign folder, and a drafted kickoff email carrying a payment link and one asset-request form per campaign. Roughly thirty minutes across four apps became about one.",
-            "q3": "Restraint: the automation assembles and never commits. Every step is a prefilled dialog that can be cancelled, and the email stays a draft until sent.",
-            "q4": "The asset workflow: every asset lives on our side rather than as a link into the client's storage, assets we already hold are attached on the way out, nothing gets lost or stale, and the campaign starts while the client is still excited."
-          }
-        }
+      "summary": "The keyboard shortcut that turns a client's \"let's do it\" into the Airtable records, the Drive folder, the asset-request form, a live invoice, and a drafted kickoff email in about two minutes.",
+      "paragraphs": {
+        "p1": "A signed confirmation means the client is ready to pay. It is also the worst moment to disappear into administrative work, because the excitement fades while the invoice is being built, and the campaign starts late.",
+        "p2": "Kickoff turns that half hour into one keyboard shortcut. It creates the client and deal records, the invoice, and the campaign folder, then drafts a kickoff email that carries a payment link and one asset-request form per campaign. Roughly thirty minutes across four apps became about two.",
+        "p3": "The automation assembles and never commits. Every step is a prefilled dialog I can cancel, and the email stays a draft until I send it. Assets we already hold are attached on the way out, so a returning client never re-enters what we already have.",
+        "p4": "The asset workflow replaced email threads where files got lost and re-versioned across a dozen messages. Every asset lives on our side rather than as a link into the client's storage, because client-hosted files change and permissions vanish mid-campaign. Nothing gets lost, nothing goes stale, and the campaign starts while the client is still excited."
       },
+      "placeholders": {},
       "visuals": {
         "kickoff-sequence": {
           "purpose": "Show the roughly thirty-minute, four-app administrative process collapsing into one guided sequence that still leaves commitment human."
@@ -138,22 +99,15 @@
     "pitching": {
       "label": "Music promo campaign pitching",
       "kind": "Music promotions systems",
-      "summary": "[Summary in progress]",
+      "summary": "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
       "paragraphs": {
-        "p1": "Curators earn the right to be pitched automatically. A curator's standing in the network changes only through a small pure function that reads the day's [reporting](record:reporting) outcomes. It can promote a curator to the network after a real add, mark one whose address bounces, and cannot demote anyone. The curators it promotes are the ones the weekly match may contact without my review; every other change of standing is mine to make."
+        "p1": "The system is built on one idea: taste can be recorded, and recorded taste can drive targeting.",
+        "p2": "It started as a spreadsheet. Every curator's adds, passes, and feedback went into it by hand, and hundreds of pitch emails were personalized one at a time until mail merge made real segments possible. That spreadsheet is now two databases. Each curator has one record, with their playlists rolling up underneath it. Campaigns and playlists share one genre ontology. Every week the system matches live campaigns to curators, dedupes against every prior pitch and existing placement, holds each curator to at most one pitch a week no matter how many campaigns are live, and compiles a draft target list with its reasoning attached.",
+        "p3": "I still review that list, and the ontology is limited on purpose. The one read it leaves out is whether a track reads commercial or underground, the call that sends two same-genre tracks to different playlists. I could keep adding qualitative tags forever, and a trained ear is cheaper than that data architecture will ever be. So the human step sits where the judgment actually lives, and I can override any match.",
+        "p4": "Two backstops recover what the restraint gives up. Reporting feeds missing genre tags back into the database whenever a playlist turns out to play something it wasn't mapped for. And every pitch links a playlist of all current campaigns, so a curator can always find the track I didn't send.",
+        "p5": "Pitching people music they don't want is how they stop opening your emails. Staying valuable to curators is the whole business, and this system is how that restraint scales."
       },
-      "placeholders": {
-        "pitching-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The idea the system is built on: taste can be recorded, and recorded taste can drive targeting.",
-            "q2": "How it started: a spreadsheet of every curator's adds, passes, and feedback, and hundreds of pitch emails personalized by hand until mail merge made real segments possible.",
-            "q3": "What carries it now: one record per curator with their playlists rolling up underneath, at most one pitch per curator per week, a genre ontology shared by campaigns and playlists, and a weekly match that dedupes against every prior pitch into a draft list with its reasoning.",
-            "q4": "The one read kept human: whether a track reads commercial or underground, the call that sends two same-genre tracks to different playlists.",
-            "q5": "The backstops: reporting feeds missing genre tags back into the database, and every pitch links a playlist of all current campaigns so a curator can find the track I didn't send."
-          }
-        }
-      },
+      "placeholders": {},
       "visuals": {
         "pitching-targeting-model": {
           "purpose": "Make the curator records, playlist rollups, shared genre ontology, deduplication, and final human review gate inspectable as one system."
@@ -165,13 +119,10 @@
       "kind": "Music promotions systems",
       "summary": "A hosted reporting system that turns curator replies and platform activity into verified campaign outcomes, refreshed client dashboards, and send-ready email drafts.",
       "paragraphs": {
-        "p1": "Reporting used to eat close to three days of every week. The evidence existed, but it was scattered across streaming activity, curator replies, campaign history, playlist identities, and submission platforms. Every client update meant collecting it all again, resolving duplicates, deciding what counted as a real outcome, and rebuilding the report without overstating what had happened.",
-        "p2": "I developed the method by hand over years, then automated pieces of it with macros. The useful breakthrough came when I taught the work to an assistant with no music-industry background. Every step that felt obvious to me had to become an instruction someone else could follow. Those instructions became the written rules the system runs on today. Silence is not a pass. A promise is not an earned placement. New evidence can strengthen an outcome, but nothing automatic may downgrade a confirmed one. Ambiguity goes to review instead of becoming a confident-looking client claim.",
-        "p3": "Every afternoon a hosted job gathers the day's evidence from three sources. Songstats reports where the pitched track has appeared on playlists and radio. Gmail supplies each curator reply with its full thread and every campaign pitched to that curator in the previous five weeks, so a note like \"added the first one\" can be resolved against the original pitch. SubmitHub results are exported and ingested. Each result is keyed by track and placement, so the same add arriving from two sources is one record, not two.",
-        "p4": "The model handles the one part that needs a reader: understanding what a curator actually said. It receives the thread, the candidate campaigns, the curator's known playlists, and the rules, and it returns structured data only: which campaigns the reply is about, the outcome, its confidence, the exact phrase that supports it, and the playlists named. Songstats is treated as ground truth, so a vague confirmation attaches to the placement the API already detected rather than inventing a new one. The curator's words are cleaned of boilerplate and kept in the curator's own voice. A check in code rejects any output that summarizes instead of quoting.",
-        "p5": "Code owns every decision that follows. It resolves each named playlist to a known record or creates one, refuses to overwrite a stronger outcome with a weaker one, and routes low-confidence or unusual replies into a review queue with a one-line reason. What each curator actually did is written back to that curator's record, which is where the [pitching](record:pitching) system reads it from.",
-        "p6": "From those records the system builds a dashboard for every campaign in its reporting window: placements earned by the pitch, placements confirmed as forthcoming, organic adds shown separately so they are never claimed, daily Spotify streams against the artist's own recent releases, and a breakdown by platform. Every dashboard is smoke-tested before it is packaged into a content-addressed artifact. Refreshes that change only data publish themselves through the day. Any change to the report code or to which reports exist waits for a reviewed merge, and the deploy replays exactly the artifact that was reviewed.",
-        "p7": "New placements are flagged as they land. Twice a week the system drafts an email for each client from those flags: a release-day note, a first report, an update, or a wrap-up, with running totals and the dashboard link. I read the framing, adjust the tone where the relationship calls for it, and send. Sending clears the flags. The work that once took roughly sixteen hours per campaign now asks for about an hour of my attention each week."
+        "p1": "Reporting used to eat close to three days of every week. The evidence existed, scattered across streaming activity, curator replies, campaign history, playlist identities, and submission platforms, and every client update meant collecting it all again and deciding what counted without overstating it.",
+        "p2": "The breakthrough was teaching the process to an assistant with no music-industry background. Every step that felt obvious had to become an instruction someone else could follow, and those instructions are the rules the system runs on today. Silence is not a pass. A promise is not an earned placement. Nothing automatic may downgrade a confirmed outcome. Ambiguity goes to review instead of becoming a confident-looking client claim.",
+        "p3": "Every afternoon a hosted job gathers the day's evidence from Songstats, Gmail, and SubmitHub, keyed by track and placement so that one add arriving from two sources is one record. A model reads what each curator actually said and returns structured data only: the campaigns the reply is about, the outcome, its confidence, the exact phrase that supports it, and the playlists named. Code owns every decision after that. It resolves playlists, refuses to overwrite a stronger outcome with a weaker one, routes anything uncertain to a review queue with a one-line reason, and writes what each curator did back to their record, where [pitching](record:pitching) reads it.",
+        "p4": "From those records the system builds a dashboard for every campaign and, twice a week, drafts each client's email with running totals and the dashboard link. I read the framing, adjust the tone where the relationship calls for it, and send. What once took roughly sixteen hours per campaign now asks for about an hour of my attention each week."
       },
       "placeholders": {},
       "visuals": {
@@ -184,18 +135,12 @@
       "label": "Real-estate deal tracker",
       "kind": "Client systems",
       "summary": "A brokerage team's deal operation mapped end to end, with explicit stages and named owners, and a realtime dashboard created inside the Google tools they already use.",
-      "paragraphs": {},
-      "placeholders": {
-        "real-estate-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "Before: a single deal crossed six tools between pitch and close, held together by the coordinator's attention, with agents tracking deals in notebooks and verbal updates so the record ran a step behind reality.",
-            "q2": "The operations map: the deal lifecycle as explicit stages, each with a named condition for advancing and a named owner for every hop between tools.",
-            "q3": "The constraints: the mandated brokerage platform has no API, and no new tools, so everything lives inside Google where the team already works.",
-            "q4": "The build: a realtime dashboard derived from the team's own spreadsheets. Once the states were on paper, the machine's share of the work was obvious."
-          }
-        }
+      "paragraphs": {
+        "p1": "For one residential brokerage team, a single deal crossed six tools between pitch and close, and the only thing connecting them was the coordinator's attention. Agents tracked deals in notebooks and verbal updates, so the record ran a step behind reality. The rules existed and the data existed. A person was carrying information between them by hand.",
+        "p2": "The first deliverable was an operations map. The deal lifecycle became explicit stages, each with a named condition for advancing and a named owner for every hop between tools. Writing it down surfaced the engagement's hard constraint: the brokerage platform the team is required to use has no API, so anything automated has to work around it.",
+        "p3": "The build honored one more constraint. No new tools. The team keeps the software it already pays for and knows, so everything lives inside Google, where they already work. From the map I built a realtime dashboard derived from the team's own spreadsheets, starting with quarterly pitch conversion. Once the states were on paper, the machine's share of the work was obvious."
       },
+      "placeholders": {},
       "visuals": {
         "real-estate-quarterly-dashboard": {
           "purpose": "Open the quarterly pitch conversion dashboard at full scale.",
@@ -213,7 +158,7 @@
         "p3": "That shared record renders the day-sheet PDF the team uses on show day, with venue, schedule, travel, and contact details pulled from the same source.",
         "p4": "When something is missing, the system drafts a reply in the existing promoter thread, in the manager's voice and addressed only to the promoter. It never sends.",
         "p5": "Confirmed arrival, departure, and set times become events in the artist's Google Calendar. Each event carries the venue, contact, and current day-sheet link. When a detail changes, the system updates these outputs instead of leaving them to drift apart.",
-        "p6": "Running the system again does not create duplicate drafts, events, or PDFs. After a partial failure, it resumes from the last durable step. Past shows stay untouched, superseded files are removed, and the artist receives access to the PDF before its link appears in Calendar. The system works inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
+        "p6": "Running it again is safe. A second run creates no duplicate drafts, events, or PDFs, a run that fails partway resumes from the last durable step, and superseded files are removed. The whole system lives inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
       },
       "placeholders": {},
       "visuals": {
@@ -295,18 +240,13 @@
       "label": "Dubs",
       "kind": "In Production",
       "summary": "A tool for human thinking in the age of agents.",
-      "paragraphs": {},
-      "placeholders": {
-        "dubs-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "The problem: the useful reaction to something you're hearing arrives while walking, driving, or mid-task, before any workflow is ready for it, so people save material in one place, listen somewhere else, and brief their agents from memory.",
-            "q2": "The loop: documents flow from their sources into one inbox, you move between reading and listening, capture reactions inline by voice or text without losing your place, and pick up at the same spot on any device.",
-            "q3": "What accumulates: a linked library of documents, annotations, and notes, raw material for your own thinking and exactly the context an agent needs.",
-            "q4": "Status: alpha, with a small TestFlight group, finding product-market fit."
-          }
-        }
+      "paragraphs": {
+        "p1": "Most knowledge work is forced into occurring within a small set of tools: a Word document, an email thread, a chat window, a paper notebook. Each is right for some part of thinking and wrong for the rest. Sitting over a keyboard and editing word by word is essential for refining an idea once it exists, but it's a poor way to innovate a new one. In the early stages of shaping some idea, I prefer an audible instrument to think — to be able to listen to information while I'm on a walk away from my desk, and to leave my thoughts as contextualized notes directly on the document, just by talking. Dubs is that instrument.",
+        "p2": "Send documents directly from their original sources to your Dubs inbox. Move between reading and listening, capture ideas inline by voice or text, and return to the same place across devices. Documents, annotations, and notes form a linked Markdown library for organizing and developing ideas. From there, send information into other tools and workflows or give agents exactly the context they need.",
+        "p3": "Dubs is beta testing, with public release pending.",
+        "p4": "Join the waitlist at [dubs.md](https://dubs.md)"
       },
+      "placeholders": {},
       "visuals": {
         "dubs-loop": {
           "purpose": "See how Dubs carries a reaction from the moment it happens into a linked library an agent can use.",
@@ -371,10 +311,11 @@
       "kind": "In Production",
       "summary": "A macOS menu bar app that gives audio devices a priority order the system follows.",
       "paragraphs": {
-        "p1": "macOS has no concept of audio device priority. It switches to whatever connected most recently, so taking your AirPods out of their case steals the output, a closed lid leaves the built-in microphone selected while it hears nothing, until every call opens with the same silent panic: which mic is live, and where is the audio about to come out? Writ replaces that with a ranked list per direction. It keeps the Mac on the highest-ranked device that is actually available and returns to it whenever something else takes over.",
-        "p2": "Input and output have separate lists because the right answers differ. You almost always want your good microphone, yet when you put on headphones you do want the output to follow. On first run the list is ranked by what each device is: a USB microphone above a headset, a monitor at the bottom. Two rules are applied automatically. Display audio is never used, and the built-in microphone is only used when the lid is open.",
-        "p3": "Most of the engineering went into the cases where the obvious rule is wrong. On Apple silicon the built-in microphone is disconnected in hardware when the lid closes, below anything software can observe, so it still appears in every menu while capturing silence. Writ polls the lid and skips it. AirPlay speakers all report their name as \"AirPlay\" and change identifier each time they reconnect, so a HomePod kept appearing as a new device until entries were keyed on the stable part of the identifier. Label a speaker once and it becomes permanent. Writ never takes you off AirPlay, since nobody sends audio to a HomePod by accident.",
-        "p4": "A tool that runs in the background has to earn trust in small ways. A device you pick by hand is left alone. Two shortcuts ship bound, mute and show, while four more wait unassigned, because a global shortcut is taken from every other app. They are registered through the system hot key service, so Writ never asks for Accessibility permission and cannot read the keyboard. The input meter measures level and discards the audio. Writ is signed, notarized, and in daily use, with public release waiting on a licensing decision."
+        "p1": "macOS has no concept of audio device priority. It switches to whatever connected most recently, so taking your AirPods out of their case steals the output, a closed lid leaves the built-in microphone selected while it hears nothing, and every virtual meeting opens with the same silent panic: which mic is live, and where is the audio about to come out?",
+        "p2": "Writ fixes this with separate ranked lists for inputs and outputs. It keeps your Mac on the highest-ranked device that is currently available and returns to it whenever something else takes over. The lists are separate because the right answers differ: you almost always want your good microphone, but when you put on headphones you do want the output to follow. Each device carries its own rule, including Never, and a device you pick by hand is left alone.",
+        "p3": "On Apple silicon, the built-in microphone is disconnected in hardware when the lid closes, below anything software can observe, so it still appears in every menu while capturing silence. Writ polls the lid and skips it. AirPlay speakers all report their name as \"AirPlay\" and change identifier each time they reconnect, so a HomePod kept appearing as a new device until entries were keyed on the stable part of the identifier. Label a speaker once and it becomes permanent.",
+        "p4": "Global shortcuts reach it without looking: mute, push to talk, pausing enforcement, and stepping through devices. They're registered through the system hot key service, so Writ never asks for Accessibility permission and cannot read the keyboard, and the input meter measures level and discards the audio.",
+        "p5": "Writ is beta testing, with public release pending."
       },
       "placeholders": {},
       "visuals": {
@@ -429,7 +370,7 @@
       "kind": "Theme",
       "summary": "A theme about responsive tools that become fluent enough to think and work through.",
       "paragraphs": {
-        "p1": "Music promo campaign kickoff, pitching, reporting, the real-estate deal tracker, the tour advancing system, Dubs, Writ, and Yoohoo compose this reading."
+        "p1": "Music promo campaign kickoff, pitching, reporting, the real-estate deal tracker, the tour advancing system, Dubs, and Writ compose this reading."
       },
       "placeholders": {},
       "visuals": {}
@@ -450,57 +391,38 @@
   "threads": {
     "making-work-playable": {
       "title": "Making work playable",
-      "lede": "The best work tools do more than remove steps. They become responsive enough to practice on and, eventually, to stop noticing.",
-      "paragraphs": {},
+      "lede": "The best tools are responsive enough to practice on and then stop noticing, and that fluency is what turns work into play.",
+      "paragraphs": {
+        "p1": "Thoughts on the tools I like:\n- A good tool rewards repetition the way an instrument does. The more you play it, the less you think about the playing.\n- It has to answer fast enough, and reliably enough, that you can practice on it. Once you've practiced enough, you stop noticing it.\n- Reliable, flexible, gives room for improvisation\n- Quiet personality\n- Frequent actions cost nothing, the right move and the easy move are the same move.\n- It should live where the work already is, alongside the tools I already use, instead of creating a new place to look.\n- Automation capabilities\n- Cross-platform capabilities",
+        "p2": "There's intangible value beyond the direct operational effects that comes from improving the important systems in work and in life. It can be very difficult to see the bigger picture, be genuinely inspired, or notice the thing hidden in plain site when working feels like running on a treadmill stuck on high. The value created goes well beyond the time, cost, and accuracy gains these improved workflows produce. Once I shifted the bulk of my focus towards working *on* the systems rather than *in* them, the quality of the services we offer has reached a new height: campaigns receive more deliberation at the highest leverage points, client relationships get the attention they deserve, and the agency's long-term strategy has sharpened.",
+        "p3": "[Kickoff](record:kickoff) replaces the processes that used to cost half an hour of necessarily careful but tedious and low skill work that took place across four apps, and turned it one workflow with a handful of user inputs. All of the campaign kickoff administrative work is handled in the background in a matter of minutes, I give it a final review, make any edits, and send everything to my client to get the campaign commenced. [Pitching](record:pitching) turned a week of matching in spreadsheets into one review pass over a draft list with its reasoning attached. [Reporting](record:reporting) took three days of every week and handed most of them back, leaving an hour of reading and a send button.",
+        "p4": "[Dubs](record:dubs) is where I practice this principle beyond the desk. Some of my biggest breakthroughs happen away from the keyboard. I love to have a document read to me while I go out for a walk, dictating my thoughts as in-line markups mid-stride. When an idea needs to get out of my head and recorded somewhere durably in the external world, dictation beats the keyboard, and the keyboard beats the pen.",
+        "p5": "[Writ](record:writ) is an app whose success is that you set it and forget it. Your audio is where you put it, and the cognitive burden that comes with constantly managing audio inputs and outputs is gone."
+      },
       "placeholders": {
-        "playable-rewrite": {
-          "prompt": "Rewrite in progress. The direction:",
-          "questions": {
-            "q1": "What fluency does to a day: instant, trusted capture makes a stray idea stop being an interruption, cheap frequent actions make the right move and the easy move the same move, and work starts to reward repetition the way an instrument does.",
-            "q2": "Where each product holds the standard: Dubs as a thought captured mid-stride, Writ as a tool that passes by disappearing",
-            "q3": "Other systems/examples?",
-            "q4": "I love working in a flow state, i want this for everyone"
-          }
+        "playable-consulting": {
+          "prompt": "My consulting work applies XXX to other businesses. The [real-estate dashboard](record:real-estate) lives inside the spreadsheets the team already keeps, so nobody learns a tool to read it. The [tour advancing system](record:touring) hands the manager a day sheet that assembled itself and a promoter follow-up already drafted in the right thread."
+        },
+        "playable-revisit": {
+          "prompt": "Revisit/rewrite this paragraph once those three pages are done."
         }
       },
-      "visuals": {
-        "thread-playable-instruments": {
-          "purpose": "Reuse the strongest campaign, client-system, Dubs, Writ, and Yoohoo visuals as one sequence of tools becoming fluent enough to disappear."
-        }
-      }
+      "visuals": {}
     },
     "philosophy": {
       "title": "Philosophy",
       "lede": "[Summary in progress]",
       "paragraphs": {
-        "p1": "- Contemplation"
+        "p1": "Although I’m not contemplating the big questions of Epistemology, Meta Physics, Philosophy of Mind, and Ethics directly as often as I did as a student, these areas have remained very salient in my work and life.",
+        "p2": "Years of competitive debate and then a Philosophy, Politics, and Law degree taught me how to take a position apart, find the premise everything rests on, and rebuild the case so that someone who disagrees can still follow every step. Two standards came out of that training and never relaxed.",
+        "p3": "At INFAMOUS, inventing the services meant living their costs. A large percentage of every week went to compiling evidence of finished work, personalizing hundreds of pitches by hand, and manually deduplicating in/out-of network curators while researching pitch targets. The first instruments I developed were small automations keyboard browser macros, text snippets, and mailmerge, but it was the first time I understood the shape and feel of the work was itself something I could iterate and improve on.",
+        "p4": "A defining moment was handing off the (at this point largely still manual) process to a new employee — a remote assistant with no music background and English as his second language. This exercise forced me to define the process better than I ever had for myself. Every step, edge case, and condition that felt obvious to me had to become a clear instruction for someone else to follow reliably.",
+        "p5": "Running my own businesses has compounded this. The low-context executor became an AI agent as often as a person, and agent-driven automation matured into a real operating advantage, built to my own judgment and taste.",
+        "p6": "That advantage became a second practice. Consulting is doing for other teams what I did for my own operation: turning fuzzy workflows into explicit states and owners inside the tools people already use.",
+        "p7": "The training turned out to be the right preparation for working with AI. Directing an agent was not dissimilar from training my employee. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. Using deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited.",
+        "p8": "Debate also trained me to look for the second-order consequence, the thing hidden in the text that is often unnoticed, which could produce unwanted results. Writing instructions for agents, and editing the outputs produced by agents, is exactly that. The checklists I once wrote for a human assistant now go to agents."
       },
-      "placeholders": {
-        "philosophy-thread": {
-          "prompt": "Draft the Philosophy thread. The direction:",
-          "questions": {
-            "q1": "The first discipline was argument: years of debate and a Philosophy, Politics, and Law degree set the standard everything since still answers to.",
-            "q2": "A claim counts only if it survives contact with another mind.",
-            "q3": "A decision should be legible to the people it affects."
-          }
-        },
-        "argument-rewrite": {
-          "prompt": "From argument to instrument. [Summary in progress]",
-          "questions": {
-            "q1": "INFAMOUS: inventing the services meant living their costs. Days went to compiling evidence of finished work and midnights to personalizing pitches by hand. The first instruments were small (text snippets, mail merge) but proved the shape of the work was something I could change.",
-            "q2": "The defining move was teaching: handing the reporting process to an assistant with no domain background forced me to define it better than I ever had for myself, and directing work from outside the weeds became the skill the rest runs on.",
-            "q3": "Independence compounded it: at Brain in a Vat there were no approvals to wait on and no inherited systems. The low-context executor became as often an AI agent as a person, and agent-driven automation matured into a real operating advantage built to my own judgment and taste.",
-            "q4": "The advantage became a second practice: consulting is doing for other teams what I did for my own operation, turning fuzzy workflows into explicit states and owners inside the tools people already use.",
-            "q5": "The products came from the same habit: Writ because my audio kept landing on the wrong device, Dubs because I was briefing agents from memory on walks. Neither started as a product; at some point I stopped treating the fixing as a distraction from the work.",
-            "q6": "The specs once written for a human assistant now go to agents, the same discipline with a faster executor. Software stopped being the tool that supported the work and became the medium the work happens in.",
-            "q7": "Philosophy of Mind",
-            "q8": "Epistemology",
-            "q9": "Metaphysics",
-            "q10": "Logic",
-            "q11": "Ethics"
-          }
-        }
-      },
+      "placeholders": {},
       "visuals": {}
     }
   },
