@@ -196,6 +196,14 @@ export function renderCopyDeckPages(document: PortfolioContentDocument): CopyDec
   const home = recordPage(document, HOME_RECORD_ID, "");
   if (home) pages.push(home);
 
+  for (const group of RECORD_GROUPS) {
+    const folder = document.interface[group.titleKey] ?? group.titleKey;
+    for (const recordId of group.recordIds) {
+      const page = recordPage(document, recordId, folder);
+      if (page) pages.push(page);
+    }
+  }
+
   const threadsFolder = document.interface["index.section.threads"] ?? "Threads";
   for (const structure of portfolioThreadStructures) {
     const thread = document.threads[structure.id];
@@ -207,14 +215,6 @@ export function renderCopyDeckPages(document: PortfolioContentDocument): CopyDec
         ...renderBody(structure.body, thread),
       ]),
     });
-  }
-
-  for (const group of RECORD_GROUPS) {
-    const folder = document.interface[group.titleKey] ?? group.titleKey;
-    for (const recordId of group.recordIds) {
-      const page = recordPage(document, recordId, folder);
-      if (page) pages.push(page);
-    }
   }
 
   pages.push(siteTextPage(document));

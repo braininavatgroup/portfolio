@@ -126,12 +126,8 @@ const COMPACT_LINE_HEIGHT = 12;
 const COMPACT_LABEL_SCALE = 11 / 12.5;
 const COMPACT_LABEL_INSET = 12;
 export const PAST_WORLD_ALPHA = 0.42;
-/**
- * The field at rest. Bradley and the four Stories are the resting
- * composition; every other record stays present and clickable at this alpha
- * so the map still invites exploration without competing with the tree.
- */
-export const REST_FIELD_ALPHA = 0.4;
+/** The default overview shows the full field without selection dimming. */
+export const REST_FIELD_ALPHA = 1;
 const FONT = '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 const BRADLEY_FONT = '500 14px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
@@ -667,7 +663,7 @@ export function PortfolioWorld({
     }
 
     // Rest and Bradley are one composition: the authored tree, Bradley and
-    // the Stories at full strength, the field dimmed, the overview camera.
+    // the Stories and field at full strength, the overview camera.
     if (isRestingWorldSelection(selectedId)) {
       applyRestGoals(
         nodes,
@@ -1428,7 +1424,7 @@ function applySpotlightGoals(
 
 /**
  * Rest and Bradley are one composition: the authored tree — Bradley and the
- * Stories at full strength — with the field dimmed and dispersed beneath it.
+ * Stories and their connected field at full strength.
  * Selecting Bradley opens the tree a little and reseats the field, so the
  * click moves everything and deselecting closes it again.
  */

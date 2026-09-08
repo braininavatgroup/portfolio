@@ -748,7 +748,7 @@ describe("PortfolioWorld canvas paint", () => {
     const past = REST_FIELD_ALPHA * PAST_WORLD_ALPHA;
     expect(record.pathAlphas).toContain(past);
     expect(record.labelAlphas.get("INFAMOUS PR")).toBe(past);
-    expect(record.labelAlphas.get("Dubs")).toBe(REST_FIELD_ALPHA);
+    expect(record.labelAlphas.get("Dubs")).toBe(1);
     expect(record.labelAlphas.get("Philosophy")).toBe(1);
     expect(record.labelAlphas.get("Bradley Berkman")).toBe(1);
   });
