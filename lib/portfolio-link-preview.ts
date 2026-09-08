@@ -1,5 +1,5 @@
 // Explicit hover choices take priority over gallery order. Other destinations
-// fall back to their first ready still; interactive visuals have no still.
+// fall back to their first ready still or an explicitly captured interactive demo.
 
 import {
   isPortfolioVisualReady,
@@ -30,7 +30,7 @@ const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
   kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Campaign kickoff workflow" },
   pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Campaign pitching workflow" },
   reporting: { src: "/visuals/campaign/reporting-dashboard.png", alt: "Campaign reporting dashboard" },
-  touring: { src: "/visuals/touring/manager-advance.png", alt: "Manager advance record" },
+  touring: { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" },
   dubs: { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls" },
   writ: { src: "/visuals/writ/output-priority.png", alt: "Writ output priorities" },
 };
@@ -59,6 +59,9 @@ export function portfolioLinkPreviewLayout(
 
 function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | undefined {
   const format = portfolioVisualFormat(block);
+  if (format === "interactive" && block.preview === "touring") {
+    return { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" };
+  }
   if (format === "video") {
     return block.poster ? { src: block.poster, alt: block.alt ?? block.purpose } : undefined;
   }

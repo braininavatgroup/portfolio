@@ -104,7 +104,7 @@ describe("renderCopyDeckPages", () => {
   });
 
   it("keeps a visual's caption and slides inside its callout", () => {
-    const daySheet = document.records.touring.visuals["touring-day-sheet"];
+    const daySheet = document.records.dubs.visuals["dubs-loop"];
     expect(all).toContain(
       `> [!info] ${daySheet.purpose}\n> ${daySheet.caption}\n> 1. ${daySheet.slides?.[0].title}: ${daySheet.slides?.[0].caption}`,
     );

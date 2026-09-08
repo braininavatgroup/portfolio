@@ -724,9 +724,7 @@ describe("PortfolioReader", () => {
   it("embeds the working dashboard without an empty planned visual", () => {
     render(<PortfolioReader {...baseProps} selectedId="real-estate" />);
 
-    const link = screen.getByRole("link", { name: "Open full dashboard" });
-    expect(link.getAttribute("href")).toBe("/demos/quarterly-dashboard");
-    expect(link.closest(".reader-composed-body")).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Open full dashboard" })).toBeNull();
     expect(
       screen.getByRole("region", { name: "Quarterly pitch conversion dashboard" }),
     ).not.toBeNull();
@@ -849,55 +847,15 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
   });
 
-  it("places each Touring visual directly after the article passage it supports", () => {
-    const { container } = render(
-      <PortfolioReader {...baseProps} selectedId="touring" />,
-    );
-
-    const articleFlow = [...container.querySelectorAll(".reader-composed-body > *")]
-      .map((element) => element.classList.contains("reader-visual-gallery")
-        ? [...element.querySelectorAll("img")].map((image) => image.getAttribute("src"))
-        : "paragraph");
-    expect(articleFlow).toEqual([
-      "paragraph",
-      "paragraph",
-      [
-        "/visuals/touring/manager-advance.png",
-        "/visuals/touring/promoter-form.png",
-        "/visuals/touring/artist-dashboard.png",
-      ],
-      "paragraph",
-      ["/visuals/touring/day-sheet.png"],
-      "paragraph",
-      ["/visuals/touring/promoter-draft.png"],
-      "paragraph",
-      ["/visuals/touring/calendar-plan.png"],
-      "paragraph",
-    ]);
-
-    const groups = [...container.querySelectorAll(".reader-visual-gallery .reader-visual-trigger")];
-    expect(groups).toHaveLength(4);
-    expect(groups.map((group) => group.querySelectorAll("img").length)).toEqual([
-      3,
-      1,
-      1,
-      1,
-    ]);
-    expect(
-      groups.map((group) =>
-        [...group.querySelectorAll("img")].map((image) => image.getAttribute("src")),
-      ),
-    ).toEqual([
-      [
-        "/visuals/touring/manager-advance.png",
-        "/visuals/touring/promoter-form.png",
-        "/visuals/touring/artist-dashboard.png",
-      ],
-      ["/visuals/touring/day-sheet.png"],
-      ["/visuals/touring/promoter-draft.png"],
-      ["/visuals/touring/calendar-plan.png"],
-    ]);
-    expect(container.querySelector(".reader-placeholder-frame")).toBeNull();
+  it("embeds the working Touring demo after the field-registry explanation", () => {
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="touring" />);
+    expect(screen.getByRole("region", {name:"Tour advancing demo"})).not.toBeNull();
+    expect(screen.queryByRole("link", {name:"Open full demo ↗"})).toBeNull();
+    const flow = [...container.querySelectorAll(".reader-composed-body > *")];
+    expect(flow[2].querySelector(".portfolio-touring")).not.toBeNull();
+    expect(container.querySelector(".reader-visual-gallery")).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name:"Promoter"}));
+    expect(screen.getByRole("button", {name:"Save advance"})).not.toBeNull();
   });
 
   it("opens each Dubs gallery group at that group's first image", () => {
@@ -1005,7 +963,6 @@ describe("PortfolioReader", () => {
     const cases = [
       { id: "writ", format: "gallery" },
       { id: "dubs", format: "gallery" },
-      { id: "touring", format: "gallery" },
       { id: "reporting", format: "gallery" },
     ] as const;
 

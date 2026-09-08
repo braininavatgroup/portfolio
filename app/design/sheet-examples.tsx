@@ -52,7 +52,7 @@ export function QuarterlyDashboardExample() {
 // #example:QuarterlyDashboardPreview
 export function QuarterlyDashboardPreviewExample() {
   return (
-    <QuarterlyDashboardPreview href="/demos/quarterly-dashboard" />
+    <QuarterlyDashboardPreview />
   );
 }
 // #example-end

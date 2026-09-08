@@ -7,9 +7,9 @@ import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 afterEach(cleanup);
 
 describe("QuarterlyDashboardPreview", () => {
-  it("embeds the working dashboard and links to its full-page route", () => {
+  it("embeds the working dashboard", () => {
     render(
-      <QuarterlyDashboardPreview href="/demos/quarterly-dashboard" />,
+      <QuarterlyDashboardPreview />,
     );
 
     const dashboard = screen.getByRole("region", {
@@ -25,8 +25,6 @@ describe("QuarterlyDashboardPreview", () => {
         name: "Ryan + Ryan Quarterly Pitch Conversion",
       }),
     ).not.toBeNull();
-    expect(
-      screen.getByRole("link", { name: "Open full dashboard" }).getAttribute("href"),
-    ).toBe("/demos/quarterly-dashboard");
+    expect(screen.queryByRole("link", { name: "Open full dashboard" })).toBeNull();
   });
 });

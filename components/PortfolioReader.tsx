@@ -19,6 +19,7 @@ import {
   PortfolioNodeMark,
 } from "./PortfolioNodeMark";
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
+import { TouringDemo } from "./TouringDemo";
 import { MacPanelFrame } from "./MacMenuBar";
 import { ReaderCarousel } from "./ReaderCarousel";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
@@ -447,25 +448,19 @@ function VisualBlock({
   }
 
   if (format === "interactive") {
-    if (!block.href) return null;
-    const onOpenReport = () => {
-      trackPortfolioInsight("evidence_open", {
-        content_id: insightContent.contentId,
-        content_kind: insightContent.contentKind,
-        evidence_id: block.id,
-        evidence_kind: format,
-      });
-    };
-    if (block.preview === "campaign-report") {
-      return <CampaignReportPreview block={block} onOpen={onOpenReport} />;
+    if (block.preview === "touring") return <TouringDemo embedded />;
+    if (block.preview === "quarterly-dashboard") return <QuarterlyDashboardPreview />;
+    if (block.preview === "campaign-report" && block.href) {
+      return <CampaignReportPreview block={block} onOpen={() => {
+        trackPortfolioInsight("evidence_open", {
+          content_id: insightContent.contentId,
+          content_kind: insightContent.contentKind,
+          evidence_id: block.id,
+          evidence_kind: format,
+        });
+      }} />;
     }
-    if (block.preview !== "quarterly-dashboard") return null;
-    return (
-      <QuarterlyDashboardPreview
-        href={block.href}
-        onOpen={onOpenReport}
-      />
-    );
+    return null;
   }
 
   if (ready && format === "gallery" && block.layout === "carousel" && block.slides?.length) {

@@ -25,6 +25,7 @@ inventory, and `/design` for the same components rendered in their states.
 | [PortfolioFeedback](./PortfolioFeedback.md) | Reviewer notes for Bradley on the preview | none, see sheet |
 | [MacMenuBar](./MacMenuBar.md) | Live macOS menu bar over a captured panel | none, see sheet |
 | [ReaderCarousel](./ReaderCarousel.md) | Auto-scrolling strip of gallery assets | none, see sheet |
+| [TouringDemo](./TouringDemo.md) | Interactive tour advance | `/demos/touring` |
 
 ## Avatar
 
@@ -42,7 +43,7 @@ inventory, and `/design` for the same components rendered in their states.
 | Sheet | Component | Route |
 | --- | --- | --- |
 | [QuarterlyDashboard](./QuarterlyDashboard.md) | Interactive pitch-conversion dashboard | `/demos/quarterly-dashboard` |
-| [QuarterlyDashboardPreview](./QuarterlyDashboardPreview.md) | Working dashboard embed with a full-page link | `/design` |
+| [QuarterlyDashboardPreview](./QuarterlyDashboardPreview.md) | Working dashboard embed | `/design` |
 
 ## How these stay true
 

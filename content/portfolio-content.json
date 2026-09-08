@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 27,
+  "revision": 28,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -464,84 +464,16 @@
       "paragraphs": {
         "p1": "Advancing a show means assembling venue details, set times, riders, ground transport, hotels, and guest lists from people who each hold a different part of the answer. Promoters reply in email, artists text screenshots of flights, and the manager has to remember what is still missing. The day sheet is only as reliable as that memory.",
         "p2": "I started by making ownership explicit. A field registry names every piece of information, who supplies it, whether it is required, and where it should appear. The manager starts with a short intake: artist, date, artist email, and whether the routing includes hotel and transport. From there, the registry drives the manager view, promoter form, artist dashboard, day sheet, and missing-information logic. Each person sees the same show through the fields they own.",
-        "p3": "That shared record renders the day-sheet PDF the team uses on show day, with venue, schedule, travel, and contact details pulled from the same source.",
-        "p4": "When something is missing, the system drafts a reply in the existing promoter thread, in the manager's voice and addressed only to the promoter. It never sends.",
-        "p5": "Confirmed arrival, departure, and set times become events in the artist's Google Calendar. Each event carries the venue, contact, and current day-sheet link. When a detail changes, the system updates these outputs instead of leaving them to drift apart.",
+        "p3": "In the demo, ground transport is the last open item. Fill in the driver and airport pickup details as the promoter, then switch to the artist’s view. The day sheet reads those answers from the same record, alongside the venue, set time, travel, and contacts. Change a confirmed detail and the outputs follow it.",
+        "p4": "When something is missing, the system prepares a follow-up containing only the outstanding fields. In the manager’s workflow, that becomes a draft reply in the existing promoter thread, in their voice and addressed only to the promoter. They review it and decide when to send.",
+        "p5": "The artist receives a day-sheet PDF and Google Calendar events for confirmed arrival, departure, and set times. Each event carries the venue, contact, and current day-sheet link. The demo lets you inspect those details together; its email and calendar delivery are disconnected.",
         "p6": "Running it again is safe. A second run creates no duplicate drafts, events, or PDFs. A run that fails partway resumes from the last durable step, and superseded files are removed. The whole system lives inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
       },
       "placeholders": {},
       "visuals": {
-        "touring-field-registry": {
-          "purpose": "The same show, viewed by the manager, promoter, and artist.",
-          "caption": "The promoter fills in the advance once. That information updates the manager’s record and the artist’s view of the show.",
-          "slides": [
-            {
-              "title": "Manager, promoter, artist",
-              "caption": "The promoter fills in the advance once. That information updates the manager’s record and the artist’s view of the show.",
-              "assets": [
-                {
-                  "alt": "Manager view of the show record, with outstanding promoter details.",
-                  "label": "Manager advance"
-                },
-                {
-                  "alt": "Promoter form collecting transport and marketing details for a show.",
-                  "label": "Promoter form"
-                },
-                {
-                  "alt": "Artist dashboard showing Maya Vale's Public Records show",
-                  "label": "Artist dashboard"
-                }
-              ]
-            }
-          ]
-        },
-        "touring-day-sheet": {
-          "purpose": "The day sheet generated from the show record.",
-          "caption": "Venue, travel, schedule, and contact details in one day sheet.",
-          "slides": [
-            {
-              "title": "Day sheet",
-              "caption": "Venue, travel, schedule, and contact details in one day sheet.",
-              "assets": [
-                {
-                  "alt": "Completed Maya Vale day sheet with venue, schedule, travel, and contact details",
-                  "label": "Day sheet"
-                }
-              ]
-            }
-          ]
-        },
-        "touring-gmail-draft": {
-          "purpose": "The manager's templated follow-up email automatically drafted as a reply to the original thread.",
-          "caption": "The missing fields from the show record are inserted into the manager’s email template.",
-          "slides": [
-            {
-              "title": "Gmail draft",
-              "caption": "The missing fields from the show record are inserted into the manager’s email template.",
-              "assets": [
-                {
-                  "alt": "Unsent Gmail draft asking the promoter to confirm missing advance details",
-                  "label": "Unsent promoter draft"
-                }
-              ]
-            }
-          ]
-        },
-        "touring-calendar-event": {
-          "purpose": "The artist’s show details in Google Calendar.",
-          "caption": "The calendar event includes the set time, venue, contact details, and day-sheet link.",
-          "slides": [
-            {
-              "title": "Calendar event",
-              "caption": "The calendar event includes the set time, venue, contact details, and day-sheet link.",
-              "assets": [
-                {
-                  "alt": "Google Calendar event for Maya Vale's set at Public Records",
-                  "label": "Artist calendar event"
-                }
-              ]
-            }
-          ]
+        "touring-work-sample": {
+          "purpose": "Complete a show advance and see the same details reach the artist.",
+          "caption": "One show, shared by the manager, promoter, and artist."
         }
       }
     },
