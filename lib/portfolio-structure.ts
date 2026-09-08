@@ -33,7 +33,7 @@ export type PortfolioVisualTreatment =
 
 export type PortfolioVisualFormat = "image" | "video" | "gallery" | "interactive";
 
-export type PortfolioVisualPreview = "quarterly-dashboard";
+export type PortfolioVisualPreview = "quarterly-dashboard" | "campaign-report";
 
 /**
  * How a ready gallery lays its slides out inline. The default is the stacked
@@ -127,28 +127,6 @@ const draft = (
   kind: "copy-placeholder",
   id,
   ...(questionIds ? { questionIds } : {}),
-});
-
-const inferredVisualFormat = (
-  treatment?: PortfolioVisualTreatment,
-): PortfolioVisualFormat => {
-  if (treatment === "demo") return "video";
-  if (treatment === "sequence" || treatment === "comparison") return "gallery";
-  return "image";
-};
-
-const plannedVisual = (
-  id: string,
-  treatment?: PortfolioVisualTreatment,
-  sourceStatus: PortfolioVisualSourceStatus = "unknown",
-  format: PortfolioVisualFormat = inferredVisualFormat(treatment),
-): PortfolioVisualSkeleton => ({
-  kind: "visual",
-  id,
-  status: "planned",
-  ...(treatment ? { treatment } : {}),
-  sourceStatus,
-  format,
 });
 
 const readyGallery = (
@@ -602,8 +580,22 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       para("p1"),
       para("p2"),
       para("p3"),
-      plannedVisual("reporting-pipeline", "sequence", "recreate"),
       para("p4"),
+      readyGallery("reporting-workflow", [
+        { assets: [{ src: "/visuals/campaign/reporting-result-workflow.png" }] },
+      ]),
+      para("p5"),
+      readyGallery("reporting-email", [
+        { assets: [{ src: "/visuals/campaign/reporting-drafts-2x.png" }] },
+      ]),
+      {
+        ...readyInteractive(
+          "reporting-dashboard",
+          "campaign-report",
+          "https://campaignreports.braininavat.dance/z8tfDu1OWgy9wN/",
+        ),
+        src: "/visuals/campaign/reporting-dashboard.png",
+      },
     ],
   },
   {
