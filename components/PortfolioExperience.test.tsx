@@ -200,7 +200,7 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     submitGuide("Show the evidence.");
     fireEvent.click(await screen.findByRole("link", {
-      name: `Source: ${node.label}`,
+      name: "weekly workflow",
     }));
 
     expect(window.clarity?.q).toContainEqual([
@@ -320,7 +320,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Map tab" }));
     submitGuide("Tell me about pitching.");
     const citation = await screen.findByRole("link", {
-      name: "Source: Music promo campaign pitching",
+      name: "weekly workflow",
     });
 
     fireEvent.click(citation);
