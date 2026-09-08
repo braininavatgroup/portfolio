@@ -4,14 +4,14 @@ Source: [`components/PortfolioNodeMark.tsx`](../../components/PortfolioNodeMark.
 Gallery: `/design#marks`
 
 The shared Reading Room mark draws each family in an 18px SVG box with
-`currentColor`, round caps, miter joins, and a 1.45 stroke. `identity` is a 15px
+`currentColor`, round caps, miter joins, and a 1.45 stroke. `identity` is a 18px
 mask of `/biv-brain-symbol.svg` in the same envelope.
 
 `PortfolioContactMark` draws identity-colour contact kinds.
 `PortfolioControlGlyph` exposes the non-interactive artwork from
 [`lib/portfolio-control-mark.ts`](../../lib/portfolio-control-mark.ts), including
 the mobile-only sidebar frame. `PortfolioControlMark` wraps it in a button.
-Map and Guide use patterned interiors; Guide alone uses a 1.15 outline.
+Map and Guide use the same native-scale brain pattern as Reader, without a separate inactive fade; Guide alone uses a 1.15 outline.
 
 ## Props
 

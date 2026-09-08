@@ -360,7 +360,7 @@ const threadMembershipLinks: readonly PortfolioWorldLink[] = portfolioThreads.fl
 
 /**
  * The map at rest is Bradley's composition. No selection and Bradley selected
- * read the same way: Themes rooted on Bradley, their memberships connected,
+ * read the same way: Themes rooted on Bradley, memberships revealed on selection,
  * and the full field visible. Selecting
  * Bradley therefore changes nothing on the map; the dossier already shows
  * About as home.
@@ -396,7 +396,7 @@ export function isWorldLinkActive(
   selectedId: string | null,
 ): boolean {
   if (isRestingWorldSelection(selectedId)) {
-    return link.layer === "story-root" || link.layer === "story-membership";
+    return link.layer === "story-root";
   }
 
   const selected = portfolioWorldNodeById.get(selectedId);

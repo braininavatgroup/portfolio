@@ -983,9 +983,9 @@ input:focus-visible {
 .portfolio-node-brain {
   -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
   background: currentColor;
-  height: 15px;
+  height: 18px;
   mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
-  width: 15px;
+  width: 18px;
 }
 
 /* A control is a node mark: the bare glyph in the node envelope, an
@@ -1034,7 +1034,7 @@ input:focus-visible {
 }
 
 /* Map and Guide interiors: the outline shape intersected with the brain at
-   170%, in currentColor. Pure CSS, so a cloned bar keeps its pattern. */
+   the same scale as Reader, in currentColor. Pure CSS, so a cloned bar keeps its pattern. */
 .portfolio-control-glyph > * {
   grid-area: 1 / 1;
 }
@@ -1044,14 +1044,14 @@ input:focus-visible {
   -webkit-mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain, 170% 170%;
+  -webkit-mask-size: contain, 100% 100%;
   background: currentColor;
   height: 18px;
   mask-composite: intersect;
   mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
   mask-position: center;
   mask-repeat: no-repeat;
-  mask-size: contain, 170% 170%;
+  mask-size: contain, 100% 100%;
   width: 18px;
 }
 
@@ -1778,8 +1778,56 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-thread {
   flex: 1 1 auto;
-  margin-top: var(--reader-space-4);
+  margin-top: var(--reader-space-1);
   max-height: none;
+}
+
+.portfolio-reading-room-map-controls {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+  min-width: 0;
+  padding: var(--reader-space-1) var(--reader-space-2);
+  position: relative;
+  z-index: 7;
+}
+
+.portfolio-reading-room-mobile-map {
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-reading-room-map-controls {
+  flex: 0 0 auto;
+  order: -1;
+}
+
+.portfolio-reading-room-map-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-avatar-toggle {
+  display: none;
+}
+
+.portfolio-reading-room-avatar-toggle {
+  background: var(--reader-paper);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin-left: auto;
+  min-height: 32px;
+  padding: var(--reader-space-1);
+}
+
+.portfolio-reading-room-avatar-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .portfolio-reading-room-read-chip {
@@ -1793,12 +1841,8 @@ body:has(.portfolio-reading-room-mobile) {
   font: var(--reader-type-secondary) var(--font-reader);
   gap: 8px;
   height: 32px;
-  left: 16px;
-  max-width: calc(100% - 32px);
+  min-width: 0;
   padding: 0 10px 0 8px;
-  position: absolute;
-  top: 12px;
-  z-index: 7;
 }
 
 .portfolio-reading-room-read-label {
@@ -1881,13 +1925,8 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 .portfolio-reading-room-mobile-tab .portfolio-node-brain {
-  height: 16px;
-  width: 16px;
-}
-
-.portfolio-reading-room-mobile-tab[aria-pressed="false"][data-control="reader"] .portfolio-node-brain,
-.portfolio-reading-room-mobile-tab[aria-pressed="false"][data-control="map"] .portfolio-control-pattern {
-  opacity: 0.45;
+  height: 18px;
+  width: 18px;
 }
 
 .portfolio-reading-room-mobile-tab .portfolio-control-label {
@@ -1995,7 +2034,8 @@ body:has(.portfolio-reading-room-mobile) {
   padding: 0;
 }
 
-.portfolio-contents-row {
+.portfolio-contents-row,
+.reader-index-row {
   align-items: center;
   appearance: none;
   background: transparent;
@@ -2158,24 +2198,16 @@ body:has(.portfolio-reading-room-mobile) {
   padding: 0;
 }
 
-/* One row rule set for related, explore, and contact: a 40px row, the label
-   in the row voice, and the mark trailing in its register. State is the
-   outline alone; the mark never changes (Rule 6.1). */
+/* Reader navigation uses the same row rhythm and hit area as Contents. */
 .reader-index-row {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 2px;
-  color: var(--ink);
-  display: grid;
-  font: var(--reader-type-row) var(--font-reader);
-  gap: var(--reader-space-2);
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: var(--reader-space-1) 0;
-  text-align: left;
   text-decoration: none;
-  width: 100%;
+}
+
+.reader-related-section h2 {
+  color: var(--ink);
+  font: var(--reader-type-mast) var(--font-reader);
+  letter-spacing: -0.02em;
+  text-transform: none;
 }
 
 .reader-index-row:focus-visible {
@@ -2896,13 +2928,15 @@ body:has(.portfolio-reading-room-mobile) {
     color: var(--ink);
   }
 
-  .portfolio-contents-row:hover {
+  .portfolio-contents-row:hover,
+  .reader-index-row:hover {
     background: color-mix(in srgb, var(--ink) 8%, transparent);
   }
 }
 
 @media (max-width: 1019px) {
-  .portfolio-contents-row {
+  .portfolio-contents-row,
+  .reader-index-row {
     min-height: 36px;
     padding-bottom: 6px;
     padding-top: 6px;
@@ -2954,6 +2988,7 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 .portfolio-chat-viewport {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2964,7 +2999,6 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-chat-content {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
 }
 
 .chat-question {
@@ -4543,13 +4577,31 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   top: var(--reader-space-1);
 }
 
+.portfolio-guide-scroll-controls {
+  display: flex;
+  flex: 0 0 32px;
+  justify-content: flex-end;
+  padding: 0 var(--reader-space-3);
+}
+
 .portfolio-guide-latest {
-  bottom: 0;
-  position: sticky;
+  border: 1px solid var(--map-line-strong);
+  display: grid;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  width: 32px;
+}
+
+.portfolio-guide-latest .portfolio-control-glyph {
+  height: 18px;
+  margin: 0;
+  transform: rotate(90deg);
+  width: 18px;
 }
 
 .portfolio-guide-latest:disabled {
-  display: none;
+  visibility: hidden;
 }
 
 .portfolio-guide-citation:focus-visible,
@@ -4912,4 +4964,12 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   color: var(--reader-muted);
   font: var(--reader-type-caption) var(--font-reader);
   padding: 0 var(--reader-space-3) var(--reader-space-3);
+}
+
+.portfolio-reading-room-mobile[data-game-mode="true"] .portfolio-reading-room-map-controls {
+  display: none;
+}
+
+.portfolio-reading-room-map-canvas .portfolio-world-mast {
+  display: none;
 }

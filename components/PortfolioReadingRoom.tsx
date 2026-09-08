@@ -94,6 +94,8 @@ export type PortfolioReadingRoomProps = {
   activeThreadId: string | null;
   guide: ReactNode;
   guideHasThread: boolean;
+  avatarHidden?: boolean;
+  onToggleAvatar?: () => void;
   /** Temporarily expands the Map without changing saved panel preferences. */
   gameMode?: boolean;
   map: ReactElement<{ compact?: boolean; nodesInTabOrder?: boolean }>;
@@ -391,6 +393,8 @@ function MobileTab({
 }
 
 export function PortfolioReadingRoom({
+  avatarHidden = false,
+  onToggleAvatar,
   gameMode = false,
   activeThreadId,
   guide,
@@ -702,8 +706,11 @@ export function PortfolioReadingRoom({
           >
             <div className="portfolio-reading-room-mobile-map-page">
               <section className="portfolio-reading-room-mobile-map" data-size="52">
-                {renderMap(!gameMode, gameMode)}
+                <div className="portfolio-reading-room-map-canvas">
+                  {renderMap(!gameMode, gameMode)}
+                </div>
                 <div aria-hidden="true" className="portfolio-reading-room-mobile-avatar" />
+                <div className="portfolio-reading-room-map-controls">
                 {selectedSubject && selectedSubject.id !== "bradley" ? (
                   <button
                     aria-label={`Read ${selectedSubject.label}`}
@@ -720,10 +727,15 @@ export function PortfolioReadingRoom({
                     </span>
                     <span className="portfolio-reading-room-read-action">
                       <span>Read</span>
-                      <PortfolioControlGlyph kind="readArrow" />
                     </span>
                   </button>
                 ) : null}
+                {onToggleAvatar ? (
+                  <button className="portfolio-reading-room-avatar-toggle" onClick={onToggleAvatar} type="button">
+                    {avatarHidden ? "Show avatar" : "Hide avatar"}
+                  </button>
+                ) : null}
+                </div>
               </section>
               <section
                 className="portfolio-reading-room-mobile-guide"

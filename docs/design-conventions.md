@@ -317,12 +317,10 @@ These are product decisions, not preferences. See
 or focused mark keeps its native register color. Express state with opacity,
 weight, scale, or the outline. There is no "selected blue."
 
-**Rule 6.2 — Two row contexts.** Contents rows are 28px on desktop and 36px on
+**Rule 6.2 — Shared navigation rows.** Contents and Reader rows are 28px on desktop and 36px on
 mobile. They use 15px type, an 18px trailing mark, register-coloured selected
 text at weight 500, and an eight-percent ink hover fill with a 6px radius on
-fine pointers. Related, Explore this thread, and Contact rows stay hover-free
-inside Reader. Reader rows remain full text-column width and the mark never
-changes.
+fine pointers. Related, Explore this thread, and Contact use the same row treatment inside Reader. Related headings match Contents group titles. The mark never changes.
 
 **Rule 6.3 — One relationship treatment.** Relationships are a single
 Silverpoint line: thin, straight, neutral, arrowless. The canvas connectors in
@@ -349,7 +347,7 @@ from there; nothing draws Bradley-to-Story lines directly.
 an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor`, miter
 joins, and `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
-symbol (`.portfolio-node-brain`) is a 15px mask of `/biv-brain-symbol.svg`
+symbol (`.portfolio-node-brain`) is an 18px mask of `/biv-brain-symbol.svg`
 filled with `currentColor`. `PortfolioWorld` loads the same SVG and paints it at
 21px for the canvas root node. Map and Guide marks clip the SVG brain pattern
 inside their supplied hexagon and bubble outlines. The Guide outline alone uses
@@ -459,7 +457,7 @@ shape, spacing and type from tokens, no rule, no hex, no mode block:
 ```
 
 It needs no new CSS at all: `.reader-record-section` supplies the 64 above and
-the label voice, `.reader-index-row` the 40px row, the trailing mark, the
+the label voice, `.reader-index-row` the responsive Contents row, the trailing mark, the
 fine-pointer ring and the focus ring. If a section genuinely needs a rule of
 its own, it reads like this:
 
@@ -496,3 +494,12 @@ spacing token.
 - [ ] Checked at 1440×900 and 390×844, in light and dark: home, Index, a
       thread, a record, a record with an image overlay open, chat open. The mast
       and the dossier title share a top edge at 24.
+
+## 9. Mobile review pass
+
+- Reader inline navigation uses real anchors with controlled primary-click navigation. This lets links wrap with surrounding punctuation and preserves modified-click behavior.
+- The default map places Background, Solutions, and Products in the same column order as Contents. Its upper tree connects Bradley to Themes; membership lines appear on selection. All overview records have labels, bounded to two lines in their columns. Full names remain on their accessible buttons.
+- The mobile map toolbar occupies a real row. The canvas measures the remaining area, including during selection and resizing. Read has no arrow; Hide/Show avatar shares the row.
+- Reader, Map, and Guide use the brain asset at its native pattern scale in an 18px control envelope. Inactive tabs use muted ink without separately fading the pattern.
+- Guide follows growing answers only while at the bottom. Scrolling up preserves position. The downward chevron occupies a separate 32px row, so visibility changes do not change the message viewport or cover prose.
+- Guide links use the model's natural phrase, validated against that sentence's evidence. Standalone attribution markers remain in the wire history but add no source-title text to the rendered answer.

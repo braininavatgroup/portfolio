@@ -348,6 +348,8 @@ export function PortfolioExperience() {
       tabIndex={-1}
     >
       <PortfolioReadingRoom
+        avatarHidden={avatarHidden}
+        onToggleAvatar={() => { brainFood.cancel(); setAvatarHidden(hidden => !hidden); }}
         activeThreadId={activeThreadId}
         gameMode={brainFood.gameMode}
         guide={guide}

@@ -795,7 +795,7 @@ describe("PortfolioWorld canvas paint", () => {
       name: "Theme Making work playable",
     });
     const nodeX = Number.parseFloat(node.style.left) / 100 * width;
-    const label = record.fillTextCalls.find(({ value }) => value === "Making work");
+    const label = record.fillTextCalls.find(({ value }) => value.startsWith("Making work"));
 
     expect(nodeX).toBeLessThan(width * 0.3);
     expect(label?.align).toBe("left");
