@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 28,
+  "revision": 29,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -11,7 +11,7 @@
         "p2": "I founded and run Brain in a Vat Group, a company with three divisions: a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consultancy, and a [product studio](record:product-studio). I love untangling messy information and turning it into a playable instrument that anyone can see, run, and improve.",
         "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous). As demand grew beyond what I could do by hand, I started building systems to scale without compromising quality.",
         "p4": "When I founded Brain in a Vat Music Promotions in 2024, building a strong systems infrastructure for the business was top of mind. I developed automated workflows for [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), customizing the business's processes to suit my exact mental model, preferences, and innovations.",
-        "p5": "I want [work to be playable](thread:making-work-playable) for everyone, and I realized that the problems I'd been solving for myself are all too pervasive in modern knowledge work. My consulting work brings those systems to other businesses, like a [tour-advancing suite](record:touring) for an artist manager. In the product studio, I build software designed to make work feel more fluid, like [Dubs](record:dubs), which lets you listen to your documents and capture inline notes via dictation.",
+        "p5": "I want [work to be playable](thread:making-work-playable) for everyone, and I realized that the problems I'd been solving for myself are all too pervasive in modern knowledge work. My consulting work brings those systems to other businesses, including a [deal-tracking dashboard](record:real-estate) for a real-estate team and a [tour-advancing suite](record:touring) for an artist manager. In the product studio, I build software designed to make work feel more fluid: [Dubs](record:dubs) lets you listen to documents and dictate inline notes, while [Writ](record:writ) keeps your Mac on your preferred audio devices.",
         "p6": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
         "p7": "Thanks for stopping by."
       },

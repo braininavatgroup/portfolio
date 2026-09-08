@@ -3,9 +3,7 @@
 Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
 Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
-The Reading Room's always-mounted Guide body. It adapts the existing
-`AskPortfolio` transport to an `@assistant-ui/react` local runtime without
-changing server grounding, validation, limits, or the `[E#]` wire format.
+The Reading Room's always-mounted Guide adapts `AskPortfolio` to an `@assistant-ui/react` local runtime, preserving grounding, validation, limits, and the `[E#]` wire format.
 
 Validated text appears as it arrives; `onNavigateEvidence` routes inline citations to Map and Reader.
 
@@ -17,6 +15,8 @@ test/gallery seams; `turnstileSiteKey` enables challenge gating.
 narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
 Local play commands bypass model quota, network, and Turnstile. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
+
+Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged.
 
 The Reading Room uses three coordination props:
 

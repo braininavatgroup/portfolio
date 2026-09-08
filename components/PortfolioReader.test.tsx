@@ -159,8 +159,10 @@ describe("PortfolioReader", () => {
       "pitching",
       "reporting",
       "work to be playable",
+      "deal-tracking dashboard",
       "tour-advancing suite",
       "Dubs",
+      "Writ",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -173,6 +175,8 @@ describe("PortfolioReader", () => {
       "bridge",
       "story",
       "bridge",
+      "bridge",
+      "cool",
       "cool",
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
@@ -186,8 +190,10 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
+      "real-estate",
       "touring",
       "dubs",
+      "writ",
     ]);
     expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual(["philosophy", "making-work-playable"]);
   });
