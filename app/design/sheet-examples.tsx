@@ -19,6 +19,7 @@ import {
   PortfolioAnalyticsPreference,
 } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
+import { TouringDemo } from "../../components/TouringDemo";
 import { PortfolioContents } from "../../components/PortfolioContents";
 import { PortfolioExperience } from "../../components/PortfolioExperience";
 import { PortfolioFeedback } from "../../components/PortfolioFeedback";
@@ -419,3 +420,9 @@ export function UseBrainFoodSessionExample() {
 }
 // #example-end
 
+
+// #example:TouringDemo
+export function TouringDemoExample() {
+  return <TouringDemo embedded />;
+}
+// #example-end

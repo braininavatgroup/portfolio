@@ -11,8 +11,9 @@ the launch work; it does not authorize deployment or changes to live controls.
 - [x] Integrate Reporting commit `e0808f7` with the reviewed copy, preserving
   the four-week reporting comparison. Reporting’s hover uses its dashboard capture.
   Reconcile any later Reporting changes before the final combined review.
-- [ ] Replace the Touring calendar screenshot with a better capture after the
-  copy sweep. Include the replacement in the artifact review below.
+- [x] Replace the six Touring screenshots with the approved interactive demo
+  from `f535106`; use its capture for the hover preview. Include the demo and
+  capture in the artifact review below.
 - [ ] Bradley reviews every artifact that will be publicly accessible,
   including screenshots, videos, PDFs, downloads, and interactive demos.
   Redact sensitive information from the underlying files and demo data,

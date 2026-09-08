@@ -6,14 +6,24 @@ A guided, editable work sample for one fictional show. Manager and promoter view
 lead to the artist’s day sheet and planned calendar details. The same component
 runs in the Reader and at the full route.
 
+## Requires
+
 `embedded` uses a labelled section and h2 instead of main and h1. The embed
 has no link to the standalone page.
 The embedded variant needs a `.portfolio-composition` ancestor; the route variant
 supplies it. All styles use existing Reader tokens in `app/globals.css`.
 
+## Example
+
 ```tsx
-<TouringDemo embedded />
+import { TouringDemo } from "components/TouringDemo";
+
+export function TouringDemoExample() {
+  return <TouringDemo embedded />;
+}
 ```
+
+## Pitfalls
 
 The source tool’s registry, field ownership, outstanding-work calculation,
 date formatting, day-sheet projection, chase template merger, and event planner
