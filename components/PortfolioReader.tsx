@@ -24,6 +24,7 @@ import { ReaderCarousel } from "./ReaderCarousel";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { portfolioLinkPreview, portfolioLinkPreviewLayout } from "../lib/portfolio-link-preview";
+import { isCampaignReportEmbedOrigin } from "../lib/portfolio-report-embed";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { attachPortfolioVideoSource } from "../lib/portfolio-video";
 import {
@@ -49,6 +50,44 @@ import {
 
 const HOME_NODE_ID = "bradley";
 const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
+
+const subscribeToReportOrigin = () => () => {};
+const canEmbedReport = () => isCampaignReportEmbedOrigin(window.location.origin);
+
+function CampaignReportPreview({ block, onOpen }: {
+  block: PortfolioVisualBlock;
+  onOpen: () => void;
+}) {
+  const embedded = useSyncExternalStore(subscribeToReportOrigin, canEmbedReport, () => false);
+  return (
+    <figure className="reader-visual-block reader-report-preview" data-format="interactive">
+      {embedded ? (
+        <iframe
+          className="reader-report-frame"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          sandbox="allow-downloads allow-modals allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          src={block.href}
+          title={block.purpose}
+        />
+      ) : (
+        <img alt={block.alt ?? block.purpose} loading="lazy" src={block.src} />
+      )}
+      <figcaption>
+        <a
+          className="reader-inline-link"
+          data-external="true"
+          href={block.href}
+          onClick={onOpen}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {block.caption}
+        </a>
+      </figcaption>
+    </figure>
+  );
+}
 
 type PortfolioVideoProps = Omit<ComponentPropsWithoutRef<"video">, "src"> & {
   captionsSrc: string;
@@ -408,18 +447,23 @@ function VisualBlock({
   }
 
   if (format === "interactive") {
-    if (block.preview !== "quarterly-dashboard" || !block.href) return null;
+    if (!block.href) return null;
+    const onOpenReport = () => {
+      trackPortfolioInsight("evidence_open", {
+        content_id: insightContent.contentId,
+        content_kind: insightContent.contentKind,
+        evidence_id: block.id,
+        evidence_kind: format,
+      });
+    };
+    if (block.preview === "campaign-report") {
+      return <CampaignReportPreview block={block} onOpen={onOpenReport} />;
+    }
+    if (block.preview !== "quarterly-dashboard") return null;
     return (
       <QuarterlyDashboardPreview
         href={block.href}
-        onOpen={() => {
-          trackPortfolioInsight("evidence_open", {
-            content_id: insightContent.contentId,
-            content_kind: insightContent.contentKind,
-            evidence_id: block.id,
-            evidence_kind: format,
-          });
-        }}
+        onOpen={onOpenReport}
       />
     );
   }
@@ -468,6 +512,7 @@ function VisualBlock({
               aria-label={`Open gallery visual in reader: ${slide.title}. ${block.purpose}`}
               className="reader-visual-trigger"
               data-format={format}
+              data-evidence-id={block.id}
               data-slide-index={slideIndex}
               data-status={block.status}
               key={slide.title}

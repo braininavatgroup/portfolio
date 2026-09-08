@@ -27,6 +27,7 @@ portfolio-composition work.
 | `--map-paper-dark` | `#19140f` | Dark world paper | `--map-silver` |
 | `--reader-paper-light` | `#eff1f1` | Light reader paper | `--reader-paper-dark` |
 | `--reader-paper-dark` | `#292625` | Dark reader paper | `--reader-paper-light` |
+| `--reader-report-paper` | `#ffffff` | Opaque backing for the native campaign report, including its scrollbar gutter; matches the external document in both modes | Fixed |
 | `--reader-ink-light` | `#201711` | Brown-black light ink and identity | `--reader-ink-dark` |
 | `--reader-ink-dark` | `#f0e6dc` | Dark-mode ink and identity | `--reader-ink-light` |
 | `--world-lichen` | `#466700` | Retained legacy Lichen leaf; not used by the Reading Room | `--world-acid` |

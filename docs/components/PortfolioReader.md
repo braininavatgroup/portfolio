@@ -13,9 +13,7 @@ resolves to an ordinary selected record, then an active thread, then About.
 
 ## Requires
 
-A `.portfolio-composition` token ancestor and resolved parent height. The
-680px column has 24px gutters. Laptop shells fit its 632px content track after
-their transparent canvas is trimmed; the full recording fills the screen aperture.
+A `.portfolio-composition` token ancestor and resolved parent height. The 680px column has 24px gutters. Laptop shells fit the 632px content track after canvas trimming; recordings fill the screen aperture.
 
 ## Example
 
@@ -72,3 +70,5 @@ export function PortfolioReaderExample() {
   phones or one larger phone; the overlay advances one flattened asset at a time.
   A `layout: "carousel"` gallery renders each group as one [`ReaderCarousel`](./ReaderCarousel.md) strip and never opens the overlay.
 - **Interactive dashboards stay in the Reader;** their full-page links report their own opens.
+- **Campaign reports use native iframes.** `preview: "campaign-report"` uses `href` for the report, `src` for the capture on other preview origins, and always offers the full-report link.
+  The 1,280px frame scrolls natively. Allowed origins must match the host's `frame-ancestors`; never proxy reports or strip headers.

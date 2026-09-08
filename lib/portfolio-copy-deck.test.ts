@@ -79,7 +79,7 @@ describe("renderCopyDeckPages", () => {
 
   it("keeps keys, IDs, and site jargon out of every note", () => {
     expect(all).not.toMatch(/`/);
-    expect(all).not.toMatch(/\brecord:[a-z-]+`|\b(records|threads|interface|placeholders|visuals)\./);
+    expect(all).not.toMatch(/\brecord:[a-z-]+`|\b(records|threads|interface|placeholders|visuals)\.[a-zA-Z_]/);
     for (const key of portfolioInterfaceTextKeys) {
       expect(all).not.toContain(key);
       expect(COPY_DECK_INTERFACE_LABELS[key]).toBeDefined();

@@ -16,6 +16,7 @@ import { startPrivacySafeReplay } from "../lib/portfolio-analytics";
 import { inlineLinkTargets, stripInlineLinks } from "../lib/portfolio-inline-links";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { PortfolioReader } from "./PortfolioReader";
+import * as reportEmbed from "../lib/portfolio-report-embed";
 
 afterEach(() => {
   cleanup();
@@ -43,20 +44,26 @@ const baseProps = {
   selectedId: null,
 };
 
-// A planned visual's purpose text for a node, read from the content rather
-// than pinned here, so the copy can keep changing without touching this file.
-function plannedVisualPurpose(id: string, format: "image" | "video" | "gallery") {
-  const node = portfolioWorldNodeById.get(id)!;
-  const block = node.body.find(
-    (candidate) =>
-      typeof candidate !== "string" &&
-      candidate.type === "visual" &&
-      candidate.format === format,
+// Keep planned-state coverage independent of which portfolio visuals are finished.
+function usePlannedGalleryFixture() {
+  const getNode = portfolioWorldNodeById.get.bind(portfolioWorldNodeById);
+  const purpose = "A gallery awaiting capture.";
+  const node = {
+    ...getNode("reporting")!,
+    body: [{
+      type: "visual" as const,
+      id: "planned-gallery-fixture",
+      status: "planned" as const,
+      treatment: "sequence" as const,
+      sourceStatus: "capture" as const,
+      format: "gallery" as const,
+      purpose,
+    }],
+  };
+  vi.spyOn(portfolioWorldNodeById, "get").mockImplementation(
+    (id) => id === "reporting" ? node : getNode(id),
   );
-  if (!block || typeof block === "string" || block.type !== "visual") {
-    throw new Error(`${id} has no planned ${format} visual`);
-  }
-  return block.purpose;
+  return purpose;
 }
 
 function countWorkbenchBlocks(id: string) {
@@ -418,7 +425,7 @@ describe("PortfolioReader", () => {
     );
 
     fireEvent.click(
-      container.querySelector<HTMLButtonElement>(".reader-visual-trigger")!,
+      container.querySelector<HTMLButtonElement>(`[data-evidence-id="${visual.id}"]`)!,
     );
 
     expect(window.clarity?.q).toContainEqual([
@@ -689,7 +696,7 @@ describe("PortfolioReader", () => {
       <PortfolioReader {...baseProps} selectedId="dubs" />,
     );
     const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
-    const rowRule = stylesheet.match(/\.reader-visual-slide-row\s*\{([^}]*)\}/)?.[1];
+    const rowRule = stylesheet.match(/^\.reader-visual-slide-row\s*\{([^}]*)\}/m)?.[1];
     const singleRule = stylesheet.match(
       /\.reader-visual-slide-row\[data-asset-count="1"\]\s*\{([^}]*)\}/,
     )?.[1];
@@ -760,10 +767,10 @@ describe("PortfolioReader", () => {
     }
     placeholderPage.unmount();
 
+    const galleryPurpose = usePlannedGalleryFixture();
     render(
       <PortfolioReader {...baseProps} selectedId="reporting" />,
     );
-    const galleryPurpose = plannedVisualPurpose("reporting", "gallery");
     expect(
       screen.getByRole("button", {
         name: `Open gallery visual in reader: ${galleryPurpose}`,
@@ -932,6 +939,72 @@ describe("PortfolioReader", () => {
     expect(summary.classList.contains("reader-text-placeholder")).toBe(true);
   });
 
+  it("embeds the native report on its approved portfolio origins", () => {
+    vi.spyOn(reportEmbed, "isCampaignReportEmbedOrigin").mockReturnValue(true);
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    const frame = screen.getByTitle("MAMA SAY campaign report");
+    expect(frame.tagName).toBe("IFRAME");
+    expect(frame.getAttribute("src")).toBe("https://campaignreports.braininavat.dance/z8tfDu1OWgy9wN/");
+    expect(frame.getAttribute("sandbox")).toBe("allow-downloads allow-modals allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox");
+    expect(frame.closest("button")).toBeNull();
+    expect(container.querySelectorAll(".reader-visual-gallery img")).toHaveLength(2);
+  });
+
+  it("keeps the real dashboard capture and live link available on other preview origins", () => {
+    vi.spyOn(reportEmbed, "isCampaignReportEmbedOrigin").mockReturnValue(false);
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    expect(container.querySelector("iframe")).toBeNull();
+    expect(screen.getByAltText(/Actual MAMA SAY campaign dashboard/).getAttribute("src")).toBe("/visuals/campaign/reporting-dashboard.png");
+    expect(screen.getByRole("link", { name: "Open live campaign report" })).toBeTruthy();
+  });
+
+  it("shows the reporting workflow directly, without a diagram or disclosure", () => {
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    const trigger = screen.getByRole("button", { name: /Open gallery visual in reader: The reporting workflow/ });
+    expect(trigger.closest("details")).toBeNull();
+    expect(trigger.querySelector("img")?.getAttribute("src")).toBe("/visuals/campaign/reporting-result-workflow.png");
+    expect(container.querySelector('[data-format="diagram"]')).toBeNull();
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog").querySelector("img")?.getAttribute("src")).toBe("/visuals/campaign/reporting-result-workflow.png");
+  });
+
+  it("reserves the drafts image dimensions before Safari evaluates lazy loading", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const imageRule = stylesheet.match(
+      /\.reader-visual-trigger\[data-evidence-id="reporting-email"\] \.reader-visual-slide-row img\s*\{([^}]*)\}/,
+    )?.[1];
+    const ratio = imageRule?.match(/aspect-ratio:\s*(\d+)\s*\/\s*(\d+)/);
+    // A zero-height image sits above the clipped row and never becomes visible
+    // to Safari's lazy loader. Reserve its full intrinsic size, not the crop size.
+    expect(ratio).not.toBeNull();
+    const png = await readFile(resolve(process.cwd(), "public/visuals/campaign/reporting-drafts-2x.png"));
+    expect(Number(ratio?.[1]) / Number(ratio?.[2])).toBe(
+      png.readUInt32BE(16) / png.readUInt32BE(20),
+    );
+  });
+
+  it("opens the report drafts screenshot and restores focus when closed", async () => {
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    const trigger = screen.getByRole("button", { name: /Open gallery visual in reader: Campaign report drafts/ });
+    expect(container.querySelector('img[src="/visuals/campaign/reporting-drafts-2x.png"]')).not.toBeNull();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.querySelector("img")?.getAttribute("src")).toBe("/visuals/campaign/reporting-drafts-2x.png");
+    expect(within(dialog).getByText("Campaign report drafts, September 8")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close visual in reader" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("links to the live campaign report separately from its gallery images", () => {
+    render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    const link = screen.getByRole("link", { name: "Open live campaign report" });
+    expect(link.getAttribute("href")).toBe("https://campaignreports.braininavat.dance/z8tfDu1OWgy9wN/");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.closest("button")).toBeNull();
+  });
+
   it("opens image and gallery blocks through the same reader overlay", () => {
     const cases = [
       { id: "writ", format: "gallery" },
@@ -944,13 +1017,9 @@ describe("PortfolioReader", () => {
       const { unmount } = render(
         <PortfolioReader {...baseProps} selectedId={id} />,
       );
-      const trigger = id !== "reporting"
-        ? screen.getAllByRole("button", {
-            name: /Open gallery visual in reader:/,
-          })[0]
-        : screen.getByRole("button", {
-            name: `Open ${format} visual in reader: ${plannedVisualPurpose(id, format)}`,
-          });
+      const trigger = screen.getAllByRole("button", {
+        name: /Open gallery visual in reader:/,
+      })[0];
       expect(trigger.getAttribute("data-format")).toBe(format);
       fireEvent.click(trigger);
       expect(screen.getByRole("dialog", { name: /Visual in reader:/ })).toBeTruthy();
@@ -1075,9 +1144,9 @@ describe("PortfolioReader", () => {
   });
 
   it("draws a planned visual as a bare frame with its kind, source, and caption", () => {
+    const purpose = usePlannedGalleryFixture();
     render(<PortfolioReader {...baseProps} selectedId="reporting" />);
 
-    const purpose = plannedVisualPurpose("reporting", "gallery");
     const trigger = screen.getByRole("button", {
       name: `Open gallery visual in reader: ${purpose}`,
     });

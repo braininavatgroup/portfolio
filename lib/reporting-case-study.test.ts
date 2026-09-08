@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import content from "../content/portfolio-content.json";
 import { portfolioRecordStructures } from "./portfolio-structure";
-import { portfolioWorldNodes } from "./portfolio-world";
+import { isPortfolioVisualReady, portfolioWorldNodes } from "./portfolio-world";
 
 describe("reporting case study", () => {
   it("publishes authored reporting copy in place of the draft placeholder", () => {
@@ -15,11 +15,14 @@ describe("reporting case study", () => {
       "p1",
       "p2",
       "p3",
-      "reporting-pipeline",
       "p4",
+      "reporting-workflow",
+      "p5",
+      "reporting-email",
+      "reporting-dashboard",
     ]);
-    expect(record?.summary).toContain("hosted reporting system");
-    expect(record?.body.filter((block) => typeof block === "string")).toHaveLength(4);
+    expect(record?.summary).toContain("checks what can be claimed");
+    expect(record?.body.filter((block) => typeof block === "string")).toHaveLength(5);
     expect(
       record?.body.some(
         (block) =>
@@ -29,21 +32,25 @@ describe("reporting case study", () => {
     expect(content.records.reporting.placeholders).toEqual({});
   });
 
-  it("keeps the approved demo sequence explicit while its capture is pending", () => {
+  it("makes the authentic reporting artifacts available to the Reader gallery", () => {
     const record = portfolioWorldNodes.find((node) => node.id === "reporting");
     const visual = record?.body.find(
       (block) =>
-        typeof block !== "string" && block.id === "reporting-pipeline",
+        typeof block !== "string" && block.id === "reporting-workflow",
     );
 
     expect(visual).toMatchObject({
       type: "visual",
-      status: "planned",
       treatment: "sequence",
-      sourceStatus: "recreate",
+      sourceStatus: "exists",
+      format: "gallery",
     });
-    expect(content.records.reporting.visuals["reporting-pipeline"].purpose).toBe(
-      "Trace source evidence through model interpretation, deterministic verification, the auto-pitchable gate, refreshed client dashboards, and drafted client emails.",
-    );
+    if (!visual || typeof visual === "string" || visual.type !== "visual") {
+      throw new Error("Reporting visual is missing");
+    }
+    expect(isPortfolioVisualReady(visual)).toBe(true);
+    expect(visual.slides?.flatMap((slide) => slide.assets)).toHaveLength(1);
+    expect(record?.body).toContainEqual(expect.objectContaining({ id: "reporting-dashboard", format: "interactive", preview: "campaign-report" }));
+    expect(record?.body.filter((block) => typeof block !== "string" && block.type === "visual")).toHaveLength(3);
   });
 });
