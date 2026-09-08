@@ -730,6 +730,17 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).not.toContain("rgb(1, 2, 3)");
   });
 
+  it("keeps all Brain Food targets fully visible when the map resizes from a selected record", () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frames.push(callback); return frames.length; });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.stubGlobal("ResizeObserver", undefined);
+    const record = paintWithConnector("rgb(1, 2, 3)", {brainFoodActive: true, selectedId: "dubs"});
+    fireEvent(window, new Event("resize"));
+    act(() => { for (let frame=0; frame<150; frame++) frames.shift()?.(frame * 16); });
+    expect(record.labelAlphas.get("Philosophy")).toBeCloseTo(1, 3);
+  });
+
   it("applies the Past alpha to the INFAMOUS mark and label on top of the resting field", async () => {
     const record = paintWithConnector("rgb(1, 2, 3)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));

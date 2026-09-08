@@ -241,6 +241,7 @@ function GuideSuggestion({
     <SuggestionPrimitive.Trigger
       className="portfolio-guide-suggestion"
       data-testid="guide-suggestion"
+      data-game-suggestion={prompt === "Play Brain Food"}
       disabled={disabled}
       send
     >
@@ -276,6 +277,7 @@ function GuideInitialSuggestion({
     <ThreadPrimitive.Suggestion
       className="portfolio-guide-suggestion"
       data-testid="guide-suggestion"
+      data-game-suggestion={prompt.text === "Play Brain Food"}
       disabled={disabled}
       prompt={prompt.text}
       send

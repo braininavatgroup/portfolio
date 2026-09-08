@@ -18,7 +18,7 @@ Escape cancels and restores immediately.
 `PortfolioExperience` owns one `AvatarRuntime` through `useAvatarStage`.
 `PortfolioChat` reports only turn start, first answer text, and validated
 effects. Turn start cancels stale work, first text starts `agree_gesture`, and
-the model-selectable actions are `swim_lap`, `stroll`, `dance`, and `turn`. The
+the model-selectable actions are `swim_lap`, `stroll`, `dance`, `turn`, and `brain_food`. The
 runtime queues the performance behind the reaction and always returns to
 `idle`.
 
@@ -56,7 +56,7 @@ T-pose before its first animation begins. Breaststroke uses a `0.8` playback
 rate.
 
 The provider effect schema contains only `avatarAction`, with `"none"`,
-`"swim_lap"`, `"stroll"`, `"dance"`, or `"turn"`. The provider chooses a performance
+`"swim_lap"`, `"stroll"`, `"dance"`, `"turn"`, or `"brain_food"`. The provider chooses a performance
 only when the visitor explicitly asks Bradley to swim, walk, dance, or turn around.
 Standalone dance requests, including the suggested “Can you dance?”, produce
 a social acknowledgment and `dance` directly without a model call. Negated,
@@ -100,3 +100,20 @@ all 17 required clips, continuous Brain Food mounting, movement integration,
 collection, celebration, live-map removal, Escape restoration, reduced motion,
 and renderer isolation. Software WebGL is smoke evidence; physical-GPU motion,
 animation blending, and final feel remain human walk items.
+
+### Brain Food from the Guide
+
+“Play Brain Food” stays available in initial and follow-up suggestions on
+desktop. It is hidden below 1020px and on coarse-pointer devices. Direct
+play/start requests emit `brain_food` without a model call. The Guide still uses
+the normal validated response lifecycle; the Experience owns starting the game.
+
+`gameMode` temporarily renders Map in the main slot and expands it to the window.
+The Room retains its underlying slots, collapsed views, panel dimensions, and
+mobile tab without persisting temporary layout changes. No view remounts during
+the desktop transition, and selection, URL, Reader, and Guide thread survive.
+Two animation frames allow the Map to resize before the swimmer is placed.
+
+Escape, the Exit Brain Food control, and completion restore the layout, focus,
+and prior avatar visibility. Shift+G remains a keyboard shortcut. Play requires a keyboard, a fine pointer, and at least 1020px of width; an unavailable start shows
+a status message instead of changing the layout.

@@ -4355,3 +4355,59 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
     min-height: 520px;
   }
 }
+
+/* Brain Food borrows the main Map surface; underlying panel dimensions and
+   stored preferences remain untouched and return when the session ends. */
+.portfolio-reading-room[data-game-mode="true"] {
+  visibility: hidden;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"],
+.portfolio-reading-room[data-game-mode="true"] .portfolio-reading-room-mobile-map {
+  background: var(--map-paper);
+  height: auto;
+  inset: 0;
+  position: fixed;
+  visibility: visible;
+  width: auto;
+  z-index: 5;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"] > :not(.portfolio-reading-room-pane-body),
+.portfolio-reading-room[data-game-mode="true"] .portfolio-reading-room-read-chip {
+  display: none;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"] > .portfolio-reading-room-pane-body {
+  height: 100%;
+}
+
+.portfolio-composition[data-game-mode="true"] > .portfolio-feedback {
+  visibility: hidden;
+}
+
+.portfolio-game-notice {
+  background: var(--reader-paper);
+  bottom: var(--reader-space-2);
+  color: var(--reader-body);
+  font: var(--reader-type-caption) var(--font-reader);
+  left: var(--reader-space-2);
+  padding: var(--reader-space-2);
+  position: fixed;
+  z-index: 7;
+}
+
+
+.portfolio-brain-food-exit {
+  position: fixed;
+  right: var(--reader-space-3);
+  top: var(--reader-space-3);
+  z-index: 7;
+}
+
+/* Brain Food currently uses desktop keyboard controls. */
+@media (max-width: 1019px), (pointer: coarse) {
+  .portfolio-guide-suggestion[data-game-suggestion="true"] {
+    display: none;
+  }
+}

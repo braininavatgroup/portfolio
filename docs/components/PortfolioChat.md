@@ -7,8 +7,7 @@ The Reading Room's always-mounted Guide body. It adapts the existing
 `AskPortfolio` transport to an `@assistant-ui/react` local runtime without
 changing server grounding, validation, limits, or the `[E#]` wire format.
 
-Complete answers appear word by word. Valid citations become inline buttons;
-`onNavigateEvidence` selects their node, thread, or Home in Map and Reader.
+Answers appear word by word; `onNavigateEvidence` routes inline citations to Map and Reader.
 
 ## Props
 
@@ -16,7 +15,8 @@ No prop is required in production. `askPortfolio` and `renderTurnstile` are
 test/gallery seams; `turnstileSiteKey` enables challenge gating.
 `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
 narrow avatar runtime and layout callbacks. The avatar integration accepts only
-turn start, first rendered text, and the closed `swim_lap` effect contract.
+turn start, first rendered text, and the closed avatar/game effect contract.
+“Play Brain Food” appears in initial and follow-up suggestions on desktop with a fine pointer.
 
 The Reading Room uses three coordination props:
 

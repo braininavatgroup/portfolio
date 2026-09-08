@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parsePortfolioResponseEffects } from "./validation";
 
 describe("avatar effects validation", () => {
+  it("accepts an explicit Brain Food game request", () => {
+    expect(parsePortfolioResponseEffects({avatarAction: "brain_food"})).toEqual({avatarAction: "brain_food", issues: []});
+  });
+
   it("accepts a requested full turn", () => {
     expect(parsePortfolioResponseEffects({ avatarAction: "turn" })).toEqual({ avatarAction: "turn", issues: [] });
   });
@@ -37,7 +41,7 @@ describe("avatar effects validation", () => {
       parsePortfolioResponseEffects({ avatarAction: "walk_to_project" }),
     ).toEqual({
       avatarAction: null,
-      issues: ["avatarAction must be swim_lap, stroll, dance, turn, or null"],
+      issues: ["avatarAction must be swim_lap, stroll, dance, turn, brain_food, or null"],
     });
   });
 

@@ -2,10 +2,9 @@
 
 Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadingRoom.tsx) · Gallery: `/design#reading-room` · Tests: `components/PortfolioReadingRoom.test.tsx`, `components/PortfolioReadingRoom.drag.test.tsx`
 
-The controlled responsive shell. At 1020px and above, Contents sits beside a
-main view and two stacked side views; dragging a 40px bar swaps Reader, Map, or
-Guide. Below 1020px it becomes Contents, Reader, and Map tabs; Map holds Guide at
-52/48. Panel sizes persist through `react-resizable-panels`; slots and collapsed
+At 1020px and above, Contents sits beside a main view and two stacked side views;
+dragging a 40px bar swaps Reader, Map, or Guide. Below 1020px, Contents, Reader,
+and Map become tabs; Map holds Guide at 52/48. Panel sizes persist through `react-resizable-panels`; slots and collapsed
 slots persist separately through `lib/reading-room-layout.ts`.
 
 ## Props
@@ -18,6 +17,7 @@ use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
 `viewRequest` reveals a view (reopens its column or slot; switches tab below
 1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
 Escape before Guide reset/Home. `storage` is a test seam.
+`gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
 
 ## Requires
 

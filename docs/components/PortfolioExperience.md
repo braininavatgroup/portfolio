@@ -7,7 +7,9 @@ The whole accepted composition in one component. It renders the
 `.experience.portfolio-composition` root and supplies one Reader, Map, and Guide
 to [`PortfolioReadingRoom`](./PortfolioReadingRoom.md). It remains the sole
 owner of selection, URL/history, citation routing, the avatar lifecycle, and
-live-map Brain Food. The Reader owns its image and gallery viewer.
+live-map Brain Food. Chat’s `brain_food` effect enters temporary game layout;
+completion or exit restores it without changing selection or URL.
+The Reader owns its image and gallery viewer.
 Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
 `pushState`; `popstate` reads it back. Only a selection or thread is in the
 URL, so returning home pushes one entry only when one was set; opening or

@@ -23,7 +23,7 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "brain_food";
 };
 
 function completedResponse(
@@ -60,6 +60,18 @@ function portfolioOutput(
 }
 
 describe("OpenAI portfolio provider", () => {
+  it.each(["Play Brain Food", "let's play brain food", "start brain food game", "can we play brain food?"])("starts Brain Food from %s without model selection", async (question) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test", model: "test",
+      fetchImplementation: async () => { throw new Error("Game requests need no model call"); },
+    });
+    const events: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({ question, evidence, onEffects: effect => events.push(effect) })) {
+      expect(chunk).toContain("Arrow keys");
+    }
+    expect(events).toEqual([{ avatarAction: "brain_food", issues: [] }]);
+  });
+
   it.each([
     "Can you dance?", "dance", "Dance please!", "please dance",
     "Bradley, can you dance for me?", "could you do a dance please",
@@ -157,7 +169,7 @@ describe("OpenAI portfolio provider", () => {
       strict: true,
     });
     expect(body.text.format.schema.properties.avatarAction).toMatchObject({
-      enum: ["none", "swim_lap", "stroll", "dance", "turn"],
+      enum: ["none", "swim_lap", "stroll", "dance", "turn", "brain_food"],
     });
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarSequence");
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarTone");

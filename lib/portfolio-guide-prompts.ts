@@ -11,6 +11,8 @@ export type GuidePromptSubject = Pick<
   "id" | "title"
 >;
 
+const brainFoodPrompt: GuidePrompt = { text: "Play Brain Food", tone: "playful" };
+
 const starterSets = [
   [
     { text: "Where should I start?", evidenceId: "thread:making-work-playable" },
@@ -49,6 +51,7 @@ export function getGuideInitialPrompts(
   return [
     ...serious.map((prompt) => ({ ...prompt, tone: "serious" as const })),
     { ...set[2], tone: "playful" as const },
+    brainFoodPrompt,
   ];
 }
 
@@ -68,10 +71,12 @@ export function getGuideFollowUpPrompts(
         tone: "serious",
         evidenceId: subject.id,
       },
+      brainFoodPrompt,
     ];
   }
   return [
     { text: "Where should Bradley's story start?", tone: "serious" },
     { text: "Which projects are in production?", tone: "serious" },
+    brainFoodPrompt,
   ];
 }

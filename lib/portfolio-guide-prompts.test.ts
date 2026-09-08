@@ -6,26 +6,29 @@ import {
 } from "./portfolio-guide-prompts";
 
 describe("Guide initial prompts", () => {
-  it("rotates deterministic three-item sets from the visit seed", () => {
+  it("rotates deterministic starter sets with a permanent game entry from the visit seed", () => {
     // Catches every visit returning the same handoff starter set.
     expect(getGuideInitialPrompts(0).map(({ text }) => text)).toEqual([
       "Where should I start?",
       "What does Brain in a Vat do?",
       "Can you dance?",
+      "Play Brain Food",
     ]);
     expect(getGuideInitialPrompts(1).map(({ text }) => text)).toEqual([
       "Which projects are in production?",
       "How did the agency lead to consulting?",
       "Go for a swim",
+      "Play Brain Food",
     ]);
     expect(getGuideInitialPrompts(4)).toEqual(getGuideInitialPrompts(1));
   });
 
-  it.each([0, 1, 2, 11])("returns two serious prompts and one playful prompt for seed %i", (seed) => {
+  it.each([0, 1, 2, 11])("returns two serious prompts, a playful prompt, and the game entry for seed %i", (seed) => {
     // Catches a rotation that loses the intended two-work, one-avatar balance.
     expect(getGuideInitialPrompts(seed).map(({ tone }) => tone)).toEqual([
       "serious",
       "serious",
+      "playful",
       "playful",
     ]);
   });
@@ -41,6 +44,7 @@ describe("Guide initial prompts", () => {
       { text: "Summarise INFAMOUS PR", evidenceId: "node:infamous" },
       { text: "What is related to this?", evidenceId: "node:infamous" },
       { text: "Wave hello", evidenceId: undefined },
+      { text: "Play Brain Food", evidenceId: undefined },
     ]);
   });
 });
@@ -58,10 +62,12 @@ describe("Guide follow-up prompts", () => {
     expect(getGuideFollowUpPrompts(cited).map(({ text }) => text)).toEqual([
       "Summarise Dubs",
       "What is related to this?",
+      "Play Brain Food",
     ]);
     expect(getGuideFollowUpPrompts([]).map(({ text }) => text)).toEqual([
       "Where should Bradley's story start?",
       "Which projects are in production?",
+      "Play Brain Food",
     ]);
     expect(getGuideFollowUpPrompts([])).toEqual(getGuideFollowUpPrompts([]));
   });
