@@ -2206,42 +2206,25 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 /* While a fine pointer rests on an inline link, or keyboard focus reaches
-   it, a still of the target's lead visual floats beneath the phrase. The
-   anchor is inline so the card hangs off the link's own line box. */
+   it, a still of the target's lead visual floats beside the phrase. Its
+   measured position stays within the visible Reader pane. */
 .reader-inline-link-anchor {
   display: inline;
   position: relative;
 }
 
 .reader-inline-link-preview {
-  background: var(--reader-paper);
-  border: 1px solid var(--map-line-strong);
-  border-radius: 6px;
-  box-shadow: 0 6px 9px var(--reader-media-shadow);
   display: block;
+  height: auto;
   left: 0;
-  padding: var(--reader-space-1);
+  max-height: 280px;
+  max-width: 400px;
+  object-fit: contain;
   pointer-events: none;
-  position: absolute;
-  top: calc(100% + var(--reader-space-1));
-  width: 240px;
+  position: fixed;
+  top: 0;
+  width: auto;
   z-index: 5;
-}
-
-.reader-inline-link-preview > img {
-  border-radius: 3px;
-  display: block;
-  height: 150px;
-  object-fit: cover;
-  object-position: top;
-  width: 100%;
-}
-
-.reader-inline-link-preview-label {
-  color: var(--reader-muted);
-  display: block;
-  font: var(--reader-type-caption) var(--font-reader);
-  padding-top: var(--reader-space-1);
 }
 
 @media (pointer: coarse) {

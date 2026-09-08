@@ -23,7 +23,7 @@ import { MacPanelFrame } from "./MacMenuBar";
 import { ReaderCarousel } from "./ReaderCarousel";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
-import { portfolioLinkPreview } from "../lib/portfolio-link-preview";
+import { portfolioLinkPreview, portfolioLinkPreviewLayout } from "../lib/portfolio-link-preview";
 import { paragraphHasList, parseParagraphFlow } from "../lib/portfolio-paragraph";
 import { attachPortfolioVideoSource } from "../lib/portfolio-video";
 import {
@@ -708,8 +708,9 @@ function LinkedParagraph({
 // One in-dossier link. It wears its target's map register, so the phrase
 // reads in the same colour as the node it opens, and while a fine pointer
 // rests on it (or keyboard focus reaches it) a still of the target's lead
-// visual floats beneath the phrase. The still mounts only then, so the
-// home page does not fetch every record's image on open.
+// visual floats beside the phrase within the Reader's visible bounds.
+// The still mounts only then, so the home page does not fetch every
+// record's image on open.
 function InlineRecordLink({
   label,
   node,
@@ -722,14 +723,59 @@ function InlineRecordLink({
   thread?: PortfolioThread;
 }) {
   const [previewing, setPreviewing] = useState(false);
+  const linkRef = useRef<HTMLButtonElement>(null);
+  const previewRef = useRef<HTMLImageElement>(null);
   const targetNode = node ?? portfolioWorldNodeById.get(thread!.nodeId);
   const preview = useMemo(
     () => portfolioLinkPreview((node ?? thread!).body),
     [node, thread],
   );
+  useLayoutEffect(() => {
+    const link = linkRef.current;
+    const image = previewRef.current;
+    const pane = link?.closest<HTMLElement>(".reader-scroll");
+    if (!previewing || !link || !image || !pane) return;
+    const position = () => {
+      const paneRect = pane.getBoundingClientRect();
+      const styles = getComputedStyle(image);
+      const gap = parseFloat(styles.getPropertyValue("--reader-space-1")) || 8;
+      const inset = parseFloat(styles.getPropertyValue("--reader-space-2")) || 16;
+      const bounds = {
+        left: Math.max(0, paneRect.left) + inset,
+        right: Math.min(window.innerWidth, paneRect.right) - inset,
+        top: Math.max(0, paneRect.top) + inset,
+        bottom: Math.min(window.innerHeight, paneRect.bottom) - inset,
+      };
+      image.style.maxWidth = `${Math.max(0, Math.min(400, bounds.right - bounds.left))}px`;
+      image.style.maxHeight = "";
+      const anchor = link.getBoundingClientRect();
+      const available = portfolioLinkPreviewLayout(anchor, bounds, image.getBoundingClientRect(), gap);
+      image.style.maxHeight = `${available.height}px`;
+      const layout = portfolioLinkPreviewLayout(anchor, bounds, image.getBoundingClientRect(), gap);
+      image.style.left = `${layout.left}px`;
+      image.style.top = `${layout.top}px`;
+      image.dataset.placement = layout.placement;
+    };
+    const dismiss = () => setPreviewing(false);
+    position();
+    image.addEventListener("load", position);
+    pane.addEventListener("scroll", dismiss, { passive: true });
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", dismiss, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(position);
+    observer?.observe(pane);
+    return () => {
+      image.removeEventListener("load", position);
+      pane.removeEventListener("scroll", dismiss);
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", dismiss);
+      observer?.disconnect();
+    };
+  }, [previewing, preview]);
   return (
     <span className="reader-inline-link-anchor">
       <button
+        ref={linkRef}
         className="reader-inline-link"
         data-register={targetNode?.register}
         onBlur={() => setPreviewing(false)}
@@ -742,10 +788,13 @@ function InlineRecordLink({
         {label}
       </button>
       {preview && previewing ? (
-        <span aria-hidden="true" className="reader-inline-link-preview">
-          <img alt="" src={preview.src} />
-          <span className="reader-inline-link-preview-label">{targetNode?.label}</span>
-        </span>
+        <img
+          alt=""
+          aria-hidden="true"
+          className="reader-inline-link-preview"
+          ref={previewRef}
+          src={preview.src}
+        />
       ) : null}
     </span>
   );

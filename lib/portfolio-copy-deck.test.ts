@@ -104,7 +104,7 @@ describe("renderCopyDeckPages", () => {
   });
 
   it("keeps a note and a visual's caption and slides inside their callouts", () => {
-    const revisit = document.threads["making-work-playable"].placeholders["playable-revisit"];
+    const revisit = document.records["thread-philosophy"].placeholders["philosophy-record"];
     expect(all).toContain(`> [!note] ${revisit.prompt}\n`);
     const daySheet = document.records.touring.visuals["touring-day-sheet"];
     expect(all).toContain(

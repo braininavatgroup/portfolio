@@ -782,10 +782,10 @@ export const portfolioThreadStructures: readonly PortfolioThreadStructure[] = [
       para("p1"),
       para("p2"),
       para("p3"),
-      draft("playable-revisit"),
-      draft("playable-consulting"),
       para("p4"),
       para("p5"),
+      para("p6"),
+      para("p7"),
     ],
     members: [
       "kickoff",
