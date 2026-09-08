@@ -1,6 +1,6 @@
 # TouringDemo
 
-Source: `components/TouringDemo.tsx`. Route: `/demos/touring`.
+Source: [`components/TouringDemo.tsx`](../../components/TouringDemo.tsx). Route: `/demos/touring`.
 
 A guided, editable work sample for one fictional show. Manager and promoter views
 lead to the artist’s day sheet and planned calendar details. The same component
