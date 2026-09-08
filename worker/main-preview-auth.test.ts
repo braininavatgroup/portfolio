@@ -45,6 +45,58 @@ function cookiePair(response: Response) {
 }
 
 describe("main preview password boundary", () => {
+  it("keeps the working surfaces behind the password after the site is public", async () => {
+    const publicEnv: MainPreviewAuthEnv = {
+      ...enabledEnv,
+      PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false",
+    };
+
+    for (const pathname of ["/copy-deck", "/copy-deck.zip", "/design"]) {
+      const app = downstream();
+      const response = await withMainPreviewPassword(
+        new Request(`https://bradleyberkman.com${pathname}`),
+        publicEnv,
+        app.next,
+        () => NOW,
+      );
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe(
+        `/_portfolio-preview/login?next=${encodeURIComponent(pathname)}`,
+      );
+      expect(app.calls()).toBe(0);
+    }
+  });
+
+  it("still serves portfolio pages publicly while the working surfaces are gated", async () => {
+    const app = downstream();
+
+    const response = await withMainPreviewPassword(
+      new Request("https://bradleyberkman.com/privacy"),
+      { ...enabledEnv, PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false" },
+      app.next,
+      () => NOW,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-robots-tag")).toBeNull();
+    expect(app.calls()).toBe(1);
+  });
+
+  it("leaves the working surfaces open where no password is configured", async () => {
+    const app = downstream();
+
+    const response = await withMainPreviewPassword(
+      new Request("http://localhost:5173/design"),
+      {},
+      app.next,
+      () => NOW,
+    );
+
+    expect(response.status).toBe(200);
+    expect(app.calls()).toBe(1);
+  });
+
   it("passes through unchanged when the password gate is disabled", async () => {
     const app = downstream();
 

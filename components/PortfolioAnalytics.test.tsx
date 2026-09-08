@@ -121,6 +121,70 @@ describe("portfolio analytics consent", () => {
     expect(document.querySelector("script[data-portfolio-replay]")).toBeNull();
   });
 
+  it("forwards a saved opt-in to Clarity on the next eligible load", async () => {
+    markExternalVisit();
+    const storage = memoryStorage();
+    storage.setItem("portfolio_analytics_consent", "denied");
+
+    // The excluded load: Clarity never starts, so re-enabling can only write
+    // the preference.
+    const excluded = render(
+      <>
+        <PortfolioAnalytics
+          hostname="bradleyberkman.com"
+          projectId="abc123"
+          storage={storage}
+        />
+        <PortfolioAnalyticsPreference storage={storage} />
+      </>,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Enable Clarity analytics" }),
+    );
+    expect(storage.getItem("portfolio_analytics_consent")).toBe("granted");
+    expect(window.clarity).toBeUndefined();
+    excluded.unmount();
+
+    // The reload: Clarity starts and has to be told about the saved opt-in.
+    render(
+      <PortfolioAnalytics
+        hostname="bradleyberkman.com"
+        projectId="abc123"
+        storage={storage}
+      />,
+    );
+    await act(async () => {});
+
+    expect(document.querySelector("script[data-portfolio-replay]")).toBeTruthy();
+    expect(window.clarity?.q).toContainEqual([
+      "consentv2",
+      { ad_Storage: "denied", analytics_Storage: "granted" },
+    ]);
+    expect(window.clarity?.q?.findIndex((call) => call[0] === "consentv2")).toBeLessThan(
+      window.clarity!.q!.findIndex(
+        (call) => call[0] === "event" && call[1] === "portfolio_entry",
+      ),
+    );
+  });
+
+  it("keeps a saved opt-in dormant on a preview document", async () => {
+    document.documentElement.dataset.portfolioAnalyticsContext = "preview";
+    const storage = memoryStorage();
+    storage.setItem("portfolio_analytics_consent", "granted");
+
+    render(
+      <PortfolioAnalytics
+        hostname="bradleyberkman.com"
+        projectId="abc123"
+        storage={storage}
+      />,
+    );
+    await act(async () => {});
+
+    expect(window.clarity).toBeUndefined();
+    expect(document.querySelector("script[data-portfolio-replay]")).toBeNull();
+  });
+
   it("enrolls a personal browser before the first analytics bootstrap", async () => {
     markExternalVisit();
     window.history.replaceState({}, "", "/privacy?analytics=off#settings");

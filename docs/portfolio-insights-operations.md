@@ -24,13 +24,15 @@ Verify the exclusion in browser developer tools:
 2. The document contains no `script[data-portfolio-replay]` element.
 3. The Network panel contains no request to `clarity.ms/tag` or a Clarity
    collection endpoint.
-4. `/privacy` offers **Enable anonymous analytics**, which confirms the stored
+4. `/privacy` offers **Enable Clarity analytics**, which confirms the stored
    preference is denied.
 
 Re-enabling analytics on `/privacy` changes the stored preference. It takes
-effect on the next page load. The password-protected main preview is excluded
-independently and should never load Clarity, regardless of the browser's
-preference.
+effect on the next page load: the excluded page has no Clarity runtime to
+notify, so the next eligible load forwards the saved `granted` to Clarity's
+consent API itself. A document that is not eligible — the `preview` marker, a
+missing marker, a non-public hostname — ignores the saved preference entirely
+and stays dormant.
 
 ## Use opaque job-search links
 
@@ -74,10 +76,43 @@ prove that an AI answer used or cited the portfolio. Citation evidence needs a
 separate, reproducible answer check or citation monitor with its own approval,
 data policy, and operating record. No such monitor is activated by this work.
 
+## Verify Clarity's own consent settings
+
+The code controls two of the three settings that decide what Clarity stores.
+The third lives in the Clarity dashboard and has to be read there before
+launch, then recorded against the reviewed `/privacy` notice.
+
+| Setting | Where it lives | Value |
+| --- | --- | --- |
+| `ad_Storage` | `setPrivacySafeReplayConsent` | Always `denied`. Never used for advertising. |
+| `analytics_Storage` | The stored browser preference | `granted` or `denied` when one is saved; not sent when none is. |
+| Clarity's own cookies | Clarity project `yatoiqtrjm`, Settings → Setup → Advanced settings | **Off** since 2026-09-08, so Consent Mode is on. |
+
+The third row decides what a first visit does before any preference exists.
+The toggle reads the other way round from the behaviour: **Cookies off** is
+what turns Consent Mode on, so Clarity waits for a `granted` before setting
+`_clck` or `_clsk`. That is the state this project is in, which is why the
+reviewed `/privacy` notice — which describes the preference this site stores,
+not identifiers Clarity sets for itself — is accurate as written. The cost is
+that recordings are not linked into multi-page sessions until a visitor opts
+in. If anyone turns that toggle back on, the notice needs a sentence about
+Clarity's cookies, and that copy change goes to Bradley through the copy deck.
+
+Leave Clarity's Google Analytics, Google Ads and Microsoft Ads integrations
+unconnected. Each adds a processor and cookies the reviewed notice does not
+describe, and none of them answers a question Cloudflare's edge analytics and
+Clarity do not already answer.
+
 ## Activation boundary
 
 Analytics fails closed. Clarity starts only when an eligible public document
 has `data-portfolio-analytics-context="external"` on its root element. A
-missing marker and the main preview's `preview` marker keep it dormant. Adding
-the public `external` marker is a separate protected activation change; this
-implementation does not deploy or activate it.
+missing marker and the main preview's `preview` marker keep it dormant.
+
+`worker/public-portfolio.ts` writes the `external` marker, and only when
+`PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is not `true` and the request host
+is `bradleyberkman.com` or `www.bradleyberkman.com`. Local development,
+`workers.dev` previews, supporting routes, and the password-gated preview are
+all excluded by that rule, so no build carries the marker by itself. Emitting
+it in production still requires an approved deployment of a candidate with the
+gate off; the code alone activates nothing.

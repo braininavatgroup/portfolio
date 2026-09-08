@@ -1,3 +1,9 @@
+import {
+  excludeFromSearch,
+  isSupportingRoute,
+  setAnalyticsContext,
+} from "./public-portfolio";
+
 export interface MainPreviewAuthEnv {
   PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED?: string;
   PORTFOLIO_MAIN_PREVIEW_PASSWORD?: string;
@@ -16,23 +22,7 @@ type WorkerSubtleCrypto = SubtleCrypto & {
 };
 
 function addNoIndex(response: Response) {
-  const headers = new Headers(response.headers);
-  headers.set("x-robots-tag", PROTECTED_ROBOTS_TAG);
-  const protectedResponse = new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-  if (!headers.get("content-type")?.toLowerCase().includes("text/html")) {
-    return protectedResponse;
-  }
-  return new HTMLRewriter()
-    .on("html", {
-      element(element) {
-        element.setAttribute("data-portfolio-analytics-context", "preview");
-      },
-    })
-    .transform(protectedResponse);
+  return setAnalyticsContext(excludeFromSearch(response), "preview");
 }
 
 function privateResponse(
@@ -303,22 +293,33 @@ export async function withMainPreviewPassword(
   next: () => Promise<Response>,
   now: () => number = Date.now,
 ): Promise<Response> {
-  if (env.PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED !== "true") {
-    return next();
-  }
-
+  const url = new URL(request.url);
   const password = env.PORTFOLIO_MAIN_PREVIEW_PASSWORD;
   const sessionSecret = env.PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET;
-  if (!password || !sessionSecret || sessionSecret.length < 32) {
+  const credentials =
+    password && sessionSecret && sessionSecret.length >= 32
+      ? { password, sessionSecret }
+      : null;
+
+  // Once the portfolio is public the flag is off, but the copy deck and the
+  // design gallery are Bradley's working surfaces, not portfolio pages. They
+  // keep the same password as long as it is configured. Where it is not --
+  // local development, a workers.dev preview -- they stay open, exactly as
+  // they are today; the gate is not something to fail closed on for a
+  // surface that has no password to give.
+  if (env.PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED !== "true") {
+    if (!credentials || !isSupportingRoute(url.pathname)) {
+      return next();
+    }
+  } else if (!credentials) {
     return privateResponse("Preview unavailable", { status: 503 });
   }
 
-  const url = new URL(request.url);
   if (url.pathname === LOGIN_PATH) {
-    return handleLogin(request, password, sessionSecret, now);
+    return handleLogin(request, credentials.password, credentials.sessionSecret, now);
   }
 
-  if (await validSession(requestCookie(request), sessionSecret, now())) {
+  if (await validSession(requestCookie(request), credentials.sessionSecret, now())) {
     return addNoIndex(await next());
   }
 
