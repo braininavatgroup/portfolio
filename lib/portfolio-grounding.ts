@@ -4,6 +4,7 @@ import {
   portfolioThreads,
   portfolioThroughline,
   portfolioWorldNodes,
+  portfolioWorldIndexSections,
   type PortfolioWorldNode,
 } from "./portfolio-world";
 import {
@@ -36,6 +37,9 @@ function nodeEvidence(node: PortfolioWorldNode): PortfolioGroundingEvidence {
   const threads = threadsContaining(node.id);
   const lines = [
     `Kind: ${node.kind}`,
+    ...portfolioWorldIndexSections
+      .filter((section) => section.type === "nodes" && section.nodeIds.includes(node.id))
+      .map((section) => `Section: ${section.title}`),
     `Summary: ${node.summary}`,
     ...portfolioBodyText(node.body),
     ...(threads.length

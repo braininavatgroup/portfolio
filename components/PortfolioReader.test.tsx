@@ -152,19 +152,15 @@ describe("PortfolioReader", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "music promotions",
       "systems and AI",
-      "software",
+      "product studio",
       "Philosophy",
       "INFAMOUS PR",
       "kickoff",
       "pitching",
       "reporting",
       "work to be playable",
-      "Systems and AI Consulting",
-      "deal tracking dashboard",
       "tour-advancing suite",
-      "Product Studio",
       "Dubs",
-      "Writ",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -176,11 +172,7 @@ describe("PortfolioReader", () => {
       "bridge",
       "bridge",
       "story",
-      "warm",
       "bridge",
-      "bridge",
-      "warm",
-      "cool",
       "cool",
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
@@ -194,17 +186,13 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
-      "systems-consulting",
-      "real-estate",
       "touring",
-      "product-studio",
       "dubs",
-      "writ",
     ]);
     expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual(["philosophy", "making-work-playable"]);
   });
 
-  it("floats a still of the target's lead visual under a hovered or focused inline link", () => {
+  it("floats the selected image or glyph under a hovered or focused inline link", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
     const link = (name: string) =>
       screen.getAllByRole("button", { name }).find((button) =>
@@ -215,28 +203,29 @@ describe("PortfolioReader", () => {
     expect(preview()).toBeNull();
     fireEvent.mouseEnter(link("Dubs"));
     expect(preview()?.getAttribute("aria-hidden")).toBe("true");
-    expect(preview()?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
-    expect(preview()?.getAttribute("alt")).toBe("");
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
+    expect(preview()?.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(preview()?.textContent).toBe("");
-    expect(preview()?.tagName).toBe("IMG");
+    expect(preview()?.tagName).toBe("SPAN");
     fireEvent.mouseLeave(link("Dubs"));
     expect(preview()).toBeNull();
 
     fireEvent.focus(link("kickoff"));
-    expect(preview()?.getAttribute("src")).toBe(
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
       "/visuals/campaign/campaign-kickoff-poster.png",
     );
     fireEvent.blur(link("kickoff"));
     expect(preview()).toBeNull();
 
     fireEvent.mouseEnter(link("INFAMOUS PR"));
-    expect(preview()?.getAttribute("src")).toBe(
-      "/visuals/clients/infamous/all-day-i-dream.webp",
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+      "/visuals/hover/infamous.svg",
     );
     fireEvent.mouseLeave(link("INFAMOUS PR"));
-    // A thread has no lead visual preview.
+    // Themes have an explicit glyph even without a body visual.
     fireEvent.mouseEnter(link("Philosophy"));
-    expect(preview()).toBeNull();
+    expect(preview()?.dataset.treatment).toBe("glyph");
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/hover/theme.svg");
   });
 
   it("draws every contact row as an index row with its own mark", () => {
@@ -296,7 +285,7 @@ describe("PortfolioReader", () => {
 
   it.each([
     ["philosophy", "thread-philosophy"],
-  ])("renders the %s Why as copy in progress", (activeThreadId, selectedId) => {
+  ])("renders the %s Theme with its reviewed summary", (activeThreadId, selectedId) => {
     render(
       <PortfolioReader
         {...baseProps}
@@ -305,7 +294,8 @@ describe("PortfolioReader", () => {
       />,
     );
 
-    expect(screen.getAllByText("[Summary in progress]").length).toBeGreaterThan(0);
+    expect(screen.queryByText("[Summary in progress]")).toBeNull();
+    expect(screen.getByText(portfolioThreads.find((thread) => thread.id === activeThreadId)!.lede)).toBeTruthy();
   });
 
   it("uses one summary treatment at the start of every record", () => {
@@ -623,7 +613,7 @@ describe("PortfolioReader", () => {
     ).toBe(true);
     expect(container.querySelector(".reader-visual-overlay")).toBe(overlay);
     expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
-    expect(within(overlay).getByText("Available mid-stride")).toBeTruthy();
+    expect(within(overlay).getByText("Lock Screen controls")).toBeTruthy();
     expect(within(overlay).getByText("1 of 8")).toBeTruthy();
 
     fireEvent.click(within(overlay).getByRole("button", { name: "Next visual frame" }));
@@ -734,9 +724,7 @@ describe("PortfolioReader", () => {
   it("embeds the working dashboard without an empty planned visual", () => {
     render(<PortfolioReader {...baseProps} selectedId="real-estate" />);
 
-    const link = screen.getByRole("link", { name: "Open full dashboard" });
-    expect(link.getAttribute("href")).toBe("/demos/quarterly-dashboard");
-    expect(link.closest(".reader-composed-body")).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Open full dashboard" })).toBeNull();
     expect(
       screen.getByRole("region", { name: "Quarterly pitch conversion dashboard" }),
     ).not.toBeNull();
@@ -809,7 +797,7 @@ describe("PortfolioReader", () => {
       throw new Error(`${id} has no carousel visual`);
     }
 
-    const strips = screen.getAllByRole("group", { name: /Carousel of marquee clients/ });
+    const strips = screen.getAllByRole("group", { name: "Clients. Clients" });
     expect(strips).toHaveLength(block.slides!.length);
     expect(strips.map((strip) => strip.getAttribute("data-direction"))).toEqual(
       block.slides!.map((_, index) => (index % 2 === 0 ? "forward" : "backward")),
@@ -859,55 +847,15 @@ describe("PortfolioReader", () => {
     expect(document.querySelector(".reader-placeholder-frame")).toBeNull();
   });
 
-  it("places each Touring visual directly after the article passage it supports", () => {
-    const { container } = render(
-      <PortfolioReader {...baseProps} selectedId="touring" />,
-    );
-
-    const articleFlow = [...container.querySelectorAll(".reader-composed-body > *")]
-      .map((element) => element.classList.contains("reader-visual-gallery")
-        ? [...element.querySelectorAll("img")].map((image) => image.getAttribute("src"))
-        : "paragraph");
-    expect(articleFlow).toEqual([
-      "paragraph",
-      "paragraph",
-      [
-        "/visuals/touring/manager-advance.png",
-        "/visuals/touring/promoter-form.png",
-        "/visuals/touring/artist-dashboard.png",
-      ],
-      "paragraph",
-      ["/visuals/touring/day-sheet.png"],
-      "paragraph",
-      ["/visuals/touring/promoter-draft.png"],
-      "paragraph",
-      ["/visuals/touring/calendar-plan.png"],
-      "paragraph",
-    ]);
-
-    const groups = [...container.querySelectorAll(".reader-visual-gallery .reader-visual-trigger")];
-    expect(groups).toHaveLength(4);
-    expect(groups.map((group) => group.querySelectorAll("img").length)).toEqual([
-      3,
-      1,
-      1,
-      1,
-    ]);
-    expect(
-      groups.map((group) =>
-        [...group.querySelectorAll("img")].map((image) => image.getAttribute("src")),
-      ),
-    ).toEqual([
-      [
-        "/visuals/touring/manager-advance.png",
-        "/visuals/touring/promoter-form.png",
-        "/visuals/touring/artist-dashboard.png",
-      ],
-      ["/visuals/touring/day-sheet.png"],
-      ["/visuals/touring/promoter-draft.png"],
-      ["/visuals/touring/calendar-plan.png"],
-    ]);
-    expect(container.querySelector(".reader-placeholder-frame")).toBeNull();
+  it("embeds the working Touring demo after the field-registry explanation", () => {
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="touring" />);
+    expect(screen.getByRole("region", {name:"Tour advancing demo"})).not.toBeNull();
+    expect(screen.queryByRole("link", {name:"Open full demo ↗"})).toBeNull();
+    const flow = [...container.querySelectorAll(".reader-composed-body > *")];
+    expect(flow[2].querySelector(".portfolio-touring")).not.toBeNull();
+    expect(container.querySelector(".reader-visual-gallery")).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name:"Promoter"}));
+    expect(screen.getByRole("button", {name:"Save advance"})).not.toBeNull();
   });
 
   it("opens each Dubs gallery group at that group's first image", () => {
@@ -1015,7 +963,6 @@ describe("PortfolioReader", () => {
     const cases = [
       { id: "writ", format: "gallery" },
       { id: "dubs", format: "gallery" },
-      { id: "touring", format: "gallery" },
       { id: "reporting", format: "gallery" },
     ] as const;
 

@@ -3,8 +3,8 @@
 Source: [`components/PortfolioContents.tsx`](../../components/PortfolioContents.tsx) ·
 Gallery: `/design#contents` · Tests: `components/PortfolioContents.test.tsx`
 
-The Reading Room's navigation column. Its Home mast sits above five groups in
-the same order as `portfolioWorldIndexSections`. Every row uses a short label,
+The Reading Room's navigation column. Its Home mast sits above Background, Solutions, Products, and Themes,
+in the order defined by `portfolioWorldIndexSections`. Every row uses a short label,
 a trailing register mark, and one selection state. Record rows update Reader
 and Map through `onSelect`; thread rows use `onSelectThread`.
 

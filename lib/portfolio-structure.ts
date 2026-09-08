@@ -33,7 +33,7 @@ export type PortfolioVisualTreatment =
 
 export type PortfolioVisualFormat = "image" | "video" | "gallery" | "interactive";
 
-export type PortfolioVisualPreview = "quarterly-dashboard" | "campaign-report";
+export type PortfolioVisualPreview = "quarterly-dashboard" | "campaign-report" | "touring";
 
 /**
  * How a ready gallery lays its slides out inline. The default is the stacked
@@ -118,15 +118,6 @@ export type PortfolioThreadStructure = {
 const para = (id: string): PortfolioParagraphSkeleton => ({
   kind: "paragraph",
   id,
-});
-
-const draft = (
-  id: string,
-  questionIds?: readonly string[],
-): PortfolioCopyPlaceholderSkeleton => ({
-  kind: "copy-placeholder",
-  id,
-  ...(questionIds ? { questionIds } : {}),
 });
 
 const readyGallery = (
@@ -624,39 +615,10 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     body: [
       para("p1"),
       para("p2"),
-      readyGallery("touring-field-registry", [
-        {
-          assets: [
-            { src: "/visuals/touring/manager-advance.png" },
-            { src: "/visuals/touring/promoter-form.png" },
-            { src: "/visuals/touring/artist-dashboard.png" },
-          ],
-        },
-      ]),
+      readyInteractive("touring-work-sample", "touring", "/demos/touring"),
       para("p3"),
-      readyGallery("touring-day-sheet", [
-        {
-          assets: [
-            { src: "/visuals/touring/day-sheet.png" },
-          ],
-        },
-      ]),
       para("p4"),
-      readyGallery("touring-gmail-draft", [
-        {
-          assets: [
-            { src: "/visuals/touring/promoter-draft.png" },
-          ],
-        },
-      ]),
       para("p5"),
-      readyGallery("touring-calendar-event", [
-        {
-          assets: [
-            { src: "/visuals/touring/calendar-plan.png" },
-          ],
-        },
-      ]),
       para("p6"),
     ],
   },
@@ -715,7 +677,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
         {
           assets: [
             { src: "/visuals/writ/device-rules.png", chrome: "mac-menu-bar" },
-            { src: "/visuals/writ/settings-menu.png", chrome: "mac-menu-bar" },
           ],
         },
         {
@@ -742,8 +703,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "story",
     register: "story",
     position: { x: 77.04, y: 43.99, z: 700 },
-    summaryStatus: "placeholder",
-    body: [draft("philosophy-record")],
+    body: [para("p1"), para("p2")],
   },
 ] as const;
 

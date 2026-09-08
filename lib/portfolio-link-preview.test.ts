@@ -53,7 +53,7 @@ describe("portfolioLinkPreview", () => {
     const still = (id: string) => portfolioLinkPreview(portfolioWorldNodeById.get(id)!.body)?.src;
     expect(still("kickoff")).toBe("/visuals/campaign/campaign-kickoff-poster.png");
     expect(still("pitching")).toBe("/visuals/campaign/pitch-pipeline-poster.png");
-    expect(still("touring")).toBe("/visuals/touring/manager-advance.png");
+    expect(still("touring")).toBe("/visuals/touring/advance-demo.png");
     expect(still("dubs")).toBe("/visuals/dubs/lock-screen.png");
     expect(still("writ")).toBe("/visuals/writ/output-priority.png");
     expect(still("real-estate")).toBeUndefined();

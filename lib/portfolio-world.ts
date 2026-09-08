@@ -360,8 +360,8 @@ const threadMembershipLinks: readonly PortfolioWorldLink[] = portfolioThreads.fl
 
 /**
  * The map at rest is Bradley's composition. No selection and Bradley selected
- * read the same way: Bradley spotlighted at twelve o'clock, the four Why
- * lines rooted on him, and every other record dimmed in the field. Selecting
+ * read the same way: Themes rooted on Bradley, their memberships connected,
+ * and the full field visible. Selecting
  * Bradley therefore changes nothing on the map; the dossier already shows
  * About as home.
  */
@@ -395,7 +395,9 @@ export function isWorldLinkActive(
   link: PortfolioWorldLink,
   selectedId: string | null,
 ): boolean {
-  if (isRestingWorldSelection(selectedId)) return link.layer === "story-root";
+  if (isRestingWorldSelection(selectedId)) {
+    return link.layer === "story-root" || link.layer === "story-membership";
+  }
 
   const selected = portfolioWorldNodeById.get(selectedId);
   if (!selected) return false;
@@ -462,9 +464,8 @@ const indexSection = (
     : { id, title: portfolioInterfaceText[titleKey], titleKey, type: "threads" };
 
 export const portfolioWorldIndexSections: readonly PortfolioWorldIndexSection[] = [
-  indexSection("threads", "index.section.threads"),
-  indexSection("operations", "index.section.operations", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
-  indexSection("campaign", "index.section.campaign", ["kickoff", "pitching", "reporting"]),
-  indexSection("client", "index.section.client", ["real-estate", "touring"]),
+  indexSection("background", "index.section.background", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
+  indexSection("solutions", "index.section.solutions", ["kickoff", "pitching", "reporting", "real-estate", "touring"]),
   indexSection("products", "index.section.products", ["dubs", "writ"]),
+  indexSection("threads", "index.section.threads"),
 ];

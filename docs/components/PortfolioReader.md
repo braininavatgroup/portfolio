@@ -50,9 +50,9 @@ export function PortfolioReaderExample() {
   record, or thread opens at the top. Moving the Reader preserves this element,
   and analytics must observe it rather than document scroll.
 - **Reader has no route back to Contents.** Its mast and panel own navigation.
-- **Inline previews are image-only.** Hover/focus shows the first ready still; touch shows none.
-  `portfolio-link-preview.ts` fits the uncropped image inside the Reader, up to 400×280px.
-  Image load and resize update placement; scroll dismisses. Clicking the link opens the record.
+- **Inline previews:** `lib/portfolio-link-preview.ts` selects destination overrides or the first ready still.
+  Hover/focus shows images up to 400×280px; touch shows none. Scroll dismisses; load/resize repositions.
+  Logo/glyph masks use the register’s RGB inverse with transparent backgrounds; links retain their color.
 - **The Reader owns visual state.** Image and gallery overlays stay bounded
   over a translucent paper wash and slight blur. The overlay names the current
   asset, centers the label and `n of total` navigation, and restores trigger
@@ -65,6 +65,6 @@ export function PortfolioReaderExample() {
 - **Reader gallery groups are not overlay pages.** Groups sit in rows of three
   phones or one larger phone; the overlay advances one flattened asset at a time.
   A `layout: "carousel"` gallery renders each group as one [`ReaderCarousel`](./ReaderCarousel.md) strip and never opens the overlay.
-- **Interactive dashboards stay in the Reader;** their full-page links report their own opens.
+- **Interactive work samples stay in the Reader;** QuarterlyDashboard and TouringDemo use their full working components without separate full-page links.
 - **Campaign reports use native iframes.** `preview: "campaign-report"` uses `href` for the report, `src` for the capture on other preview origins, and always offers the full-report link.
   The 1,280px frame scrolls natively. Allowed origins must match the host's `frame-ancestors`; never proxy reports or strip headers.

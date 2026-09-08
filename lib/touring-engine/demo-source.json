@@ -1,0 +1,124 @@
+{
+  "show": {
+    "artist": "Maya Vale",
+    "show_date": "2026-10-16",
+    "primary_thread_id": "demo-thread-maya-vale",
+    "hotel_included": "no",
+    "transport_included": "yes",
+    "chase_active": true,
+    "traveling_party": "Maya Vale; Jordan Lee, tour manager",
+    "room_listing": "",
+    "venue_name": "Public Records",
+    "venue_address": "123 Example Street, Brooklyn, NY 11217",
+    "city": "Brooklyn",
+    "timezone": "America/New_York",
+    "venue_hours": "20:00–02:00",
+    "set_time": "2026-10-16T23:00",
+    "artist_before": "River Lane",
+    "artist_after": "Noah Bloom",
+    "dos_name": "Sam Ellis",
+    "dos_number": "+1 212 555 0101",
+    "hospitality_name": "Casey Stone",
+    "hospitality_number": "+1 212 555 0102",
+    "tech_name": "Morgan West",
+    "tech_number": "+1 212 555 0103",
+    "tech_confirmed": "yes",
+    "gear_notes": "Two media players, four-channel mixer, booth monitor. Soundcheck at 18:00.",
+    "hospitality_confirmed": "yes",
+    "coi_status": "yes",
+    "driver_name": "",
+    "driver_number": "+1 212 555 0144",
+    "transfer_airport_hotel": "",
+    "transfer_hotel_venue": "22:00 pickup at artist-arranged accommodation.",
+    "transfer_venue_hotel": "00:30 pickup at venue entrance.",
+    "transfer_hotel_airport": "09:00 pickup on October 17 for departure.",
+    "hotel_name": "",
+    "hotel_address": "",
+    "hotel_confirmation": "",
+    "airline": "Example Air",
+    "flight_number": "EX 204",
+    "takeoff_time": "2026-10-17T12:00",
+    "landing_time": "2026-10-16T14:00",
+    "route_from": "Chicago ORD",
+    "route_to": "New York JFK",
+    "flight_confirmation_upload": "",
+    "flight_booking_ref": "",
+    "flight_booked_by": "",
+    "flight_cost": "",
+    "gl_allotment": "2",
+    "gl_names": "{\"name\":\"Avery Quinn\",\"phone\":\"+1 212 555 0151\",\"email\":\"avery@guests.example.com\"}\n{\"name\":\"Jamie Fox\",\"phone\":\"+1 212 555 0152\",\"email\":\"jamie@guests.example.com\"}",
+    "photographer_contact": "",
+    "fan_ticket_data": "",
+    "due_date_overrides": {},
+    "gcal_event_ids": {},
+    "gcal_event_signatures": {},
+    "pdf_link": "/evidence#daysheet",
+    "pdf_file_id": "",
+    "daysheet_signature": "",
+    "daysheet_draft_signature": "",
+    "status": "",
+    "last_chase_date": null,
+    "chase_draft_id": null,
+    "promoter_notified_flight": false,
+    "show_id": "maya-vale-public-records-2026-10-16",
+    "artist_email": "maya.vale@example.com"
+  },
+  "config": {
+    "buckets": [
+      {
+        "name": "kickoff",
+        "offset": 21,
+        "sections": []
+      },
+      {
+        "name": "tech",
+        "offset": 14,
+        "sections": [
+          "Show/Venue",
+          "Contacts",
+          "Tech",
+          "Hospitality",
+          "Compliance"
+        ]
+      },
+      {
+        "name": "logistics",
+        "offset": 10,
+        "sections": [
+          "Transport",
+          "Accommodation"
+        ]
+      },
+      {
+        "name": "travel",
+        "offset": 7,
+        "sections": [
+          "Travel"
+        ]
+      },
+      {
+        "name": "guestlist",
+        "offset": 3,
+        "sections": [
+          "GuestList"
+        ]
+      },
+      {
+        "name": "daysheet",
+        "offset": 2,
+        "sections": [
+          "(render)"
+        ]
+      }
+    ],
+    "cadenceDays": 3,
+    "graceDays": 1,
+    "templates": {
+      "chase": {
+        "body": "Hi {{contact_name}},\n\nPlease confirm these details for {{artist}} at {{venue}} on {{show_date}}, {{days_to_show}} days away:\n{{outstanding_items}}\n\nThank you."
+      }
+    },
+    "glAllotmentDefault": 2
+  },
+  "today": "2026-10-10"
+}

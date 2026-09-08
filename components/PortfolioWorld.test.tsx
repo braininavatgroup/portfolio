@@ -748,7 +748,7 @@ describe("PortfolioWorld canvas paint", () => {
     const past = REST_FIELD_ALPHA * PAST_WORLD_ALPHA;
     expect(record.pathAlphas).toContain(past);
     expect(record.labelAlphas.get("INFAMOUS PR")).toBe(past);
-    expect(record.labelAlphas.get("Dubs")).toBe(REST_FIELD_ALPHA);
+    expect(record.labelAlphas.get("Dubs")).toBe(1);
     expect(record.labelAlphas.get("Philosophy")).toBe(1);
     expect(record.labelAlphas.get("Bradley Berkman")).toBe(1);
   });
@@ -781,7 +781,7 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.fillTexts).toContain("Dubs");
     expect(record.fillTexts).not.toContain("Writ");
 
-    fireEvent.pointerEnter(screen.getByRole("button", { name: "In Production Writ" }));
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Products Writ" }));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(record.fillTexts).toContain("Writ");
   });

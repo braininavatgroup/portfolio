@@ -1,8 +1,5 @@
-// The still image a record or thread shows when an inline link to it is
-// hovered or focused: the first ready visual in its body, read as a poster
-// for a video, the first frame of a gallery, or the image itself. Planned
-// and interactive visuals have no still, so a link to a record without one
-// simply shows no preview.
+// Explicit hover choices take priority over gallery order. Other destinations
+// fall back to their first ready still or an explicitly captured interactive demo.
 
 import {
   isPortfolioVisualReady,
@@ -11,7 +8,32 @@ import {
   type PortfolioVisualBlock,
 } from "./portfolio-world";
 
-export type PortfolioLinkPreview = { src: string; alt: string };
+export type PortfolioLinkPreview = { src: string; alt: string; treatment?: "logo" | "glyph" };
+
+const bivLogo: PortfolioLinkPreview = {
+  src: "/visuals/hover/brain-in-a-vat.png", alt: "Brain in a Vat logo", treatment: "logo",
+};
+const themeGlyph: PortfolioLinkPreview = {
+  src: "/visuals/hover/theme.svg", alt: "Theme asterisk glyph", treatment: "glyph",
+};
+
+// Explicit choices remain stable when a page’s gallery order changes.
+const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
+  "music-practice": bivLogo,
+  "systems-consulting": bivLogo,
+  "product-studio": bivLogo,
+  infamous: { src: "/visuals/hover/infamous.svg", alt: "INFAMOUS logo", treatment: "logo" },
+  philosophy: themeGlyph,
+  "thread-philosophy": themeGlyph,
+  "making-work-playable": themeGlyph,
+  "thread-making-work-playable": themeGlyph,
+  kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Campaign kickoff workflow" },
+  pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Campaign pitching workflow" },
+  reporting: { src: "/visuals/campaign/reporting-dashboard.png", alt: "Campaign reporting dashboard" },
+  touring: { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" },
+  dubs: { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls" },
+  writ: { src: "/visuals/writ/output-priority.png", alt: "Writ output priorities" },
+};
 
 type PreviewBounds = { left: number; right: number; top: number; bottom: number };
 
@@ -37,6 +59,9 @@ export function portfolioLinkPreviewLayout(
 
 function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | undefined {
   const format = portfolioVisualFormat(block);
+  if (format === "interactive" && block.preview === "touring") {
+    return { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" };
+  }
   if (format === "video") {
     return block.poster ? { src: block.poster, alt: block.alt ?? block.purpose } : undefined;
   }
@@ -52,7 +77,9 @@ function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | un
 
 export function portfolioLinkPreview(
   body: readonly PortfolioBodyBlock[],
+  destinationId?: string,
 ): PortfolioLinkPreview | undefined {
+  if (destinationId && hoverChoices[destinationId]) return hoverChoices[destinationId];
   for (const block of body) {
     if (typeof block === "string" || block.type !== "visual") continue;
     if (!isPortfolioVisualReady(block)) continue;

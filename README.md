@@ -104,6 +104,9 @@ deployment job consumes the exact `dist/`
 artifact already proven by CI and remains dormant unless the repository
 variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to `true`.
 
+Before public launch, removing the preview login, or enabling public analytics,
+follow the [public launch checklist](docs/activation/portfolio-public-launch-checklist.md).
+
 Microsoft Clarity project `yatoiqtrjm` provides privacy-safe behavioral
 analytics only when an eligible public document carries the explicit
 `external` analytics context. Missing context, local pages, the

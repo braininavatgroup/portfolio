@@ -27,10 +27,9 @@ the edits to `content/portfolio-content.json` by hand.
 Portfolio copy/
   Bradley Berkman.md              the home page
   Threads/<title>.md              the four essays
-  Operations/<name>.md            records, one folder per index group
-  Music promotions systems/<name>.md
-  Client systems/<name>.md
-  In Production/<name>.md
+  Background/<name>.md            records, one folder per index group
+  Solutions/<name>.md
+  Products/<name>.md
   Site text.md                    contact rows, buttons, headings, small print,
                                   and text only the Guide chat sees
 ```

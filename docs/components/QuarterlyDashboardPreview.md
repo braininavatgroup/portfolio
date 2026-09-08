@@ -6,12 +6,11 @@ Gallery: `/design` · Tests: `components/QuarterlyDashboardPreview.test.tsx`
 The reader entry point for the quarterly dashboard. It mounts
 `QuarterlyDashboard embedded`, so the tabs, filters, scorecards, chart,
 drill-down, CSV download, and print action are the same working component used
-by the full route. A separate link opens it at full-page scale.
+by the standalone route. The embed has no link to the standalone page.
 
 ## Props
 
-`href` is the full dashboard route. `onOpen` is optional and records the
-full-page open action in the reader.
+No props.
 
 ## Requires
 
@@ -26,7 +25,7 @@ import { QuarterlyDashboardPreview } from "components/QuarterlyDashboardPreview"
 
 export function QuarterlyDashboardPreviewExample() {
   return (
-    <QuarterlyDashboardPreview href="/demos/quarterly-dashboard" />
+    <QuarterlyDashboardPreview />
   );
 }
 ```
@@ -35,6 +34,5 @@ export function QuarterlyDashboardPreviewExample() {
 
 - Do not rebuild a visual approximation here. This wrapper must mount the real
   dashboard component.
-- The dashboard controls remain interactive. Keep the full-page link separate
-  rather than wrapping the dashboard in an anchor.
+- The dashboard controls remain interactive inside the Reader.
 - Keep generated rows in memory; do not add a checked-in preview fixture.

@@ -443,8 +443,8 @@ describe("PortfolioExperience Reading Room integration", () => {
     const stage = screen.getByRole("dialog", {
       name: /Visual in reader:/,
     });
-    expect(within(stage).getByAltText("The Dubs library showing saved documents and listening progress")).toBeTruthy();
-    expect(within(stage).queryByAltText("Dubs controls available from the iPhone Lock Screen")).toBeNull();
+    expect(within(stage).getByAltText("Dubs library with documents, tags, threads, markups, and Perspectives.")).toBeTruthy();
+    expect(within(stage).queryByAltText("Dubs playback, Highlight, and Inline Note controls on the iPhone Lock Screen.")).toBeNull();
   });
 
   it("exposes neither the old toybox nor the Director shortcut", async () => {

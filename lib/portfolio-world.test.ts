@@ -128,7 +128,7 @@ describe("accepted portfolio world", () => {
     ]);
   });
 
-  it("reads rest as Bradley's composition: two Why lines rooted on him", () => {
+  it("shows both Themes and every membership connection at rest", () => {
     const roots = [
       "thread-making-work-playable",
       "thread-philosophy",
@@ -143,7 +143,10 @@ describe("accepted portfolio world", () => {
         links
           .filter((link) => isWorldLinkActive(link, selectedId))
           .map(({ layer, to }) => `${layer}:${to}`),
-      ).toEqual(roots.map((to) => `story-root:${to}`));
+      ).toEqual([
+        ...roots.map((to) => `story-root:${to}`),
+        ...portfolioThreads.flatMap((thread) => thread.members.map((id) => `story-membership:${id}`)),
+      ]);
       expect(getWorldFocusIds({ activeThreadId: null, selectedId })).toEqual(
         new Set(["bradley", ...roots]),
       );
@@ -165,6 +168,7 @@ describe("accepted portfolio world", () => {
       [
         "story-root:bradley->thread-making-work-playable",
         "story-root:bradley->thread-philosophy",
+        ...portfolioThreads.flatMap((thread) => thread.members.map((id) => `story-membership:${thread.nodeId}->${id}`)),
       ],
     ],
     [

@@ -68,7 +68,7 @@ describe("portfolio analytics consent", () => {
 
     expect(screen.queryByLabelText("Analytics preferences")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Opt out of analytics" }),
+      screen.queryByRole("button", { name: "Opt out of Clarity analytics" }),
     ).toBeNull();
   });
 
@@ -87,7 +87,7 @@ describe("portfolio analytics consent", () => {
     );
 
     const optOut = await screen.findByRole("button", {
-      name: "Opt out of analytics",
+      name: "Opt out of Clarity analytics",
     });
     expect(window.clarity?.q?.some((call) => call[0] === "consentv2")).toBe(false);
 
@@ -98,7 +98,7 @@ describe("portfolio analytics consent", () => {
       "consentv2",
       { ad_Storage: "denied", analytics_Storage: "denied" },
     ]);
-    expect(screen.getByRole("button", { name: "Enable anonymous analytics" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Enable Clarity analytics" })).toBeTruthy();
   });
 
   it("honors a stored opt-out before exposing the control", async () => {
@@ -116,7 +116,7 @@ describe("portfolio analytics consent", () => {
       </>,
     );
 
-    await screen.findByRole("button", { name: "Enable anonymous analytics" });
+    await screen.findByRole("button", { name: "Enable Clarity analytics" });
     expect(window.clarity).toBeUndefined();
     expect(document.querySelector("script[data-portfolio-replay]")).toBeNull();
   });
