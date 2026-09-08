@@ -1974,7 +1974,7 @@ body:has(.portfolio-reading-room-mobile) {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px var(--reader-space-3) var(--reader-space-3);
+  padding: var(--reader-space-3);
 }
 
 .portfolio-contents-groups {
@@ -1986,7 +1986,7 @@ body:has(.portfolio-reading-room-mobile) {
   color: var(--ink);
   font: var(--reader-type-mast) var(--font-reader);
   letter-spacing: -0.02em;
-  margin: 0;
+  margin: 0 0 var(--reader-space-1);
 }
 
 .portfolio-contents-group ul {
