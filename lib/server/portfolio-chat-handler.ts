@@ -205,7 +205,7 @@ function validatePortfolioSegment(segment: string, evidenceCount: number) {
     }
   }
 
-  const claim = segment.replace(/(?:\s*\[E[1-9]\d*\])+\s*$/, "").trim();
+  const claim = segment.replace(/\[([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/(?:\s*\[E[1-9]\d*\])+\s*$/, "").trim();
   if (!claim || /[.!?]["')\]]?\s+\S/.test(claim)) {
     throw new InvalidAttributionError(
       "Provider output contains an unattributed sentence.",
@@ -220,7 +220,7 @@ async function* validatedAnswerDeltas(
   let buffer = "";
   const paragraphBoundaryPattern = /\n\n/;
   const followedCitation =
-    /\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
+    /(?<!\])\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
 
   for await (const delta of deltas) {
     buffer += delta;

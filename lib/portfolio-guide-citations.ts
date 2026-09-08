@@ -40,12 +40,12 @@ export function parseGuideAnswerSegments(
   evidence: readonly PortfolioGroundingEvidence[],
 ): GuideAnswerSegment[] {
   const segments: GuideAnswerSegment[] = [];
-  const labels = /\[E([1-9]\d*)\]/g;
+  const labels = /(?:\[(?!E[1-9]\d*\])([^\]\n]+)\])?\[E([1-9]\d*)\]/g;
   let textStart = 0;
 
   for (const match of answer.matchAll(labels)) {
     const index = match.index;
-    const label = Number(match[1]);
+    const label = Number(match[2]);
     const item = evidence[label - 1];
     const target = item ? resolveGuideEvidenceTarget(item) : null;
     if (!item || !target) continue;
@@ -55,7 +55,7 @@ export function parseGuideAnswerSegments(
     }
     segments.push({
       type: "citation",
-      text: match[0],
+      text: match[1] ?? match[0],
       label,
       evidence: item,
       target,

@@ -99,7 +99,7 @@ function validatePortfolioSegment(
     citedEvidenceIds.push(evidenceId);
   }
 
-  const claim = segment.replace(/(?:\s*\[E\d+\])+\s*$/, "").trim();
+  const claim = segment.replace(/\[([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/(?:\s*\[E\d+\])+\s*$/, "").trim();
   if (!claim || /[.!?]["')\]]?\s+\S/.test(claim)) {
     return { ok: false, failureCode: "unattributed_claim" };
   }
@@ -108,9 +108,15 @@ function validatePortfolioSegment(
 }
 
 function validateCitations(answer: string, evidenceIds: string[]): CitationCheck {
+  if (answer.includes("\n\n")) {
+    const checks = answer.split(/\n\n+/).map(paragraph => validateCitations(paragraph, evidenceIds));
+    const failure = checks.find(check => !check.ok);
+    if (failure) return failure;
+    return { ok: true, citedEvidenceIds: [...new Set(checks.flatMap(check => check.ok ? check.citedEvidenceIds : []))] };
+  }
   let buffer = answer.trim();
   const citedEvidenceIds: string[] = [];
-  const followedCitation = /\[E\d+\](?:\s*\[E\d+\])*(?=\s+[^\s[])/;
+  const followedCitation = /(?<!\])\[E\d+\](?:\s*\[E\d+\])*(?=\s+[^\s[])/;
   let boundary = followedCitation.exec(buffer);
 
   while (boundary) {

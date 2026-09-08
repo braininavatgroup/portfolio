@@ -146,7 +146,7 @@ describe("PortfolioReader", () => {
     const onSelectThread = vi.fn();
     render(<PortfolioReader {...baseProps} onSelect={onSelect} onSelectThread={onSelectThread} />);
 
-    const links = screen.getAllByRole("button").filter((button) =>
+    const links = screen.getAllByRole("link").filter((button) =>
       button.classList.contains("reader-inline-link"),
     );
     expect(links.map((link) => link.textContent)).toEqual([
@@ -201,7 +201,7 @@ describe("PortfolioReader", () => {
   it("floats the selected image or glyph under a hovered or focused inline link", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
     const link = (name: string) =>
-      screen.getAllByRole("button", { name }).find((button) =>
+      screen.getAllByRole("link", { name }).find((button) =>
         button.classList.contains("reader-inline-link"),
       )!;
     const preview = () => container.querySelector<HTMLElement>(".reader-inline-link-preview");
@@ -360,7 +360,7 @@ describe("PortfolioReader", () => {
       .body.flatMap((block) => (typeof block === "string" ? inlineLinkTargets(block) : []))
       .find((target) => target.kind === "external");
     const anchor = container.querySelector<HTMLAnchorElement>(
-      ".reader-composed-body a.reader-inline-link",
+      '.reader-composed-body a.reader-inline-link[data-external="true"]',
     );
     expect(external?.kind).toBe("external");
     expect(anchor?.getAttribute("href")).toBe(external && "href" in external ? external.href : "");
@@ -390,7 +390,7 @@ describe("PortfolioReader", () => {
 
     fireEvent.click(
       container.querySelector<HTMLAnchorElement>(
-        ".reader-composed-body a.reader-inline-link",
+        '.reader-composed-body a.reader-inline-link[data-external="true"]',
       )!,
     );
 

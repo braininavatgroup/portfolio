@@ -51,9 +51,9 @@ describe("PortfolioContents", () => {
     }
 
     const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
-    const desktopRule = stylesheet.match(/\.portfolio-contents-row\s*\{([^}]*)\}/)?.[1];
+    const desktopRule = stylesheet.match(/\.portfolio-contents-row,\s*\.reader-index-row\s*\{([^}]*)\}/)?.[1];
     const mobileRule = stylesheet.match(
-      /@media \(max-width: 1019px\)\s*\{\s*\.portfolio-contents-row\s*\{([^}]*)\}/,
+      /@media \(max-width: 1019px\)\s*\{\s*\.portfolio-contents-row,\s*\.reader-index-row\s*\{([^}]*)\}/,
     )?.[1];
 
     expect(desktopRule?.match(/\bheight:\s*([^;]+);/)?.[1]).toBe("28px");

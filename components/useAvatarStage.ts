@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AvatarRuntime,
   type AvatarStageGeometry,
@@ -138,7 +138,9 @@ export function useAvatarStage({
     avatarRuntime.setReducedMotion(reducedMotion);
   }, [avatarRuntime, reducedMotion]);
 
-  useEffect(() => {
+  // Settle visibility before ResizeObserver delivers Guide/canvas dimensions.
+  // A passive hide can otherwise flush inside a resize store update.
+  useLayoutEffect(() => {
     if (assistantOpen) avatarRuntime.show();
     else avatarRuntime.hide();
   }, [assistantOpen, avatarRuntime]);

@@ -128,7 +128,7 @@ describe("docked portfolio Guide", () => {
     const onNavigateEvidence = vi.fn();
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "The weekly workflow [E1]. Unknown [E2]." });
+      onEvent({ type: "answer_delta", delta: "The [weekly workflow][E1]. Unknown [E2]." });
       onEvent({ type: "done" });
     };
     render(
@@ -140,8 +140,8 @@ describe("docked portfolio Guide", () => {
     );
 
     submit("Tell me about pitching");
-    const citation = await screen.findByRole("button", {
-      name: "Source: Music promo campaign pitching",
+    const citation = await screen.findByRole("link", {
+      name: "weekly workflow",
     });
     await screen.findByText((_, element) =>
       Boolean(element?.classList.contains("chat-answer") && element.textContent?.includes("Unknown [E2].")),
@@ -165,14 +165,14 @@ describe("docked portfolio Guide", () => {
     };
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [uncitedEvidence, evidence] });
-      onEvent({ type: "answer_delta", delta: "The weekly workflow [E2]." });
+      onEvent({ type: "answer_delta", delta: "The [weekly workflow][E2]." });
       onEvent({ type: "done" });
     };
     render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
 
     submit("Tell me about pitching");
-    await screen.findByRole("button", {
-      name: "Source: Music promo campaign pitching",
+    await screen.findByRole("link", {
+      name: "weekly workflow",
     });
 
     const followUp = await screen.findByRole("button", {
@@ -182,6 +182,23 @@ describe("docked portfolio Guide", () => {
     expect(
       screen.queryByRole("button", { name: "Summarise Campaign reporting" }),
     ).toBeNull();
+  });
+
+  it("copies natural link text and removes adjacent evidence markers", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [evidence] });
+      onEvent({ type: "answer_delta", delta: "The [weekly workflow][E1] keeps approvals human. [E1][E2]" });
+      onEvent({ type: "done" });
+    };
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+    submit("Tell me about pitching");
+    fireEvent.click(await screen.findByRole("button", { name: "Copy answer" }));
+    expect(writeText).toHaveBeenCalledWith("The weekly workflow keeps approvals human.");
   });
 
   it("shows the contractual slow state only after ten seconds without text", async () => {
@@ -760,9 +777,13 @@ describe("docked portfolio Guide", () => {
       "ResizeObserver",
       class {
         constructor(callback: ResizeObserverCallback) {
-          reportResize = () => callback([], this as unknown as ResizeObserver);
+          this.report = () => callback([], this as unknown as ResizeObserver);
         }
-        observe = observe;
+        report: () => void;
+        observe = (element: Element) => {
+          observe(element);
+          if (element.classList.contains("portfolio-guide-avatar")) reportResize = this.report;
+        };
         unobserve() {}
         disconnect() {}
       },
@@ -773,7 +794,7 @@ describe("docked portfolio Guide", () => {
     vi.stubGlobal("navigator", { ...window.navigator, onLine: true, clipboard: { writeText } });
     const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
       onEvent({ type: "evidence", evidence: [evidence] });
-      onEvent({ type: "answer_delta", delta: "Copy this [E1]." });
+      onEvent({ type: "answer_delta", delta: "Copy [this][E1]." });
       onEvent({ type: "done" });
     };
     const { unmount } = render(
@@ -798,10 +819,10 @@ describe("docked portfolio Guide", () => {
     expect(onLayoutChange).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
     await screen.findByText((_, element) =>
-      Boolean(element?.classList.contains("chat-answer") && element.textContent === "Copy this Music promo campaign pitching."),
+      Boolean(element?.classList.contains("chat-answer") && element.textContent === "Copy this."),
     );
     fireEvent.click(screen.getByRole("button", { name: "Copy answer" }));
-    expect(writeText).toHaveBeenCalledWith("Copy this [E1].");
+    expect(writeText).toHaveBeenCalledWith("Copy this.");
     unmount();
     expect(registerAvatarDock).toHaveBeenLastCalledWith(null);
   });

@@ -763,7 +763,7 @@ function InlineRecordLink({
   thread?: PortfolioThread;
 }) {
   const [previewing, setPreviewing] = useState(false);
-  const linkRef = useRef<HTMLButtonElement>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
   const previewRef = useRef<HTMLSpanElement>(null);
   const targetNode = node ?? portfolioWorldNodeById.get(thread!.nodeId);
   const preview = useMemo(
@@ -814,19 +814,24 @@ function InlineRecordLink({
   }, [previewing, preview]);
   return (
     <span className="reader-inline-link-anchor" data-register={targetNode?.register}>
-      <button
+      <a
         ref={linkRef}
         className="reader-inline-link"
         data-register={targetNode?.register}
         onBlur={() => setPreviewing(false)}
-        onClick={() => (node ? onSelect(node) : onSelectThread(thread!.id))}
+        href={node ? `/?view=graph#${node.id}` : `/?view=graph#thread/${thread!.id}`}
+        onClick={(event) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          if (node) onSelect(node);
+          else onSelectThread(thread!.id);
+        }}
         onFocus={() => setPreviewing(true)}
         onMouseEnter={() => setPreviewing(true)}
         onMouseLeave={() => setPreviewing(false)}
-        type="button"
       >
         {label}
-      </button>
+      </a>
       {preview && previewing ? (
         <span
           aria-hidden="true"
@@ -1104,7 +1109,7 @@ function WorldRecord({
       ) : null}
       {node.id === HOME_NODE_ID ? <ContactSection /> : null}
       {!home && hasRelated ? (
-        <section className="reader-record-section">
+        <section className="reader-record-section reader-related-section">
           <h2>{portfolioInterfaceText["reader.relatedTitle"]}</h2>
           <ul className="reader-rows">
             {containingThreads.map((thread) => (

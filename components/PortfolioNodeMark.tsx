@@ -70,7 +70,7 @@ function shapeMask(d: string) {
 }
 
 // The brain pattern is a CSS mask (the outline shape intersected with the
-// brain at 170%), exactly as the prototype draws it. It references no SVG ids,
+// brain at its native scale), exactly as the prototype draws it. It references no SVG ids,
 // so a cloned bar — dnd-kit copies the bar while it drags — keeps its
 // pattern instead of resolving a duplicate id to a hidden element.
 function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {

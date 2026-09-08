@@ -17,7 +17,7 @@ use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
 `viewRequest` reveals a view (reopens its column or slot; switches tab below
 1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
 Escape before Guide reset/Home. `storage` is a test seam.
-`gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
+`avatarHidden` and `onToggleAvatar` place Hide/Show beside Read in the mobile toolbar. The canvas occupies the remaining height below that row; Read has no arrow. `gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
 
 ## Requires
 

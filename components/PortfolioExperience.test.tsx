@@ -73,7 +73,7 @@ function guideResponse({
         title: evidenceTitle,
       }],
     }] : []),
-    { type: "answer_delta", delta: citation ? "The weekly workflow [E1]." : "Effect ready." },
+    { type: "answer_delta", delta: citation ? "The [weekly workflow][E1]." : "Effect ready." },
     { type: "done" },
   ];
   return new Response(
@@ -199,8 +199,8 @@ describe("PortfolioExperience Reading Room integration", () => {
     await renderExperience();
 
     submitGuide("Show the evidence.");
-    fireEvent.click(await screen.findByRole("button", {
-      name: `Source: ${node.label}`,
+    fireEvent.click(await screen.findByRole("link", {
+      name: "weekly workflow",
     }));
 
     expect(window.clarity?.q).toContainEqual([
@@ -319,8 +319,8 @@ describe("PortfolioExperience Reading Room integration", () => {
     await renderExperience({ desktop: false });
     fireEvent.click(screen.getByRole("button", { name: "Map tab" }));
     submitGuide("Tell me about pitching.");
-    const citation = await screen.findByRole("button", {
-      name: "Source: Music promo campaign pitching",
+    const citation = await screen.findByRole("link", {
+      name: "weekly workflow",
     });
 
     fireEvent.click(citation);
