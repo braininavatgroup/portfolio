@@ -23,7 +23,7 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn";
 };
 
 function completedResponse(
@@ -60,6 +60,17 @@ function portfolioOutput(
 }
 
 describe("OpenAI portfolio provider", () => {
+  it("delivers a validated turn effect from structured output", async () => {
+    const provider = createOpenAIPortfolioProvider({ apiKey: "sk-test-server-only", model: "test",
+      fetchImplementation: async () => completedResponse({ mode: "social", sentences: [{ text: "Turning around.", evidenceIds: [] }], avatarAction: "turn" }),
+    });
+    const effects: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({ question: "Turn around", evidence: [], onEffects: effect => effects.push(effect) })) {
+      expect(chunk).toContain("Turning around.");
+    }
+    expect(effects).toEqual([{ avatarAction: "turn", issues: [] }]);
+  });
+
   it("renders portfolio citations from structured evidence ids instead of model-authored labels", async () => {
     let requestBody = "";
     const provider = createOpenAIPortfolioProvider({
@@ -112,12 +123,15 @@ describe("OpenAI portfolio provider", () => {
       strict: true,
     });
     expect(body.text.format.schema.properties.avatarAction).toMatchObject({
-      enum: ["none", "swim_lap"],
+      enum: ["none", "swim_lap", "stroll", "dance", "turn"],
     });
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarSequence");
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarTone");
     expect(body.instructions).toContain(
       "Choose swim_lap only when the visitor explicitly asks Bradley to swim",
+    );
+    expect(body.instructions).toContain(
+      "Choose stroll only when the visitor explicitly asks Bradley to walk",
     );
     expect(body.instructions).not.toContain(
       "Every factual sentence must end with one or more evidence labels",
@@ -560,7 +574,7 @@ describe("OpenAI portfolio provider", () => {
         completedResponse({
           mode: "social",
           sentences: [{ text: "Nope.", evidenceIds: [] }],
-          avatarAction: "dance",
+          avatarAction: "moonwalk",
         } as unknown as StructuredOutput),
     });
 

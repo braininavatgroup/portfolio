@@ -59,7 +59,7 @@ General mode covers unrelated factual questions, advice, and explanations. If th
 
 Always answer directly and use only as much detail as the visitor's question needs.
 
-Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose none for every other request. Never infer a swim request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
+Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose stroll only when the visitor explicitly asks Bradley to walk, take a walk, or stretch his legs. Choose dance only when the visitor explicitly asks Bradley to dance. Choose turn only when the visitor explicitly asks Bradley to turn around or show his back. Choose none for every other request. Never infer a swim, walk, dance, or turn request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
 
 function portfolioAgentOutput(
   evidence: PortfolioChatProviderInput["evidence"],
@@ -73,14 +73,14 @@ function portfolioAgentOutput(
         evidenceIds: z.array(z.enum(evidenceIds)),
       }),
     ),
-    avatarAction: z.enum(["none", "swim_lap"]),
+    avatarAction: z.enum(["none", "swim_lap", "stroll", "dance", "turn"]),
   });
 }
 
 type PortfolioAgentOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn";
 };
 
 type InvalidEvidenceFailureKind =
@@ -228,7 +228,9 @@ export function createOpenAIPortfolioProvider({
         input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
         input.onEffects?.({
           avatarAction:
-            result.finalOutput.avatarAction === "swim_lap" ? "swim_lap" : null,
+            result.finalOutput.avatarAction === "none"
+              ? null
+              : result.finalOutput.avatarAction,
           issues: [],
         });
         yield renderAgentOutput(result.finalOutput, input.evidence);

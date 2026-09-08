@@ -1,3 +1,5 @@
+import type { AvatarFacing } from "./orientation";
+
 export type AvatarStagePoint = { x: number; y: number };
 export type AvatarLocomotion = "grounded" | "swimming";
 
@@ -7,6 +9,8 @@ export type AvatarStageMotion = {
   locomotion: AvatarLocomotion;
   points: readonly AvatarStagePoint[];
   durationMs: number;
+  /** Fixed facing for the whole motion; otherwise facing follows travel. */
+  facing?: AvatarFacing;
 };
 
 export type AvatarStageViewport = {
@@ -56,6 +60,16 @@ type SwimLapInput = {
   viewport: AvatarStageViewport;
   viewportInset: number;
   obstaclePadding: number;
+};
+
+type FloorStrollInput = {
+  start: AvatarStagePoint;
+  obstacles: readonly StageBounds[];
+  viewport: AvatarStageViewport;
+  viewportInset: number;
+  actorHalfWidth: number;
+  actorHeight: number;
+  minimumDistance: number;
 };
 
 type RouteNode = {
@@ -289,6 +303,47 @@ export function planSwimLap(input: SwimLapInput): AvatarStagePoint[] | null {
   route.push(...dockLeg.slice(1));
 
   return route;
+}
+
+/**
+ * Picks the far end of the walkway the figure stands on. Standing inside a
+ * pane (the Guide dock) keeps the stroll inside that pane; on the open floor
+ * the walkway runs to the viewport inset or the nearest pane that reaches down
+ * into the figure's height band. Returns null when neither direction offers a
+ * stroll worth taking.
+ */
+export function planFloorStroll(input: FloorStrollInput): AvatarStagePoint | null {
+  const visible = input.obstacles.filter((obstacle) => obstacle.inViewport !== false);
+  const bandTop = input.start.y - input.actorHeight;
+  const container = visible.find(
+    (obstacle) =>
+      input.start.x >= obstacle.left &&
+      input.start.x <= obstacle.right &&
+      obstacle.bottom >= input.start.y - input.actorHeight &&
+      obstacle.top <= input.start.y,
+  );
+  let left = input.viewportInset;
+  let right = input.viewport.width - input.viewportInset;
+  if (container) {
+    left = container.left + input.actorHalfWidth;
+    right = container.right - input.actorHalfWidth;
+  } else {
+    for (const obstacle of visible) {
+      if (obstacle.bottom < bandTop || obstacle.top > input.start.y) continue;
+      if (obstacle.right <= input.start.x) {
+        left = Math.max(left, obstacle.right + input.actorHalfWidth);
+      } else if (obstacle.left >= input.start.x) {
+        right = Math.min(right, obstacle.left - input.actorHalfWidth);
+      }
+    }
+  }
+  const candidates = [left, right]
+    .map((x) => ({ x, y: input.start.y }))
+    .filter((point) => point.x >= input.viewportInset && point.x <= input.viewport.width - input.viewportInset)
+    .map((point) => ({ point, distance: Math.abs(point.x - input.start.x) }))
+    .filter(({ distance }) => distance >= input.minimumDistance)
+    .sort((a, b) => b.distance - a.distance || a.point.x - b.point.x);
+  return candidates[0]?.point ?? null;
 }
 
 export function stagePathLength(points: readonly AvatarStagePoint[]) {

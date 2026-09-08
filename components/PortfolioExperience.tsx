@@ -226,6 +226,12 @@ export function PortfolioExperience() {
       onEffects: (effects: PortfolioResponseEffects) => {
         if (effects.avatarAction === "swim_lap") {
           void avatarRuntime.queueSwimLap();
+        } else if (effects.avatarAction === "stroll") {
+          void avatarRuntime.queueStroll();
+        } else if (effects.avatarAction === "dance") {
+          void avatarRuntime.queueDance();
+        } else if (effects.avatarAction === "turn") {
+          void avatarRuntime.queueTurn();
         }
       },
     }),

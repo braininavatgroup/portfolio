@@ -1,17 +1,18 @@
 export type AvatarAssetConfig = {
   modelUrl: string;
-  motionUrl: string;
   scale: number;
   forwardAxis: "z" | "-z";
   groundOffset: number;
   playbackRate: number;
+  /** Forward pitch for standing clips; Meshy's rig rests with a slight lean back. */
+  standingPitchRadians: number;
 };
 
 export const avatarAsset: AvatarAssetConfig = {
-  modelUrl: "/avatars/bradley-meshy-rigged.glb",
-  motionUrl: "/avatars/bradley-motion-library.glb",
+  modelUrl: "/avatars/bradley-quiet-portrait.glb",
   scale: 1,
   forwardAxis: "z",
   groundOffset: -0.9,
   playbackRate: 1,
+  standingPitchRadians: 0.08,
 };

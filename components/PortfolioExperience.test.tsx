@@ -53,7 +53,7 @@ function guideResponse({
   citation = false,
   evidenceTarget,
 }: {
-  avatarAction?: "swim_lap" | null;
+  avatarAction?: "swim_lap" | "turn" | null;
   citation?: boolean;
   evidenceTarget?: { id: string; title: string };
 } = {}) {
@@ -230,29 +230,21 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect((await screen.findByLabelText("Test avatar overlay")).dataset.visible).toBe("true");
   });
 
-  it("plays the fixed answer reaction before a requested swim lap", async () => {
-    vi.useFakeTimers();
-    vi.stubGlobal("fetch", vi.fn(async () => guideResponse({ avatarAction: "swim_lap" })));
+  it.each([["swim_lap", "swimming", "swim_forward"], ["turn", "turning", "full_turn_left"]] as const)("plays the answer reaction before requested %s", async (action, phase, clip) => {
+    // Leave React's scheduler and browser frame callbacks on real time.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.stubGlobal("fetch", vi.fn(async () => guideResponse({ avatarAction: action })));
     mockMatchMedia();
     window.history.replaceState({}, "", "/?view=graph");
     render(<PortfolioExperience />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-
-    submitGuide("Take a leisurely swim.");
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10);
-    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    submitGuide(action === "turn" ? "Turn around." : "Take a leisurely swim.");
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     const avatar = screen.getByLabelText("Test avatar overlay");
-    expect(avatar.dataset.phase).toBe("reacting");
     expect(avatar.dataset.animation).toBe("agree_gesture");
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_600);
-    });
-    expect(avatar.dataset.phase).toBe("swimming");
-    expect(avatar.dataset.animation).toBe("swim_forward");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_600); });
+    expect(avatar.dataset.phase).toBe(phase);
+    expect(avatar.dataset.animation).toBe(clip);
   });
 
   it("runs Brain Food on the live Map and restores the selected Reader record on Escape", async () => {

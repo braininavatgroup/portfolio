@@ -2,10 +2,23 @@ import { describe, expect, it } from "vitest";
 import { parsePortfolioResponseEffects } from "./validation";
 
 describe("avatar effects validation", () => {
+  it("accepts a requested full turn", () => {
+    expect(parsePortfolioResponseEffects({ avatarAction: "turn" })).toEqual({ avatarAction: "turn", issues: [] });
+  });
+
   it("accepts the one visitor-requested swim action", () => {
     expect(
       parsePortfolioResponseEffects({ avatarAction: "swim_lap" }),
     ).toEqual({ avatarAction: "swim_lap", issues: [] });
+  });
+
+  it("accepts the visitor-requested stroll and dance actions", () => {
+    expect(
+      parsePortfolioResponseEffects({ avatarAction: "stroll" }),
+    ).toEqual({ avatarAction: "stroll", issues: [] });
+    expect(
+      parsePortfolioResponseEffects({ avatarAction: "dance" }),
+    ).toEqual({ avatarAction: "dance", issues: [] });
   });
 
   it("treats an omitted or null action as no avatar request", () => {
@@ -24,7 +37,7 @@ describe("avatar effects validation", () => {
       parsePortfolioResponseEffects({ avatarAction: "walk_to_project" }),
     ).toEqual({
       avatarAction: null,
-      issues: ["avatarAction must be swim_lap or null"],
+      issues: ["avatarAction must be swim_lap, stroll, dance, turn, or null"],
     });
   });
 

@@ -1,4 +1,4 @@
-export const avatarActions = ["swim_lap"] as const;
+export const avatarActions = ["swim_lap", "stroll", "dance", "turn"] as const;
 
 export type AvatarAction = (typeof avatarActions)[number];
 
