@@ -141,7 +141,7 @@ describe("docked portfolio Guide", () => {
 
     submit("Tell me about pitching");
     const citation = await screen.findByRole("link", {
-      name: "Source: Music promo campaign pitching",
+      name: "weekly workflow",
     });
     await screen.findByText((_, element) =>
       Boolean(element?.classList.contains("chat-answer") && element.textContent?.includes("Unknown [E2].")),
@@ -172,7 +172,7 @@ describe("docked portfolio Guide", () => {
 
     submit("Tell me about pitching");
     await screen.findByRole("link", {
-      name: "Source: Music promo campaign pitching",
+      name: "weekly workflow",
     });
 
     const followUp = await screen.findByRole("button", {
@@ -182,6 +182,23 @@ describe("docked portfolio Guide", () => {
     expect(
       screen.queryByRole("button", { name: "Summarise Campaign reporting" }),
     ).toBeNull();
+  });
+
+  it("copies natural link text and removes adjacent evidence markers", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "evidence", evidence: [evidence] });
+      onEvent({ type: "answer_delta", delta: "The [weekly workflow][E1] keeps approvals human. [E1][E2]" });
+      onEvent({ type: "done" });
+    };
+    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
+    submit("Tell me about pitching");
+    fireEvent.click(await screen.findByRole("button", { name: "Copy answer" }));
+    expect(writeText).toHaveBeenCalledWith("The weekly workflow keeps approvals human.");
   });
 
   it("shows the contractual slow state only after ten seconds without text", async () => {

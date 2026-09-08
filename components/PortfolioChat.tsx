@@ -186,7 +186,7 @@ function GuideAssistantText({ text }: TextMessagePartProps) {
           segment.text
         ) : segment.text === `[E${segment.label}]` ? null : (
           <a
-            aria-label={`Source: ${segment.evidence.title}`}
+            title={segment.evidence.title}
             className="portfolio-guide-citation"
             data-register={evidenceRegister(segment.target)}
             key={`${index}-${segment.label}`}
@@ -232,7 +232,7 @@ function GuideAssistantMessage() {
       <button
         aria-label="Copy answer"
         className="portfolio-guide-copy"
-        onClick={() => void navigator.clipboard?.writeText(answer.replace(/\[([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/\s*\[E[1-9]\d*\]/g, ""))}
+        onClick={() => void navigator.clipboard?.writeText(answer.replace(/\[(?!E[1-9]\d*\])([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/\s*\[E[1-9]\d*\]/g, ""))}
         type="button"
       >
         <GuideControlGlyph kind="copy" />
