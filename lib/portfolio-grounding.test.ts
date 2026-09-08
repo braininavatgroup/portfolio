@@ -77,15 +77,17 @@ describe("portfolio chat grounding", () => {
   it("marks unfinished copy and planned visuals as editorial notes", () => {
     const thread = portfolioThreads.find(({ id }) => id === "making-work-playable")!;
     const originalBody = thread.body;
-    thread.body = [{ type: "copy-placeholder", id: "test-copy", prompt: "Write this section." }];
+    thread.body = [
+      { type: "copy-placeholder", id: "test-copy", prompt: "Write this section." },
+      { type: "visual", id: "test-visual", status: "planned", purpose: "Capture this workflow." },
+    ];
     try {
       const evidence = groundPortfolioQuestion("Any question").evidence;
-      const reporting = evidence.find(({ id }) => id === "node:reporting");
       const unfinished = evidence.find(({ id }) => id === `thread:${thread.id}`);
       expect(unfinished?.excerpt).toContain(
         "[DRAFT COPY PLACEHOLDER — not a Bradley fact]",
       );
-      expect(reporting?.excerpt).toContain(
+      expect(unfinished?.excerpt).toContain(
         "[PLANNED VISUAL — not published evidence]",
       );
     } finally {

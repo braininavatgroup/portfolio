@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 16,
+  "revision": 22,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -393,17 +393,50 @@
     "reporting": {
       "label": "Music promo campaign reporting",
       "kind": "Music promotions systems",
-      "summary": "A hosted reporting system that turns curator replies and platform activity into verified campaign outcomes, refreshed client dashboards, and send-ready email drafts.",
+      "summary": "A reporting system that brings playlist activity and feedback together, checks what can be claimed, and prepares the client update.",
       "paragraphs": {
-        "p1": "Reporting used to eat close to three days of every week. The evidence existed, scattered across streaming activity, curator replies, campaign history, playlist identities, and submission platforms, and every client update meant collecting it all again and deciding what counted without overstating it.",
-        "p2": "The breakthrough was teaching the process to an assistant with no music-industry background. Every step that felt obvious had to become an instruction someone else could follow, and those instructions are the rules the system runs on today. Silence is not a pass. A promise is not an earned placement. Nothing automatic may downgrade a confirmed outcome. Ambiguity goes to review instead of becoming a confident-looking client claim.",
-        "p3": "Every afternoon a hosted job gathers the day's evidence from Songstats, Gmail, and SubmitHub, keyed by track and placement so that one add arriving from two sources is one record. A model reads what each curator actually said and returns structured data only: the campaigns the reply is about, the outcome, its confidence, the exact phrase that supports it, and the playlists named. Code owns every decision after that. It resolves playlists, refuses to overwrite a stronger outcome with a weaker one, routes anything uncertain to a review queue with a one-line reason, and writes what each curator did back to their record, where [pitching](record:pitching) reads it.",
-        "p4": "From those records the system builds a dashboard for every campaign and, twice a week, drafts each client's email with running totals and the dashboard link. I read the framing, adjust the tone where the relationship calls for it, and send. What once took roughly sixteen hours per campaign now asks for about an hour of my attention each week."
+        "p1": "My playlist promotion service entails sending my clients' music to people who may add it to a playlist, and may leave a comment or feedback that I'd want to share with the client, or keep for my internal records to sharpen future pitches to this curator. At its worst, simply tracking and recording what happened across my campaigns used to eat close to three days of every week. Curator replies, analytics platform activity, and submission results lived in different places. Every client update meant collecting them again and deciding which results we could honestly claim.",
+        "p2": "The breakthrough was teaching the process to an assistant with no music-industry background. Every judgment I made instinctively had to become a rule someone else could follow. No reply doesn't mean a rejection. Saying they'll add a song isn't proof they have. Once a result is confirmed, weaker evidence cannot erase it.",
+        "p3": "Every afternoon, the system gathers playlist activity from Songstats, email replies from Gmail, and responses to music submissions from SubmitHub. It matches the evidence to the right campaign and placement. If an email and a platform both report the same playlist add, they become two sources supporting one result, counted once.",
+        "p4": "A model reads the replies and identifies the music, the outcome, and the exact words supporting that interpretation. Code checks those interpretations against campaign and playlist records. Unclear matches or outcomes come to me for review before they become client claims. The results also update each music curator's history, informing who we [pitch next](record:pitching).",
+        "p5": "Those records feed each campaign's dashboard and, twice a week, a drafted client email with running totals and the report link. I review the results, adjust the framing for the relationship, and send. The system does the collecting and reconciliation; I remain responsible for what the client hears."
       },
       "placeholders": {},
       "visuals": {
-        "reporting-pipeline": {
-          "purpose": "Trace source evidence through model interpretation, deterministic verification, the auto-pitchable gate, refreshed client dashboards, and drafted client emails."
+        "reporting-dashboard": {
+          "purpose": "MAMA SAY campaign report",
+          "caption": "Open live campaign report",
+          "alt": "Actual MAMA SAY campaign dashboard showing 40 placements across seven platforms and 831.7K combined playlist followers."
+        },
+        "reporting-email": {
+          "purpose": "Client report drafts",
+          "slides": [
+            {
+              "title": "Campaign report drafts",
+              "caption": "Report drafts for three campaigns, ready for review before sending.",
+              "assets": [
+                {
+                  "alt": "Gmail showing three unsent campaign report drafts for Like I Do, For Some More, and MAMA SAY, dated September 8, 2026.",
+                  "label": "Campaign report drafts, September 8"
+                }
+              ]
+            }
+          ]
+        },
+        "reporting-workflow": {
+          "purpose": "The workflow behind campaign results",
+          "slides": [
+            {
+              "title": "The reporting workflow",
+              "caption": "Workflow for linking and updating campaign results, shown with its activation gate disabled.",
+              "assets": [
+                {
+                  "alt": "n8n workflow connecting Airtable placement and campaign result records, with branches for source updates and related outcomes. The activation gate is false.",
+                  "label": "Campaign result workflow, activation disabled"
+                }
+              ]
+            }
+          ]
         }
       }
     },

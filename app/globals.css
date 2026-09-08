@@ -22,6 +22,7 @@
   --map-grid-dark: rgb(240 230 220 / 3.5%);
   --reader-paper-light: #eff1f1;
   --reader-paper-dark: #292625;
+  --reader-report-paper: #ffffff;
   --reader-ink-light: #201711;
   --reader-ink-dark: #f0e6dc;
   --reader-body-light: #514a45;
@@ -2282,6 +2283,62 @@ body:has(.portfolio-reading-room-mobile) {
 .reader-visual-trigger:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+.reader-report-preview {
+  margin: var(--reader-space-1) 0;
+}
+
+.reader-report-frame {
+  background: var(--reader-report-paper);
+  border: 1px solid var(--map-line-strong);
+  color-scheme: light;
+  display: block;
+  height: 1280px;
+  width: 100%;
+}
+
+.reader-report-frame:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Authentic workflow capture, with only the empty surrounding canvas trimmed. */
+.reader-visual-trigger[data-evidence-id="reporting-workflow"] .reader-visual-slide-row {
+  aspect-ratio: 1640 / 640;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-workflow"] .reader-visual-slide-row img {
+  filter: none;
+  height: auto;
+  left: -10.243902%;
+  max-height: none;
+  max-width: none;
+  position: absolute;
+  top: -20.3125%;
+  width: 124.878049%;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-email"] .reader-visual-slide-row {
+  aspect-ratio: 1040 / 120;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-email"] .reader-visual-slide-row img {
+  aspect-ratio: 1400 / 840;
+  filter: none;
+  height: auto;
+  left: -30.192308%;
+  max-height: none;
+  max-width: none;
+  position: absolute;
+  top: -140%;
+  width: 134.615385%;
 }
 
 .quarterly-dashboard-preview {
