@@ -57,11 +57,10 @@ export function PortfolioReaderExample() {
   over a translucent paper wash and slight blur. The overlay names the current
   asset, centers the label and `n of total` navigation, and restores trigger
   focus on close.
-- **Ready videos do not use the Reader overlay.** A framed, silent loop prefers
-  Mux HLS (`muxPlaybackId`) with a sharp-screen floor and keeps its MP4 fail-safe.
-  Capable browsers use size-aware HLS.js; native HLS is the fallback. It enters
-  fullscreen, with iPhone fallback; exit restores the loop, full composition,
-  and system cursor.
+- **Videos stay inline.** Framed silent loops enter native fullscreen, with
+  iPhone fallback. Exit restores the loop, composition, and cursor. Kickoff and
+  pitching use baked local redactions; pitching stops at 2:40. Optional Mux
+  playback uses size-aware HLS.js or native HLS, with an MP4 fallback.
 - **Reader gallery groups are not overlay pages.** Groups sit in rows of three
   phones or one larger phone; the overlay advances one flattened asset at a time.
   A `layout: "carousel"` gallery renders each group as one [`ReaderCarousel`](./ReaderCarousel.md) strip and never opens the overlay.

@@ -309,7 +309,7 @@ describe("authored content contract", () => {
     ).toBe(false);
   });
 
-  it("publishes every ready campaign video through Mux with a local MP4 fallback", () => {
+  it("publishes selected campaign redactions without untreated streaming alternatives", () => {
     for (const nodeId of ["kickoff", "pitching"]) {
       const visual = portfolioWorldNodeById
         .get(nodeId)!
@@ -323,7 +323,7 @@ describe("authored content contract", () => {
         throw new Error(`${nodeId} has no video visual`);
       }
 
-      expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(visual.muxPlaybackId).toBeUndefined();
       expect(visual.src).toMatch(/^\/visuals\/campaign\/.+\.mp4$/);
       expect(isPortfolioVisualReady(visual)).toBe(true);
     }

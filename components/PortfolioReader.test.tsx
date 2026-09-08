@@ -482,8 +482,9 @@ describe("PortfolioReader", () => {
     expect(screenAperture).toContain(inlineVideo);
     expect(inlineFigure).toContain(inlineVideo);
     expect(inlineFigure.getAttribute("data-media-surface")).toBe("floating");
-    expect(inlineVideo.querySelectorAll("source")).toHaveLength(0);
-    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(inlineVideo.querySelectorAll("source")).toHaveLength(1);
+    expect(inlineVideo.querySelector("source")?.getAttribute("src")).toBe(visual.src);
+    expect(visual.muxPlaybackId).toBeUndefined();
     expect(
       inlineFigure.querySelector<HTMLImageElement>(".reader-device-frame")?.getAttribute("src"),
     ).toBe(visual.frameSrc);
@@ -579,7 +580,7 @@ describe("PortfolioReader", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  it("composites the official Apple frame over the adaptive video in every browser", () => {
+  it("composites the official Apple frame over the redacted video in every browser", () => {
     const kickoff = portfolioWorldNodeById.get("kickoff")!;
     const visual = kickoff.body.find(
       (block) => typeof block !== "string" && block.type === "visual",
@@ -591,8 +592,9 @@ describe("PortfolioReader", () => {
     render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
 
     const video = screen.getByLabelText(visual.alt ?? visual.purpose);
-    expect(video.querySelector("source")).toBeNull();
-    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(video.querySelectorAll("source")).toHaveLength(1);
+    expect(video.querySelector("source")?.getAttribute("src")).toBe(visual.src);
+    expect(visual.muxPlaybackId).toBeUndefined();
     expect(document.querySelector(".reader-device-frame")).toBeTruthy();
   });
 
