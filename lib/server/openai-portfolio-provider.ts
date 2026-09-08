@@ -48,6 +48,14 @@ function groundedInput({
   ];
 }
 
+// Exact, standalone requests are controls; broader conversation still goes to
+// the model. Anchoring the whole utterance avoids matching negation or topics.
+function isDirectDanceRequest(question: string) {
+  return /^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:dance|do (?:a|the) dance|show me (?:a|your) dance)(?: for me)?(?: please)?[.!?]*$/i.test(
+    question.trim().replace(/\s+/g, " "),
+  );
+}
+
 const portfolioAgentInstructions =
   `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode: portfolio, social, or general.
 
@@ -59,7 +67,9 @@ General mode covers unrelated factual questions, advice, and explanations. If th
 
 Always answer directly and use only as much detail as the visitor's question needs.
 
-Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose stroll only when the visitor explicitly asks Bradley to walk, take a walk, or stretch his legs. Choose dance only when the visitor explicitly asks Bradley to dance. Choose turn only when the visitor explicitly asks Bradley to turn around or show his back. Choose none for every other request. Never infer a swim, walk, dance, or turn request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
+You can control the animated Bradley avatar on this page through avatarAction. When a visitor addresses "you" with a physical action request, they mean that avatar. Treat those requests as social turns, briefly acknowledge the action, and never claim that you cannot move or have no body.
+
+Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose stroll only when the visitor explicitly asks Bradley to walk, take a walk, or stretch his legs. Choose dance only when the visitor explicitly asks Bradley to dance. Choose turn only when the visitor explicitly asks Bradley to turn around or show his back. Choose brain_food only when the visitor explicitly asks to play or start the Brain Food game. Choose none for every other request. Never infer a swim, walk, dance, or turn request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
 
 function portfolioAgentOutput(
   evidence: PortfolioChatProviderInput["evidence"],
@@ -73,14 +83,14 @@ function portfolioAgentOutput(
         evidenceIds: z.array(z.enum(evidenceIds)),
       }),
     ),
-    avatarAction: z.enum(["none", "swim_lap", "stroll", "dance", "turn"]),
+    avatarAction: z.enum(["none", "swim_lap", "stroll", "dance", "turn", "brain_food"]),
   });
 }
 
 type PortfolioAgentOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "brain_food";
 };
 
 type InvalidEvidenceFailureKind =
@@ -199,6 +209,18 @@ export function createOpenAIPortfolioProvider({
 
   return {
     async *streamAnswer(input) {
+      if (/^(?:please\s+)?(?:(?:can|could) we |let['’]?s )?(?:play|start|launch)(?: the)? brain food(?: game)?(?: please)?[.!?]*$/i.test(input.question.trim())) {
+        input.onMode?.("social");
+        input.onEffects?.({ avatarAction: "brain_food", issues: [] });
+        yield "Use Arrow keys or WASD to swim through every node. Escape brings you back. Brain Food needs a keyboard and a larger window.";
+        return;
+      }
+      if (isDirectDanceRequest(input.question)) {
+        input.onMode?.("social");
+        input.onEffects?.({ avatarAction: "dance", issues: [] });
+        yield "Here we go.";
+        return;
+      }
       const agent = new Agent({
         name: "Bradley portfolio guide",
         instructions: portfolioAgentInstructions,

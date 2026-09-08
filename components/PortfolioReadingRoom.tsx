@@ -94,6 +94,8 @@ export type PortfolioReadingRoomProps = {
   activeThreadId: string | null;
   guide: ReactNode;
   guideHasThread: boolean;
+  /** Temporarily expands the Map without changing saved panel preferences. */
+  gameMode?: boolean;
   map: ReactElement<{ compact?: boolean; nodesInTabOrder?: boolean }>;
   mobileTabRequest?: ReadingRoomMobileTabRequest;
   onEscapeBeforeRoom?: () => boolean;
@@ -389,6 +391,7 @@ function MobileTab({
 }
 
 export function PortfolioReadingRoom({
+  gameMode = false,
   activeThreadId,
   guide,
   guideHasThread,
@@ -424,9 +427,13 @@ export function PortfolioReadingRoom({
     () => storage ?? getBrowserStorage(),
     [storage],
   );
-  const [layout, setLayout] = useState<ReadingRoomLayoutState>(DEFAULT_READING_ROOM_LAYOUT);
+  const [storedLayout, setLayout] = useState<ReadingRoomLayoutState>(DEFAULT_READING_ROOM_LAYOUT);
   const [persistenceReady, setPersistenceReady] = useState(false);
-  const [mobileTab, setMobileTab] = useState<ReadingRoomMobileTab>("reader");
+  const [storedMobileTab, setMobileTab] = useState<ReadingRoomMobileTab>("reader");
+  const mobileTab = gameMode ? "map" : storedMobileTab;
+  const layout: ReadingRoomLayoutState = gameMode
+    ? { ...storedLayout, slots: {main: "map", top: "reader", bottom: "guide"}, hidden: [] }
+    : storedLayout;
   const [contentsCollapsed, setContentsCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [activeDragView, setActiveDragView] = useState<ReadingRoomView | null>(null);
@@ -472,17 +479,18 @@ export function PortfolioReadingRoom({
     onLayoutChange?.();
   }, [onLayoutChange]);
   const persistAndNotify = useCallback(<A extends unknown[]>(persist: (...args: A) => void) => (...args: A) => {
-    persist(...args);
+    if (!gameMode) persist(...args);
     notifyLayout();
-  }, [notifyLayout]);
+  }, [gameMode, notifyLayout]);
 
   const updateLayout = useCallback((update: (current: ReadingRoomLayoutState) => ReadingRoomLayoutState) => {
+    if (gameMode) return;
     setLayout((current) => {
       const next = update(current);
       layoutStorage.setItem(SLOT_STORAGE_KEY, serializeReadingRoomLayout(next));
       return next;
     });
-  }, [layoutStorage]);
+  }, [gameMode, layoutStorage]);
 
   const setViewHidden = useCallback((view: ReadingRoomView, hidden: boolean) => {
     updateLayout((current) => setReadingRoomViewHidden(current, view, hidden));
@@ -490,8 +498,8 @@ export function PortfolioReadingRoom({
 
   const lowerCollapsed = layout.hidden.includes(layout.slots.bottom);
   const guideVisible = isDesktop
-    ? !rightCollapsed && !layout.hidden.includes("guide")
-    : mobileTab === "map";
+    ? (storedLayout.slots.main === "guide" || (!rightCollapsed && !storedLayout.hidden.includes("guide")))
+    : storedMobileTab === "map";
 
   useEffect(() => {
     onGuideVisibilityChange?.(guideVisible);
@@ -663,7 +671,7 @@ export function PortfolioReadingRoom({
 
   if (!isDesktop) {
     return (
-      <section aria-label="Portfolio reading room" className="portfolio-reading-room portfolio-reading-room-mobile" data-breakpoint="below-1020">
+      <section aria-label="Portfolio reading room" className="portfolio-reading-room portfolio-reading-room-mobile" data-breakpoint="below-1020" data-game-mode={gameMode}>
         <MobileMast onHome={homeFromContents} />
         <div className="portfolio-reading-room-mobile-page">
           <div
@@ -694,7 +702,7 @@ export function PortfolioReadingRoom({
           >
             <div className="portfolio-reading-room-mobile-map-page">
               <section className="portfolio-reading-room-mobile-map" data-size="52">
-                {renderMap(true, false)}
+                {renderMap(!gameMode, gameMode)}
                 <div aria-hidden="true" className="portfolio-reading-room-mobile-avatar" />
                 {selectedSubject && selectedSubject.id !== "bradley" ? (
                   <button
@@ -756,6 +764,7 @@ export function PortfolioReadingRoom({
         aria-label="Portfolio reading room"
         className="portfolio-reading-room portfolio-reading-room-desktop"
         data-breakpoint="1020-and-up"
+        data-game-mode={gameMode}
         data-right-collapsed={rightCollapsed ? "true" : "false"}
       >
         <span className="portfolio-reading-room-global-controls">

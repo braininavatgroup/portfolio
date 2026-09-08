@@ -804,3 +804,34 @@ describe("Reading Room stylesheet", () => {
     expect(stylesheet).not.toContain(".portfolio-mobile-map-open");
   });
 });
+
+it("temporarily promotes the Map for Brain Food and restores slots without writing preferences", async () => {
+  const storage = new MemoryStorage();
+  const saved = {...DEFAULT_READING_ROOM_LAYOUT, slots: {main: "guide", top: "reader", bottom: "map"}, hidden: ["map"]};
+  storage.setItem("reading-room-slots", JSON.stringify(saved));
+  const props = {...roomProps(storage), guide: <StatefulGuideProbe />};
+  const {container, rerender} = render(<PortfolioReadingRoom {...props} />);
+  await waitFor(() => expect(slot(container, "main").dataset.view).toBe("guide"));
+  fireEvent.click(screen.getByTestId("stateful-guide"));
+  const previousStorage = new Map(storage.values);
+  rerender(<PortfolioReadingRoom {...props} gameMode />);
+  expect(slot(container, "main").dataset.view).toBe("map");
+  expect(slot(container, "main").querySelector('[data-compact="false"]')).not.toBeNull();
+  expect(storage.values).toEqual(previousStorage);
+  rerender(<PortfolioReadingRoom {...props} gameMode={false} />);
+  expect(slot(container, "main").dataset.view).toBe("guide");
+  expect(slot(container, "bottom").dataset.collapsed).toBe("true");
+  expect(screen.getByTestId("stateful-guide").textContent).toContain("2");
+  expect(storage.values).toEqual(previousStorage);
+});
+
+it("temporarily opens the mobile Map and restores the previous tab after Brain Food", () => {
+  desktop = false;
+  const props = roomProps();
+  const {container, rerender} = render(<PortfolioReadingRoom {...props} />);
+  fireEvent.click(screen.getByRole("button", {name: "Contents tab"}));
+  rerender(<PortfolioReadingRoom {...props} gameMode />);
+  expect(container.querySelector('[data-mobile-view="map"]')?.hasAttribute("hidden")).toBe(false);
+  rerender(<PortfolioReadingRoom {...props} gameMode={false} />);
+  expect(container.querySelector('[data-mobile-view="contents"]')?.hasAttribute("hidden")).toBe(false);
+});

@@ -23,7 +23,7 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "brain_food";
 };
 
 function completedResponse(
@@ -60,6 +60,52 @@ function portfolioOutput(
 }
 
 describe("OpenAI portfolio provider", () => {
+  it.each(["Play Brain Food", "let's play brain food", "start brain food game", "can we play brain food?"])("starts Brain Food from %s without model selection", async (question) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test", model: "test",
+      fetchImplementation: async () => { throw new Error("Game requests need no model call"); },
+    });
+    const events: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({ question, evidence, onEffects: effect => events.push(effect) })) {
+      expect(chunk).toContain("Arrow keys");
+    }
+    expect(events).toEqual([{ avatarAction: "brain_food", issues: [] }]);
+  });
+
+  it.each([
+    "Can you dance?", "dance", "Dance please!", "please dance",
+    "Bradley, can you dance for me?", "could you do a dance please",
+    "do the dance", "show me a dance", "Will you dance?",
+  ])("performs the direct dance request %s without depending on model output", async (question) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only", model: "test",
+      fetchImplementation: async () => { throw new Error("Direct dance requests need no model call"); },
+    });
+    const lifecycle: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({
+      question, evidence,
+      onMode: mode => lifecycle.push(mode),
+      onEffects: effect => lifecycle.push(effect),
+    })) lifecycle.push(chunk);
+    expect(lifecycle).toEqual(["social", { avatarAction: "dance", issues: [] }, "Here we go."]);
+  });
+
+  it.each([
+    "Don't dance", "Can you not dance?", "Can Bradley dance?",
+    "Tell me about dance music", "What is braininavat.dance?",
+    "Can you dance? Actually, don't.", "Can you dance and explain pitching?",
+  ])("leaves contextual or negated wording to chat: %s", async (question) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test-server-only", model: "test",
+      fetchImplementation: async () => completedResponse({ mode: "social", sentences: [{ text: "Chat answer.", evidenceIds: [] }], avatarAction: "none" }),
+    });
+    const effects: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({question, evidence, onEffects: effect => effects.push(effect)})) {
+      expect(chunk).toBe("Chat answer.");
+    }
+    expect(effects).toEqual([{ avatarAction: null, issues: [] }]);
+  });
+
   it("delivers a validated turn effect from structured output", async () => {
     const provider = createOpenAIPortfolioProvider({ apiKey: "sk-test-server-only", model: "test",
       fetchImplementation: async () => completedResponse({ mode: "social", sentences: [{ text: "Turning around.", evidenceIds: [] }], avatarAction: "turn" }),
@@ -123,7 +169,7 @@ describe("OpenAI portfolio provider", () => {
       strict: true,
     });
     expect(body.text.format.schema.properties.avatarAction).toMatchObject({
-      enum: ["none", "swim_lap", "stroll", "dance", "turn"],
+      enum: ["none", "swim_lap", "stroll", "dance", "turn", "brain_food"],
     });
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarSequence");
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarTone");
@@ -525,7 +571,7 @@ describe("OpenAI portfolio provider", () => {
     const onEffects = vi.fn(() => lifecycle.push("effects"));
 
     for await (const chunk of provider.streamAnswer({
-      question: "Do the dance",
+      question: "Go for a swim",
       evidence,
       onEffects,
     })) {

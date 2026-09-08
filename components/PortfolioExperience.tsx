@@ -1,5 +1,7 @@
 "use client";
 
+import { PortfolioControlMark } from "./PortfolioNodeMark";
+
 import {
   lazy,
   Suspense,
@@ -72,6 +74,7 @@ export function PortfolioExperience() {
   const reducedMotion = useReducedMotion();
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [gameNotice, setGameNotice] = useState("");
   const [guideVisible, setGuideVisible] = useState(false);
   const [guideHasThread, setGuideHasThread] = useState(false);
   const [guideResetSignal, setGuideResetSignal] = useState(0);
@@ -179,8 +182,8 @@ export function PortfolioExperience() {
   }, []);
 
   const escapeBeforeRoom = useCallback(() => {
-    return brainFood.active;
-  }, [brainFood.active]);
+    return brainFood.gameMode;
+  }, [brainFood.gameMode]);
 
   const navigateGuideEvidence = useCallback((target: GuideEvidenceTarget) => {
     if (target.type === "home") {
@@ -230,12 +233,15 @@ export function PortfolioExperience() {
           void avatarRuntime.queueStroll();
         } else if (effects.avatarAction === "dance") {
           void avatarRuntime.queueDance();
+        } else if (effects.avatarAction === "brain_food") {
+          const started = brainFood.start();
+          setGameNotice(started ? "" : "Brain Food needs a keyboard and a larger window, with Bradley ready to play.");
         } else if (effects.avatarAction === "turn") {
           void avatarRuntime.queueTurn();
         }
       },
     }),
-    [avatarRuntime],
+    [avatarRuntime, brainFood.start],
   );
 
   useEffect(() => {
@@ -294,7 +300,7 @@ export function PortfolioExperience() {
   const map = (
     <PortfolioWorld
       activeThreadId={activeThreadId}
-      brainFood={brainFood}
+      brainFood={{...brainFood, active: brainFood.gameMode}}
       onReset={showHomeAndSyncLocation}
       onSelect={selectFromMap}
       registerAvatarStage={registerAvatarStage}
@@ -316,11 +322,13 @@ export function PortfolioExperience() {
   return (
     <main
       className="experience portfolio-composition"
+      data-game-mode={brainFood.gameMode}
       id="main-content"
       tabIndex={-1}
     >
       <PortfolioReadingRoom
         activeThreadId={activeThreadId}
+        gameMode={brainFood.gameMode}
         guide={guide}
         guideHasThread={guideHasThread}
         map={map}
@@ -336,6 +344,8 @@ export function PortfolioExperience() {
         selectedId={selectedWorldId}
         selectedSubject={selectedWorldNode ?? null}
       />
+      {brainFood.gameMode ? <PortfolioControlMark aria-label="Exit Brain Food" kind="close" className="portfolio-brain-food-exit" onClick={brainFood.cancel} /> : null}
+      {gameNotice ? <p role="status" className="portfolio-game-notice">{gameNotice}</p> : null}
       {avatarOverlay}
       <PortfolioFeedback />
     </main>

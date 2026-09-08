@@ -767,7 +767,10 @@ export function PortfolioWorld({
         Math.min(720, (width - 75) * 0.74, height * 0.9),
       );
       fitOverview();
-      if (state.current.activeThreadId) {
+      if (brainFoodRef.current?.active) {
+        applyRestGoals(runtime.current, false, size.current, camera.current, measure);
+        for (const node of runtime.current) node.goalAlpha = 1;
+      } else if (state.current.activeThreadId) {
         applyStoryGoals(
           runtime.current,
           state.current.activeThreadId,
@@ -984,6 +987,7 @@ export function PortfolioWorld({
     <section
       aria-label="Spatial portfolio world"
       className="portfolio-world"
+      tabIndex={-1}
       data-active-thread={activeThreadId ?? undefined}
       data-compact={compact ? "true" : "false"}
       data-hovered-node={hoveredNodeId ?? undefined}

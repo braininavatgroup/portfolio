@@ -84,10 +84,10 @@ describe("docked portfolio Guide", () => {
     expect(screen.queryByRole("button", { name: /open portfolio assistant/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /minimize portfolio assistant/i })).toBeNull();
 
-    const starters = await screen.findAllByRole("button", { name: /^(Where|What|Can|Which|How|Go|Wave)/ });
-    expect(starters).toHaveLength(3);
+    const starters = await screen.findAllByRole("button", { name: /^(Where|What|Can|Which|How|Go|Wave|Play)/ });
+    expect(starters).toHaveLength(4);
     expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(2);
-    expect(starters.filter((starter) => starter.querySelector(".portfolio-guide-suggestion-mark"))).toHaveLength(1);
+    expect(starters.filter((starter) => starter.querySelector(".portfolio-guide-suggestion-mark"))).toHaveLength(2);
     fireEvent.click(starters[0]!);
     await waitFor(() => expect(document.querySelector('[data-guide-primitive="message"]')).toBeTruthy());
   });
@@ -508,7 +508,7 @@ describe("docked portfolio Guide", () => {
     expect(firstOptions?.signal?.aborted).toBe(true);
     expect(screen.queryByText("Abandon this")).toBeNull();
     await waitFor(() => expect(onThreadStateChange).toHaveBeenLastCalledWith(false));
-    expect(await screen.findAllByTestId("guide-suggestion")).toHaveLength(3);
+    expect(await screen.findAllByTestId("guide-suggestion")).toHaveLength(4);
 
     submit("Fresh question");
     await screen.findByText("Fresh answer.");

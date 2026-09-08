@@ -53,7 +53,7 @@ function guideResponse({
   citation = false,
   evidenceTarget,
 }: {
-  avatarAction?: "swim_lap" | "turn" | null;
+  avatarAction?: "swim_lap" | "turn" | "dance" | "brain_food" | null;
   citation?: boolean;
   evidenceTarget?: { id: string; title: string };
 } = {}) {
@@ -230,7 +230,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect((await screen.findByLabelText("Test avatar overlay")).dataset.visible).toBe("true");
   });
 
-  it.each([["swim_lap", "swimming", "swim_forward"], ["turn", "turning", "full_turn_left"]] as const)("plays the answer reaction before requested %s", async (action, phase, clip) => {
+  it.each([["swim_lap", "swimming", "swim_forward"], ["turn", "turning", "full_turn_left"], ["dance", "dancing", "step_hip_hop_dance"]] as const)("plays the answer reaction before requested %s", async (action, phase, clip) => {
     // Leave React's scheduler and browser frame callbacks on real time.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     vi.stubGlobal("fetch", vi.fn(async () => guideResponse({ avatarAction: action })));
@@ -238,7 +238,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     window.history.replaceState({}, "", "/?view=graph");
     render(<PortfolioExperience />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    submitGuide(action === "turn" ? "Turn around." : "Take a leisurely swim.");
+    submitGuide(action === "dance" ? "Can you dance?" : action === "turn" ? "Turn around." : "Take a leisurely swim.");
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     const avatar = screen.getByLabelText("Test avatar overlay");
     expect(avatar.dataset.animation).toBe("agree_gesture");
@@ -247,18 +247,36 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(avatar.dataset.animation).toBe(clip);
   });
 
+  it("starts Brain Food from a Guide suggestion and restores the selected page and layout on exit", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => guideResponse({avatarAction: "brain_food"})));
+    await renderExperience();
+    selectContentsRecord("Dubs");
+    const beforeUrl = window.location.href;
+    const slots = () => Array.from(document.querySelectorAll<HTMLElement>("[data-reading-room-slot]")).map(element => [element.dataset.readingRoomSlot, element.dataset.view, element.dataset.collapsed]);
+    const beforeSlots = slots();
+    fireEvent.click(screen.getByRole("button", {name: "Play Brain Food"}));
+    await waitFor(() => expect(screen.getByLabelText("Test avatar overlay").dataset.phase).toBe("brain-food"));
+    expect(document.querySelector('[data-reading-room-slot="main"]')?.getAttribute("data-view")).toBe("map");
+    fireEvent.click(screen.getByRole("button", {name: "Exit Brain Food"}));
+    await waitFor(() => expect(screen.queryByRole("button", {name: "Exit Brain Food"})).toBeNull());
+    expect(slots()).toEqual(beforeSlots);
+    expect(window.location.href).toBe(beforeUrl);
+    expect(screen.getByRole("complementary", {name: "Dubs record"})).toBeTruthy();
+  });
+
   it("runs Brain Food on the live Map and restores the selected Reader record on Escape", async () => {
     await renderExperience();
     selectContentsRecord("Dubs");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
 
+    await screen.findByLabelText("Test avatar overlay");
     fireEvent.keyDown(document, { key: "G", shiftKey: true });
 
     expect(await screen.findByText(/Brain Food · 13 left/)).toBeTruthy();
     expect(document.querySelector(".avatar-toybox")).toBeNull();
     expect(document.querySelector('[data-world-node="bradley"]')).toBeTruthy();
     expect((document.querySelector('[data-world-node="bradley"]') as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByLabelText("Test avatar overlay").dataset.phase).toBe("brain-food");
+    await waitFor(() => expect(screen.getByLabelText("Test avatar overlay").dataset.phase).toBe("brain-food"));
 
     fireEvent.keyDown(document, { key: "Escape" });
 

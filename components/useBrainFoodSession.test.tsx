@@ -56,6 +56,24 @@ describe("useBrainFoodSession", () => {
     document.body.replaceChildren();
   });
 
+  it("prepares the play layout before measuring the spawn and restores focus on cancellation", () => {
+    const avatar = runtime(true);
+    const input = document.createElement("input"); document.body.appendChild(input); input.focus();
+    const {result} = renderHook(() => useBrainFoodSession({avatarRuntime: avatar, edibleNodeCount: 1, enabled: true, reducedMotion: false}));
+    act(() => { result.current.start(); });
+    expect(result.current.gameMode).toBe(true);
+    expect(result.current.active).toBe(false);
+    const world = document.createElement("div"); world.className = "portfolio-world"; document.body.appendChild(world);
+    world.getBoundingClientRect = () => ({left: 0, top: 0, width: 1200, height: 700} as DOMRect);
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
+    expect(result.current.active).toBe(true);
+    expect(avatar.getSnapshot().phase).toBe("brain-food");
+    act(() => result.current.cancel());
+    expect(result.current.gameMode).toBe(false);
+    act(() => { while (frames.length) frames.shift()?.(32); });
+    expect(document.activeElement).toBe(input);
+  });
+
   it("starts directly from exact Shift+G and restores a previously hidden avatar", () => {
     const avatar = runtime(false);
     const { result } = renderHook(() =>
@@ -68,6 +86,7 @@ describe("useBrainFoodSession", () => {
     );
 
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     expect(result.current.active).toBe(true);
     expect(avatar.getSnapshot()).toMatchObject({
       phase: "brain-food",
@@ -98,6 +117,7 @@ describe("useBrainFoodSession", () => {
     );
 
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     expect(result.current.active).toBe(false);
 
     rerender({ enabled: true });
@@ -106,7 +126,20 @@ describe("useBrainFoodSession", () => {
 
     vi.stubGlobal("innerWidth", 900);
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     expect(result.current.active).toBe(false);
+  });
+
+  it("ends a desktop game when resizing into the mobile panel layout", () => {
+    const avatar = runtime(true);
+    const {result} = renderHook(() => useBrainFoodSession({avatarRuntime: avatar, edibleNodeCount: 1, enabled: true, reducedMotion: false}));
+    act(() => { result.current.start(); });
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
+    expect(result.current.active).toBe(true);
+    vi.stubGlobal("innerWidth", 950);
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(result.current.gameMode).toBe(false);
+    expect(avatar.getSnapshot().phase).toBe("idle");
   });
 
   it("uses the original movement keys to steer the live avatar", () => {
@@ -120,6 +153,7 @@ describe("useBrainFoodSession", () => {
       }),
     );
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     const before = avatar.getSnapshot().position.x;
 
     act(() => {
@@ -150,6 +184,7 @@ describe("useBrainFoodSession", () => {
       ]);
       shortcut();
     });
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
 
     const spawn = avatar.getSnapshot().position;
     expect(Math.hypot(spawn.x - 600, spawn.y - 350)).toBeGreaterThan(108);
@@ -167,6 +202,7 @@ describe("useBrainFoodSession", () => {
       }),
     );
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     const spawn = avatar.getSnapshot().position;
     act(() => {
       result.current.syncNodePositions([
@@ -190,6 +226,7 @@ describe("useBrainFoodSession", () => {
       }),
     );
     act(() => shortcut());
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
     const position = avatar.getSnapshot().position;
     act(() => {
       result.current.syncNodePositions([

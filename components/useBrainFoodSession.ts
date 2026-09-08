@@ -61,6 +61,10 @@ export function useBrainFoodSession({
   reducedMotion: boolean;
 }) {
   const [active, setActive] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const preparingRef = useRef(false);
+  const focusBeforePlay = useRef<HTMLElement | null>(null);
+  const sessionId = useRef(0);
   const [eatenIds, setEatenIds] = useState<ReadonlySet<string>>(new Set());
   const activeRef = useRef(false);
   const completingRef = useRef(false);
@@ -77,27 +81,37 @@ export function useBrainFoodSession({
 
   const restore = useCallback(() => {
     activeRef.current = false;
+    preparingRef.current = false;
+    setPreparing(false);
+    sessionId.current += 1;
     completingRef.current = false;
     heldRef.current.clear();
     previousFrameRef.current = null;
     setActive(false);
     if (wasVisibleRef.current) avatarRuntime.show();
     else avatarRuntime.hide();
+    const focus = focusBeforePlay.current;
+    const restoredSession = sessionId.current;
+    window.requestAnimationFrame(() => {
+      if (sessionId.current === restoredSession && focus?.isConnected) focus.focus();
+    });
   }, [avatarRuntime]);
 
   const cancel = useCallback(() => {
-    if (!activeRef.current) return;
+    if (!activeRef.current && !preparingRef.current) return;
     avatarRuntime.cancel();
     restore();
   }, [avatarRuntime, restore]);
 
-  const start = useCallback(() => {
+  const begin = useCallback(() => {
     if (
       !enabled ||
       activeRef.current ||
-      window.innerWidth <= 900 ||
-      avatarRuntime.getSnapshot().failed
+      window.innerWidth < 1020 ||
+      avatarRuntime.getSnapshot().failed ||
+      (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)
     ) {
+      restore();
       return;
     }
     const bounds = playBounds();
@@ -106,8 +120,9 @@ export function useBrainFoodSession({
       bounds,
       avatarCollisionRadius,
     );
-    if (!position) return;
-    wasVisibleRef.current = avatarRuntime.getSnapshot().visible;
+    if (!position) { restore(); return; }
+    preparingRef.current = false;
+    setPreparing(false);
     bodyRef.current = {
       position,
       velocity: { x: 0, y: 0 },
@@ -120,7 +135,30 @@ export function useBrainFoodSession({
     setEatenIds(eatenRef.current);
     setActive(true);
     avatarRuntime.beginBrainFood(position);
+    document.querySelector<HTMLElement>(".portfolio-world")?.focus();
+  }, [avatarRuntime, enabled, restore]);
+
+  const start = useCallback(() => {
+    if (!enabled || activeRef.current || preparingRef.current || window.innerWidth < 1020 || avatarRuntime.getSnapshot().failed || (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)) return false;
+    sessionId.current += 1;
+    wasVisibleRef.current = avatarRuntime.getSnapshot().visible;
+    focusBeforePlay.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    focusBeforePlay.current?.blur();
+    preparingRef.current = true;
+    setPreparing(true);
+    return true;
   }, [avatarRuntime, enabled]);
+
+  useEffect(() => {
+    if (!preparing) return;
+    // Let the temporary layout and the Map ResizeObserver publish before spawn.
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        if (preparingRef.current) begin();
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [begin, preparing]);
 
   const syncNodePositions = useCallback(
     (nodes: readonly BrainFoodNodePosition[]) => {
@@ -149,7 +187,10 @@ export function useBrainFoodSession({
     ) {
       completingRef.current = true;
       heldRef.current.clear();
-      void avatarRuntime.completeBrainFood().then(restore);
+      const completionSession = sessionId.current;
+      void avatarRuntime.completeBrainFood().then(() => {
+        if (sessionId.current === completionSession) restore();
+      });
     }
   }, [avatarRuntime, edibleNodeCount, restore]);
 
@@ -188,6 +229,11 @@ export function useBrainFoodSession({
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
+      if (preparingRef.current && event.key === "Escape") {
+        event.preventDefault();
+        cancel();
+        return;
+      }
       if (!activeRef.current) {
         if (isExactShiftShortcut(event, "g")) {
           event.preventDefault();
@@ -237,7 +283,7 @@ export function useBrainFoodSession({
       };
     };
     const resize = () => {
-      if (activeRef.current && window.innerWidth <= 900) cancel();
+      if ((activeRef.current || preparingRef.current) && window.innerWidth < 1020) cancel();
     };
     document.addEventListener("keydown", keydown);
     document.addEventListener("keyup", keyup);
@@ -258,12 +304,13 @@ export function useBrainFoodSession({
   return useMemo(
     () => ({
       active,
+      gameMode: active || preparing,
       cancel,
       eatenIds,
       remaining: Math.max(0, edibleNodeCount - eatenIds.size),
       start,
       syncNodePositions,
     }),
-    [active, cancel, eatenIds, edibleNodeCount, start, syncNodePositions],
+    [active, preparing, cancel, eatenIds, edibleNodeCount, start, syncNodePositions],
   );
 }
