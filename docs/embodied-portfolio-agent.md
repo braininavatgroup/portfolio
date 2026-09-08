@@ -57,7 +57,11 @@ rate.
 
 The provider effect schema contains only `avatarAction`, with `"none"`,
 `"swim_lap"`, `"stroll"`, `"dance"`, or `"turn"`. The provider chooses a performance
-only when the visitor explicitly asks Bradley to swim, walk, dance, or turn around. The client buffers effects until the first
+only when the visitor explicitly asks Bradley to swim, walk, dance, or turn around.
+Standalone dance requests, including the suggested “Can you dance?”, produce
+a social acknowledgment and `dance` directly without a model call. Negated,
+third-person, topical, and mixed requests still use the conversational provider.
+The client buffers effects until the first
 answer delta has rendered, so motion never leads the answer.
 
 ## Brain Food
