@@ -126,7 +126,7 @@ export function AvatarOverlay({
             camera={{ far: 2_500, position: [0, 0, 1_000], zoom: 1 }}
             className="avatar-overlay-canvas"
             dpr={[1, 1.25]}
-            frameloop={runFrames ? "always" : "never"}
+            frameloop={runFrames ? reducedMotion ? "demand" : "always" : "never"}
             gl={createManagedRenderer}
             orthographic
           >

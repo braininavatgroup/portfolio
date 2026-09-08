@@ -109,6 +109,7 @@ export function galleryAvatarSnapshot(
     visible: true,
     fitHeight: null,
     failed: false,
+    ready: true,
     ...overrides,
   };
 }

@@ -56,6 +56,21 @@ describe("useBrainFoodSession", () => {
     document.body.replaceChildren();
   });
 
+  it.each(["disabled", "reduced motion"])("ends an active game when %s changes with a movement key held", (reason) => {
+    const avatar = runtime(true);
+    const { result, rerender } = renderHook(({ enabled, reducedMotion }) => useBrainFoodSession({ avatarRuntime: avatar, edibleNodeCount: 2, enabled, reducedMotion }), { initialProps: { enabled: true, reducedMotion: false } });
+    act(() => { result.current.start(); });
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
+    expect(result.current.active).toBe(true);
+    act(() => { document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" })); });
+    rerender({ enabled: reason !== "disabled", reducedMotion: reason === "reduced motion" });
+    expect(result.current.gameMode).toBe(false);
+    const position = avatar.getSnapshot().position;
+    act(() => { const pending = frames.splice(0); for (const frame of pending) frame(64); });
+    expect(avatar.getSnapshot().position).toEqual(position);
+    expect(result.current.start()).toBe(false);
+  });
+
   it("prepares the play layout before measuring the spawn and restores focus on cancellation", () => {
     const avatar = runtime(true);
     const input = document.createElement("input"); document.body.appendChild(input); input.focus();

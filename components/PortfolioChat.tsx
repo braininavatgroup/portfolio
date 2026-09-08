@@ -21,9 +21,11 @@ import {
   useState,
   useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from "react";
 import {
   streamPortfolioAnswer,
+  PortfolioChatClientError,
   type AskPortfolio,
 } from "../lib/portfolio-chat-client";
 import {
@@ -62,6 +64,8 @@ import {
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import { PortfolioNodeMark } from "./PortfolioNodeMark";
 
+import { actionAcknowledgement, actionUnavailableReason, directAvatarRequest, type GuideActionAvailability } from "../lib/portfolio-chat-actions";
+
 type AvatarLifecycleCallback<Arguments extends unknown[] = []> = (
   ...arguments_: Arguments
 ) => void | Promise<void>;
@@ -74,6 +78,8 @@ export type PortfolioChatAvatarIntegration = {
 
 export type PortfolioChatProps = {
   avatarIntegration?: PortfolioChatAvatarIntegration;
+  actionAvailability?: GuideActionAvailability;
+  onToggleAvatar?: () => void;
   onLayoutChange?: () => void;
   onNavigateEvidence?: (
     target: GuideEvidenceTarget,
@@ -179,14 +185,14 @@ function GuideAssistantText({ text }: TextMessagePartProps) {
           segment.text
         ) : (
           <button
-            aria-label={`${segment.text} ${segment.evidence.title}`}
+            aria-label={`Source: ${segment.evidence.title}`}
             className="portfolio-guide-citation"
             data-register={evidenceRegister(segment.target)}
             key={`${index}-${segment.label}`}
             onClick={() => navigate?.(segment.target, segment.evidence)}
             type="button"
           >
-            {segment.text}
+            {segment.evidence.title}
           </button>
         ),
       )}
@@ -292,22 +298,6 @@ function GuideInitialSuggestion({
   );
 }
 
-function waitForWord(signal: AbortSignal) {
-  return new Promise<void>((resolve) => {
-    if (signal.aborted) {
-      resolve();
-      return;
-    }
-    const settle = () => {
-      window.clearTimeout(timer);
-      signal.removeEventListener("abort", settle);
-      resolve();
-    };
-    const timer = window.setTimeout(settle, 45);
-    signal.addEventListener("abort", settle, { once: true });
-  });
-}
-
 function isGuideSubmissionEligible({
   challengeRequired,
   challengeToken,
@@ -320,15 +310,6 @@ function isGuideSubmissionEligible({
   return online && (!challengeRequired || Boolean(challengeToken));
 }
 
-function cumulativeWords(answer: string) {
-  const words = answer.match(/\S+\s*/g) ?? [];
-  let cumulative = "";
-  return words.map((word) => {
-    cumulative += word;
-    return cumulative;
-  });
-}
-
 function runSafely(work: (() => void | Promise<void>) | undefined) {
   if (!work) return Promise.resolve();
   try {
@@ -336,6 +317,11 @@ function runSafely(work: (() => void | Promise<void>) | undefined) {
   } catch {
     return Promise.resolve();
   }
+}
+
+function GuideFollowUps({ children }: { children: ReactNode }) {
+  const hasMessages = useAuiState(state => state.thread.messages.length > 0);
+  return hasMessages ? children : null;
 }
 
 function GuideThreadStateReporter({
@@ -352,6 +338,8 @@ function GuideThreadStateReporter({
 
 export function PortfolioChat({
   avatarIntegration,
+  actionAvailability = { status: "ready", reducedMotion: false, gameSupported: true },
+  onToggleAvatar,
   onLayoutChange,
   onNavigateEvidence,
   onThreadStateChange,
@@ -367,6 +355,7 @@ export function PortfolioChat({
   const [failedQuestion, setFailedQuestion] = useState<{
     question: string;
     canRetry: boolean;
+    message?: string;
   } | null>(null);
   const [notice, setNotice] = useState("");
   const offline = useSyncExternalStore(
@@ -378,6 +367,8 @@ export function PortfolioChat({
   const [slow, setSlow] = useState(false);
   const askPortfolioRef = useRef(askPortfolio);
   const avatarIntegrationRef = useRef(avatarIntegration);
+  const availabilityRef = useRef(actionAvailability);
+  const [composerText, setComposerText] = useState("");
   const challengeTokenRef = useRef(challengeToken);
   const conversation = useRef<PortfolioChatMessage[]>([]);
   const visitSeed = useSyncExternalStore(
@@ -405,8 +396,9 @@ export function PortfolioChat({
   useEffect(() => {
     askPortfolioRef.current = askPortfolio;
     avatarIntegrationRef.current = avatarIntegration;
+    availabilityRef.current = actionAvailability;
     challengeTokenRef.current = challengeToken;
-  }, [askPortfolio, avatarIntegration, challengeToken]);
+  }, [askPortfolio, avatarIntegration, challengeToken, actionAvailability]);
 
   const updateChallengeToken = useCallback((token: string | null) => {
     challengeTokenRef.current = token;
@@ -421,7 +413,8 @@ export function PortfolioChat({
           ? messageText(latestMessage).trim()
           : "";
         if (!question) return;
-        if (!isGuideSubmissionEligible({
+        const directAction = directAvatarRequest(question);
+        if (!directAction && !isGuideSubmissionEligible({
           challengeRequired: Boolean(turnstileSiteKey),
           challengeToken: challengeTokenRef.current,
           online: typeof navigator === "undefined" || navigator.onLine,
@@ -478,105 +471,113 @@ export function PortfolioChat({
           activeRun.current = null;
           setPending(false);
           setSlow(false);
-          if (turnstileSiteKey) {
+          if (turnstileSiteKey && !directAction) {
             updateChallengeToken(null);
             turnstileController.current?.reset();
           }
         };
 
-        try {
+        let failureCode = "request_failed";
+        let settled = false;
+        let revision = 0;
+        let wake: (() => void) | undefined;
+        const notify = () => { revision += 1; wake?.(); };
+        const receive: Parameters<AskPortfolio>[1]["onEvent"] = (event) => {
+          if (!isCurrent()) return;
+          if (event.type === "evidence") evidence = [...event.evidence];
+          else if (event.type === "turn_mode") turnMode = event.mode;
+          else if (event.type === "answer_delta") answer += event.delta;
+          else if (event.type === "effects") effects.push(event.effects);
+          else if (event.type === "notice") setNotice(event.message);
+          else if (event.type === "error") { failed = true; failureCode = event.code; }
+          else if (event.type === "done") completed = true;
+          notify();
+        };
+        const request = async () => {
+          if (directAction) {
+            const unavailable = actionUnavailableReason(directAction, availabilityRef.current);
+            receive({ type: "turn_mode", mode: "social" });
+            receive({ type: "answer_delta", delta: unavailable ?? actionAcknowledgement(directAction) });
+            if (!unavailable) receive({ type: "effects", effects: { avatarAction: directAction, issues: [] } });
+            receive({ type: "done" });
+            return;
+          }
           await askPortfolioRef.current(question, {
             signal: abortSignal,
-            ...(conversationAtStart.length
-              ? { conversation: conversationAtStart }
-              : {}),
+            ...(conversationAtStart.length ? { conversation: conversationAtStart } : {}),
             visitState: visitStateAtStart,
             ...(challenge ? { challengeToken: challenge } : {}),
-            onEvent(event) {
-              if (!isCurrent()) return;
-              if (event.type === "evidence") {
-                evidence = [...event.evidence];
-              } else if (event.type === "turn_mode") {
-                turnMode = event.mode;
-              } else if (event.type === "answer_delta") {
-                answer += event.delta;
-              } else if (event.type === "effects") {
-                effects.push(event.effects);
-              } else if (event.type === "notice") {
-                setNotice(event.message);
-              } else if (event.type === "error") {
-                failed = true;
-              } else if (event.type === "done") {
-                completed = true;
-              }
-            },
+            onEvent: receive,
           });
-        } catch {
+        };
+        void request().catch((error: unknown) => {
           failed = true;
-        }
-
-        if (!isCurrent()) return;
-        if (failed) {
-          setFailedQuestion({ question, canRetry: !isRetry });
-          await finishRun();
-          yield {
-            content: [],
-            status: { type: "incomplete", reason: "error" },
-          };
-          return;
-        }
-        if (!completed || !answer.trim()) {
-          await finishRun();
-          yield {
-            content: [],
-            status: completed
-              ? { type: "complete", reason: "stop" }
-              : { type: "incomplete", reason: "other" },
-          };
-          return;
-        }
-
-        window.clearTimeout(slowTimer);
-        setSlow(false);
-        const citedEvidence = Array.from(
-          new Map(
-            parseGuideAnswerSegments(answer, evidence)
-              .filter((segment) => segment.type === "citation")
-              .map((segment) => [segment.evidence.id, segment.evidence]),
-          ).values(),
-        );
-        const metadata: GuideMessageMetadata = { citedEvidence, evidence };
-        const reveals = cumulativeWords(answer);
-        const firstTextRendered = new Promise<void>((resolve) => {
-          let settled = false;
-          const resolveOnce = () => {
-            if (settled) return;
-            settled = true;
-            abortSignal.removeEventListener("abort", resolveOnce);
-            if (firstTextWaiter.current?.run === run) {
-              firstTextWaiter.current = null;
-            }
-            resolve();
-          };
-          firstTextWaiter.current = { resolve: resolveOnce, run };
-          abortSignal.addEventListener("abort", resolveOnce, { once: true });
-          if (abortSignal.aborted) resolveOnce();
+          if (error instanceof PortfolioChatClientError) failureCode = error.code;
+        }).finally(() => { settled = true; notify(); });
+        abortSignal.addEventListener("abort", notify, { once: true });
+        let rendered = false;
+        let lastText = "";
+        const messageMetadata = (): GuideMessageMetadata => ({
+          evidence,
+          citedEvidence: Array.from(new Map(parseGuideAnswerSegments(answer, evidence)
+            .filter(segment => segment.type === "citation")
+            .map(segment => [segment.evidence.id, segment.evidence])).values()),
         });
-        for (let index = 0; index < reveals.length; index += 1) {
-          if (!isCurrent()) return;
-          yield {
-            content: [{ type: "text", text: reveals[index]! }],
-            metadata: { custom: { guide: metadata } },
-          };
-          if (index === 0) {
-            await firstTextRendered;
-            if (!isCurrent()) return;
-            queueAvatar(() => integration?.onFirstText());
-            for (const effect of effects) {
-              queueAvatar(() => integration?.onEffects(effect));
+        try {
+          while (isCurrent()) {
+            const seen = revision;
+            if (failed) break;
+            if (answer && answer !== lastText) {
+              window.clearTimeout(slowTimer);
+              setSlow(false);
+              let firstRendered: Promise<void> | undefined;
+              if (!rendered) {
+                firstRendered = new Promise<void>(resolve => {
+                  firstTextWaiter.current = { run, resolve };
+                });
+              }
+              lastText = answer;
+              yield { content: [{ type: "text", text: answer }], metadata: { custom: { guide: messageMetadata() } } };
+              if (!rendered) {
+                // Resolve on the first DOM commit, or cancel if the thread leaves.
+                const release = () => firstTextWaiter.current?.run === run && firstTextWaiter.current.resolve();
+                abortSignal.addEventListener("abort", release, { once: true });
+                if (!isCurrent()) release();
+                await firstRendered;
+                abortSignal.removeEventListener("abort", release);
+                firstTextWaiter.current = null;
+                rendered = true;
+                queueAvatar(() => integration?.onFirstText());
+              }
             }
+            if (settled) break;
+            if (seen === revision) await new Promise<void>(resolve => { wake = resolve; });
           }
-          if (index < reveals.length - 1) await waitForWord(abortSignal);
+        } finally {
+          abortSignal.removeEventListener("abort", notify);
+          window.clearTimeout(slowTimer);
+        }
+        if (!isCurrent()) return;
+        if (failed || !completed || !answer.trim()) {
+          if (failed || !completed) {
+            const errors: Record<string, { message: string; retry: boolean }> = {
+              budget_exhausted: { message: "The Guide has reached its daily allowance. Please come back tomorrow. You can still explore and use the play controls.", retry: false },
+              rate_limited: { message: "Please wait a minute before asking again. You can still use the play controls.", retry: true },
+              misconfigured: { message: "The Guide is temporarily unavailable. You can still explore the portfolio and use the play controls.", retry: false },
+              challenge_failed: { message: "Please complete the security check, then try again.", retry: true },
+            };
+            const error = errors[failureCode] ?? { message: "The Guide could not finish that reply.", retry: true };
+            setFailedQuestion({ question, canRetry: !isRetry && error.retry, message: error.message });
+          }
+          await finishRun();
+          yield { content: [], status: { type: "incomplete", reason: "error" } };
+          return;
+        }
+        yield { content: [{ type: "text", text: answer }], metadata: { custom: { guide: messageMetadata() } } };
+        for (const effect of effects) {
+          const unavailable = effect.avatarAction ? actionUnavailableReason(effect.avatarAction, availabilityRef.current) : null;
+          if (unavailable) setNotice(unavailable);
+          else queueAvatar(() => integration?.onEffects(effect));
         }
 
         if (!isCurrent()) return;
@@ -609,7 +610,7 @@ export function PortfolioChat({
           "citedEvidence",
         );
         const prompts = messages.length
-          ? getGuideFollowUpPrompts(lastEvidence)
+          ? getGuideFollowUpPrompts(lastEvidence, conversation.current.filter(message => message.role === "user").map(message => message.content))
           : getGuideInitialPrompts(visitSeed);
         return prompts.map(({ text }) => ({ prompt: text }));
       },
@@ -713,11 +714,18 @@ export function PortfolioChat({
     firstTextWaiter.current?.resolve();
   }, []);
 
-  const submissionEligible = isGuideSubmissionEligible({
+  const remoteSubmissionEligible = isGuideSubmissionEligible({
     challengeRequired: Boolean(turnstileSiteKey),
     challengeToken,
     online: !offline,
   });
+
+  const submissionEligible = Boolean(directAvatarRequest(composerText)) || remoteSubmissionEligible;
+  const promptAvailable = (text: string) => {
+    const action = directAvatarRequest(text);
+    return !action || !actionUnavailableReason(action, actionAvailability);
+  };
+  const promptEligible = (text: string) => Boolean(directAvatarRequest(text)) || remoteSubmissionEligible;
 
   function guardComposerKey(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey) return;
@@ -745,8 +753,8 @@ export function PortfolioChat({
     runtime.thread.startRun({ parentId: userMessage.id });
   }
 
-  const composerDisabled = offline || pending;
-  const initialPrompts = getGuideInitialPrompts(visitSeed);
+  const composerDisabled = pending;
+  const initialPrompts = getGuideInitialPrompts(visitSeed).filter(prompt => promptAvailable(prompt.text));
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -765,11 +773,17 @@ export function PortfolioChat({
             className="portfolio-guide-avatar"
             ref={setAvatarElement}
           />
+          {onToggleAvatar ? (
+            <button className="portfolio-guide-avatar-toggle" onClick={onToggleAvatar} type="button">
+              {actionAvailability.status === "hidden" ? "Show avatar" : "Hide avatar"}
+            </button>
+          ) : null}
           <ThreadPrimitive.Root
             className="portfolio-chat-thread"
             data-guide-primitive="thread"
           >
-            <ThreadPrimitive.Viewport autoScroll>
+            <ThreadPrimitive.Viewport autoScroll className="portfolio-chat-viewport">
+              <div className="portfolio-chat-content">
               <ThreadPrimitive.Messages
                 components={{
                   AssistantMessage: GuideAssistantMessage,
@@ -780,22 +794,22 @@ export function PortfolioChat({
                 <div className="portfolio-guide-suggestions">
                   {initialPrompts.map((prompt) => (
                     <GuideInitialSuggestion
-                      disabled={!submissionEligible}
+                      disabled={!promptEligible(prompt.text)}
                       key={prompt.text}
                       prompt={prompt}
                     />
                   ))}
                 </div>
               </ThreadPrimitive.Empty>
-              {slow ? (
+              {pending ? (
                 <div className="portfolio-guide-slow" role="status">
                   <span aria-hidden="true" className="portfolio-guide-twirl" />
-                  <span>Still thinking. The records are long.</span>
+                  <span>{slow ? "Still thinking…" : "Thinking…"}</span>
                 </div>
               ) : null}
               {failedQuestion ? (
                 <p className="portfolio-guide-error">
-                  Something went wrong.{" "}
+                  {failedQuestion.message ?? "The Guide could not finish that reply."}{" "}
                   {failedQuestion.canRetry ? (
                     <button
                       disabled={!submissionEligible}
@@ -808,16 +822,18 @@ export function PortfolioChat({
                 </p>
               ) : null}
               {notice ? <p className="portfolio-guide-notice">{notice}</p> : null}
-              <div className="portfolio-guide-suggestions">
+              <GuideFollowUps><div className="portfolio-guide-suggestions">
                 <ThreadPrimitive.Suggestions>
-                  {({ suggestion }) => (
+                  {({ suggestion }) => promptAvailable(suggestion.prompt) ? (
                     <GuideSuggestion
-                      disabled={!submissionEligible}
+                      disabled={!promptEligible(suggestion.prompt)}
                       prompt={suggestion.prompt}
                     />
-                  )}
+                  ) : null}
                 </ThreadPrimitive.Suggestions>
+              </div></GuideFollowUps>
               </div>
+              <ThreadPrimitive.ScrollToBottom className="portfolio-guide-latest">Latest reply ↓</ThreadPrimitive.ScrollToBottom>
             </ThreadPrimitive.Viewport>
           </ThreadPrimitive.Root>
           {turnstileSiteKey ? (
@@ -843,7 +859,7 @@ export function PortfolioChat({
               id="portfolio-question"
               maxRows={3}
               name="question"
-              onChange={onLayoutChange}
+              onChange={(event) => { setComposerText(event.target.value); onLayoutChange?.(); }}
               onCompositionEnd={() => {
                 compositionJustEnded.current = true;
                 compositionEndTimer.current = window.setTimeout(() => {

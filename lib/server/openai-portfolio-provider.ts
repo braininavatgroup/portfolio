@@ -1,3 +1,4 @@
+import { directAvatarRequest, actionAcknowledgement } from "../portfolio-chat-actions";
 import {
   Agent,
   assistant,
@@ -46,22 +47,6 @@ function groundedInput({
     ),
     currentTurn,
   ];
-}
-
-// Exact, standalone requests are controls; broader conversation still goes to
-// the model. Anchoring the whole utterance avoids matching negation or topics.
-function isDirectDanceRequest(question: string) {
-  return /^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:dance|do (?:a|the) dance|show me (?:a|your) dance)(?: for me)?(?: please)?[.!?]*$/i.test(
-    question.trim().replace(/\s+/g, " "),
-  );
-}
-
-function directAvatarRequest(question: string): "dance" | "wave" | "swim_lap" | null {
-  if (isDirectDanceRequest(question)) return "dance";
-  const request = question.trim().replace(/\s+/g, " ");
-  if (/^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:wave(?: hello)?|give me a wave)(?: (?:to|for) me)?(?: please)?[.!?]*$/i.test(request)) return "wave";
-  if (/^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:swim(?: a lap)?|go for a swim|take a swim)(?: for me)?(?: please)?[.!?]*$/i.test(request)) return "swim_lap";
-  return null;
 }
 
 const portfolioAgentInstructions =
@@ -196,6 +181,35 @@ function renderAgentOutput(
   return sentences.join("\n\n");
 }
 
+// Only complete sentence objects are eligible for display. Quoted braces and
+// escaped quotes are data; an unfinished object stays buffered. The full SDK
+// output still validates the envelope before effects or completion are emitted.
+function completedSentences(json: string): { mode: PortfolioChatTurnMode; sentences: PortfolioAgentOutput["sentences"] } | null {
+  const prefix = /^\s*\{\s*"mode"\s*:\s*"(portfolio|social|general)"\s*,\s*"sentences"\s*:\s*\[/.exec(json);
+  if (!prefix) return null;
+  const sentences: PortfolioAgentOutput["sentences"] = [];
+  let start = -1;
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let i = prefix[0].length; i < json.length; i += 1) {
+    const char = json[i];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (char === "{") { if (depth++ === 0) start = i; }
+    else if (char === "}" && depth > 0 && --depth === 0) {
+      const parsed = z.object({ text: z.string(), evidenceIds: z.array(z.string()) }).parse(JSON.parse(json.slice(start, i + 1)));
+      sentences.push(parsed);
+    } else if (char === "]" && depth === 0) break;
+  }
+  return { mode: prefix[1] as PortfolioChatTurnMode, sentences };
+}
+
 export function createOpenAIPortfolioProvider({
   apiKey,
   model,
@@ -217,17 +231,11 @@ export function createOpenAIPortfolioProvider({
 
   return {
     async *streamAnswer(input) {
-      if (/^(?:please\s+)?(?:(?:can|could) we |let['’]?s )?(?:play|start|launch)(?: the)? brain food(?: game)?(?: please)?[.!?]*$/i.test(input.question.trim())) {
-        input.onMode?.("social");
-        input.onEffects?.({ avatarAction: "brain_food", issues: [] });
-        yield "Use Arrow keys or WASD to swim through every node. Escape brings you back. Brain Food needs a keyboard and a larger window.";
-        return;
-      }
       const directAction = directAvatarRequest(input.question);
       if (directAction) {
         input.onMode?.("social");
         input.onEffects?.({ avatarAction: directAction, issues: [] });
-        yield directAction === "wave" ? "Hello there." : "Here we go.";
+        yield actionAcknowledgement(directAction);
         return;
       }
       const agent = new Agent({
@@ -254,9 +262,28 @@ export function createOpenAIPortfolioProvider({
         const result = await runner.run(agent, groundedInput(input), {
           maxTurns: 1,
           signal: input.signal,
+          stream: true,
         });
+        let json = "";
+        let emitted = "";
+        let mode: PortfolioChatTurnMode | undefined;
+        for await (const event of result) {
+          if (event.type !== "raw_model_stream_event" || event.data.type !== "output_text_delta") continue;
+          json += event.data.delta;
+          const partial = completedSentences(json);
+          if (!partial?.sentences.length) continue;
+          const validated = `${renderAgentOutput({ ...partial, avatarAction: "none" }, input.evidence)}\n\n`;
+          if (!mode) { mode = partial.mode; input.onMode?.(mode); }
+          if (!validated.startsWith(emitted)) throw new Error("Model changed an emitted sentence.");
+          const delta = validated.slice(emitted.length);
+          emitted = validated;
+          if (delta) yield delta;
+        }
+        await result.completed;
         if (!result.finalOutput) throw new Error("OpenAI agent returned no answer.");
-        input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
+        const final = `${renderAgentOutput(result.finalOutput, input.evidence)}\n\n`;
+        if ((mode && mode !== result.finalOutput.mode) || !final.startsWith(emitted)) throw new Error("Model changed its streamed answer.");
+        if (!mode) input.onMode?.(result.finalOutput.mode as PortfolioChatTurnMode);
         input.onEffects?.({
           avatarAction:
             result.finalOutput.avatarAction === "none"
@@ -264,7 +291,8 @@ export function createOpenAIPortfolioProvider({
               : result.finalOutput.avatarAction,
           issues: [],
         });
-        yield renderAgentOutput(result.finalOutput, input.evidence);
+        const remaining = final.slice(emitted.length);
+        if (remaining) yield remaining;
         const usage = result.state.usage;
         input.onUsage?.({
           inputTokens: usage.inputTokens,

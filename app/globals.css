@@ -1472,7 +1472,7 @@ body:has(.portfolio-reading-room-desktop) {
 
 .portfolio-contents-scroll::-webkit-scrollbar,
 .reader-scroll::-webkit-scrollbar,
-.portfolio-chat-thread::-webkit-scrollbar {
+.portfolio-chat-viewport::-webkit-scrollbar {
   display: none;
 }
 
@@ -1776,7 +1776,9 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-thread {
-  margin-top: auto;
+  flex: 1 1 auto;
+  margin-top: var(--reader-space-4);
+  max-height: none;
 }
 
 .portfolio-reading-room-read-chip {
@@ -2850,17 +2852,25 @@ body:has(.portfolio-reading-room-mobile) {
    standing directly above the suggestion chips instead of on an invisible
    45% shelf. A long conversation still stops at 45% and scrolls. */
 .portfolio-chat-thread {
+  display: flex;
   flex: 0 1 auto;
+  flex-direction: column;
   max-height: 45%;
   min-height: 0;
-  overflow-y: auto;
-  padding: 0 var(--reader-space-3) 12px;
+  overflow: hidden;
 }
 
-.portfolio-chat-thread > div {
+.portfolio-chat-viewport {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--reader-space-3) var(--reader-space-2);
+  scrollbar-width: none;
+}
+
+.portfolio-chat-content {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   min-height: 100%;
 }
 
@@ -4410,4 +4420,38 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   .portfolio-guide-suggestion[data-game-suggestion="true"] {
     display: none;
   }
+}
+
+.portfolio-guide-avatar-toggle,
+.portfolio-guide-latest {
+  align-self: flex-end;
+  background: var(--reader-paper);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-muted);
+  cursor: pointer;
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: var(--reader-space-1);
+}
+
+.portfolio-guide-avatar-toggle {
+  position: absolute;
+  right: var(--reader-space-2);
+  top: var(--reader-space-1);
+}
+
+.portfolio-guide-latest {
+  bottom: 0;
+  position: sticky;
+}
+
+.portfolio-guide-latest:disabled {
+  display: none;
+}
+
+.portfolio-guide-citation:focus-visible,
+.portfolio-guide-avatar-toggle:focus-visible,
+.portfolio-guide-latest:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }

@@ -46,6 +46,7 @@ function snapshot(overrides: Partial<AvatarSnapshot> = {}): AvatarSnapshot {
     visible: true,
     fitHeight: null,
     failed: false,
+    ready: true,
     ...overrides,
   };
 }
