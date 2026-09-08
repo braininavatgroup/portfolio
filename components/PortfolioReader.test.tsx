@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   portfolioContact,
   portfolioThreads,
+  portfolioThreadById,
   portfolioVisualFormat,
   portfolioWorldNodeById,
   portfolioWorldNodes,
@@ -147,15 +148,14 @@ describe("PortfolioReader", () => {
       "software",
       "Philosophy",
       "INFAMOUS PR",
-      "Brain in a Vat Music Promotions",
       "kickoff",
       "pitching",
       "reporting",
       "work to be playable",
-      "Brain in a Vat Systems and AI Consulting",
+      "Systems and AI Consulting",
       "deal tracking dashboard",
       "tour-advancing suite",
-      "Brain in a Vat Product Studio",
+      "Product Studio",
       "Dubs",
       "Writ",
     ]);
@@ -164,7 +164,6 @@ describe("PortfolioReader", () => {
       "warm",
       "warm",
       "story",
-      "warm",
       "warm",
       "bridge",
       "bridge",
@@ -185,7 +184,6 @@ describe("PortfolioReader", () => {
       "systems-consulting",
       "product-studio",
       "infamous",
-      "music-practice",
       "kickoff",
       "pitching",
       "reporting",
@@ -210,21 +208,22 @@ describe("PortfolioReader", () => {
     expect(preview()).toBeNull();
     fireEvent.mouseEnter(link("Dubs"));
     expect(preview()?.getAttribute("aria-hidden")).toBe("true");
-    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
-    expect(preview()?.querySelector("img")?.getAttribute("alt")).toBe("");
-    expect(preview()?.textContent).toBe("Dubs");
+    expect(preview()?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
+    expect(preview()?.getAttribute("alt")).toBe("");
+    expect(preview()?.textContent).toBe("");
+    expect(preview()?.tagName).toBe("IMG");
     fireEvent.mouseLeave(link("Dubs"));
     expect(preview()).toBeNull();
 
     fireEvent.focus(link("kickoff"));
-    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+    expect(preview()?.getAttribute("src")).toBe(
       "/visuals/campaign/campaign-kickoff-poster.png",
     );
     fireEvent.blur(link("kickoff"));
     expect(preview()).toBeNull();
 
     fireEvent.mouseEnter(link("INFAMOUS PR"));
-    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+    expect(preview()?.getAttribute("src")).toBe(
       "/visuals/clients/infamous/all-day-i-dream.webp",
     );
     fireEvent.mouseLeave(link("INFAMOUS PR"));
@@ -746,6 +745,12 @@ describe("PortfolioReader", () => {
   });
 
   it("renders unfinished copy and planned visuals as part of the working composition", () => {
+    const thread = portfolioThreads.find(({ id }) => id === "making-work-playable")!;
+    vi.spyOn(portfolioThreadById, "get").mockImplementation((id) =>
+      id === thread.id
+        ? { ...thread, body: [{ type: "copy-placeholder", id: "test-copy", prompt: "Write this section." }] }
+        : portfolioThreads.find((candidate) => candidate.id === id),
+    );
     const placeholderPage = render(
       <PortfolioReader
         {...baseProps}
@@ -753,7 +758,7 @@ describe("PortfolioReader", () => {
         selectedId="thread-making-work-playable"
       />,
     );
-    expect(screen.getAllByText("Copy in progress")).toHaveLength(2);
+    expect(screen.getAllByText("Copy in progress")).toHaveLength(1);
     for (const label of screen.getAllByText("Copy in progress")) {
       const placeholder = label.closest("aside")!;
       expect(placeholder.classList.contains("reader-text-placeholder")).toBe(true);

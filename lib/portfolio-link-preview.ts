@@ -13,6 +13,28 @@ import {
 
 export type PortfolioLinkPreview = { src: string; alt: string };
 
+type PreviewBounds = { left: number; right: number; top: number; bottom: number };
+
+export function portfolioLinkPreviewLayout(
+  anchor: PreviewBounds,
+  bounds: PreviewBounds,
+  size: { width: number; height: number },
+  gap: number,
+) {
+  const above = Math.max(0, anchor.top - bounds.top - gap);
+  const below = Math.max(0, bounds.bottom - anchor.bottom - gap);
+  const placement = below >= size.height || below >= above ? "below" : "above";
+  const width = Math.min(size.width, Math.max(0, bounds.right - bounds.left));
+  const height = Math.min(size.height, placement === "below" ? below : above);
+  return {
+    left: Math.max(bounds.left, Math.min(anchor.left, bounds.right - width)),
+    top: placement === "below" ? anchor.bottom + gap : anchor.top - gap - height,
+    width,
+    height,
+    placement,
+  };
+}
+
 function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | undefined {
   const format = portfolioVisualFormat(block);
   if (format === "video") {

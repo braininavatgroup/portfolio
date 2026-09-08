@@ -52,9 +52,9 @@ export function PortfolioReaderExample() {
   record, or thread opens at the top. Moving the Reader preserves this element,
   and analytics must observe it rather than document scroll.
 - **Reader has no route back to Contents.** Its mast and panel own navigation.
-- **Inline record links carry a hover still.** On mouse enter or focus the link
-  mounts an `aria-hidden` card with the target's lead visual from
-  `lib/portfolio-link-preview.ts`; no ready still, or a coarse pointer, means no card.
+- **Inline previews are image-only.** Hover/focus shows the first ready still; touch shows none.
+  `portfolio-link-preview.ts` fits the uncropped image inside the Reader, up to 400×280px.
+  Image load and resize update placement; scroll dismisses. Clicking the link opens the record.
 - **The Reader owns visual state.** Image and gallery overlays stay bounded
   over a translucent paper wash and slight blur. The overlay names the current
   asset, centers the label and `n of total` navigation, and restores trigger

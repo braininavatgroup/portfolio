@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { portfolioLinkPreview } from "./portfolio-link-preview";
+import { portfolioLinkPreview, portfolioLinkPreviewLayout } from "./portfolio-link-preview";
 import {
   portfolioThreadById,
   portfolioWorldNodeById,
@@ -59,5 +59,36 @@ describe("portfolioLinkPreview", () => {
     expect(still("real-estate")).toBeUndefined();
     expect(still("infamous")).toBe("/visuals/clients/infamous/all-day-i-dream.webp");
     expect(portfolioLinkPreview(portfolioThreadById.get("philosophy")!.body)).toBeUndefined();
+  });
+});
+
+describe("portfolioLinkPreviewLayout", () => {
+  const bounds = { left: 320, right: 960, top: 56, bottom: 884 };
+  const size = { width: 400, height: 322 };
+
+  it("opens below a link when the preview fits", () => {
+    expect(portfolioLinkPreviewLayout(
+      { left: 360, right: 440, top: 100, bottom: 124 }, bounds, size, 8,
+    )).toMatchObject({ left: 360, top: 132, width: 400, height: 322, placement: "below" });
+  });
+
+  it("opens above a low link and shifts away from the right edge", () => {
+    expect(portfolioLinkPreviewLayout(
+      { left: 850, right: 930, top: 800, bottom: 824 }, bounds, size, 8,
+    )).toMatchObject({ left: 560, top: 470, width: 400, height: 322, placement: "above" });
+  });
+
+  it("fits a narrow pane without crossing either horizontal edge", () => {
+    expect(portfolioLinkPreviewLayout(
+      { left: 330, right: 410, top: 100, bottom: 124 },
+      { ...bounds, left: 350, right: 650 }, size, 8,
+    )).toMatchObject({ left: 350, width: 300 });
+  });
+
+  it("uses the roomier side and reduces height in a short pane", () => {
+    expect(portfolioLinkPreviewLayout(
+      { left: 360, right: 440, top: 230, bottom: 254 },
+      { ...bounds, bottom: 400 }, size, 8,
+    )).toMatchObject({ top: 56, height: 166, placement: "above" });
   });
 });
