@@ -17,7 +17,7 @@ const themeGlyph: PortfolioLinkPreview = {
   src: "/visuals/hover/theme.svg", alt: "Theme asterisk glyph", treatment: "glyph",
 };
 
-// Reporting intentionally uses its page's first ready still after integration.
+// Explicit choices remain stable when a page’s gallery order changes.
 const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
   "music-practice": bivLogo,
   "systems-consulting": bivLogo,
@@ -29,6 +29,7 @@ const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
   "thread-making-work-playable": themeGlyph,
   kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Campaign kickoff workflow" },
   pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Campaign pitching workflow" },
+  reporting: { src: "/visuals/campaign/reporting-dashboard.png", alt: "Campaign reporting dashboard" },
   touring: { src: "/visuals/touring/manager-advance.png", alt: "Manager advance record" },
   dubs: { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls" },
   writ: { src: "/visuals/writ/output-priority.png", alt: "Writ output priorities" },

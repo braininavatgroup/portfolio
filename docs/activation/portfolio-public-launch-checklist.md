@@ -8,9 +8,9 @@ the launch work; it does not authorize deployment or changes to live controls.
 
 ## Finish the current copy pass
 
-- [ ] Bring in the reporting visual after its branch lands. Preserve the
-  reviewed copy when rebasing, including the four-week reporting comparison.
-  Choose and pin Reporting’s hover preview from the merged page’s images.
+- [x] Integrate Reporting commit `e0808f7` with the reviewed copy, preserving
+  the four-week reporting comparison. Reporting’s hover uses its dashboard capture.
+  Reconcile any later Reporting changes before the final combined review.
 - [ ] Replace the Touring calendar screenshot with a better capture after the
   copy sweep. Include the replacement in the artifact review below.
 - [ ] Bradley reviews every artifact that will be publicly accessible,

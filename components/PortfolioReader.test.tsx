@@ -152,17 +152,15 @@ describe("PortfolioReader", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "music promotions",
       "systems and AI",
-      "software",
+      "product studio",
       "Philosophy",
       "INFAMOUS PR",
       "kickoff",
       "pitching",
       "reporting",
       "work to be playable",
-      "deal tracking dashboard",
       "tour-advancing suite",
       "Dubs",
-      "Writ",
     ]);
     expect(links.map((link) => link.getAttribute("data-register"))).toEqual([
       "warm",
@@ -175,8 +173,6 @@ describe("PortfolioReader", () => {
       "bridge",
       "story",
       "bridge",
-      "bridge",
-      "cool",
       "cool",
     ]);
     expect(screen.queryByText(/\[|\]\(/)).toBeNull();
@@ -190,15 +186,13 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
-      "real-estate",
       "touring",
       "dubs",
-      "writ",
     ]);
     expect(onSelectThread.mock.calls.map(([id]) => id)).toEqual(["philosophy", "making-work-playable"]);
   });
 
-  it("floats a still of the target's lead visual under a hovered or focused inline link", () => {
+  it("floats the selected image or glyph under a hovered or focused inline link", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
     const link = (name: string) =>
       screen.getAllByRole("button", { name }).find((button) =>
@@ -209,28 +203,29 @@ describe("PortfolioReader", () => {
     expect(preview()).toBeNull();
     fireEvent.mouseEnter(link("Dubs"));
     expect(preview()?.getAttribute("aria-hidden")).toBe("true");
-    expect(preview()?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
-    expect(preview()?.getAttribute("alt")).toBe("");
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/dubs/lock-screen.png");
+    expect(preview()?.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(preview()?.textContent).toBe("");
-    expect(preview()?.tagName).toBe("IMG");
+    expect(preview()?.tagName).toBe("SPAN");
     fireEvent.mouseLeave(link("Dubs"));
     expect(preview()).toBeNull();
 
     fireEvent.focus(link("kickoff"));
-    expect(preview()?.getAttribute("src")).toBe(
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
       "/visuals/campaign/campaign-kickoff-poster.png",
     );
     fireEvent.blur(link("kickoff"));
     expect(preview()).toBeNull();
 
     fireEvent.mouseEnter(link("INFAMOUS PR"));
-    expect(preview()?.getAttribute("src")).toBe(
-      "/visuals/clients/infamous/all-day-i-dream.webp",
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+      "/visuals/hover/infamous.svg",
     );
     fireEvent.mouseLeave(link("INFAMOUS PR"));
-    // A thread has no lead visual preview.
+    // Themes have an explicit glyph even without a body visual.
     fireEvent.mouseEnter(link("Philosophy"));
-    expect(preview()).toBeNull();
+    expect(preview()?.dataset.treatment).toBe("glyph");
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe("/visuals/hover/theme.svg");
   });
 
   it("draws every contact row as an index row with its own mark", () => {
@@ -290,7 +285,7 @@ describe("PortfolioReader", () => {
 
   it.each([
     ["philosophy", "thread-philosophy"],
-  ])("renders the %s Why as copy in progress", (activeThreadId, selectedId) => {
+  ])("renders the %s Theme with its reviewed summary", (activeThreadId, selectedId) => {
     render(
       <PortfolioReader
         {...baseProps}
@@ -299,7 +294,8 @@ describe("PortfolioReader", () => {
       />,
     );
 
-    expect(screen.getAllByText("[Summary in progress]").length).toBeGreaterThan(0);
+    expect(screen.queryByText("[Summary in progress]")).toBeNull();
+    expect(screen.getByText(portfolioThreads.find((thread) => thread.id === activeThreadId)!.lede)).toBeTruthy();
   });
 
   it("uses one summary treatment at the start of every record", () => {
