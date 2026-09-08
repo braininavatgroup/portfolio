@@ -18,6 +18,11 @@ narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
 Local play commands bypass model quota, network, and Turnstile. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
 
+Suggestion lists show at most three prompts. They show at most two when the
+Guide is 600px wide or narrower, or the window uses the compact layout at 1019px
+or below. This applies to both starters and follow-ups; prompt ordering and typed
+commands are unchanged.
+
 The Reading Room uses three coordination props:
 
 - `onNavigateEvidence(target, evidence)` receives an inline citation action.

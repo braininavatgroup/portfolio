@@ -2902,6 +2902,10 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 @media (max-width: 1019px) {
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+    display: none;
+  }
+
   .portfolio-contents-row {
     min-height: 36px;
     padding-bottom: 6px;
@@ -2918,6 +2922,8 @@ body:has(.portfolio-reading-room-mobile) {
   border: 0;
   box-shadow: none;
   color: var(--ink, var(--reader-ink-light));
+  container-name: portfolio-guide;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   font-family: var(--font-reader);
@@ -3102,6 +3108,16 @@ body:has(.portfolio-reading-room-mobile) {
   padding: 6px 0;
   text-align: left;
   width: 100%;
+}
+
+.portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 4) {
+  display: none;
+}
+
+@container portfolio-guide (max-width: 600px) {
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+    display: none;
+  }
 }
 
 .portfolio-guide-suggestion-mark {
