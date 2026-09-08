@@ -724,10 +724,10 @@ function InlineRecordLink({
 }) {
   const [previewing, setPreviewing] = useState(false);
   const linkRef = useRef<HTMLButtonElement>(null);
-  const previewRef = useRef<HTMLImageElement>(null);
+  const previewRef = useRef<HTMLSpanElement>(null);
   const targetNode = node ?? portfolioWorldNodeById.get(thread!.nodeId);
   const preview = useMemo(
-    () => portfolioLinkPreview((node ?? thread!).body),
+    () => portfolioLinkPreview((node ?? thread!).body, (node ?? thread!).id),
     [node, thread],
   );
   useLayoutEffect(() => {
@@ -758,14 +758,14 @@ function InlineRecordLink({
     };
     const dismiss = () => setPreviewing(false);
     position();
-    image.addEventListener("load", position);
+    image.addEventListener("load", position, true);
     pane.addEventListener("scroll", dismiss, { passive: true });
     window.addEventListener("resize", position);
     window.addEventListener("scroll", dismiss, { passive: true });
     const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(position);
     observer?.observe(pane);
     return () => {
-      image.removeEventListener("load", position);
+      image.removeEventListener("load", position, true);
       pane.removeEventListener("scroll", dismiss);
       window.removeEventListener("resize", position);
       window.removeEventListener("scroll", dismiss);
@@ -773,7 +773,7 @@ function InlineRecordLink({
     };
   }, [previewing, preview]);
   return (
-    <span className="reader-inline-link-anchor">
+    <span className="reader-inline-link-anchor" data-register={targetNode?.register}>
       <button
         ref={linkRef}
         className="reader-inline-link"
@@ -788,13 +788,18 @@ function InlineRecordLink({
         {label}
       </button>
       {preview && previewing ? (
-        <img
-          alt=""
+        <span
           aria-hidden="true"
           className="reader-inline-link-preview"
+          data-treatment={preview.treatment}
           ref={previewRef}
-          src={preview.src}
-        />
+          style={preview.treatment ? {
+            maskImage: `url("${preview.src}")`,
+            WebkitMaskImage: `url("${preview.src}")`,
+          } : undefined}
+        >
+          <img alt="" src={preview.src} />
+        </span>
       ) : null}
     </span>
   );

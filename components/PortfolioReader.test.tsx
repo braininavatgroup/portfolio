@@ -152,10 +152,8 @@ describe("PortfolioReader", () => {
       "pitching",
       "reporting",
       "work to be playable",
-      "Systems and AI Consulting",
       "deal tracking dashboard",
       "tour-advancing suite",
-      "Product Studio",
       "Dubs",
       "Writ",
     ]);
@@ -169,10 +167,8 @@ describe("PortfolioReader", () => {
       "bridge",
       "bridge",
       "story",
-      "warm",
       "bridge",
       "bridge",
-      "warm",
       "cool",
       "cool",
     ]);
@@ -187,10 +183,8 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
-      "systems-consulting",
       "real-estate",
       "touring",
-      "product-studio",
       "dubs",
       "writ",
     ]);
@@ -616,7 +610,7 @@ describe("PortfolioReader", () => {
     ).toBe(true);
     expect(container.querySelector(".reader-visual-overlay")).toBe(overlay);
     expect(document.querySelector(".portfolio-visual-stage")).toBeNull();
-    expect(within(overlay).getByText("Available mid-stride")).toBeTruthy();
+    expect(within(overlay).getByText("Lock Screen controls")).toBeTruthy();
     expect(within(overlay).getByText("1 of 8")).toBeTruthy();
 
     fireEvent.click(within(overlay).getByRole("button", { name: "Next visual frame" }));

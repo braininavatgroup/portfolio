@@ -21,9 +21,8 @@ describe("validatePortfolioContentDocument", () => {
       portfolioInterfaceTextKeys.filter((key) => key.startsWith("index.section.")),
     ).toEqual([
       "index.section.threads",
-      "index.section.operations",
-      "index.section.campaign",
-      "index.section.client",
+      "index.section.background",
+      "index.section.solutions",
       "index.section.products",
     ]);
   });

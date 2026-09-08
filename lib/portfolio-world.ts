@@ -463,8 +463,7 @@ const indexSection = (
 
 export const portfolioWorldIndexSections: readonly PortfolioWorldIndexSection[] = [
   indexSection("threads", "index.section.threads"),
-  indexSection("operations", "index.section.operations", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
-  indexSection("campaign", "index.section.campaign", ["kickoff", "pitching", "reporting"]),
-  indexSection("client", "index.section.client", ["real-estate", "touring"]),
+  indexSection("background", "index.section.background", ["music-practice", "systems-consulting", "product-studio", "infamous"]),
+  indexSection("solutions", "index.section.solutions", ["kickoff", "pitching", "reporting", "real-estate", "touring"]),
   indexSection("products", "index.section.products", ["dubs", "writ"]),
 ];

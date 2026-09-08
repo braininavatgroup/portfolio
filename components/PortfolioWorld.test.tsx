@@ -781,7 +781,7 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.fillTexts).toContain("Dubs");
     expect(record.fillTexts).not.toContain("Writ");
 
-    fireEvent.pointerEnter(screen.getByRole("button", { name: "In Production Writ" }));
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Products Writ" }));
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(record.fillTexts).toContain("Writ");
   });

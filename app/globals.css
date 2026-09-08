@@ -2071,6 +2071,10 @@ body:has(.portfolio-reading-room-mobile) {
   padding-top: var(--reader-space-8);
 }
 
+.portfolio-reader[data-reader-mode="about"] .reader-privacy {
+  padding-top: var(--reader-space-2);
+}
+
 .reader-content {
   padding: var(--reader-space-3) var(--reader-space-3) 0;
 }
@@ -2194,11 +2198,17 @@ body:has(.portfolio-reading-room-mobile) {
   text-underline-offset: 3px;
 }
 
+.reader-inline-link-anchor[data-register="identity"],
 .reader-inline-link[data-register="identity"] { --register: var(--world-identity); }
+.reader-inline-link-anchor[data-register="story"],
 .reader-inline-link[data-register="story"] { --register: var(--world-story); }
+.reader-inline-link-anchor[data-register="arc"],
 .reader-inline-link[data-register="arc"] { --register: var(--world-arc); }
+.reader-inline-link-anchor[data-register="warm"],
 .reader-inline-link[data-register="warm"] { --register: var(--world-warm); }
+.reader-inline-link-anchor[data-register="bridge"],
 .reader-inline-link[data-register="bridge"] { --register: var(--world-bridge); }
+.reader-inline-link-anchor[data-register="cool"],
 .reader-inline-link[data-register="cool"] { --register: var(--world-cool); }
 
 .reader-inline-link[data-external="true"] { --register: var(--ink); }
@@ -2227,6 +2237,41 @@ body:has(.portfolio-reading-room-mobile) {
   top: 0;
   width: auto;
   z-index: 5;
+}
+
+.reader-inline-link-preview > img {
+  display: block;
+  height: auto;
+  max-height: inherit;
+  max-width: 100%;
+  object-fit: contain;
+  width: inherit;
+}
+
+/* Invert the resolved register RGB, matching the cursor’s inverse color.
+   Alpha stays transparent; the link itself retains its register color. */
+.reader-inline-link-preview[data-treatment] {
+  background: var(--register, var(--ink));
+  filter: invert(1);
+  mask-mode: alpha;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.reader-inline-link-preview[data-treatment] > img {
+  opacity: 0;
+}
+
+.reader-inline-link-preview[data-treatment="logo"] {
+  width: 320px;
+}
+
+.reader-inline-link-preview[data-treatment="glyph"] {
+  width: 112px;
 }
 
 @media (pointer: coarse) {

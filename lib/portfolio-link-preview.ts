@@ -1,8 +1,5 @@
-// The still image a record or thread shows when an inline link to it is
-// hovered or focused: the first ready visual in its body, read as a poster
-// for a video, the first frame of a gallery, or the image itself. Planned
-// and interactive visuals have no still, so a link to a record without one
-// simply shows no preview.
+// Explicit hover choices take priority over gallery order. Other destinations
+// fall back to their first ready still; interactive visuals have no still.
 
 import {
   isPortfolioVisualReady,
@@ -11,7 +8,31 @@ import {
   type PortfolioVisualBlock,
 } from "./portfolio-world";
 
-export type PortfolioLinkPreview = { src: string; alt: string };
+export type PortfolioLinkPreview = { src: string; alt: string; treatment?: "logo" | "glyph" };
+
+const bivLogo: PortfolioLinkPreview = {
+  src: "/visuals/hover/brain-in-a-vat.png", alt: "Brain in a Vat logo", treatment: "logo",
+};
+const themeGlyph: PortfolioLinkPreview = {
+  src: "/visuals/hover/theme.svg", alt: "Theme asterisk glyph", treatment: "glyph",
+};
+
+// Reporting intentionally uses its page's first ready still after integration.
+const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
+  "music-practice": bivLogo,
+  "systems-consulting": bivLogo,
+  "product-studio": bivLogo,
+  infamous: { src: "/visuals/hover/infamous.svg", alt: "INFAMOUS logo", treatment: "logo" },
+  philosophy: themeGlyph,
+  "thread-philosophy": themeGlyph,
+  "making-work-playable": themeGlyph,
+  "thread-making-work-playable": themeGlyph,
+  kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Campaign kickoff workflow" },
+  pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Campaign pitching workflow" },
+  touring: { src: "/visuals/touring/manager-advance.png", alt: "Manager advance record" },
+  dubs: { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls" },
+  writ: { src: "/visuals/writ/output-priority.png", alt: "Writ output priorities" },
+};
 
 type PreviewBounds = { left: number; right: number; top: number; bottom: number };
 
@@ -52,7 +73,9 @@ function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | un
 
 export function portfolioLinkPreview(
   body: readonly PortfolioBodyBlock[],
+  destinationId?: string,
 ): PortfolioLinkPreview | undefined {
+  if (destinationId && hoverChoices[destinationId]) return hoverChoices[destinationId];
   for (const block of body) {
     if (typeof block === "string" || block.type !== "visual") continue;
     if (!isPortfolioVisualReady(block)) continue;

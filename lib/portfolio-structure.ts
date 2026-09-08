@@ -120,15 +120,6 @@ const para = (id: string): PortfolioParagraphSkeleton => ({
   id,
 });
 
-const draft = (
-  id: string,
-  questionIds?: readonly string[],
-): PortfolioCopyPlaceholderSkeleton => ({
-  kind: "copy-placeholder",
-  id,
-  ...(questionIds ? { questionIds } : {}),
-});
-
 const inferredVisualFormat = (
   treatment?: PortfolioVisualTreatment,
 ): PortfolioVisualFormat => {
@@ -723,7 +714,6 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
         {
           assets: [
             { src: "/visuals/writ/device-rules.png", chrome: "mac-menu-bar" },
-            { src: "/visuals/writ/settings-menu.png", chrome: "mac-menu-bar" },
           ],
         },
         {
@@ -750,8 +740,7 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
     family: "story",
     register: "story",
     position: { x: 77.04, y: 43.99, z: 700 },
-    summaryStatus: "placeholder",
-    body: [draft("philosophy-record")],
+    body: [para("p1"), para("p2")],
   },
 ] as const;
 

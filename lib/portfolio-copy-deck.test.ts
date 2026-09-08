@@ -56,13 +56,13 @@ describe("renderCopyDeckPages", () => {
         (id) => `${document.interface["index.section.threads"]}/${copyDeckNoteName(document.threads[id].title)}`,
       ),
       ...["music-practice", "systems-consulting", "product-studio", "infamous"].map(
-        (id) => `${document.interface["index.section.operations"]}/${copyDeckNoteName(document.records[id].label)}`,
+        (id) => `${document.interface["index.section.background"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
       ...["kickoff", "pitching", "reporting"].map(
-        (id) => `${document.interface["index.section.campaign"]}/${copyDeckNoteName(document.records[id].label)}`,
+        (id) => `${document.interface["index.section.solutions"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
       ...["real-estate", "touring"].map(
-        (id) => `${document.interface["index.section.client"]}/${copyDeckNoteName(document.records[id].label)}`,
+        (id) => `${document.interface["index.section.solutions"]}/${copyDeckNoteName(document.records[id].label)}`,
       ),
       ...["dubs", "writ"].map(
         (id) => `${document.interface["index.section.products"]}/${copyDeckNoteName(document.records[id].label)}`,
@@ -89,7 +89,7 @@ describe("renderCopyDeckPages", () => {
 
   it("renders a page as its title, a bold opener, then the body in authored order", () => {
     const record = document.records.infamous;
-    const page = pageAt(`${document.interface["index.section.operations"]}/INFAMOUS PR.md`);
+    const page = pageAt(`${document.interface["index.section.background"]}/INFAMOUS PR.md`);
     expect(page.startsWith(`# INFAMOUS PR\n\n**${record.summary}**\n\n${record.paragraphs.p1}\n\n`)).toBe(true);
     const order = [
       `> [!info] ${record.visuals["infamous-clients"].purpose}`,
@@ -103,9 +103,7 @@ describe("renderCopyDeckPages", () => {
     expect(page.endsWith(`${record.paragraphs.p4}\n`)).toBe(true);
   });
 
-  it("keeps a note and a visual's caption and slides inside their callouts", () => {
-    const revisit = document.records["thread-philosophy"].placeholders["philosophy-record"];
-    expect(all).toContain(`> [!note] ${revisit.prompt}\n`);
+  it("keeps a visual's caption and slides inside its callout", () => {
     const daySheet = document.records.touring.visuals["touring-day-sheet"];
     expect(all).toContain(
       `> [!info] ${daySheet.purpose}\n> ${daySheet.caption}\n> 1. ${daySheet.slides?.[0].title}: ${daySheet.slides?.[0].caption}`,

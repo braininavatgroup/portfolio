@@ -52,7 +52,11 @@ export function PortfolioReaderExample() {
   record, or thread opens at the top. Moving the Reader preserves this element,
   and analytics must observe it rather than document scroll.
 - **Reader has no route back to Contents.** Its mast and panel own navigation.
-- **Inline previews are image-only.** Hover/focus shows the first ready still; touch shows none.
+- **Inline previews are image-only.** Hover/focus uses the destination override in
+  `lib/portfolio-link-preview.ts`, falling back to the first ready still; touch shows none.
+  Logos and Theme glyphs use alpha masks filled with the RGB inverse of the
+  destination’s register token, following palette changes and light/dark mode.
+  Their backgrounds remain transparent and link text retains its original color.
   `portfolio-link-preview.ts` fits the uncropped image inside the Reader, up to 400×280px.
   Image load and resize update placement; scroll dismisses. Clicking the link opens the record.
 - **The Reader owns visual state.** Image and gallery overlays stay bounded
