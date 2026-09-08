@@ -61,33 +61,22 @@ the launch work; it does not authorize deployment or changes to live controls.
   provider budget still caps spend at 200, and the guard fails closed on a
   missing limiter or connecting IP. See the two boundaries below for what this
   does *not* cover.
-- [ ] **Turnstile: two of three controls done, flag still false.**
-  `npm run setup:turnstile` ran on 2026-09-08 and did the Turnstile half: it
-  created the `portfolio-chat` widget (mode managed, both hostnames),
-  published the site key as the `PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` repository
-  variable, and uploaded `TURNSTILE_SECRET_KEY` to
-  `bradley-portfolio-main-preview`. Evidence:
-  `.context/turnstile-clarity-setup.md`.
-  Not in this PR: `ci.yml` must pass
-  `VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY: ${{ vars.PORTFOLIO_CHAT_TURNSTILE_SITE_KEY }}`
-  into the `npm run test:rendered` step, since that build becomes the deployed
-  artifact and the site key is compiled into the client bundle. A workflow edit
-  cannot be pushed by the agent App, so it rides with the flag flip, which
-  Bradley pushes from his own terminal.
-  Still missing: `PORTFOLIO_CHAT_IDENTIFIER_SECRET`. The guard requires it
-  whenever the challenge is required — it is what HMACs Cloudflare's
-  connecting IP into a limiter key and OpenAI `safety_identifier` so a raw IP
-  is never forwarded. It was never declared in this Worker's config, because
-  until now nothing required it. Without it the guard returns **503 on every
-  question**, which is why `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` is back to
-  `false`. Both secrets are now in the config's required list.
-  Re-run `npm run setup:turnstile` from Apple Terminal or iTerm. It detects
-  the existing widget and offers to keep it, then generates and uploads the
-  identifier secret — no dashboard step. Then the flag flips.
-  Deployment constraint once it does flip: the site key is compiled into the
-  client bundle, so the deployed artifact must come from a CI run that had the
-  repository variable set. An older artifact ships no challenge, and the guard
-  rejects every question with 403 rather than 503.
+- [x] Turnstile is required on the public candidate.
+  `npm run setup:turnstile` provisioned all three controls on 2026-09-08 and
+  recorded them in `.context/turnstile-clarity-setup.md`: the `portfolio-chat`
+  widget (mode managed, both hostnames), the site key as the
+  `PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` repository variable, and the
+  `TURNSTILE_SECRET_KEY` and `PORTFOLIO_CHAT_IDENTIFIER_SECRET` Worker
+  secrets. The rate limiter was already bound. With all four in place,
+  `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` is `true` and `ci.yml` passes the site
+  key into the build that becomes the deployed artifact.
+  Deployment constraint: the site key is compiled into the client bundle, so
+  the deployed artifact must come from a CI run that had the repository
+  variable set. An artifact built before 2026-09-08 ships no challenge, and
+  the guard rejects every question with 403.
+  Sequencing: `docs/activation/portfolio-public-chat.md` asks that the
+  challenge be validated behind the password first, then the password
+  removed. These two pull requests can be deployed in that order.
 - [x] Prepare public analytics. Eligible public HTML must carry
   `data-portfolio-analytics-context="external"`. Keep local development and
   private previews excluded, and preserve personal browser opt-outs.
