@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { avatarAsset } from "./config";
-import { avatarClips, avatarDanceDurationsMs, avatarDances, SWIM_DOCKING_MS, FULL_TURN_MS } from "./runtime";
+import { avatarClips, avatarDanceDurationsMs, avatarDances, SWIM_DOCKING_MS, FULL_TURN_MS, WAVE_MS } from "./runtime";
 
 function readGlbJson(pathname: string) {
   const file = readFileSync(pathname);
@@ -78,7 +78,7 @@ describe("production avatar asset", () => {
 
   it("lets docking and full turns finish their shipped clips", () => {
     const model = readGlbJson(resolve(process.cwd(), "public/avatars/bradley-quiet-portrait.glb"));
-    for (const [name, duration] of [["swimming_to_edge", SWIM_DOCKING_MS], ["Full_Turn_Left", FULL_TURN_MS]] as const) {
+    for (const [name, duration] of [["Wave_One_Hand", WAVE_MS], ["swimming_to_edge", SWIM_DOCKING_MS], ["Full_Turn_Left", FULL_TURN_MS]] as const) {
       const animation = model.animations.find((clip: { name: string }) => clip.name === name);
       const seconds = Math.max(...animation.samplers.map((sampler: { input: number }) => model.accessors[sampler.input].max[0]));
       expect(duration / 1000).toBeCloseTo(seconds, 2);

@@ -3,7 +3,7 @@
 The portfolio has one optional Bradley avatar: a textured Meshy portrait. It
 appears with chat, idles, plays one fixed agreement reaction when answer text
 arrives, and can take one visitor-requested performance after that reaction: a
-leisurely swim lap, a stroll along the floor, a dance, or a full turn. It is not an answer
+leisurely swim lap, a stroll along the floor, a wave, a dance, or a full turn. It is not an answer
 channel; chat and navigation remain complete if WebGL fails.
 
 Brain Food reuses the same avatar and the live portfolio map. Exact `Shift+G`
@@ -18,7 +18,7 @@ Escape cancels and restores immediately.
 `PortfolioExperience` owns one `AvatarRuntime` through `useAvatarStage`.
 `PortfolioChat` reports only turn start, first answer text, and validated
 effects. Turn start cancels stale work, first text starts `agree_gesture`, and
-the model-selectable actions are `swim_lap`, `stroll`, `dance`, `turn`, and `brain_food`. The
+the model-selectable actions are `swim_lap`, `stroll`, `dance`, `turn`, `wave`, and `brain_food`. The
 runtime queues the performance behind the reaction and always returns to
 `idle`.
 
@@ -27,6 +27,8 @@ The registered clips, all in `public/avatars/bradley-quiet-portrait.glb`:
 - `idle` → `Idle` (Meshy `Idle_11`)
 - `agree_gesture` → `Agree_Gesture`, retargeted from the earlier untextured
   export with the arms folded in from Meshy's wide A
+- `wave` → `Wave_One_Hand`, a dedicated 4.1-second greeting retargeted from
+  the earlier export; plays once, then restores the saved idle
 - `full_turn_left` → `Full_Turn_Left`, plays once for an explicit turn-around
   request and returns to idle after the complete 8.83-second clip
 - `swim_forward` → `Swim_Forward`; `swim_idle` → `Swim_Idle`, treading water
@@ -41,7 +43,7 @@ The registered clips, all in `public/avatars/bradley-quiet-portrait.glb`:
 - eight dances (`step_hip_hop_dance`, `jazz_dance`, `cardio_dance`,
   `funny_dancing_02`, `all_night_dance`, `funny_dancing_03`, `not_your_mom`,
   `denim_pop_dance`) taken in rotation; a requested dance plays once through
-  using the lengths pinned in `avatarDanceDurationsMs`. Dances and turns hold
+  using the lengths pinned in `avatarDanceDurationsMs`. Waves, dances, and turns hold
   the final frame until the runtime returns to idle.
 
 Every locomotion clip has its Meshy Hips X/Z travel removed on load so the
@@ -56,10 +58,11 @@ T-pose before its first animation begins. Breaststroke uses a `0.8` playback
 rate.
 
 The provider effect schema contains only `avatarAction`, with `"none"`,
-`"swim_lap"`, `"stroll"`, `"dance"`, `"turn"`, or `"brain_food"`. The provider chooses a performance
-only when the visitor explicitly asks Bradley to swim, walk, dance, or turn around.
-Standalone dance requests, including the suggested “Can you dance?”, produce
-a social acknowledgment and `dance` directly without a model call. Negated,
+`"swim_lap"`, `"stroll"`, `"dance"`, `"turn"`, `"wave"`, or `"brain_food"`. The provider chooses a performance
+only when the visitor explicitly asks Bradley to swim, walk, wave, dance, or turn around.
+Standalone wave, dance, and swim requests produce a social acknowledgment and
+the matching action directly without a model call. “Wave hello”, “Can you dance?”,
+and “Go for a swim” stay available in initial and follow-up suggestions. Negated,
 third-person, topical, and mixed requests still use the conversational provider.
 The client buffers effects until the first
 answer delta has rendered, so motion never leads the answer.
@@ -96,7 +99,7 @@ runtime failed. `AvatarBoundary` contains lazy-load and render errors. The map,
 reader, and chat remain usable.
 
 Permanent tests cover the effect allowlist, reaction/lap ordering, cancellation,
-all 17 required clips, continuous Brain Food mounting, movement integration,
+all 18 required clips, continuous Brain Food mounting, movement integration,
 collection, celebration, live-map removal, Escape restoration, reduced motion,
 and renderer isolation. Software WebGL is smoke evidence; physical-GPU motion,
 animation blending, and final feel remain human walk items.

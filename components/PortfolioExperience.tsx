@@ -231,6 +231,8 @@ export function PortfolioExperience() {
           void avatarRuntime.queueSwimLap();
         } else if (effects.avatarAction === "stroll") {
           void avatarRuntime.queueStroll();
+        } else if (effects.avatarAction === "wave") {
+          void avatarRuntime.queueWave();
         } else if (effects.avatarAction === "dance") {
           void avatarRuntime.queueDance();
         } else if (effects.avatarAction === "brain_food") {

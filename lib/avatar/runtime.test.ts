@@ -4,6 +4,7 @@ import {
   AvatarRuntime,
   BRAIN_FOOD_SWIM_IDLE_SPEED,
   SWIM_DOCKING_MS,
+  WAVE_MS,
   avatarDanceDurationsMs,
   avatarDances,
   selectStrollReturn,
@@ -25,6 +26,29 @@ function runtime(reducedMotion = false) {
 describe("minimal avatar runtime", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
+
+  it("queues a dedicated wave after the answer and restores the accepted idle", async () => {
+    const avatar = runtime(); avatar.show();
+    void avatar.react();
+    const wave = avatar.queueWave();
+    expect(avatar.getSnapshot().animation).toBe("agree_gesture");
+    await vi.advanceTimersByTimeAsync(ANSWER_REACTION_MS);
+    expect(avatar.getSnapshot()).toMatchObject({ phase: "waving", animation: "wave", motion: null, position: stage.dock });
+    await vi.advanceTimersByTimeAsync(WAVE_MS - 1);
+    expect(avatar.getSnapshot().phase).toBe("waving");
+    await vi.advanceTimersByTimeAsync(1); await wave;
+    expect(avatar.getSnapshot()).toMatchObject({ phase: "idle", animation: "idle", position: stage.dock });
+  });
+
+  it("cancels a wave without letting its timer interrupt a newer action", async () => {
+    const avatar = runtime(); avatar.show();
+    void avatar.queueWave(); await vi.advanceTimersByTimeAsync(0);
+    avatar.cancel(); void avatar.queueSwimLap(); await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(WAVE_MS);
+    expect(avatar.getSnapshot().phase).toBe("swimming");
+    avatar.hide(); await vi.runAllTimersAsync();
+    expect(avatar.getSnapshot()).toMatchObject({ phase: "hidden", visible: false });
+  });
 
   it("queues a full turn after the answer reaction, then returns to idle", async () => {
     const avatar = runtime(); avatar.show();

@@ -7,6 +7,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { LinearInterpolant, Object3D, QuaternionLinearInterpolant, Vector3 } from "three";
 import {
   buildBradleyAvatar,
+  appendAvatarGestures,
+  retargetedClipNames,
+  portraitClipNames,
   legacySourcePath,
   portraitSourcePath,
   prepareAvatarGlb,
@@ -110,7 +113,7 @@ describe("Bradley production asset build", () => {
     );
 
     expect(prepared.animations?.map((animation) => animation.name)).toEqual(
-      shippedClipNames,
+      [...Object.values(portraitClipNames), ...retargetedClipNames],
     );
     expect(prepared.extensionsUsed).toBeUndefined();
     expect(prepared.materials?.[0]?.extensions).toBeUndefined();
@@ -125,6 +128,22 @@ describe("Bradley production asset build", () => {
         .filter((channel) => channel.target.path === "translation")
         .map((channel) => channel.target.node),
     ).toEqual([hips]);
+  });
+
+  it("adds a real wave without rewriting the saved idle, mesh, or any existing clip", () => {
+    const source = prepareAvatarGlb(readFileSync(portraitSourcePath), readFileSync(legacySourcePath));
+    const before = parseGlb(source);
+    const after = parseGlb(appendAvatarGestures(source, readFileSync(legacySourcePath)));
+    expect(after.json.nodes).toEqual(before.json.nodes);
+    expect(after.json.meshes).toEqual(before.json.meshes);
+    expect(after.json.materials).toEqual(before.json.materials);
+    expect(after.json.animations!.slice(0, -1)).toEqual(before.json.animations);
+    expect(sha256(after.binary.subarray(0, before.binary.length))).toBe(sha256(before.binary));
+    expect(after.json.animations!.at(-1)!.name).toBe("Wave_One_Hand");
+    const hands = [0, 0.25, 0.5, 0.75, 0.99].map(fraction =>
+      samplePose(after, "Wave_One_Hand", fraction)("RightHand").getWorldPosition(new Vector3()),
+    );
+    expect(Math.max(...hands.map(hand => hand.distanceTo(hands[0]!)))).toBeGreaterThan(0.1);
   });
 
   it("rebuilds the checked-in model byte-for-byte", async () => {

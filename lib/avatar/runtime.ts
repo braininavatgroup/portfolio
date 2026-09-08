@@ -11,6 +11,7 @@ import {
 export const avatarClips = {
   idle: "Idle",
   agree_gesture: "Agree_Gesture",
+  wave: "Wave_One_Hand",
   full_turn_left: "Full_Turn_Left",
   swim_forward: "Swim_Forward",
   swim_idle: "Swim_Idle",
@@ -66,6 +67,7 @@ export type AvatarPhase =
   | "docking"
   | "strolling"
   | "dancing"
+  | "waving"
   | "turning"
   | "brain-food"
   | "celebrating";
@@ -84,6 +86,8 @@ export type AvatarStageGeometry = {
    *  is a real layout area; null or absent lets the viewport scale decide. */
   dockHeight?: number | null;
   obstacles: readonly AvatarStageObstacle[];
+  /** Swimming may cross its own empty dock area; walking still uses its floor. */
+  swimObstacles?: readonly AvatarStageObstacle[];
   viewport: AvatarStageViewport;
 };
 
@@ -105,6 +109,7 @@ export const BRAIN_FOOD_CELEBRATION_MS = 3_000;
 /** The swimming-to-edge clip's climb-out, played once the lap reaches the dock. */
 export const SWIM_DOCKING_MS = 5_034;
 export const FULL_TURN_MS = 8_834;
+export const WAVE_MS = 4_100;
 /** Below this stage speed the Brain Food swimmer treads water instead of stroking. */
 export const BRAIN_FOOD_SWIM_IDLE_SPEED = 16;
 const swimViewportInset = 24;
@@ -210,7 +215,7 @@ export class AvatarRuntime {
 
   setReducedMotion(reducedMotion: boolean) {
     this.#reducedMotion = reducedMotion;
-    if (reducedMotion && ["swimming", "docking", "strolling", "turning", "dancing"].includes(this.#snapshot.phase)) this.cancel();
+    if (reducedMotion && ["swimming", "docking", "strolling", "turning", "dancing", "waving"].includes(this.#snapshot.phase)) this.cancel();
   }
 
   setAvailableClips = (available: ReadonlySet<AvatarClip>) => {
@@ -274,7 +279,7 @@ export class AvatarRuntime {
       const points = planSwimLap({
         start: this.#snapshot.position,
         dock: stage.dock,
-        obstacles: stage.obstacles,
+        obstacles: stage.swimObstacles ?? stage.obstacles,
         viewport: stage.viewport,
         viewportInset: swimViewportInset,
         obstaclePadding: swimObstaclePadding,
@@ -388,6 +393,20 @@ export class AvatarRuntime {
         fitHeight: stage.dockHeight ?? null, motion: null, facing: "front", swimHeading: null,
       });
       await wait(FULL_TURN_MS);
+      if (this.#isCurrent(generation)) this.#idleAtDock();
+    });
+  }
+
+  /** Plays the dedicated greeting once, then returns to the accepted idle pose. */
+  queueWave() {
+    return this.#enqueue(async (generation) => {
+      if (!this.#canPerform()) return;
+      const stage = this.#readStage();
+      this.#update({
+        phase: "waving", animation: "wave", position: stage.dock,
+        fitHeight: stage.dockHeight ?? null, motion: null, facing: "front", swimHeading: null,
+      });
+      await wait(WAVE_MS);
       if (this.#isCurrent(generation)) this.#idleAtDock();
     });
   }

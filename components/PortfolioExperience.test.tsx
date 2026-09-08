@@ -53,7 +53,7 @@ function guideResponse({
   citation = false,
   evidenceTarget,
 }: {
-  avatarAction?: "swim_lap" | "turn" | "dance" | "brain_food" | null;
+  avatarAction?: "swim_lap" | "turn" | "dance" | "wave" | "brain_food" | null;
   citation?: boolean;
   evidenceTarget?: { id: string; title: string };
 } = {}) {
@@ -230,7 +230,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect((await screen.findByLabelText("Test avatar overlay")).dataset.visible).toBe("true");
   });
 
-  it.each([["swim_lap", "swimming", "swim_forward"], ["turn", "turning", "full_turn_left"], ["dance", "dancing", "step_hip_hop_dance"]] as const)("plays the answer reaction before requested %s", async (action, phase, clip) => {
+  it.each([["wave", "waving", "wave"], ["swim_lap", "swimming", "swim_forward"], ["turn", "turning", "full_turn_left"], ["dance", "dancing", "step_hip_hop_dance"]] as const)("plays the answer reaction before requested %s", async (action, phase, clip) => {
     // Leave React's scheduler and browser frame callbacks on real time.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     vi.stubGlobal("fetch", vi.fn(async () => guideResponse({ avatarAction: action })));
@@ -238,7 +238,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     window.history.replaceState({}, "", "/?view=graph");
     render(<PortfolioExperience />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    submitGuide(action === "dance" ? "Can you dance?" : action === "turn" ? "Turn around." : "Take a leisurely swim.");
+    submitGuide(action === "wave" ? "Wave hello" : action === "dance" ? "Can you dance?" : action === "turn" ? "Turn around." : "Take a leisurely swim.");
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     const avatar = screen.getByLabelText("Test avatar overlay");
     expect(avatar.dataset.animation).toBe("agree_gesture");

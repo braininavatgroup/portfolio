@@ -16,7 +16,7 @@ test/gallery seams; `turnstileSiteKey` enables challenge gating.
 `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
 narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
-“Play Brain Food” appears in initial and follow-up suggestions on desktop with a fine pointer.
+Wave, dance, and swim appear in initial and follow-up suggestions; “Play Brain Food” requires desktop with a fine pointer.
 
 The Reading Room uses three coordination props:
 

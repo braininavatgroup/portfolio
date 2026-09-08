@@ -23,7 +23,7 @@ const secondEvidence: PortfolioGroundingEvidence = {
 type StructuredOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "brain_food";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "wave" | "brain_food";
 };
 
 function completedResponse(
@@ -91,6 +91,31 @@ describe("OpenAI portfolio provider", () => {
   });
 
   it.each([
+    ["Wave hello", "wave"], ["wave", "wave"], ["Can you wave?", "wave"],
+    ["Bradley, please wave hello!", "wave"], ["Give me a wave", "wave"],
+    ["Could you wave to me please?", "wave"],
+    ["Go for a swim", "swim_lap"], ["swim", "swim_lap"],
+    ["Please swim a lap", "swim_lap"], ["Can you go for a swim?", "swim_lap"],
+    ["Bradley, could you swim for me?", "swim_lap"],
+  ])("performs %s directly as %s", async (question, action) => {
+    const provider = createOpenAIPortfolioProvider({
+      apiKey: "sk-test", model: "test",
+      fetchImplementation: async () => { throw new Error("Suggested actions need no model call"); },
+    });
+    const lifecycle: unknown[] = [];
+    for await (const chunk of provider.streamAnswer({
+      question, evidence,
+      onMode: mode => lifecycle.push(mode),
+      onEffects: effect => lifecycle.push(effect),
+    })) lifecycle.push(chunk);
+    expect(lifecycle).toEqual(["social", { avatarAction: action, issues: [] }, action === "wave" ? "Hello there." : "Here we go."]);
+  });
+
+  it.each([
+    "Don't wave", "Can you not wave?", "Tell me about wave physics",
+    "Wave hello and explain pitching", "Go for a swim? Actually don't.",
+    "I go for a swim every day", "Can Bradley swim?", "Don't swim",
+    "Can you swim through the project details?",
     "Don't dance", "Can you not dance?", "Can Bradley dance?",
     "Tell me about dance music", "What is braininavat.dance?",
     "Can you dance? Actually, don't.", "Can you dance and explain pitching?",
@@ -169,7 +194,7 @@ describe("OpenAI portfolio provider", () => {
       strict: true,
     });
     expect(body.text.format.schema.properties.avatarAction).toMatchObject({
-      enum: ["none", "swim_lap", "stroll", "dance", "turn", "brain_food"],
+      enum: ["none", "swim_lap", "stroll", "dance", "turn", "wave", "brain_food"],
     });
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarSequence");
     expect(body.text.format.schema.properties).not.toHaveProperty("avatarTone");
