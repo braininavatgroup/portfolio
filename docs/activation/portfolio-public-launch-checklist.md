@@ -25,24 +25,79 @@ the launch work; it does not authorize deployment or changes to live controls.
 
 ## Prepare the public-launch change
 
-- [ ] Repair Clarity's saved opt-in handling. When an eligible page starts
+- [x] Repair Clarity's saved opt-in handling. When an eligible page starts
   Clarity, forward an explicitly saved `granted` preference to the consent API.
   Preserve preview exclusion and the behavior for absent or denied consent.
   GitHub must prove: opt out, enable on an excluded page, reload, and forward
   the saved consent. Sources: `components/PortfolioAnalytics.tsx` and
   `lib/portfolio-analytics.ts`.
-- [ ] Prepare public access. The current domain uses
+  Done: `PortfolioAnalytics` forwards a stored `granted` to
+  `setPrivacySafeReplayConsent` immediately after a successful start, before
+  the entry event. Covered by `components/PortfolioAnalytics.test.tsx` —
+  "forwards a saved opt-in to Clarity on the next eligible load" walks opt out
+  → enable on the excluded page → reload → `consentv2 granted`, and "keeps a
+  saved opt-in dormant on a preview document" holds the preview exclusion. The
+  existing absent-preference and stored-opt-out tests still pass unchanged, so
+  no consent signal is fabricated where none was saved.
+- [x] Prepare public access. The current domain uses
   `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED=true` in
   `wrangler.main-preview.jsonc`. The public candidate must serve the portfolio
   and `/privacy` without a preview cookie or login redirect. Remove the
   preview-only search exclusion from public portfolio pages; retain deliberate
   exclusions for private/supporting routes. Verify public chat protections
   still work after removing the preview password boundary.
-- [ ] Prepare public analytics. Eligible public HTML must carry
+  Done: the candidate sets `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED=false`,
+  which drops the login redirect and the blanket `noindex` in one move.
+  `worker/public-portfolio.ts` now owns what replaced it — public portfolio
+  pages carry no crawler exclusion, and `/copy-deck`, `/copy-deck.zip`,
+  `/design`, `/_portfolio-feedback/*` and `/_portfolio-preview/*` keep
+  `noindex, nofollow, noarchive` in both modes. Tests:
+  `worker/public-portfolio.test.ts` and the updated
+  `tests/main-preview-worker-config.test.mjs`.
+  Chat protections are independent of the password gate and unchanged: the
+  per-IP throttle and the derived actor identity run whether or not the
+  Turnstile flag is set (`lib/server/portfolio-chat-launch.ts`, proved by
+  "throttles per actor even when the challenge is disabled"), the daily
+  provider budget still caps spend at 200, and the guard fails closed on a
+  missing limiter or connecting IP. See the two boundaries below for what this
+  does *not* cover.
+- [x] Turnstile is required on the public candidate.
+  `npm run setup:turnstile` provisioned all three controls on 2026-09-08 and
+  recorded them in `.context/turnstile-clarity-setup.md`: the `portfolio-chat`
+  widget (mode managed, both hostnames), the site key as the
+  `PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` repository variable, and the
+  `TURNSTILE_SECRET_KEY` and `PORTFOLIO_CHAT_IDENTIFIER_SECRET` Worker
+  secrets. The rate limiter was already bound. With all four in place,
+  `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` is `true` and `ci.yml` passes the site
+  key into the build that becomes the deployed artifact.
+  Deployment constraint: the site key is compiled into the client bundle, so
+  the deployed artifact must come from a CI run that had the repository
+  variable set. An artifact built before 2026-09-08 ships no challenge, and
+  the guard rejects every question with 403.
+  Sequencing: `docs/activation/portfolio-public-chat.md` asks that the
+  challenge be validated behind the password first, then the password
+  removed. These two pull requests can be deployed in that order.
+- [x] Prepare public analytics. Eligible public HTML must carry
   `data-portfolio-analytics-context="external"`. Keep local development and
-  private previews excluded, and preserve personal browser opt-outs. Check
-  Clarity's actual consent/cookie settings against the reviewed Privacy notice.
-  See [insights operations](../portfolio-insights-operations.md).
+  private previews excluded, and preserve personal browser opt-outs.
+  Done: `worker/public-portfolio.ts` writes the `external` marker only when
+  the password gate is off *and* the request host is `bradleyberkman.com` or
+  `www.bradleyberkman.com`. Local development, `workers.dev`, non-HTML
+  responses and supporting routes stay unmarked, and the password-gated
+  preview keeps writing `preview`. No build carries the marker by itself, so
+  the marker is emitted by a deployment, not by this change. `?analytics=off`
+  and the `/privacy` control are untouched.
+- [x] Clarity's cookie setting checked and aligned with the Privacy notice.
+  `ad_Storage` is always `denied` and `analytics_Storage` follows the saved
+  preference, both verifiable in code. The third setting, Clarity's own
+  cookies, was read in the dashboard on 2026-09-08 and turned **off** —
+  Consent Mode on, so Clarity sets no `_clck`/`_clsk` until it receives an
+  explicit `granted`, which this site sends only for a saved opt-in. The
+  reviewed `/privacy` notice is therefore accurate as written and needs no
+  copy change. Cost accepted: recordings are not linked into multi-page
+  sessions for visitors who have not opted in. Clarity's Google Analytics,
+  Google Ads and Microsoft Ads integrations were deliberately left
+  unconnected. See [insights operations](../portfolio-insights-operations.md).
 
 ## Activate and verify
 

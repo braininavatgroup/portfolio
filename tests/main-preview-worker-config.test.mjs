@@ -10,7 +10,7 @@ async function mainPreviewConfig() {
   return JSON.parse(await readFile(configUrl, "utf8"));
 }
 
-test("the permanent main preview is password-gated on its apex and www routes", async () => {
+test("the public candidate serves the apex and www routes without a login", async () => {
   const config = await mainPreviewConfig();
 
   assert.equal(config.name, "bradley-portfolio-main-preview");
@@ -28,12 +28,12 @@ test("the permanent main preview is password-gated on its apex and www routes", 
   assert.equal(config.no_bundle, true);
 
   assert.deepEqual(config.vars, {
-    PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "true",
-    PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
+    PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false",
+    PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "true",
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
     OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
     OPENAI_PORTFOLIO_REASONING_EFFORT: "medium",
-    PORTFOLIO_FEEDBACK_ENABLED: "true",
+    PORTFOLIO_FEEDBACK_ENABLED: "false",
   });
   assert.deepEqual(config.secrets, {
     required: [
@@ -41,6 +41,8 @@ test("the permanent main preview is password-gated on its apex and www routes", 
       "PORTFOLIO_MAIN_PREVIEW_PASSWORD",
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET",
       "PORTFOLIO_FEEDBACK_ADMIN_TOKEN",
+      "TURNSTILE_SECRET_KEY",
+      "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
     ],
   });
   assert.deepEqual(config.durable_objects, {

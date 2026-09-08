@@ -69,6 +69,14 @@ export function PortfolioAnalytics({
       projectId,
     });
     if (enabled) {
+      // Re-enabling on an excluded page only writes the stored preference:
+      // Clarity is not on that document, so there is nothing to consent to.
+      // The next eligible load has to forward that saved `granted` itself,
+      // otherwise the opt-in never reaches Clarity. An absent preference
+      // stays absent — this must not fabricate a consent signal.
+      if (storedPreference === "granted") {
+        setPrivacySafeReplayConsent("granted");
+      }
       trackPortfolioInsight("entry", {
         entry_source: campaignCode ? "campaign" : "direct",
       });
