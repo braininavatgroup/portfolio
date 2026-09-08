@@ -2646,6 +2646,141 @@ body:has(.portfolio-reading-room-mobile) {
   max-height: 480px;
 }
 
+/* Client carousel: one auto-scrolling strip of square marks per gallery group. Embla
+   moves the track with a transform, so the dossier's no-transition rule holds;
+   the strip pauses under a fine pointer or keyboard focus, and never starts
+   when the visitor prefers reduced motion (components/ReaderCarousel.tsx). */
+.reader-visual-carousel .reader-carousel {
+  overflow: hidden;
+}
+
+.reader-carousel-viewport {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--ink) var(--reader-space-3),
+    var(--ink) calc(100% - var(--reader-space-3)),
+    transparent
+  );
+  overflow: hidden;
+  padding: var(--reader-space-1) 0;
+}
+
+.reader-carousel-track {
+  backface-visibility: hidden;
+  display: flex;
+  list-style: none;
+  margin: 0 0 0 calc(-1 * var(--reader-space-2));
+  padding: 0;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Embla's loop moves slides one at a time and cannot see a flex gap, so the
+   gap lives inside each slide as padding and the track pulls the first one back. */
+.reader-carousel-item {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding-left: var(--reader-space-2);
+  position: relative;
+}
+
+.reader-carousel-trigger {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  display: block;
+  padding: 0;
+}
+
+.reader-carousel-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The hover card: an ink scrim over the square with the mark's name
+   and its off-site links, shown under a fine pointer or keyboard focus. */
+.reader-carousel-card {
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  border-radius: 6px;
+  bottom: 0;
+  box-sizing: border-box;
+  color: var(--reader-paper);
+  display: none;
+  flex-direction: column;
+  font: var(--reader-type-caption) var(--font-reader);
+  justify-content: center;
+  left: var(--reader-space-2);
+  padding: var(--reader-space-1);
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+}
+
+.reader-carousel-card strong {
+  font-weight: 500;
+}
+
+.reader-carousel-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--reader-space-1);
+  justify-content: center;
+  list-style: none;
+  margin: var(--reader-space-1) 0 0;
+  padding: 0;
+}
+
+.reader-carousel-card a {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.reader-carousel-card svg {
+  height: 18px;
+  width: 18px;
+}
+
+.reader-carousel-card a:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.reader-carousel-item:focus-within .reader-carousel-card {
+  display: flex;
+}
+
+.reader-visual-block .reader-carousel-item:focus-within img {
+  filter: grayscale(0) drop-shadow(0 6px 9px var(--reader-media-shadow));
+}
+
+/* Marks rest in black and white, as on braininavat.dance, and take their
+   colour back under a fine pointer. */
+.reader-visual-block .reader-carousel-item img {
+  border-radius: 6px;
+  filter: grayscale(1) drop-shadow(0 6px 9px var(--reader-media-shadow));
+  height: 128px;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  width: 128px;
+}
+
+@media (pointer: fine) {
+  .reader-visual-block .reader-carousel-item:hover img {
+    filter: grayscale(0) drop-shadow(0 6px 9px var(--reader-media-shadow));
+  }
+
+  .reader-carousel-item:hover .reader-carousel-card {
+    display: flex;
+  }
+}
+
 .reader-visual-placeholder figcaption,
 .reader-visual-block figcaption {
   color: var(--reader-muted);

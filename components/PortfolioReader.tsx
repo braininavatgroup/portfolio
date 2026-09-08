@@ -20,6 +20,7 @@ import {
 } from "./PortfolioNodeMark";
 import { QuarterlyDashboardPreview } from "./QuarterlyDashboardPreview";
 import { MacPanelFrame } from "./MacMenuBar";
+import { ReaderCarousel } from "./ReaderCarousel";
 import type { PortfolioContactMarkKind } from "../lib/portfolio-contact-mark";
 import { parseInlineLinks } from "../lib/portfolio-inline-links";
 import { portfolioLinkPreview } from "../lib/portfolio-link-preview";
@@ -420,6 +421,31 @@ function VisualBlock({
           });
         }}
       />
+    );
+  }
+
+  if (ready && format === "gallery" && block.layout === "carousel" && block.slides?.length) {
+    return (
+      <div className="reader-visual-gallery">
+        {block.slides.map((slide, slideIndex) => (
+          <figure
+            className="reader-visual-block reader-visual-carousel"
+            data-format={format}
+            data-media-surface="floating"
+            key={slide.title}
+          >
+            <ReaderCarousel
+              assets={slide.assets}
+              direction={slideIndex % 2 === 0 ? "forward" : "backward"}
+              label={`${slide.title}. ${block.purpose}`}
+            />
+            <figcaption>
+              <strong>{slide.title}</strong>
+              <span>{slide.caption}</span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
     );
   }
 

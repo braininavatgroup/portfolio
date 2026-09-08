@@ -64,7 +64,7 @@ export function PortfolioReaderExample() {
   Capable browsers use size-aware HLS.js; native HLS is the fallback. It enters
   fullscreen, with iPhone fallback; exit restores the loop, full composition,
   and system cursor.
-- **Reader gallery groups are not overlay pages.** The dossier keeps the
-  authored groups in shared rows of either three equal phones or one larger
-  phone, while the overlay advances one flattened asset at a time.
+- **Reader gallery groups are not overlay pages.** Groups sit in rows of three
+  phones or one larger phone; the overlay advances one flattened asset at a time.
+  A `layout: "carousel"` gallery renders each group as one [`ReaderCarousel`](./ReaderCarousel.md) strip and never opens the overlay.
 - **Interactive dashboards stay in the Reader;** their full-page links report their own opens.

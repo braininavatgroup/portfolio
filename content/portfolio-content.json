@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 10,
+  "revision": 11,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -31,7 +31,95 @@
       "placeholders": {},
       "visuals": {
         "infamous-clients": {
-          "purpose": "Carousel of marquee clients."
+          "purpose": "Carousel of marquee clients.",
+          "slides": [
+            {
+              "title": "Clients",
+              "caption": "Artists and labels I ran campaigns for at INFAMOUS.",
+              "assets": [
+                {
+                  "alt": "All Day I Dream — Record label",
+                  "label": "All Day I Dream"
+                },
+                {
+                  "alt": "Aluna — Artist",
+                  "label": "Aluna"
+                },
+                {
+                  "alt": "BLOND:ISH — Artist",
+                  "label": "BLOND:ISH"
+                },
+                {
+                  "alt": "Carl Craig — Artist",
+                  "label": "Carl Craig"
+                },
+                {
+                  "alt": "Dirtybird — Record label",
+                  "label": "Dirtybird"
+                },
+                {
+                  "alt": "DJ Minx — Artist",
+                  "label": "DJ Minx"
+                },
+                {
+                  "alt": "Fool's Gold — Record label",
+                  "label": "Fool's Gold"
+                },
+                {
+                  "alt": "Hayden James — Artist",
+                  "label": "Hayden James"
+                },
+                {
+                  "alt": "Insomniac Records — Record label",
+                  "label": "Insomniac"
+                },
+                {
+                  "alt": "Jayda G — Artist",
+                  "label": "Jayda G"
+                },
+                {
+                  "alt": "Kasbo — Artist",
+                  "label": "Kasbo"
+                },
+                {
+                  "alt": "Four Tet — Artist",
+                  "label": "KH / Four Tet"
+                },
+                {
+                  "alt": "NEZ — Artist",
+                  "label": "NEZ"
+                },
+                {
+                  "alt": "Rose Ave — Record label",
+                  "label": "Rose Ave"
+                },
+                {
+                  "alt": "RÜFÜS DU SOL — Artist",
+                  "label": "RÜFÜS DU SOL"
+                },
+                {
+                  "alt": "Sita Abellán — Artist",
+                  "label": "Sita Abellán"
+                },
+                {
+                  "alt": "Totally Enormous Extinct Dinosaurs — Artist",
+                  "label": "Totally Enormous Extinct Dinosaurs"
+                },
+                {
+                  "alt": "Ultra Records — Record label",
+                  "label": "Ultra"
+                },
+                {
+                  "alt": "Young Art — Record label",
+                  "label": "Young Art"
+                },
+                {
+                  "alt": "Zeds Dead — Artist",
+                  "label": "Zeds Dead"
+                }
+              ]
+            }
+          ]
         }
       }
     },
@@ -51,7 +139,195 @@
       "placeholders": {},
       "visuals": {
         "music-practice-clients": {
-          "purpose": "Carousel of marquee clients."
+          "purpose": "Carousel of marquee clients.",
+          "slides": [
+            {
+              "title": "Clients",
+              "caption": "Artists, labels, and distributors the agency has run campaigns for.",
+              "assets": [
+                {
+                  "alt": "Adriatique — Electronic music duo",
+                  "label": "Adriatique"
+                },
+                {
+                  "alt": "ALIGN — Electronic music artist",
+                  "label": "ALIGN"
+                },
+                {
+                  "alt": "ALLiZEN — Electronic music artist",
+                  "label": "ALLiZEN"
+                },
+                {
+                  "alt": "Amal Nemer — Electronic music artist",
+                  "label": "Amal Nemer"
+                },
+                {
+                  "alt": "Ampersounds — Electronic music artist",
+                  "label": "Ampersounds"
+                },
+                {
+                  "alt": "Arodes — Electronic music artist",
+                  "label": "Arodes"
+                },
+                {
+                  "alt": "Augusto Yepes — Electronic music artist",
+                  "label": "Augusto Yepes"
+                },
+                {
+                  "alt": "AWEN — Electronic music artist",
+                  "label": "AWEN"
+                },
+                {
+                  "alt": "Bondo — Electronic music artist",
+                  "label": "Bondo"
+                },
+                {
+                  "alt": "Bounce House — Electronic music artist",
+                  "label": "Bounce House"
+                },
+                {
+                  "alt": "Calussa — Electronic music artist",
+                  "label": "Calussa"
+                },
+                {
+                  "alt": "Chloé Caillet — Electronic music artist and DJ",
+                  "label": "Chloé Caillet"
+                },
+                {
+                  "alt": "D'Witches — Electronic music duo",
+                  "label": "D'Witches"
+                },
+                {
+                  "alt": "Galo — Electronic music artist",
+                  "label": "Galo"
+                },
+                {
+                  "alt": "KinAhau — Electronic music artist",
+                  "label": "KinAhau"
+                },
+                {
+                  "alt": "Kino Todo — Electronic music artist",
+                  "label": "Kino Todo"
+                },
+                {
+                  "alt": "Lumia — Electronic music artist",
+                  "label": "Lumia"
+                },
+                {
+                  "alt": "Malóne — Electronic music artist",
+                  "label": "Malóne"
+                },
+                {
+                  "alt": "Mia Moretti — Electronic music artist and DJ",
+                  "label": "Mia Moretti"
+                },
+                {
+                  "alt": "Notre Dame — Electronic music artist",
+                  "label": "Notre Dame"
+                },
+                {
+                  "alt": "Orsay — Electronic music artist",
+                  "label": "Orsay"
+                },
+                {
+                  "alt": "Port London — Electronic music artist",
+                  "label": "Port London"
+                },
+                {
+                  "alt": "Sainte Vie — Electronic music artist",
+                  "label": "Sainte Vie"
+                },
+                {
+                  "alt": "Saraga — Electronic music artist",
+                  "label": "Saraga"
+                },
+                {
+                  "alt": "Satori — Electronic music artist",
+                  "label": "Satori"
+                },
+                {
+                  "alt": "SIDEPIECE — Electronic music duo",
+                  "label": "SIDEPIECE"
+                },
+                {
+                  "alt": "Sosh & Mosh — Electronic music duo",
+                  "label": "Sosh & Mosh"
+                },
+                {
+                  "alt": "STRAWBRY — Electronic music artist and DJ",
+                  "label": "STRAWBRY"
+                },
+                {
+                  "alt": "WhoMadeWho — Electronic music band",
+                  "label": "WhoMadeWho"
+                },
+                {
+                  "alt": "Will Sass — Electronic music artist",
+                  "label": "Will Sass"
+                },
+                {
+                  "alt": "Yet More — Electronic music artist",
+                  "label": "Yet More"
+                },
+                {
+                  "alt": "20/20 Vision — Record Label",
+                  "label": "20/20 Vision"
+                },
+                {
+                  "alt": "Armada Music — Record Label",
+                  "label": "Armada Music"
+                },
+                {
+                  "alt": "Braslive — Record Label",
+                  "label": "Braslive"
+                },
+                {
+                  "alt": "Breakaway Projects — Record Label",
+                  "label": "Breakaway Projects"
+                },
+                {
+                  "alt": "Higher Ground — Record Label",
+                  "label": "Higher Ground"
+                },
+                {
+                  "alt": "LE YORA — Record Label",
+                  "label": "LE YORA"
+                },
+                {
+                  "alt": "Local Void Records — Record Label",
+                  "label": "Local Void Records"
+                },
+                {
+                  "alt": "NUSONIDO — Record Label",
+                  "label": "NUSONIDO"
+                },
+                {
+                  "alt": "POP TMRW — Record Label",
+                  "label": "POP TMRW"
+                },
+                {
+                  "alt": "Shapeless Culture — Record Label",
+                  "label": "Shapeless Culture"
+                },
+                {
+                  "alt": "Smiile — Record Label",
+                  "label": "Smiile"
+                },
+                {
+                  "alt": "The Orchard — Music Distribution",
+                  "label": "The Orchard"
+                },
+                {
+                  "alt": "WHYNOTUS — Record Label",
+                  "label": "WHYNOTUS"
+                },
+                {
+                  "alt": "X — Record Label",
+                  "label": "X"
+                }
+              ]
+            }
+          ]
         }
       }
     },

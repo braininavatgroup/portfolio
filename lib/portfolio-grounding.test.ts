@@ -76,12 +76,12 @@ describe("portfolio chat grounding", () => {
 
   it("marks unfinished copy and planned visuals as editorial notes", () => {
     const evidence = groundPortfolioQuestion("Any question").evidence;
-    const music = evidence.find(({ id }) => id === "node:music-practice");
+    const reporting = evidence.find(({ id }) => id === "node:reporting");
     const playable = evidence.find(({ id }) => id.endsWith("making-work-playable") && !id.startsWith("node:"));
     expect(playable?.excerpt).toContain(
       "[DRAFT COPY PLACEHOLDER — not a Bradley fact]",
     );
-    expect(music?.excerpt).toContain(
+    expect(reporting?.excerpt).toContain(
       "[PLANNED VISUAL — not published evidence]",
     );
   });
