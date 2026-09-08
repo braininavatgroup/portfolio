@@ -38,6 +38,43 @@ if (typeof document !== "undefined") {
       writable: true,
     });
   }
+
+  // jsdom omits IntersectionObserver as well; Embla subscribes to it to learn
+  // whether a carousel is in view. Nothing here ever reports an intersection.
+  if (typeof globalThis.IntersectionObserver === "undefined") {
+    Object.defineProperty(globalThis, "IntersectionObserver", {
+      configurable: true,
+      value: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      },
+      writable: true,
+    });
+  }
+
+  // jsdom omits matchMedia too. Embla reads it while activating a carousel
+  // and ReaderCarousel reads the reduced-motion preference through it. This
+  // stub answers "no" to every query; a test that needs a match replaces it.
+  if (typeof window.matchMedia !== "function") {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (media: string): MediaQueryList => ({
+        addEventListener() {},
+        addListener() {},
+        dispatchEvent: () => false,
+        matches: false,
+        media,
+        onchange: null,
+        removeEventListener() {},
+        removeListener() {},
+      }),
+      writable: true,
+    });
+  }
 }
 
 export {};

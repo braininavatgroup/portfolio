@@ -57,7 +57,7 @@ describe("portfolioLinkPreview", () => {
     expect(still("dubs")).toBe("/visuals/dubs/lock-screen.png");
     expect(still("writ")).toBe("/visuals/writ/output-priority.png");
     expect(still("real-estate")).toBeUndefined();
-    expect(still("infamous")).toBeUndefined();
+    expect(still("infamous")).toBe("/visuals/clients/infamous/all-day-i-dream.webp");
     expect(portfolioLinkPreview(portfolioThreadById.get("philosophy")!.body)).toBeUndefined();
   });
 });

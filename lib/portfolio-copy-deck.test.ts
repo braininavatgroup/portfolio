@@ -92,7 +92,7 @@ describe("renderCopyDeckPages", () => {
     const page = pageAt(`${document.interface["index.section.operations"]}/INFAMOUS PR.md`);
     expect(page.startsWith(`# INFAMOUS PR\n\n**${record.summary}**\n\n${record.paragraphs.p1}\n\n`)).toBe(true);
     const order = [
-      `> [!todo] ${record.visuals["infamous-clients"].purpose}`,
+      `> [!info] ${record.visuals["infamous-clients"].purpose}`,
       record.paragraphs.p2,
       record.paragraphs.p3,
       record.paragraphs.p4,

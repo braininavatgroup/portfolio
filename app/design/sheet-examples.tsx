@@ -28,6 +28,7 @@ import { PortfolioReader } from "../../components/PortfolioReader";
 import { PortfolioWorld } from "../../components/PortfolioWorld";
 import { QuarterlyDashboard } from "../../components/QuarterlyDashboard";
 import { QuarterlyDashboardPreview } from "../../components/QuarterlyDashboardPreview";
+import { ReaderCarousel } from "../../components/ReaderCarousel";
 import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
 import { AvatarBoundary } from "../../components/avatar/AvatarBoundary";
 import { AvatarOverlay } from "../../components/avatar/AvatarOverlay";
@@ -119,6 +120,33 @@ export function MacMenuBarExample() {
         alt="Writ output priority list"
         src="/visuals/writ/output-priority.png"
       />
+    </div>
+  );
+}
+// #example-end
+
+// #example:ReaderCarousel
+export function ReaderCarouselExample() {
+  // One strip of client marks. It scrolls on its own, pauses under the
+  // pointer or keyboard focus, drags freely, and stays still for visitors who
+  // prefer reduced motion. Wrap it in a reader figure for the caption voice.
+  const assets = [
+    { alt: "Adriatique — Electronic music duo", label: "Adriatique", src: "/visuals/clients/adriatique.webp" },
+    { alt: "Satori — Electronic music artist", label: "Satori", src: "/visuals/clients/satori.webp" },
+    { alt: "WhoMadeWho — Electronic music band", label: "WhoMadeWho", src: "/visuals/clients/wmw.webp" },
+    { alt: "Armada Music — Record Label", label: "Armada Music", src: "/visuals/clients/armada.webp" },
+    { alt: "The Orchard — Music Distribution", label: "The Orchard", src: "/visuals/clients/the-orchard.webp" },
+    { alt: "Higher Ground — Record Label", label: "Higher Ground", src: "/visuals/clients/hgsquare.webp" },
+  ];
+  return (
+    <div className="portfolio-composition" style={{ width: 560 }}>
+      <figure className="reader-visual-block reader-visual-carousel" data-media-surface="floating">
+        <ReaderCarousel assets={assets} label="Clients. A few marquee names." />
+        <figcaption>
+          <strong>Clients</strong>
+          <span>A few marquee names.</span>
+        </figcaption>
+      </figure>
     </div>
   );
 }

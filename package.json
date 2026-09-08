@@ -35,6 +35,8 @@
     "@openai/agents": "0.17.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
+    "embla-carousel-auto-scroll": "8.6.0",
+    "embla-carousel-react": "8.6.0",
     "hls.js": "1.7.2",
     "openai": "7.5.0",
     "react": "19.2.8",

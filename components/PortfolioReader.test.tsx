@@ -62,7 +62,8 @@ function countWorkbenchBlocks(id: string) {
   const node = portfolioWorldNodeById.get(id)!;
   return (
     (node.summaryStatus === "placeholder" ? 1 : 0) +
-    node.body.filter((block) => typeof block !== "string").length
+    node.body.filter((block) => typeof block !== "string" &&
+      (block.type === "copy-placeholder" || block.status !== "ready")).length
   );
 }
 
@@ -222,9 +223,12 @@ describe("PortfolioReader", () => {
     fireEvent.blur(link("kickoff"));
     expect(preview()).toBeNull();
 
-    // A record without a ready still, and a thread, show nothing.
     fireEvent.mouseEnter(link("INFAMOUS PR"));
-    expect(preview()).toBeNull();
+    expect(preview()?.querySelector("img")?.getAttribute("src")).toBe(
+      "/visuals/clients/infamous/all-day-i-dream.webp",
+    );
+    fireEvent.mouseLeave(link("INFAMOUS PR"));
+    // A thread has no lead visual preview.
     fireEvent.mouseEnter(link("Philosophy"));
     expect(preview()).toBeNull();
   });
@@ -406,11 +410,11 @@ describe("PortfolioReader", () => {
   it("reports a visual open using its arbitrary content and evidence IDs", () => {
     const node = portfolioWorldNodes.find((candidate) =>
       candidate.body.some(
-        (block) => typeof block !== "string" && block.type === "visual",
+        (block) => typeof block !== "string" && block.type === "visual" && block.format === "gallery" && block.layout !== "carousel",
       ),
     )!;
     const visual = node.body.find(
-      (block) => typeof block !== "string" && block.type === "visual",
+      (block) => typeof block !== "string" && block.type === "visual" && block.format === "gallery" && block.layout !== "carousel",
     )!;
     if (typeof visual === "string" || visual.type !== "visual") {
       throw new Error("fixture has no visual");
@@ -758,9 +762,9 @@ describe("PortfolioReader", () => {
     placeholderPage.unmount();
 
     render(
-      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+      <PortfolioReader {...baseProps} selectedId="reporting" />,
     );
-    const galleryPurpose = plannedVisualPurpose("music-practice", "gallery");
+    const galleryPurpose = plannedVisualPurpose("reporting", "gallery");
     expect(
       screen.getByRole("button", {
         name: `Open gallery visual in reader: ${galleryPurpose}`,
@@ -773,6 +777,58 @@ describe("PortfolioReader", () => {
     expect(visual.classList.contains("reader-visual-draft")).toBe(true);
     expect(visual.classList.contains("reader-text-placeholder")).toBe(false);
     expect(visual.querySelector(".reader-visual-placeholder")).toBeTruthy();
+  });
+
+  it.each([
+    { id: "music-practice", count: 45, client: "Adriatique", spotify: "02DWGcShQivFepRvGJ7xhB" },
+    { id: "infamous", count: 20, client: "Aluna", spotify: "5ITI6SEoUZMIXXkzCfr4oE" },
+  ])("renders $id clients through the shared carousel with working profile links", ({ id, count, client, spotify }) => {
+    const { container } = render(
+      <PortfolioReader {...baseProps} selectedId={id} />,
+    );
+    const node = portfolioWorldNodeById.get(id)!;
+    const block = node.body.find(
+      (candidate) =>
+        typeof candidate !== "string" &&
+        candidate.type === "visual" &&
+        candidate.layout === "carousel",
+    );
+    if (!block || typeof block === "string" || block.type !== "visual") {
+      throw new Error(`${id} has no carousel visual`);
+    }
+
+    const strips = screen.getAllByRole("group", { name: /Carousel of marquee clients/ });
+    expect(strips).toHaveLength(block.slides!.length);
+    expect(strips.map((strip) => strip.getAttribute("data-direction"))).toEqual(
+      block.slides!.map((_, index) => (index % 2 === 0 ? "forward" : "backward")),
+    );
+    const images = container.querySelectorAll(".reader-visual-carousel img");
+    expect(images).toHaveLength(
+      block.slides!.reduce((count, slide) => count + slide.assets.length, 0),
+    );
+    expect(images).toHaveLength(count);
+    expect([...images].every((image) => image.getAttribute("alt"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: `Show details for ${client}` }));
+    expect(screen.getByRole("link", { name: `${client} on Spotify` }).getAttribute("href"))
+      .toBe(`https://open.spotify.com/artist/${spotify}`);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("link", { name: `${client} on Beatport` })).toBeNull();
+    if (id === "infamous") {
+      for (const removed of ["Modapit", "ASHRR", "Ana Moura"]) {
+        expect(screen.queryByRole("button", { name: `Show details for ${removed}` })).toBeNull();
+      }
+    }
+    expect(
+      [...container.querySelectorAll(".reader-visual-carousel")].every(
+        (figure) => figure.getAttribute("data-media-surface") === "floating",
+      ),
+    ).toBe(true);
+    for (const slide of block.slides!) {
+      expect(screen.getByText(slide.title)).toBeTruthy();
+    }
+    expect(container.querySelector(".reader-visual-slide-row")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Open gallery visual in reader:/ })).toBeNull();
+    expect(screen.queryByText("Planned gallery")).toBeNull();
   });
 
   it("shows every Dubs gallery moment as a separate reader visual", () => {
@@ -881,14 +937,15 @@ describe("PortfolioReader", () => {
     const cases = [
       { id: "writ", format: "gallery" },
       { id: "dubs", format: "gallery" },
-      { id: "music-practice", format: "gallery" },
+      { id: "touring", format: "gallery" },
+      { id: "reporting", format: "gallery" },
     ] as const;
 
     for (const { id, format } of cases) {
       const { unmount } = render(
         <PortfolioReader {...baseProps} selectedId={id} />,
       );
-      const trigger = id === "dubs" || id === "writ"
+      const trigger = id !== "reporting"
         ? screen.getAllByRole("button", {
             name: /Open gallery visual in reader:/,
           })[0]
@@ -926,20 +983,20 @@ describe("PortfolioReader", () => {
   });
 
   it("supports a clean review mode without maintaining separate content", () => {
-    window.history.replaceState({}, "", "/?view=graph&review=clean#music-practice");
+    window.history.replaceState({}, "", "/?view=graph&review=clean#infamous");
     render(
-      <PortfolioReader {...baseProps} selectedId="music-practice" />,
+      <PortfolioReader {...baseProps} selectedId="infamous" />,
     );
 
     const reader = screen.getByRole("complementary", {
-      name: `${portfolioWorldNodeById.get("music-practice")!.label} record`,
+      name: `${portfolioWorldNodeById.get("infamous")!.label} record`,
     });
     expect(reader.classList.contains("portfolio-reader-clean-review")).toBe(true);
     expect(
       reader.querySelectorAll(
         ".reader-text-placeholder, .reader-visual-draft",
       ),
-    ).toHaveLength(countWorkbenchBlocks("music-practice"));
+    ).toHaveLength(countWorkbenchBlocks("infamous"));
     window.history.replaceState({}, "", "/");
   });
 
@@ -1019,9 +1076,9 @@ describe("PortfolioReader", () => {
   });
 
   it("draws a planned visual as a bare frame with its kind, source, and caption", () => {
-    render(<PortfolioReader {...baseProps} selectedId="music-practice" />);
+    render(<PortfolioReader {...baseProps} selectedId="reporting" />);
 
-    const purpose = plannedVisualPurpose("music-practice", "gallery");
+    const purpose = plannedVisualPurpose("reporting", "gallery");
     const trigger = screen.getByRole("button", {
       name: `Open gallery visual in reader: ${purpose}`,
     });

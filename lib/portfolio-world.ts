@@ -25,7 +25,9 @@ import {
   type PortfolioBodyBlockSkeleton,
   type PortfolioOutlineType,
   type PortfolioVisualAssetChrome,
+  type PortfolioVisualAssetLinks,
   type PortfolioVisualFormat,
+  type PortfolioVisualLayout,
   type PortfolioVisualPreview,
   type PortfolioVisualSourceStatus,
   type PortfolioVisualTreatment,
@@ -39,6 +41,8 @@ export type {
   PortfolioOutlineType,
   PortfolioVisualFormat,
   PortfolioVisualAssetChrome,
+  PortfolioVisualAssetLinks,
+  PortfolioVisualLayout,
   PortfolioVisualPreview,
   PortfolioVisualSourceStatus,
   PortfolioVisualTreatment,
@@ -69,6 +73,7 @@ export type PortfolioVisualBlock = {
   poster?: string;
   preview?: PortfolioVisualPreview;
   href?: string;
+  layout?: PortfolioVisualLayout;
   slides?: readonly PortfolioVisualSlide[];
 };
 
@@ -78,6 +83,8 @@ export type PortfolioVisualAsset = {
   label?: string;
   /** Live chrome rendered around the image, such as a macOS menu bar. */
   chrome?: PortfolioVisualAssetChrome;
+  /** Off-site addresses a hover card links to. */
+  links?: PortfolioVisualAssetLinks;
 };
 
 export type PortfolioVisualSlide = {
@@ -208,6 +215,7 @@ function mergeBody(
             alt: assetText?.alt ?? "",
             ...(assetText?.label ? { label: assetText.label } : {}),
             ...(asset.chrome ? { chrome: asset.chrome } : {}),
+            ...(asset.links ? { links: asset.links } : {}),
           };
         }),
       };
@@ -229,6 +237,7 @@ function mergeBody(
       ...(block.poster ? { poster: block.poster } : {}),
       ...(block.preview ? { preview: block.preview } : {}),
       ...(block.href ? { href: block.href } : {}),
+      ...(block.layout ? { layout: block.layout } : {}),
       ...(slides ? { slides } : {}),
     };
   });
