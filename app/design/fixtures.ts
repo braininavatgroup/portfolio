@@ -101,7 +101,7 @@ export function galleryAvatarSnapshot(
 ): AvatarSnapshot {
   return {
     phase: "idle",
-    animation: "idle_3",
+    animation: "idle",
     position: { x: 0, y: 0 },
     motion: null,
     facing: "front",

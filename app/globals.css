@@ -2846,8 +2846,11 @@ body:has(.portfolio-reading-room-mobile) {
   min-height: 80px;
 }
 
+/* The thread sizes to what it holds, so an empty Guide leaves the avatar
+   standing directly above the suggestion chips instead of on an invisible
+   45% shelf. A long conversation still stops at 45% and scrolls. */
 .portfolio-chat-thread {
-  flex: 0 1 45%;
+  flex: 0 1 auto;
   max-height: 45%;
   min-height: 0;
   overflow-y: auto;
@@ -4020,4 +4023,335 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 .design-stage .avatar-overlay {
   height: 100%;
   width: 100%;
+}
+
+/* Local pose editor, served as a standalone Vite development tool. */
+.portfolio-pose-editor {
+  background: var(--reader-paper);
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  min-width: 320px;
+}
+
+.portfolio-pose-editor,
+.portfolio-pose-editor * {
+  cursor: auto !important;
+}
+
+.portfolio-pose-editor button {
+  background: transparent;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  min-height: 40px;
+  padding: var(--reader-space-1) var(--reader-space-2);
+}
+
+.portfolio-pose-editor button:disabled {
+  opacity: 0.4;
+}
+
+.portfolio-pose-editor select {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  min-height: 40px;
+  padding: var(--reader-space-1);
+  width: 100%;
+}
+
+.portfolio-pose-editor button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--world-identity) 12%, transparent);
+  border-color: var(--world-identity);
+}
+
+.portfolio-pose-editor :focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.portfolio-pose-editor-header {
+  align-items: end;
+  display: flex;
+  gap: var(--reader-space-4);
+  justify-content: space-between;
+  padding: var(--reader-space-4);
+}
+
+.portfolio-pose-editor h1 {
+  font: var(--reader-type-display) var(--font-reader);
+  letter-spacing: -0.055em;
+  margin: var(--reader-space-1) 0 0;
+}
+
+.portfolio-pose-editor p {
+  color: var(--reader-muted);
+  margin: 0;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-eyebrow {
+  color: var(--world-identity);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.portfolio-pose-editor-layout {
+  display: grid;
+  gap: var(--reader-space-3);
+  grid-template-columns: minmax(0, 1fr) 328px;
+  padding: 0 var(--reader-space-4) var(--reader-space-4);
+}
+
+.portfolio-pose-editor-view {
+  align-self: start;
+  background: var(--map-paper-near);
+  border: 1px solid var(--map-line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  position: sticky;
+  top: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1);
+  padding: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-stage {
+  flex: 1;
+  height: calc(100dvh - 300px);
+  min-height: 500px;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.portfolio-pose-editor-stage canvas {
+  display: block;
+  inset: 0;
+  position: absolute;
+}
+
+.portfolio-pose-editor-loading {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--reader-space-3);
+  position: absolute;
+}
+
+.portfolio-pose-editor-handles {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-handle {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+  width: 44px;
+}
+
+.portfolio-pose-editor-handle::before {
+  background: var(--reader-paper);
+  border: 2px solid var(--world-cool);
+  border-radius: 50%;
+  content: "";
+  inset: 12px;
+  position: absolute;
+}
+
+.portfolio-pose-editor-handle[data-bend="true"]::before {
+  border-color: var(--reader-muted);
+  border-style: dashed;
+  inset: 15px;
+}
+
+.portfolio-pose-editor-handle[data-selected="true"]::before {
+  background: var(--world-cool);
+}
+
+.portfolio-pose-editor-handle[data-dragging="true"]::before {
+  outline: 3px solid var(--reader-paper);
+}
+
+.portfolio-pose-editor-handle span {
+  background: var(--reader-paper);
+  border-radius: 4px;
+  font: var(--reader-type-caption) var(--font-reader);
+  left: 38px;
+  opacity: 0;
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+  white-space: nowrap;
+}
+
+.portfolio-pose-editor-handle[data-selected="true"][data-bend="false"] span,
+.portfolio-pose-editor-handle:focus-visible span {
+  opacity: 1;
+}
+
+.portfolio-pose-editor [hidden] {
+  display: none !important;
+}
+
+.portfolio-pose-editor-playbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: var(--reader-space-2);
+  padding: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-playbar label {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+}
+
+.portfolio-pose-editor-playbar input {
+  accent-color: var(--world-identity);
+}
+
+.portfolio-pose-editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-4);
+  padding: var(--reader-space-1) 0;
+}
+
+.portfolio-pose-editor-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-2);
+}
+
+.portfolio-pose-editor h2 {
+  font: var(--reader-type-summary) var(--font-reader);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.portfolio-pose-editor-panel p {
+  font: var(--reader-type-secondary) var(--font-reader);
+}
+
+.portfolio-pose-editor-parts {
+  display: grid;
+  gap: var(--reader-space-1);
+  grid-template-columns: 1fr 1fr;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-selection {
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+
+.portfolio-pose-editor-nudges {
+  align-items: center;
+  display: grid;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: var(--reader-space-1);
+  grid-template-columns: 64px 1fr 1fr;
+}
+
+.portfolio-pose-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1);
+}
+
+.portfolio-pose-editor-wrist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-1);
+  margin-top: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-wrist h3 {
+  font: var(--reader-type-row) var(--font-reader);
+  margin: 0;
+}
+
+.portfolio-pose-editor-wrist label {
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  justify-content: space-between;
+}
+
+.portfolio-pose-editor-wrist input {
+  accent-color: var(--world-cool);
+  min-height: 28px;
+  width: 100%;
+}
+
+.portfolio-pose-editor-wrist input:disabled {
+  opacity: 0.4;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-status {
+  color: var(--world-identity);
+  min-height: 36px;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-status[data-error="true"] {
+  color: var(--world-arc);
+}
+
+@media (pointer: fine) {
+  .portfolio-pose-editor button:not(:disabled):hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+  }
+
+  .portfolio-pose-editor .portfolio-pose-editor-handle:hover {
+    background: transparent;
+  }
+
+  .portfolio-pose-editor-handle:hover span {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 850px) {
+  .portfolio-pose-editor-view {
+    position: static;
+  }
+  .portfolio-pose-editor-header {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--reader-space-2);
+    padding: var(--reader-space-3);
+  }
+
+  .portfolio-pose-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 var(--reader-space-3) var(--reader-space-3);
+  }
+
+  .portfolio-pose-editor-stage {
+    height: 520px;
+    min-height: 520px;
+  }
 }

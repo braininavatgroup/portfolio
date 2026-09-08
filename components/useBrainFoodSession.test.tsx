@@ -71,7 +71,7 @@ describe("useBrainFoodSession", () => {
     expect(result.current.active).toBe(true);
     expect(avatar.getSnapshot()).toMatchObject({
       phase: "brain-food",
-      animation: "swim_forward",
+      animation: "swim_idle",
       visible: true,
     });
 

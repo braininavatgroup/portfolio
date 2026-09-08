@@ -9,6 +9,7 @@ import { avatarAsset } from "../../lib/avatar/config";
 import { getAvatarYaw, type AvatarFacing } from "../../lib/avatar/orientation";
 import {
   avatarClips,
+  avatarDances,
   type AvatarClip,
 } from "../../lib/avatar/runtime";
 
@@ -27,44 +28,6 @@ type AvatarAssetAdapterProps = AvatarPoseProps & {
   ) => void;
 };
 
-const bradleySolidColor = "#3a4954";
-
-export function applyBradleySolidMaterial(
-  scene: THREE.Object3D,
-  color: THREE.ColorRepresentation,
-) {
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    emissive: color,
-    emissiveIntensity: 0.55,
-    metalness: 0,
-    opacity: 1,
-    roughness: 1,
-    side: THREE.DoubleSide,
-    transparent: false,
-    vertexColors: false,
-  });
-  const originals: Array<{
-    mesh: THREE.Mesh;
-    material: THREE.Material | THREE.Material[];
-  }> = [];
-
-  scene.traverse((object) => {
-    if (!(object instanceof THREE.Mesh)) return;
-    originals.push({ mesh: object, material: object.material });
-    object.material = Array.isArray(object.material)
-      ? object.material.map(() => material)
-      : material;
-  });
-
-  return () => {
-    for (const original of originals) {
-      original.mesh.material = original.material;
-    }
-    material.dispose();
-  };
-}
-
 export function getAvatarStageScale(stageScale = 1) {
   return stageScale;
 }
@@ -76,9 +39,52 @@ export function getGlbFootOriginTranslation(
   return -(groundOffset + rawMinimumY);
 }
 
-// The checked-in Bradley GLB POSITION accessor has these raw Y bounds.
+// The checked-in Bradley portrait GLB POSITION accessor has these raw Y bounds.
 const bradleyRawMinimumY = 0;
-const bradleyRawMaximumY = 1.6399997472763062;
+const bradleyRawMaximumY = 1.667199730873108;
+
+const swimClips: ReadonlySet<AvatarClip> = new Set<AvatarClip>([
+  "swim_forward",
+  "swim_idle",
+  "swimming_to_edge",
+]);
+
+/** Locomotion clips whose Meshy root travel the stage controller owns. */
+const inPlaceClips: ReadonlySet<AvatarClip> = new Set<AvatarClip>([
+  "swim_forward",
+  "swim_idle",
+  "swimming_to_edge",
+  "walking",
+  "running",
+  "back_left_run",
+]);
+
+const clipNameToId = new Map(
+  (Object.entries(avatarClips) as Array<[AvatarClip, string]>).map(
+    ([id, name]) => [name, id] as const,
+  ),
+);
+
+/** Standing locomotion turns the figure fully into profile toward its travel. */
+const profileClips: ReadonlySet<AvatarClip> = new Set<AvatarClip>([
+  "walking",
+  "running",
+  "back_left_run",
+]);
+
+/** Prone swimming clips are centred in frame; everything else stands on its feet. */
+export function isSwimClip(animation: AvatarClip) {
+  return swimClips.has(animation);
+}
+
+export function isProfileClip(animation: AvatarClip) {
+  return profileClips.has(animation);
+}
+
+export function isInPlaceClip(clipName: string) {
+  const id = clipNameToId.get(clipName);
+  return id !== undefined && inPlaceClips.has(id);
+}
 
 export function getAvatarModelOriginY(
   anchor: "feet" | "center",
@@ -108,26 +114,19 @@ export function getAvailableAnimationIds(clipNames: Iterable<string>) {
   );
 }
 
-export function combineAnimationClips(
-  nativeClips: readonly THREE.AnimationClip[],
-  externalClips: readonly THREE.AnimationClip[],
-) {
-  const nativeNames = new Set(nativeClips.map((clip) => clip.name));
-  return [
-    ...nativeClips,
-    ...externalClips.filter((clip) => !nativeNames.has(clip.name)),
-  ];
-}
-
 export function getGlbYaw(
   forwardAxis: typeof avatarAsset.forwardAxis,
   facing: AvatarFacing,
   animation: AvatarClip,
   swimHeadingRadians = 0,
 ) {
-  return animation === "swim_forward"
-    ? getAvatarYaw(forwardAxis, "front") + Math.PI / 2 + swimHeadingRadians
-    : getAvatarYaw(forwardAxis, facing);
+  if (isSwimClip(animation)) {
+    return getAvatarYaw(forwardAxis, "front") + Math.PI / 2 + swimHeadingRadians;
+  }
+  if (isProfileClip(animation) && facing !== "front") {
+    return getAvatarYaw(forwardAxis, "front") + (facing === "right" ? Math.PI / 2 : -Math.PI / 2);
+  }
+  return getAvatarYaw(forwardAxis, facing);
 }
 
 export function getGlbOrientation(
@@ -140,7 +139,16 @@ export function getGlbOrientation(
     new THREE.Vector3(0, 1, 0),
     getGlbYaw(forwardAxis, facing, animation, swimHeadingRadians),
   );
-  if (animation !== "swim_forward") return yaw;
+  if (!isSwimClip(animation)) {
+    // Meshy's standing clips rest a few degrees back from the ankles; tip the
+    // whole figure forward about its feet so it stands square to the visitor.
+    return yaw.multiply(
+      new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(1, 0, 0),
+        avatarAsset.standingPitchRadians,
+      ),
+    );
+  }
 
   // Decompose the screen heading into horizontal yaw and vertical pitch. The
   // arcsine folds pitch into [-90°, 90°], so down can point fully down while
@@ -173,8 +181,24 @@ export function getAvatarPlaybackRate(animation: AvatarClip) {
   return animation === "swim_forward" ? 0.8 : avatarAsset.playbackRate;
 }
 
+/** Completed performances hold their final frame until the runtime returns to idle. */
+export function isOneShotClip(animation: AvatarClip) {
+  return animation === "swimming_to_edge" || animation === "full_turn_left" ||
+    (avatarDances as readonly AvatarClip[]).includes(animation);
+}
+
+export function configureActionLoop(
+  action: THREE.AnimationAction,
+  animation: AvatarClip,
+) {
+  const oneShot = isOneShotClip(animation);
+  action.setLoop(oneShot ? THREE.LoopOnce : THREE.LoopRepeat, Number.POSITIVE_INFINITY);
+  action.clampWhenFinished = oneShot;
+  return action;
+}
+
 export function getAvatarTurnRate(animation: AvatarClip) {
-  return animation === "swim_forward" ? 2.2 : 4.5;
+  return isSwimClip(animation) ? 2.2 : 4.5;
 }
 
 export function cloneAvatarScene(scene: THREE.Group) {
@@ -186,14 +210,12 @@ function GlbAvatar({
   animation,
   facing,
   modelUrl,
-  motionUrl,
   onAvailableAnimationsChange,
   reducedMotion,
   swimHeadingRadians,
 }: AvatarPoseProps & {
   anchor: "feet" | "center";
   modelUrl: string;
-  motionUrl: string;
   onAvailableAnimationsChange?: AvatarAssetAdapterProps["onAvailableAnimationsChange"];
   swimHeadingRadians: number | null;
 }) {
@@ -201,16 +223,12 @@ function GlbAvatar({
   const activeAction = useRef<THREE.AnimationAction | null>(null);
   const model = useGLTF(modelUrl);
   const scene = useMemo(() => cloneAvatarScene(model.scene), [model.scene]);
-  const motionLibrary = useGLTF(motionUrl);
   const animationClips = useMemo(
     () =>
-      combineAnimationClips(model.animations, motionLibrary.animations).map(
-        (clip) =>
-          clip.name === avatarClips.swim_forward
-            ? makeLocomotionClipInPlace(clip)
-            : clip,
+      model.animations.map((clip) =>
+        isInPlaceClip(clip.name) ? makeLocomotionClipInPlace(clip) : clip,
       ),
-    [model.animations, motionLibrary.animations],
+    [model.animations],
   );
   const { actions } = useAnimations(animationClips, root);
   const playbackRate = getAvatarPlaybackRate(animation);
@@ -243,10 +261,6 @@ function GlbAvatar({
     }
   });
 
-  useEffect(() => {
-    return applyBradleySolidMaterial(scene, bradleySolidColor);
-  }, [scene]);
-
   useLayoutEffect(() => {
     const clipName = avatarClips[animation];
     const next = actions[clipName];
@@ -257,7 +271,10 @@ function GlbAvatar({
       next.setEffectiveTimeScale(playbackRate);
       return;
     }
-    next.reset().setEffectiveTimeScale(playbackRate).fadeIn(crossfadeSeconds).play();
+    configureActionLoop(next.reset(), animation)
+      .setEffectiveTimeScale(playbackRate)
+      .fadeIn(crossfadeSeconds)
+      .play();
     if (previous) previous.fadeOut(crossfadeSeconds);
     else next.setEffectiveWeight(1);
     activeAction.current = next;
@@ -297,7 +314,6 @@ export function AvatarAssetAdapter(props: AvatarAssetAdapterProps) {
         {...pose}
         anchor={anchor}
         modelUrl={avatarAsset.modelUrl}
-        motionUrl={avatarAsset.motionUrl}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
         swimHeadingRadians={swimHeadingRadians}
       />

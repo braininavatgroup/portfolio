@@ -172,6 +172,7 @@ export function useBrainFoodSession({
       avatarRuntime.setBrainFoodPosition(
         bodyRef.current.position,
         bodyRef.current.heading,
+        Math.hypot(bodyRef.current.velocity.x, bodyRef.current.velocity.y),
       );
       if (
         bodyRef.current.position.x !== previousPosition.x ||

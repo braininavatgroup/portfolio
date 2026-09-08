@@ -33,37 +33,37 @@ test("every client asset referenced by the built server exists", async () => {
 });
 
 test("the production build copies the configured Bradley avatar byte-for-byte", async () => {
-  const assetPaths = [
-    "avatars/bradley-meshy-rigged.glb",
-    "avatars/bradley-motion-library.glb",
-  ];
+  const assetPath = "avatars/bradley-quiet-portrait.glb";
+  const source = await readFile(new URL(`public/${assetPath}`, repositoryRoot));
+  const built = await readFile(new URL(`dist/client/${assetPath}`, repositoryRoot));
+  assert.deepEqual(built, source, `${assetPath} differs from its public source`);
 
-  for (const assetPath of assetPaths) {
-    const source = await readFile(new URL(`public/${assetPath}`, repositoryRoot));
-    const built = await readFile(new URL(`dist/client/${assetPath}`, repositoryRoot));
-    assert.deepEqual(built, source, `${assetPath} differs from its public source`);
-  }
+  assert.equal(built.readUInt32LE(0), 0x46546c67, "built avatar is a GLB");
+  assert.equal(built.readUInt32LE(4), 2, "built avatar uses glTF 2");
 
-  const glb = await readFile(
-    new URL("dist/client/avatars/bradley-motion-library.glb", repositoryRoot),
-  );
-  assert.equal(glb.readUInt32LE(0), 0x46546c67, "built avatar is a GLB");
-  assert.equal(glb.readUInt32LE(4), 2, "built avatar uses glTF 2");
-
-  const jsonLength = glb.readUInt32LE(12);
-  const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
+  const jsonLength = built.readUInt32LE(12);
+  const json = JSON.parse(built.subarray(20, 20 + jsonLength).toString("utf8"));
   assert.deepEqual(
     json.animations.map(({ name }) => name),
     [
-      "Idle_3",
+      "Idle",
+      "Full_Turn_Left",
+      "Swim_Forward",
+      "Swim_Idle",
       "Walking",
-      "Wake_Up_and_Look_Up",
+      "Running",
+      "BackLeft_run",
+      "swimming_to_edge",
+      "All_Night_Dance",
+      "Cardio_Dance",
+      "Denim_Pop_Dance",
+      "Funny_Dancing_02",
+      "Funny_Dancing_03",
+      "Not_Your_Mom",
+      "Step_Hip_Hop_Dance",
+      "Jazz_Dance",
       "Agree_Gesture",
-      "Wave_One_Hand",
-      "Big_Wave_Hello",
-      "Cheer_with_Both_Hands_1",
-      "Shrug",
     ],
-    "built motion library contains only the selected Meshy clips",
+    "built model carries the portrait clips plus the retargeted agree gesture",
   );
 });

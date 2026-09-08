@@ -396,6 +396,9 @@ globally and `.cursor-instrument` is the only pointer. Consequences for new UI:
 - A true-fullscreen video is the exception: restore `cursor: auto !important`
   on the fullscreen element because the browser's top layer cannot contain the
   fixed custom cursor.
+- The standalone local [avatar pose editor](avatar-pose-editor.md) uses the
+  native pointer for bone handles and camera controls. It is served by Vite
+  from `scripts/`, outside the public application and its cursor component.
 
 **Rule 6.11 — Escape and empty space reset.** Blank-space click, the Index
 control, and Escape return the world to overview. Blank-space drag does not

@@ -32,12 +32,13 @@ vi.mock("./AvatarAssetAdapter", () => ({
     adapter(props);
     return <div data-testid="avatar-asset" />;
   },
+  isSwimClip: (animation: string) => animation.startsWith("swim"),
 }));
 
 function snapshot(overrides: Partial<AvatarSnapshot> = {}): AvatarSnapshot {
   return {
     phase: "idle",
-    animation: "idle_3",
+    animation: "idle",
     position: { x: 800, y: 776 },
     motion: null,
     facing: "front",

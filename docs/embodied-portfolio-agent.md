@@ -1,14 +1,15 @@
 # Portfolio avatar
 
-The portfolio has one optional Bradley avatar. It appears with chat, idles,
-plays one fixed agreement reaction when answer text arrives, and can take one
-visitor-requested leisurely swim lap after that reaction. It is not an answer
+The portfolio has one optional Bradley avatar: a textured Meshy portrait. It
+appears with chat, idles, plays one fixed agreement reaction when answer text
+arrives, and can take one visitor-requested performance after that reaction: a
+leisurely swim lap, a stroll along the floor, a dance, or a full turn. It is not an answer
 channel; chat and navigation remain complete if WebGL fails.
 
 Brain Food reuses the same avatar and the live portfolio map. Exact `Shift+G`
 starts an untimed desktop session. Arrow keys or WASD steer a breaststroke
 through every existing map node except Bradley. Eaten nodes and their incident
-connections disappear. Eating the final node holds the fixed celebration for
+connections disappear. Eating the final node holds the next dance in rotation for
 3 seconds, then restores the prior map selection and avatar visibility.
 Escape cancels and restores immediately.
 
@@ -17,15 +18,34 @@ Escape cancels and restores immediately.
 `PortfolioExperience` owns one `AvatarRuntime` through `useAvatarStage`.
 `PortfolioChat` reports only turn start, first answer text, and validated
 effects. Turn start cancels stale work, first text starts `agree_gesture`, and
-the only model-selectable action is `swim_lap`. The runtime queues that lap
-behind the reaction and always returns to `idle_3`.
+the model-selectable actions are `swim_lap`, `stroll`, `dance`, and `turn`. The
+runtime queues the performance behind the reaction and always returns to
+`idle`.
 
-The supported clip set is deliberately small:
+The registered clips, all in `public/avatars/bradley-quiet-portrait.glb`:
 
-- `idle_3` → `Idle_3`
-- `agree_gesture` → `Agree_Gesture`
-- `swim_forward` → `Swim_Forward`
-- `cheer_with_both_hands` → `Cheer_with_Both_Hands`
+- `idle` → `Idle` (Meshy `Idle_11`)
+- `agree_gesture` → `Agree_Gesture`, retargeted from the earlier untextured
+  export with the arms folded in from Meshy's wide A
+- `full_turn_left` → `Full_Turn_Left`, plays once for an explicit turn-around
+  request and returns to idle after the complete 8.83-second clip
+- `swim_forward` → `Swim_Forward`; `swim_idle` → `Swim_Idle`, treading water
+  while Brain Food is stationary; `swimming_to_edge` → `swimming_to_edge`, the
+  climb-out that ends a swim lap at the dock, played once for its full
+  5.03 seconds and held
+- `walking` → `Walking`, `running` → `Running`, `back_left_run` →
+  `BackLeft_run`: the stroll walks to the far end of the floor it stands on
+  (inside the Guide pane when docked there), then backpedals home when the
+  dock is within 480px and runs otherwise. Standing locomotion turns fully
+  into profile toward its travel.
+- eight dances (`step_hip_hop_dance`, `jazz_dance`, `cardio_dance`,
+  `funny_dancing_02`, `all_night_dance`, `funny_dancing_03`, `not_your_mom`,
+  `denim_pop_dance`) taken in rotation; a requested dance plays once through
+  using the lengths pinned in `avatarDanceDurationsMs`. Dances and turns hold
+  the final frame until the runtime returns to idle.
+
+Every locomotion clip has its Meshy Hips X/Z travel removed on load so the
+stage controller is the sole owner of position.
 
 `AvatarOverlay` renders one pointer-transparent orthographic canvas.
 `AvatarStageActor` maps CSS-pixel positions into it. Position updates move a
@@ -35,9 +55,9 @@ selected action in a layout effect so a loaded model is not painted in a
 T-pose before its first animation begins. Breaststroke uses a `0.8` playback
 rate.
 
-The provider effect schema contains only `avatarAction`, with `"none"` or
-`"swim_lap"`. The provider chooses the lap only when the visitor explicitly
-asks Bradley to swim or take a lap. The client buffers effects until the first
+The provider effect schema contains only `avatarAction`, with `"none"`,
+`"swim_lap"`, `"stroll"`, `"dance"`, or `"turn"`. The provider chooses a performance
+only when the visitor explicitly asks Bradley to swim, walk, dance, or turn around. The client buffers effects until the first
 answer delta has rendered, so motion never leads the answer.
 
 ## Brain Food
@@ -55,8 +75,8 @@ Normal movement tops out at 220 CSS pixels per second. Input supplies a desired
 map-plane heading; the controller turns toward it at 2.2 radians per second and reduces
 propulsion during a sharp change of course, so the avatar does not swim
 backward while reversing. Reduced motion advances one bounded step per key
-press. The model stays on `swim_forward` for the whole collection phase while
-its center-anchored stage group moves. Its rig yaws through the horizontal X/Z
+press. The model swims `swim_forward` while moving and treads water on `swim_idle`
+below 16 pixels per second, while its center-anchored stage group moves. Its rig yaws through the horizontal X/Z
 pool plane and independently pitches up to 90 degrees toward vertical travel,
 keeping roll level. The Meshy clip's Hips X/Z root travel is stripped
 at load time, leaving controller movement as the only translation source.
@@ -72,7 +92,7 @@ runtime failed. `AvatarBoundary` contains lazy-load and render errors. The map,
 reader, and chat remain usable.
 
 Permanent tests cover the effect allowlist, reaction/lap ordering, cancellation,
-four required clips, continuous Brain Food mounting, movement integration,
+all 17 required clips, continuous Brain Food mounting, movement integration,
 collection, celebration, live-map removal, Escape restoration, reduced motion,
 and renderer isolation. Software WebGL is smoke evidence; physical-GPU motion,
 animation blending, and final feel remain human walk items.

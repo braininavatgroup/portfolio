@@ -6,6 +6,7 @@ import { AvatarAssetAdapter } from "../../components/avatar/AvatarAssetAdapter";
 import { AvatarOverlay } from "../../components/avatar/AvatarOverlay";
 import {
   AvatarRuntime,
+  avatarClips,
   type AvatarClip,
 } from "../../lib/avatar/runtime";
 import type { AvatarFacing } from "../../lib/avatar/orientation";
@@ -28,13 +29,13 @@ function PoseCanvas({ children }: { children: React.ReactNode }) {
 }
 
 export function AvatarAssetAdapterFixture() {
-  const [animation, setAnimation] = useState<AvatarClip>("idle_3");
+  const [animation, setAnimation] = useState<AvatarClip>("idle");
   const [facing, setFacing] = useState<AvatarFacing>("front");
 
   return (
     <>
       <div className="design-lazy">
-        {(["idle_3", "agree_gesture", "swim_forward", "cheer_with_both_hands"] as const).map(
+        {(Object.keys(avatarClips) as AvatarClip[]).map(
           (clip) => (
             <button
               aria-pressed={animation === clip}
@@ -118,6 +119,20 @@ export function AvatarOverlayFixture() {
         >
           Swim lap
         </button>
+        <button
+          className="design-gallery-control"
+          onClick={() => void runtime.queueStroll()}
+          type="button"
+        >
+          Stroll
+        </button>
+        <button
+          className="design-gallery-control"
+          onClick={() => void runtime.queueDance()}
+          type="button"
+        >
+          Dance
+        </button>
       </div>
       <div className="design-stage" data-size="viewport">
         <div className="experience portfolio-composition">
@@ -132,7 +147,7 @@ export function AvatarFixtures() {
   return (
     <>
       <Specimen
-        note="The shipped Bradley model and its four supported clips."
+        note="The shipped Bradley portrait and every registered clip."
         title="Asset adapter"
       >
         <AvatarAssetAdapterFixture />

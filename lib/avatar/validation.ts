@@ -1,4 +1,8 @@
-import type { AvatarAction, PortfolioResponseEffects } from "./contracts";
+import {
+  avatarActions,
+  type AvatarAction,
+  type PortfolioResponseEffects,
+} from "./contracts";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -27,11 +31,11 @@ export function parsePortfolioResponseEffects(
     return parsed;
   }
 
-  if (value.avatarAction === "swim_lap") {
-    parsed.avatarAction = value.avatarAction satisfies AvatarAction;
+  if ((avatarActions as readonly unknown[]).includes(value.avatarAction)) {
+    parsed.avatarAction = value.avatarAction as AvatarAction;
     return parsed;
   }
 
-  parsed.issues.push("avatarAction must be swim_lap or null");
+  parsed.issues.push(`avatarAction must be ${avatarActions.join(", ")}, or null`);
   return parsed;
 }

@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyBradleySolidMaterial,
   cloneAvatarScene,
-  combineAnimationClips,
+  configureActionLoop,
   getAvailableAnimationIds,
   getAvatarModelOriginY,
   getAvatarPlaybackRate,
@@ -12,16 +11,20 @@ import {
   getGlbYaw,
   getAvatarStageScale,
   getAvatarTurnRate,
+  isInPlaceClip,
+  isProfileClip,
+  isSwimClip,
   makeLocomotionClipInPlace,
 } from "./AvatarAssetAdapter";
 import {
   AnimationClip,
+  AnimationMixer,
   BoxGeometry,
-  DoubleSide,
   Group,
+  LoopOnce,
+  LoopRepeat,
   Mesh,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   VectorKeyframeTrack,
   Vector3,
 } from "three";
@@ -31,7 +34,7 @@ import { avatarAsset } from "../../lib/avatar/config";
 
 function rawBradleyGlbMinimumY() {
   const glb = readFileSync(
-    resolve(process.cwd(), "public/avatars/bradley-meshy-rigged.glb"),
+    resolve(process.cwd(), "public/avatars/bradley-quiet-portrait.glb"),
   );
   const jsonLength = glb.readUInt32LE(12);
   const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
@@ -46,9 +49,17 @@ function rawBradleyGlbMinimumY() {
 }
 
 describe("GLB avatar configuration", () => {
+  it.each(["full_turn_left", "step_hip_hop_dance", "jazz_dance", "cardio_dance", "funny_dancing_02", "all_night_dance", "funny_dancing_03", "not_your_mom", "denim_pop_dance"] as const)("holds %s after one performance", (clip) => {
+    const mixer = new AnimationMixer(new Group());
+    const action = mixer.clipAction(new AnimationClip(clip, 1, []));
+    configureActionLoop(action, clip);
+    expect(action.loop).toBe(LoopOnce);
+    expect(action.clampWhenFinished).toBe(true);
+  });
+
   it("supports centered specimens while retaining foot anchoring on the stage", () => {
-    expect(getAvatarModelOriginY("feet", 0, 1.64)).toBe(0);
-    expect(getAvatarModelOriginY("center", 0, 1.64)).toBe(-0.82);
+    expect(getAvatarModelOriginY("feet", 0, 1.6672)).toBe(0);
+    expect(getAvatarModelOriginY("center", 0, 1.6672)).toBe(-0.8336);
   });
 
   it("creates distinct scene roots while retaining cache-owned resources", () => {
@@ -72,59 +83,68 @@ describe("GLB avatar configuration", () => {
     expect(secondMesh.material).toBe(material);
   });
 
-  it("uses one opaque base material across the whole visible body", () => {
-    // Catches the loader's white default or a second material showing through
-    // part of the otherwise single-color character.
-    const scene = new Group();
-    const firstOriginal = new MeshStandardMaterial({
-      color: "#ffffff",
-      opacity: 0.4,
-      transparent: true,
-      vertexColors: true,
-    });
-    const secondOriginal = new MeshStandardMaterial({ color: "#ff00ff" });
-    const first = new Mesh(new BoxGeometry(), firstOriginal);
-    const second = new Mesh(new BoxGeometry(), [secondOriginal]);
-    scene.add(first, second);
-
-    const restore = applyBradleySolidMaterial(scene, "#3a4954");
-    const firstApplied = first.material as MeshStandardMaterial;
-    const secondApplied = (second.material as MeshStandardMaterial[])[0]!;
-
-    expect(firstApplied).toBe(secondApplied);
-    expect(firstApplied.color.getHexString()).toBe("3a4954");
-    expect(firstApplied.transparent).toBe(false);
-    expect(firstApplied.opacity).toBe(1);
-    expect(firstApplied.vertexColors).toBe(false);
-    expect(firstApplied.side).toBe(DoubleSide);
-    // Catches camera-facing detail disappearing when the avatar is rendered
-    // over a dark surface or from a canvas with different light placement.
-    expect(firstApplied.emissive.getHexString()).toBe("3a4954");
-    expect(firstApplied.emissiveIntensity).toBeGreaterThanOrEqual(0.5);
-
-    restore();
-    expect(first.material).toBe(firstOriginal);
-    expect(second.material).toEqual([secondOriginal]);
-  });
-
-  it("reports only the four clips used by the shipped experience", () => {
+  it("reports only registered clips, ignoring extra Meshy exports", () => {
     // Catches a retired behavior becoming a renderer requirement again.
     expect(
       getAvailableAnimationIds([
-        "Idle_3",
+        "Idle",
         "Agree_Gesture",
         "Swim_Forward",
-        "Cheer_with_Both_Hands",
+        "Jazz_Dance",
         "Walking",
+        "Wave_One_Hand",
       ]),
     ).toEqual(
       new Set([
-        "idle_3",
+        "idle",
         "agree_gesture",
         "swim_forward",
-        "cheer_with_both_hands",
+        "jazz_dance",
+        "walking",
       ]),
     );
+  });
+
+  it("centres every prone swimming clip and stands the rest on their feet", () => {
+    expect(isSwimClip("swim_forward")).toBe(true);
+    expect(isSwimClip("swim_idle")).toBe(true);
+    expect(isSwimClip("swimming_to_edge")).toBe(true);
+    expect(isSwimClip("walking")).toBe(false);
+    expect(isSwimClip("idle")).toBe(false);
+  });
+
+  it("turns standing locomotion fully into profile toward its travel", () => {
+    // Catches a walker sliding sideways while facing the visitor.
+    expect(isProfileClip("walking")).toBe(true);
+    expect(isProfileClip("running")).toBe(true);
+    expect(isProfileClip("back_left_run")).toBe(true);
+    expect(isProfileClip("agree_gesture")).toBe(false);
+    expect(getGlbYaw("z", "right", "walking")).toBe(Math.PI / 2);
+    expect(getGlbYaw("z", "left", "running")).toBe(-Math.PI / 2);
+    expect(getGlbYaw("z", "front", "walking")).toBe(0);
+  });
+
+  it("removes root travel from every locomotion clip but leaves gestures alone", () => {
+    expect(isInPlaceClip("Swim_Forward")).toBe(true);
+    expect(isInPlaceClip("swimming_to_edge")).toBe(true);
+    expect(isInPlaceClip("Walking")).toBe(true);
+    expect(isInPlaceClip("BackLeft_run")).toBe(true);
+    expect(isInPlaceClip("Agree_Gesture")).toBe(false);
+    expect(isInPlaceClip("Idle")).toBe(false);
+  });
+
+  it("plays the climb-out once and holds its final frame", () => {
+    const mixer = new AnimationMixer(new Group());
+    const climb = mixer.clipAction(new AnimationClip("swimming_to_edge", 1, []));
+    const swim = mixer.clipAction(new AnimationClip("Swim_Forward", 1, []));
+
+    configureActionLoop(climb, "swimming_to_edge");
+    configureActionLoop(swim, "swim_forward");
+
+    expect(climb.loop).toBe(LoopOnce);
+    expect(climb.clampWhenFinished).toBe(true);
+    expect(swim.loop).toBe(LoopRepeat);
+    expect(swim.clampWhenFinished).toBe(false);
   });
 
   it("plays breaststroke more slowly than conversational motion", () => {
@@ -135,6 +155,7 @@ describe("GLB avatar configuration", () => {
 
   it("turns a swimming body more gradually than conversational poses", () => {
     expect(getAvatarTurnRate("swim_forward")).toBeCloseTo(2.2);
+    expect(getAvatarTurnRate("swimming_to_edge")).toBeCloseTo(2.2);
     expect(getAvatarTurnRate("agree_gesture")).toBeGreaterThan(
       getAvatarTurnRate("swim_forward"),
     );
@@ -143,15 +164,25 @@ describe("GLB avatar configuration", () => {
 
   it("starts camera-facing and limits ordinary left and right turns", () => {
     // Catches startup or target-facing logic rotating the avatar's back toward the visitor.
-    expect(getGlbYaw("z", "front", "idle_3")).toBe(0);
-    expect(getGlbYaw("z", "left", "idle_3")).toBe(Math.PI / 8);
-    expect(getGlbYaw("z", "right", "idle_3")).toBe(-Math.PI / 8);
-    expect(getGlbYaw("-z", "front", "idle_3")).toBe(Math.PI);
+    expect(getGlbYaw("z", "front", "idle")).toBe(0);
+    expect(getGlbYaw("z", "left", "idle")).toBe(Math.PI / 8);
+    expect(getGlbYaw("z", "right", "idle")).toBe(-Math.PI / 8);
+    expect(getGlbYaw("-z", "front", "idle")).toBe(Math.PI);
     expect(getGlbYaw("z", "front", "swim_forward", 0)).toBe(Math.PI / 2);
     expect(getGlbYaw("z", "front", "swim_forward", Math.PI)).toBe(
       (Math.PI * 3) / 2,
     );
     expect(getGlbYaw("z", "front", "swim_forward", -Math.PI / 2)).toBe(0);
+  });
+
+  it("tips standing clips slightly forward about the feet, never swimming ones", () => {
+    // Catches the rig's resting lean-back reaching the visitor.
+    const standing = getGlbOrientation("z", "front", "idle");
+    const up = new Vector3(0, 1, 0).applyQuaternion(standing);
+    expect(up.z).toBeCloseTo(Math.sin(avatarAsset.standingPitchRadians), 6);
+    expect(up.z).toBeGreaterThan(0);
+    const swimming = getGlbOrientation("z", "front", "swim_forward", 0);
+    expect(new Vector3(0, 0, 1).applyQuaternion(swimming).y).toBeCloseTo(0, 6);
   });
 
   it("points a swimming body fully up or down without rolling it", () => {
@@ -204,16 +235,6 @@ describe("GLB avatar configuration", () => {
     ]);
   });
 
-
-  it("keeps native Meshy clips and adds only missing external motions", () => {
-    const nativeIdle = new AnimationClip("Idle_3", 1, []);
-    const processedIdle = new AnimationClip("Idle_3", 2, []);
-    const externalWave = new AnimationClip("Wave_One_Hand", 3, []);
-
-    expect(
-      combineAnimationClips([nativeIdle], [processedIdle, externalWave]),
-    ).toEqual([nativeIdle, externalWave]);
-  });
 
   it("keeps the stage scale independent from non-unit GLB normalization", () => {
     // Catches applying the GLB normalization both in the adapter wrapper and its existing root.

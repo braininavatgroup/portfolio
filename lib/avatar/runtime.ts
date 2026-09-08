@@ -1,5 +1,6 @@
 import type { AvatarFacing } from "./orientation";
 import {
+  planFloorStroll,
   planSwimLap,
   stagePathLength,
   type AvatarStageMotion,
@@ -8,18 +9,64 @@ import {
 } from "./stage";
 
 export const avatarClips = {
-  idle_3: "Idle_3",
+  idle: "Idle",
   agree_gesture: "Agree_Gesture",
+  full_turn_left: "Full_Turn_Left",
   swim_forward: "Swim_Forward",
-  cheer_with_both_hands: "Cheer_with_Both_Hands",
+  swim_idle: "Swim_Idle",
+  swimming_to_edge: "swimming_to_edge",
+  walking: "Walking",
+  running: "Running",
+  back_left_run: "BackLeft_run",
+  all_night_dance: "All_Night_Dance",
+  cardio_dance: "Cardio_Dance",
+  denim_pop_dance: "Denim_Pop_Dance",
+  funny_dancing_02: "Funny_Dancing_02",
+  funny_dancing_03: "Funny_Dancing_03",
+  not_your_mom: "Not_Your_Mom",
+  step_hip_hop_dance: "Step_Hip_Hop_Dance",
+  jazz_dance: "Jazz_Dance",
 } as const;
 
 export type AvatarClip = keyof typeof avatarClips;
+
+/** Dances in rotation order; each request takes the next one. */
+export const avatarDances = [
+  "step_hip_hop_dance",
+  "jazz_dance",
+  "cardio_dance",
+  "funny_dancing_02",
+  "all_night_dance",
+  "funny_dancing_03",
+  "not_your_mom",
+  "denim_pop_dance",
+] as const satisfies readonly AvatarClip[];
+
+export type AvatarDance = (typeof avatarDances)[number];
+
+/**
+ * Shipped dance clip lengths, pinned against the built GLB by the config
+ * test. A requested dance plays once through and returns to the dock.
+ */
+export const avatarDanceDurationsMs: Record<AvatarDance, number> = {
+  step_hip_hop_dance: 2_633,
+  jazz_dance: 2_800,
+  cardio_dance: 4_333,
+  funny_dancing_02: 7_533,
+  all_night_dance: 8_200,
+  funny_dancing_03: 8_067,
+  not_your_mom: 10_900,
+  denim_pop_dance: 16_033,
+};
 export type AvatarPhase =
   | "hidden"
   | "idle"
   | "reacting"
   | "swimming"
+  | "docking"
+  | "strolling"
+  | "dancing"
+  | "turning"
   | "brain-food"
   | "celebrating";
 
@@ -55,11 +102,27 @@ export type AvatarSnapshot = {
 
 export const ANSWER_REACTION_MS = 1_600;
 export const BRAIN_FOOD_CELEBRATION_MS = 3_000;
+/** The swimming-to-edge clip's climb-out, played once the lap reaches the dock. */
+export const SWIM_DOCKING_MS = 5_034;
+export const FULL_TURN_MS = 8_834;
+/** Below this stage speed the Brain Food swimmer treads water instead of stroking. */
+export const BRAIN_FOOD_SWIM_IDLE_SPEED = 16;
 const swimViewportInset = 24;
 const swimObstaclePadding = 88;
 const minimumSwimDurationMs = 9_000;
 const maximumSwimDurationMs = 18_000;
 const leisurelySwimPixelsPerSecond = 140;
+const strollViewportInset = 24;
+const strollActorHalfWidth = 36;
+const strollActorHeight = 208;
+const minimumStrollDistance = 96;
+const walkPixelsPerSecond = 120;
+const runPixelsPerSecond = 330;
+const backpedalPixelsPerSecond = 220;
+/** Returns shorter than this backpedal to the dock; longer ones run. */
+const backpedalMaximumDistance = 480;
+const minimumLegDurationMs = 700;
+const maximumLegDurationMs = 6_000;
 
 type Listener = () => void;
 
@@ -76,6 +139,30 @@ function facingForPath(points: readonly AvatarStagePoint[]): AvatarFacing {
   return next.x < first.x ? "left" : "right";
 }
 
+function legDuration(distance: number, pixelsPerSecond: number) {
+  return Math.round(
+    Math.min(
+      maximumLegDurationMs,
+      Math.max(minimumLegDurationMs, (distance / pixelsPerSecond) * 1_000),
+    ),
+  );
+}
+
+function oppositeFacing(facing: AvatarFacing): AvatarFacing {
+  return facing === "left" ? "right" : facing === "right" ? "left" : "front";
+}
+
+/** The return leg of a stroll: a short backpedal, or a run when the dock is far. */
+export function selectStrollReturn(distance: number): {
+  animation: AvatarClip;
+  pixelsPerSecond: number;
+  facesTravel: boolean;
+} {
+  return distance <= backpedalMaximumDistance
+    ? { animation: "back_left_run", pixelsPerSecond: backpedalPixelsPerSecond, facesTravel: false }
+    : { animation: "running", pixelsPerSecond: runPixelsPerSecond, facesTravel: true };
+}
+
 function swimDuration(points: readonly AvatarStagePoint[]) {
   const duration =
     (stagePathLength(points) / leisurelySwimPixelsPerSecond) * 1_000;
@@ -90,6 +177,7 @@ export class AvatarRuntime {
   #reducedMotion = false;
   #generation = 0;
   #motionId = 0;
+  #danceIndex = 0;
   #queue: Promise<void> = Promise.resolve();
   #snapshot: AvatarSnapshot;
 
@@ -98,7 +186,7 @@ export class AvatarRuntime {
     const stage = readStage();
     this.#snapshot = {
       phase: "hidden",
-      animation: "idle_3",
+      animation: "idle",
       position: stage.dock,
       motion: null,
       facing: "front",
@@ -122,7 +210,7 @@ export class AvatarRuntime {
 
   setReducedMotion(reducedMotion: boolean) {
     this.#reducedMotion = reducedMotion;
-    if (reducedMotion && this.#snapshot.phase === "swimming") this.cancel();
+    if (reducedMotion && ["swimming", "docking", "strolling", "turning", "dancing"].includes(this.#snapshot.phase)) this.cancel();
   }
 
   setAvailableClips = (available: ReadonlySet<AvatarClip>) => {
@@ -140,7 +228,7 @@ export class AvatarRuntime {
     const { dock, dockHeight } = this.#readStage();
     this.#update({
       phase: "idle",
-      animation: "idle_3",
+      animation: "idle",
       position: dock,
       fitHeight: dockHeight ?? null,
       motion: null,
@@ -210,6 +298,117 @@ export class AvatarRuntime {
       });
       await wait(motion.durationMs);
       if (!this.#isCurrent(generation)) return;
+      // Arrive facing straight up the dock and climb out before standing.
+      this.#update({
+        phase: "docking",
+        animation: "swimming_to_edge",
+        position: stage.dock,
+        motion: null,
+        facing: facingForPath(points.slice(-2)),
+        swimHeading: -Math.PI / 2,
+      });
+      await wait(SWIM_DOCKING_MS);
+      if (!this.#isCurrent(generation)) return;
+      this.#idleAtDock();
+    });
+  }
+
+  /**
+   * Walks to the far end of the floor the figure stands on, then comes back
+   * to the dock: a short backpedal when the dock is close, a run when it is
+   * far. The stage owns the path; both legs play in-place clips.
+   */
+  queueStroll() {
+    return this.#enqueue(async (generation) => {
+      if (!this.#canPerform() || this.#reducedMotion) return;
+      const stage = this.#readStage();
+      const destination = planFloorStroll({
+        start: stage.dock,
+        obstacles: stage.obstacles,
+        viewport: stage.viewport,
+        viewportInset: strollViewportInset,
+        actorHalfWidth: strollActorHalfWidth,
+        actorHeight: strollActorHeight,
+        minimumDistance: minimumStrollDistance,
+      });
+      if (!destination) return;
+      const outbound = [stage.dock, destination];
+      const distance = stagePathLength(outbound);
+      const walk: AvatarStageMotion = {
+        id: ++this.#motionId,
+        kind: "walk",
+        locomotion: "grounded",
+        points: outbound,
+        durationMs: legDuration(distance, walkPixelsPerSecond),
+      };
+      this.#update({
+        phase: "strolling",
+        animation: "walking",
+        position: stage.dock,
+        fitHeight: stage.dockHeight ?? null,
+        motion: walk,
+        facing: facingForPath(outbound),
+        swimHeading: null,
+      });
+      await wait(walk.durationMs);
+      if (!this.#isCurrent(generation)) return;
+
+      const inbound = [destination, stage.dock];
+      const travelFacing = facingForPath(inbound);
+      const back = selectStrollReturn(distance);
+      const ret: AvatarStageMotion = {
+        id: ++this.#motionId,
+        kind: "walk",
+        locomotion: "grounded",
+        points: inbound,
+        durationMs: legDuration(distance, back.pixelsPerSecond),
+        facing: back.facesTravel ? travelFacing : oppositeFacing(travelFacing),
+      };
+      this.#update({
+        phase: "strolling",
+        animation: back.animation,
+        position: destination,
+        motion: ret,
+        facing: ret.facing,
+        swimHeading: null,
+      });
+      await wait(ret.durationMs);
+      if (!this.#isCurrent(generation)) return;
+      this.#idleAtDock();
+    });
+  }
+
+  /** Plays the full turn once at the dock when a visitor asks to turn around. */
+  queueTurn() {
+    return this.#enqueue(async (generation) => {
+      if (!this.#canPerform() || this.#reducedMotion) return;
+      const stage = this.#readStage();
+      this.#update({
+        phase: "turning", animation: "full_turn_left", position: stage.dock,
+        fitHeight: stage.dockHeight ?? null, motion: null, facing: "front", swimHeading: null,
+      });
+      await wait(FULL_TURN_MS);
+      if (this.#isCurrent(generation)) this.#idleAtDock();
+    });
+  }
+
+  /** Plays the next dance in rotation once through at the dock. */
+  queueDance() {
+    return this.#enqueue(async (generation) => {
+      if (!this.#canPerform()) return;
+      const dance = this.#nextDance();
+      const stage = this.#readStage();
+      this.#update({
+        phase: "dancing",
+        animation: dance,
+        position: stage.dock,
+        fitHeight: stage.dockHeight ?? null,
+        motion: null,
+        facing: "front",
+        swimHeading: null,
+      });
+      await wait(avatarDanceDurationsMs[dance]);
+      if (!this.#isCurrent(generation)) return;
       this.#idleAtDock();
     });
   }
@@ -218,7 +417,7 @@ export class AvatarRuntime {
     this.#resetQueue();
     this.#update({
       phase: "brain-food",
-      animation: "swim_forward",
+      animation: "swim_idle",
       position,
       motion: null,
       facing: "right",
@@ -227,9 +426,18 @@ export class AvatarRuntime {
     });
   }
 
-  setBrainFoodPosition(position: AvatarStagePoint, swimHeading: number) {
+  /** Brain Food owns the body; it treads water until it is really moving. */
+  setBrainFoodPosition(
+    position: AvatarStagePoint,
+    swimHeading: number,
+    speed = Number.POSITIVE_INFINITY,
+  ) {
     if (this.#snapshot.phase !== "brain-food") return;
-    this.#update({ position, swimHeading });
+    this.#update({
+      position,
+      swimHeading,
+      animation: speed >= BRAIN_FOOD_SWIM_IDLE_SPEED ? "swim_forward" : "swim_idle",
+    });
   }
 
   completeBrainFood() {
@@ -237,7 +445,7 @@ export class AvatarRuntime {
     const generation = this.#generation;
     this.#update({
       phase: "celebrating",
-      animation: "cheer_with_both_hands",
+      animation: this.#nextDance(),
       motion: null,
       facing: "front",
       swimHeading: null,
@@ -267,12 +475,18 @@ export class AvatarRuntime {
   #idleAtDock() {
     this.#update({
       phase: "idle",
-      animation: "idle_3",
+      animation: "idle",
       position: this.#readStage().dock,
       motion: null,
       facing: "front",
       swimHeading: null,
     });
+  }
+
+  #nextDance(): AvatarDance {
+    const dance = avatarDances[this.#danceIndex % avatarDances.length]!;
+    this.#danceIndex += 1;
+    return dance;
   }
 
   #resetQueue() {
@@ -285,7 +499,7 @@ export class AvatarRuntime {
     const stage = this.#readStage();
     this.#update({
       phase,
-      animation: "idle_3",
+      animation: "idle",
       position: stage.dock,
       fitHeight: stage.dockHeight ?? null,
       motion: null,

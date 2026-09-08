@@ -12,7 +12,7 @@ import {
   type AvatarStageMotion,
   type AvatarStagePoint,
 } from "../../lib/avatar/stage";
-import { AvatarAssetAdapter } from "./AvatarAssetAdapter";
+import { AvatarAssetAdapter, isSwimClip } from "./AvatarAssetAdapter";
 
 type AvatarStageActorProps = {
   snapshot: AvatarSnapshot;
@@ -52,6 +52,7 @@ function motionFacing(
   progress: number,
   fallback: AvatarFacing,
 ) {
+  if (motion.facing) return motion.facing;
   const targetDistance = stagePathLength(motion.points) * progress;
   let travelled = 0;
   for (let index = 1; index < motion.points.length; index += 1) {
@@ -213,13 +214,13 @@ function AvatarStageVisual({
         />
       ) : null}
       <AvatarAssetAdapter
-        anchor={snapshot.animation === "swim_forward" ? "center" : "feet"}
+        anchor={isSwimClip(snapshot.animation) ? "center" : "feet"}
         animation={snapshot.animation}
         facing={snapshot.motion && !reducedMotion ? facing : snapshot.facing}
         onAvailableAnimationsChange={onAvailableAnimationsChange}
         reducedMotion={reducedMotion}
         swimHeadingRadians={
-          snapshot.animation === "swim_forward"
+          isSwimClip(snapshot.animation)
             ? snapshot.motion && !reducedMotion
               ? motionSwimHeading
               : snapshot.motion

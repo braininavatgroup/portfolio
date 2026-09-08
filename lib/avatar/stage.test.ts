@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   groundedFloorY,
   inflateStageBounds,
+  planFloorStroll,
   planSwimLap,
   planSwimPath,
   sampleStagePath,
@@ -417,3 +418,60 @@ function segmentEntersRectangle(
     },
   );
 }
+
+describe("floor strolls", () => {
+  const viewport = { width: 1_000, height: 800, floorY: 776 };
+  const stroll = (
+    start: { x: number; y: number },
+    obstacles: Array<{
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+      inViewport?: boolean;
+    }> = [],
+  ) =>
+    planFloorStroll({
+      start,
+      obstacles,
+      viewport,
+      viewportInset: 24,
+      actorHalfWidth: 36,
+      actorHeight: 208,
+      minimumDistance: 96,
+    });
+
+  it("walks to the farther viewport edge on an open floor", () => {
+    expect(stroll({ x: 900, y: 776 })).toEqual({ x: 24, y: 776 });
+    expect(stroll({ x: 100, y: 776 })).toEqual({ x: 976, y: 776 });
+  });
+
+  it("stops short of a pane that reaches down into the figure's height band", () => {
+    const reader = { left: 200, top: 0, right: 600, bottom: 800, inViewport: true };
+    expect(stroll({ x: 900, y: 776 }, [reader])).toEqual({ x: 636, y: 776 });
+    // A pane that ends above the head is not in the way.
+    const header = { left: 200, top: 0, right: 600, bottom: 500, inViewport: true };
+    expect(stroll({ x: 900, y: 776 }, [header])).toEqual({ x: 24, y: 776 });
+  });
+
+  it("stays inside the pane the figure stands in", () => {
+    const guide = { left: 700, top: 200, right: 1_000, bottom: 776, inViewport: true };
+    expect(stroll({ x: 850, y: 776 }, [guide])).toEqual({ x: 736, y: 776 });
+    expect(stroll({ x: 760, y: 776 }, [guide])).toEqual({ x: 964, y: 776 });
+  });
+
+  it("keeps an elevated Guide stroll on the dock's own floor", () => {
+    const guide = { left: 700, top: 250, right: 1000, bottom: 450, inViewport: true };
+    expect(stroll({ x: 850, y: 450 }, [guide])).toEqual({ x: 736, y: 450 });
+  });
+
+  it("returns null when no direction offers a stroll worth taking", () => {
+    const guide = { left: 700, top: 200, right: 900, bottom: 776, inViewport: true };
+    expect(stroll({ x: 800, y: 776 }, [guide])).toBeNull();
+    expect(
+      stroll({ x: 100, y: 776 }, [
+        { left: 150, top: 0, right: 1_000, bottom: 800, inViewport: true },
+      ]),
+    ).toBeNull();
+  });
+});
