@@ -7,7 +7,7 @@ The Reading Room's always-mounted Guide body. It adapts the existing
 `AskPortfolio` transport to an `@assistant-ui/react` local runtime without
 changing server grounding, validation, limits, or the `[E#]` wire format.
 
-Answers appear word by word; `onNavigateEvidence` routes inline citations to Map and Reader.
+Validated text appears as it arrives; `onNavigateEvidence` routes inline citations to Map and Reader.
 
 ## Props
 
@@ -16,7 +16,7 @@ test/gallery seams; `turnstileSiteKey` enables challenge gating.
 `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
 narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
-Wave, dance, and swim appear in initial and follow-up suggestions; “Play Brain Food” requires desktop with a fine pointer.
+Local play commands bypass model quota, network, and Turnstile. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
 
 The Reading Room uses three coordination props:
 
@@ -56,7 +56,7 @@ export function PortfolioChatExample() {
 - Without `askPortfolio`, the Guide calls the production route; tests need a stub.
 - A `turnstileSiteKey` without a working renderer keeps submission gated.
 - Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
-- Output is buffered until completion, so failed partial answers stay hidden.
+- The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer Latest reply. Failed streams remove their partial text.
 - A send that loses eligibility (offline, expired challenge) fails with one retry.
 - Avatar callback failures stay isolated from the text response.
 - The first server and client render both assume online. Actual

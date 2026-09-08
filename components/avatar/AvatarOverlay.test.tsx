@@ -124,6 +124,12 @@ describe("AvatarOverlay", () => {
     expect(overlay.hasAttribute("hidden")).toBe(false);
   });
 
+  it("renders a still avatar without a continuous frame loop for reduced motion", () => {
+    const avatar = runtime(); avatar.show();
+    render(<AvatarOverlay runtime={avatar} reducedMotion />);
+    expect(screen.getByTestId("avatar-canvas").getAttribute("data-frameloop")).toBe("demand");
+  });
+
   it("renders no public avatar controls", () => {
     const avatar = runtime();
     avatar.show();

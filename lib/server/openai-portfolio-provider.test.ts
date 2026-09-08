@@ -34,7 +34,7 @@ function completedResponse(
     typeof output === "string"
       ? output
       : JSON.stringify(output);
-  return Response.json({
+  const response = {
     id: "resp_portfolio_test",
     output: [
       {
@@ -45,8 +45,14 @@ function completedResponse(
         content: [{ type: "output_text", text, annotations: [] }],
       },
     ],
-    usage,
-  });
+    usage: usage ?? { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+  };
+  const events = [
+    { type: "response.created", response: { id: response.id, output: [] } },
+    { type: "response.output_text.delta", delta: text, output_index: 0 },
+    { type: "response.completed", response },
+  ];
+  return new Response(events.map(event => `data: ${JSON.stringify(event)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } });
 }
 
 function portfolioOutput(
@@ -60,6 +66,45 @@ function portfolioOutput(
 }
 
 describe("OpenAI portfolio provider", () => {
+  it("delivers a validated sentence before the model finishes the response", async () => {
+    const output = portfolioOutput([
+      { text: "First fact.", evidenceIds: ["node:pitching"] },
+      { text: "Second fact.", evidenceIds: ["node:pitching"] },
+    ]);
+    const text = JSON.stringify(output);
+    const split = text.indexOf('},{') + 1;
+    let finish!: () => void;
+    const provider = createOpenAIPortfolioProvider({ apiKey: "sk-test", model: "test",
+      fetchImplementation: async (_input, init) => {
+        if (typeof init?.body !== "string") throw new Error("Expected a serialized request");
+        expect(JSON.parse(init.body).stream).toBe(true);
+        const encoder = new TextEncoder();
+        return new Response(new ReadableStream({ start(controller) {
+          const send = (event: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          send({ type: "response.created", response: { id: "resp_test", output: [] } });
+          send({ type: "response.output_text.delta", delta: text.slice(0, split), output_index: 0 });
+          let finished = false;
+          finish = () => {
+            if (finished) return;
+            finished = true;
+            send({ type: "response.output_text.delta", delta: text.slice(split), output_index: 0 });
+            send({ type: "response.completed", response: { id: "resp_test", output: [{ type: "message", id: "msg_test", role: "assistant", status: "completed", content: [{ type: "output_text", text, annotations: [] }] }], usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } });
+            controller.close();
+          };
+        } }), { headers: { "content-type": "text/event-stream" } });
+      },
+    });
+    const stream = provider.streamAnswer({ question: "Tell me about pitching", evidence });
+    const iterator = stream[Symbol.asyncIterator]();
+    try {
+      expect(await iterator.next()).toEqual({ done: false, value: "First fact. [E1]\n\n" });
+      finish();
+      const remaining: string[] = [];
+      for await (const delta of stream) remaining.push(delta);
+      expect(remaining.join("")).toBe("Second fact. [E1]\n\n");
+    } finally { finish?.(); }
+  });
+
   it.each(["Play Brain Food", "let's play brain food", "start brain food game", "can we play brain food?"])("starts Brain Food from %s without model selection", async (question) => {
     const provider = createOpenAIPortfolioProvider({
       apiKey: "sk-test", model: "test",
@@ -126,7 +171,7 @@ describe("OpenAI portfolio provider", () => {
     });
     const effects: unknown[] = [];
     for await (const chunk of provider.streamAnswer({question, evidence, onEffects: effect => effects.push(effect)})) {
-      expect(chunk).toBe("Chat answer.");
+      expect(chunk.trimEnd()).toBe("Chat answer.");
     }
     expect(effects).toEqual([{ avatarAction: null, issues: [] }]);
   });
@@ -177,7 +222,7 @@ describe("OpenAI portfolio provider", () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toEqual([
+    expect(chunks.map(chunk => chunk.trimEnd())).toEqual([
       "Human approval stays explicit. [E1]\n\nThe system arranges research and outreach around that approval. [E1]",
     ]);
     expect(onMode).toHaveBeenCalledWith("portfolio");
@@ -188,7 +233,7 @@ describe("OpenAI portfolio provider", () => {
     });
 
     const body = JSON.parse(requestBody);
-    expect(body.stream).toBe(false);
+    expect(body.stream).toBe(true);
     expect(body.text?.format).toMatchObject({
       type: "json_schema",
       strict: true,
@@ -236,7 +281,7 @@ describe("OpenAI portfolio provider", () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toEqual([
+    expect(chunks.map(chunk => chunk.trimEnd())).toEqual([
       "Human approval stays explicit. [E1] Research and outreach lead into it. [E1]",
     ]);
   });
@@ -301,7 +346,7 @@ describe("OpenAI portfolio provider", () => {
     }
 
     expect(onMode).toHaveBeenCalledWith(mode);
-    expect(chunks).toEqual([answer]);
+    expect(chunks.map(chunk => chunk.trimEnd())).toEqual([answer]);
   });
 
   it("keeps credentials server-side and sends the bounded model configuration", async () => {
@@ -347,7 +392,7 @@ describe("OpenAI portfolio provider", () => {
     const body = JSON.parse(String(init?.body));
     expect(body).toMatchObject({
       model: "portfolio-model-test",
-      stream: false,
+      stream: true,
       store: false,
       max_output_tokens: 3_000,
       reasoning: { effort: "medium" },
@@ -393,7 +438,7 @@ describe("OpenAI portfolio provider", () => {
       ],
       evidence,
     })) {
-      expect(chunk).toBe("Grounded. [E1]");
+      expect(chunk.trimEnd()).toBe("Grounded. [E1]");
     }
 
     const body = JSON.parse(requestBody);
@@ -458,7 +503,7 @@ describe("OpenAI portfolio provider", () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toEqual([
+    expect(chunks.map(chunk => chunk.trimEnd())).toEqual([
       "I don't know Bradley's favorite soup. If he publishes it, this portfolio will gain one strangely important data point.",
     ]);
     const responseFormat = JSON.parse(requestBody).text.format;
@@ -504,7 +549,7 @@ describe("OpenAI portfolio provider", () => {
       portfolioOutput([
         { text: "Unsupported.", evidenceIds: ["node:not-supplied"] },
       ]),
-      "invalid_final_output",
+      "unknown_evidence",
     ],
   ])("rejects %s without exposing it", async (_label, output, failureKind) => {
     const onFailure = vi.fn();
@@ -577,7 +622,7 @@ describe("OpenAI portfolio provider", () => {
     } as PortfolioChatProviderInput)) {
       chunks.push(chunk);
     }
-    expect(chunks).toEqual(["Grounded. [E1]"]);
+    expect(chunks.map(chunk => chunk.trimEnd())).toEqual(["Grounded. [E1]"]);
   });
 
   it("reports an explicit swim request in time for post-reaction scheduling", async () => {
@@ -656,7 +701,7 @@ describe("OpenAI portfolio provider", () => {
         onEffects,
         onFailure,
       })) {
-        throw new Error(`Unexpected provider output: ${chunk}`);
+        expect(chunk.trimEnd()).toBe("Nope.");
       }
     }).rejects.toThrow("OpenAI agent run failed.");
 

@@ -103,9 +103,13 @@ export function useBrainFoodSession({
     restore();
   }, [avatarRuntime, restore]);
 
+  useEffect(() => {
+    if (!enabled || reducedMotion) cancel();
+  }, [cancel, enabled, reducedMotion]);
+
   const begin = useCallback(() => {
     if (
-      !enabled ||
+      !enabled || reducedMotion ||
       activeRef.current ||
       window.innerWidth < 1020 ||
       avatarRuntime.getSnapshot().failed ||
@@ -136,10 +140,10 @@ export function useBrainFoodSession({
     setActive(true);
     avatarRuntime.beginBrainFood(position);
     document.querySelector<HTMLElement>(".portfolio-world")?.focus();
-  }, [avatarRuntime, enabled, restore]);
+  }, [avatarRuntime, enabled, reducedMotion, restore]);
 
   const start = useCallback(() => {
-    if (!enabled || activeRef.current || preparingRef.current || window.innerWidth < 1020 || avatarRuntime.getSnapshot().failed || (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)) return false;
+    if (!enabled || reducedMotion || activeRef.current || preparingRef.current || window.innerWidth < 1020 || avatarRuntime.getSnapshot().failed || (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)) return false;
     sessionId.current += 1;
     wasVisibleRef.current = avatarRuntime.getSnapshot().visible;
     focusBeforePlay.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -147,7 +151,7 @@ export function useBrainFoodSession({
     preparingRef.current = true;
     setPreparing(true);
     return true;
-  }, [avatarRuntime, enabled]);
+  }, [avatarRuntime, enabled, reducedMotion]);
 
   useEffect(() => {
     if (!preparing) return;

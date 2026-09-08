@@ -218,21 +218,29 @@ async function* validatedAnswerDeltas(
   evidenceCount: number,
 ) {
   let buffer = "";
-  const paragraphBeforeCitation =
-    /\n\n(?=[\s\S]*\[E[1-9]\d*\])/;
+  const paragraphBoundaryPattern = /\n\n/;
   const followedCitation =
     /\[E[1-9]\d*\](?:\s*\[E[1-9]\d*\])*(?=\s+[^\s[])/;
 
   for await (const delta of deltas) {
     buffer += delta;
-    let paragraphBoundary = paragraphBeforeCitation.exec(buffer);
+    let paragraphBoundary = paragraphBoundaryPattern.exec(buffer);
     while (paragraphBoundary) {
       const end = paragraphBoundary.index + paragraphBoundary[0].length;
-      const segment = buffer.slice(0, end);
-      validatePortfolioSegment(segment, evidenceCount);
-      yield segment;
+      let paragraph = buffer.slice(0, end);
+      let citationBoundary = followedCitation.exec(paragraph);
+      while (citationBoundary) {
+        const citationEnd = citationBoundary.index + citationBoundary[0].length;
+        const sentence = paragraph.slice(0, citationEnd);
+        validatePortfolioSegment(sentence, evidenceCount);
+        yield sentence;
+        paragraph = paragraph.slice(citationEnd);
+        citationBoundary = followedCitation.exec(paragraph);
+      }
+      validatePortfolioSegment(paragraph, evidenceCount);
+      if (paragraph) yield paragraph;
       buffer = buffer.slice(end);
-      paragraphBoundary = paragraphBeforeCitation.exec(buffer);
+      paragraphBoundary = paragraphBoundaryPattern.exec(buffer);
     }
     let boundary = followedCitation.exec(buffer);
     while (boundary) {

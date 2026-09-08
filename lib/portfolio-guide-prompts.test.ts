@@ -9,16 +9,16 @@ describe("Guide initial prompts", () => {
   it("rotates deterministic starter sets with a permanent game entry from the visit seed", () => {
     // Catches every visit returning the same handoff starter set.
     expect(getGuideInitialPrompts(0).map(({ text }) => text)).toEqual([
-      "Where should I start?",
-      "What does Brain in a Vat do?",
+      "What kind of work does Bradley do?",
+      "Which project best shows how Bradley thinks?",
       "Wave hello",
       "Can you dance?",
       "Go for a swim",
       "Play Brain Food",
     ]);
     expect(getGuideInitialPrompts(1).map(({ text }) => text)).toEqual([
-      "Which projects are in production?",
-      "How did the agency lead to consulting?",
+      "Which projects can I try today?",
+      "What could Bradley help my team with?",
       "Wave hello",
       "Can you dance?",
       "Go for a swim",
@@ -47,8 +47,8 @@ describe("Guide initial prompts", () => {
         title: "INFAMOUS PR",
       }).map(({ text, evidenceId }) => ({ text, evidenceId })),
     ).toEqual([
-      { text: "Summarise INFAMOUS PR", evidenceId: "node:infamous" },
-      { text: "What is related to this?", evidenceId: "node:infamous" },
+      { text: "What problem does INFAMOUS PR solve?", evidenceId: "node:infamous" },
+      { text: "How does this connect to Bradley's other work?", evidenceId: "node:infamous" },
       { text: "Wave hello", evidenceId: undefined },
       { text: "Can you dance?", evidenceId: undefined },
       { text: "Go for a swim", evidenceId: undefined },
@@ -58,6 +58,12 @@ describe("Guide initial prompts", () => {
 });
 
 describe("Guide follow-up prompts", () => {
+  it("does not suggest a question already asked in this conversation", () => {
+    const prompts = getGuideFollowUpPrompts([{ id: "node:dubs", title: "Dubs", excerpt: "", href: "/?view=graph#dubs" }], ["What problem does Dubs solve?", "How does this connect to Bradley's other work?", "What problem does Dubs solve?", "What changed because of Dubs?"]);
+    expect(prompts.filter(prompt => prompt.tone === "serious")).toHaveLength(2);
+    expect(prompts.some(prompt => ["What problem does Dubs solve?", "How does this connect to Bradley's other work?", "What problem does Dubs solve?", "What changed because of Dubs?"].includes(prompt.text))).toBe(false);
+  });
+
   it("keys follow-ups to the first cited evidence and has a stable fallback", () => {
     // Catches follow-ups drifting with array order or inventing a subject without evidence.
     const cited: PortfolioGroundingEvidence[] = [{
@@ -68,16 +74,16 @@ describe("Guide follow-up prompts", () => {
     }];
 
     expect(getGuideFollowUpPrompts(cited).map(({ text }) => text)).toEqual([
-      "Summarise Dubs",
-      "What is related to this?",
+      "What problem does Dubs solve?",
+      "What changed because of Dubs?",
       "Wave hello",
       "Can you dance?",
       "Go for a swim",
       "Play Brain Food",
     ]);
     expect(getGuideFollowUpPrompts([]).map(({ text }) => text)).toEqual([
-      "Where should Bradley's story start?",
-      "Which projects are in production?",
+      "What kind of work does Bradley do?",
+      "Which projects can I try today?",
       "Wave hello",
       "Can you dance?",
       "Go for a swim",

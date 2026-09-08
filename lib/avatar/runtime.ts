@@ -100,6 +100,7 @@ export type AvatarSnapshot = {
   swimHeading: number | null;
   visible: boolean;
   failed: boolean;
+  ready: boolean;
   /** The dock area's height the actor must fit inside, or null. */
   fitHeight: number | null;
 };
@@ -198,6 +199,7 @@ export class AvatarRuntime {
       swimHeading: null,
       visible: false,
       failed: false,
+      ready: false,
       fitHeight: stage.dockHeight ?? null,
     };
   }
@@ -222,11 +224,11 @@ export class AvatarRuntime {
     const failed = (Object.keys(avatarClips) as AvatarClip[]).some(
       (clip) => !available.has(clip),
     );
-    if (failed !== this.#snapshot.failed) this.#update({ failed });
+    if (failed !== this.#snapshot.failed || !this.#snapshot.ready) this.#update({ failed, ready: !failed });
   };
 
   markFailed = () => {
-    this.#update({ failed: true });
+    this.#update({ failed: true, ready: false });
   };
 
   show() {

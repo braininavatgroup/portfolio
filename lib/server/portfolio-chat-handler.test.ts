@@ -24,6 +24,42 @@ async function readEvents(response: Response) {
 }
 
 describe("portfolio chat route handler", () => {
+  it("validates each cited sentence within a completed streamed paragraph", async () => {
+    const handler = createPortfolioChatHandler({ getProvider: () => ({ async *streamAnswer() {
+      yield "Human approval stays explicit. [E1] Research and outreach lead into it. [E1]\n\n";
+    } }) });
+    const events = await readEvents(await handler(questionRequest("What does Bradley do?")));
+    expect(events.filter(event => event.type === "answer_delta").map(event => event.delta).join("")).toBe("Human approval stays explicit. [E1] Research and outreach lead into it. [E1]\n\n");
+    expect(events.some(event => event.type === "error")).toBe(false);
+  });
+
+  it("sends a complete validated paragraph while the provider is still generating", async () => {
+    let finish!: () => void;
+    const waiting = new Promise<void>(resolve => { finish = resolve; });
+    const handler = createPortfolioChatHandler({ getProvider: () => ({ async *streamAnswer({ onMode }) {
+      onMode?.("portfolio");
+      yield "First fact. [E1]\n\n";
+      await waiting;
+      yield "Second fact. [E1]";
+    } }) });
+    const response = await handler(questionRequest("What does Bradley do?"));
+    const reader = response.body!.getReader();
+    let received = "";
+    const firstText = async () => {
+      while (!received.includes('answer_delta')) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        received += new TextDecoder().decode(chunk.value);
+      }
+      return received;
+    };
+    let timer: ReturnType<typeof setTimeout>;
+    try {
+      const result = await Promise.race([firstText(), new Promise<string>(resolve => { timer = setTimeout(() => resolve("timed out waiting for first text"), 1000); })]);
+      expect(result).toContain('First fact. [E1]');
+    } finally { clearTimeout(timer!); finish(); await reader.cancel(); }
+  });
+
   it("streams deterministic attribution before grounded answer deltas", async () => {
     const provider: PortfolioChatProvider = {
       async *streamAnswer({ question, evidence }) {

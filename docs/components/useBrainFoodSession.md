@@ -42,7 +42,7 @@ export function UseBrainFoodSessionExample() {
 
 ## Pitfalls
 
-- It intentionally refuses to start at widths below 1020px and on coarse-pointer devices.
+- It refuses to start below 1020px, on coarse pointers, or with reduced motion. Losing enabled status or enabling reduced motion cancels active and preparing games.
 - Bradley is never edible; `edibleNodeCount` must exclude that identity node.
 - Escape restores the avatar visibility from before the game rather than assuming chat is open.
 - Collection uses the swimmer-sized swept path between frames, not only the

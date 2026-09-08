@@ -3,28 +3,19 @@
 Source: [`components/avatar/AvatarOverlay.tsx`](../../../components/avatar/AvatarOverlay.tsx) ·
 Gallery: `/design#avatar` · Tests: `components/avatar/AvatarOverlay.test.tsx`
 
-The avatar's mount point: a pointer-events-none layer holding one orthographic
-`<Canvas>` with an [`AvatarStageActor`](./AvatarStageActor.md) inside. It
-subscribes to the controller with `useSyncExternalStore`, publishes state as
-`data-avatar-state`, drops `frameloop` to `"never"` and stops the director when
-the document is hidden, and converts a renderer construction failure or a
-render throw into `controller.markFailed()` rather than a blank crash. The
-canvas mounts on the first `show()` and stays mounted: hiding sets `hidden` and
-pauses the frameloop, since unmounting mid-reconfigure crashed r3f's connect.
+Mounts one orthographic Canvas and AvatarStageActor, subscribes to AvatarRuntime,
+and exposes its phase through `data-avatar-state`. Renderer construction and
+render failures mark the runtime failed while leaving the portfolio usable.
 
 ## Props
 
-`controller`, `enabled`, and `onEnabledChange` are required. `director`,
-`registry`, `development`, `debug`, `reducedMotion`,
-`onExpandedPanelChange`, and `createRenderer` are optional — see
-[`AvatarOverlayProps`](../../../components/avatar/AvatarOverlay.tsx).
+`runtime` is required. `reducedMotion` defaults to false. `createRenderer` is an
+optional test seam; production constructs a transparent antialiased renderer.
 
 ## Requires
 
-Nothing mandatory beyond the controller. Registering a stage
-(`registry.registerStage`) is a refinement, not a precondition: with none, the
-registry falls back to the window, so the avatar stands on the viewport floor
-at full width instead of on the intended element.
+The runtime must have a stage reader and be shown by its owner. PortfolioExperience
+owns visibility; useAvatarStage owns layout registration and dock updates.
 
 ## Example
 
@@ -51,15 +42,10 @@ export function AvatarOverlayExample() {
 
 ## Pitfalls
 
-- **`enabled` is two-way.** The controller can clear `visible` itself — an
-  `exit` command settling does this — and the overlay then calls
-  `onEnabledChange(false)`. Treating `enabled` as write-only desyncs the
-  parent. (A renderer failure sets `failed`, not `visible`.)
-- **The Director console needs five conditions at once**: the lazy import
-  existing (`import.meta.env.DEV`), then `development`, `debug`, `director`, and
-  `registry`. It is compiled out of production entirely.
-- **`pointer-events: none` is set inline**, deliberately, so the overlay never
-  intercepts clicks meant for the composition beneath it.
-- **`RendererBoundary` here catches render-phase throws only.** Async and
-  context-loss failures arrive through the controller instead.
-- **Hidden is not unmounted.** Only `failed` removes the canvas; read `hidden`.
+- The Canvas mounts on first show and stays mounted while hidden. Unmounting
+  during a resize can race the renderer's event reconnection.
+- Hidden documents and hidden avatars stop the frame loop. Reduced motion uses
+  demand rendering to retain a still figure without continuous idle animation.
+- Hide/Show controls belong to the Guide, outside the pointer-transparent overlay.
+- Render-phase errors use the boundary; asynchronous failures report to runtime.
+- Successful asset validation marks the runtime ready. Suggestions wait for it.

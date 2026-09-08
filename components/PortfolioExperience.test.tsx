@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AvatarRuntime } from "../lib/avatar/runtime";
+import { avatarClips, type AvatarClip, type AvatarRuntime } from "../lib/avatar/runtime";
 import { startPrivacySafeReplay } from "../lib/portfolio-analytics";
 import { portfolioWorldNodeById, portfolioWorldNodes } from "../lib/portfolio-world";
 import { PortfolioExperience } from "./PortfolioExperience";
@@ -11,6 +11,7 @@ vi.mock("./avatar/AvatarOverlay", async () => {
   const React = await import("react");
   return {
     AvatarOverlay: ({ runtime }: { runtime: AvatarRuntime }) => {
+      React.useEffect(() => runtime.setAvailableClips(new Set(Object.keys(avatarClips) as AvatarClip[])), [runtime]);
       const snapshot = React.useSyncExternalStore(
         runtime.subscribe,
         runtime.getSnapshot,
@@ -199,7 +200,7 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     submitGuide("Show the evidence.");
     fireEvent.click(await screen.findByRole("button", {
-      name: `[E1] ${node.label}`,
+      name: `Source: ${node.label}`,
     }));
 
     expect(window.clarity?.q).toContainEqual([
@@ -319,7 +320,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Map tab" }));
     submitGuide("Tell me about pitching.");
     const citation = await screen.findByRole("button", {
-      name: "[E1] Music promo campaign pitching",
+      name: "Source: Music promo campaign pitching",
     });
 
     fireEvent.click(citation);

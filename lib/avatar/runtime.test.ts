@@ -6,6 +6,8 @@ import {
   SWIM_DOCKING_MS,
   WAVE_MS,
   avatarDanceDurationsMs,
+  avatarClips,
+  type AvatarClip,
   avatarDances,
   selectStrollReturn,
   type AvatarStageGeometry,
@@ -26,6 +28,15 @@ function runtime(reducedMotion = false) {
 describe("minimal avatar runtime", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
+
+  it("reports loading until required clips are ready, and reports failed assets", () => {
+    const avatar = runtime();
+    expect(avatar.getSnapshot().ready).toBe(false);
+    avatar.setAvailableClips(new Set(Object.keys(avatarClips) as AvatarClip[]));
+    expect(avatar.getSnapshot().ready).toBe(true);
+    avatar.markFailed();
+    expect(avatar.getSnapshot()).toMatchObject({ ready: false, failed: true });
+  });
 
   it("queues a dedicated wave after the answer and restores the accepted idle", async () => {
     const avatar = runtime(); avatar.show();

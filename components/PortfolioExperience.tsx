@@ -9,6 +9,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
@@ -75,6 +76,7 @@ export function PortfolioExperience() {
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [gameNotice, setGameNotice] = useState("");
+  const [avatarHidden, setAvatarHidden] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
   const [guideHasThread, setGuideHasThread] = useState(false);
   const [guideResetSignal, setGuideResetSignal] = useState(0);
@@ -85,11 +87,25 @@ export function PortfolioExperience() {
     refreshAvatarDock,
     registerAvatarDock,
     registerAvatarStage,
-  } = useAvatarStage({ assistantOpen: guideVisible, reducedMotion });
+  } = useAvatarStage({ assistantOpen: guideVisible && !avatarHidden, reducedMotion });
+  const avatarStatus = useSyncExternalStore<"ready" | "loading" | "unavailable">(avatarRuntime.subscribe,
+    () => avatarRuntime.getSnapshot().failed ? "unavailable" : avatarRuntime.getSnapshot().ready ? "ready" : "loading",
+    () => "loading",
+  );
+  const [gameSupported, setGameSupported] = useState(false);
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1020px)");
+    const coarse = window.matchMedia("(pointer: coarse)");
+    const update = () => setGameSupported(desktop.matches && !coarse.matches);
+    update();
+    desktop.addEventListener("change", update);
+    coarse.addEventListener("change", update);
+    return () => { desktop.removeEventListener("change", update); coarse.removeEventListener("change", update); };
+  }, []);
   const brainFood = useBrainFoodSession({
     avatarRuntime,
     edibleNodeCount: portfolioWorldNodes.length - 1,
-    enabled: avatarMounted,
+    enabled: avatarMounted && !avatarHidden && avatarStatus === "ready" && !reducedMotion,
     reducedMotion,
   });
   const selectedWorldNode = selectedWorldId
@@ -218,13 +234,14 @@ export function PortfolioExperience() {
     }
   }, [navigateToWorldNode, showHomeAndSyncLocation]);
 
+  const startBrainFood = brainFood.start;
   const avatarIntegration = useMemo(
     () => ({
       onTurnStart: () => {
         avatarRuntime.cancel();
       },
       onFirstText: () => {
-        void avatarRuntime.react();
+        if (!reducedMotion && !avatarHidden) void avatarRuntime.react();
       },
       onEffects: (effects: PortfolioResponseEffects) => {
         if (effects.avatarAction === "swim_lap") {
@@ -236,14 +253,14 @@ export function PortfolioExperience() {
         } else if (effects.avatarAction === "dance") {
           void avatarRuntime.queueDance();
         } else if (effects.avatarAction === "brain_food") {
-          const started = brainFood.start();
+          const started = startBrainFood();
           setGameNotice(started ? "" : "Brain Food needs a keyboard and a larger window, with Bradley ready to play.");
         } else if (effects.avatarAction === "turn") {
           void avatarRuntime.queueTurn();
         }
       },
     }),
-    [avatarRuntime, brainFood.start],
+    [avatarRuntime, startBrainFood, reducedMotion, avatarHidden],
   );
 
   useEffect(() => {
@@ -312,6 +329,8 @@ export function PortfolioExperience() {
   const guide = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
+      actionAvailability={{ status: avatarHidden ? "hidden" : avatarStatus, reducedMotion, gameSupported }}
+      onToggleAvatar={() => { brainFood.cancel(); setAvatarHidden(hidden => !hidden); }}
       onLayoutChange={refreshAvatarDock}
       onNavigateEvidence={navigateGuideEvidence}
       onThreadStateChange={setGuideHasThread}

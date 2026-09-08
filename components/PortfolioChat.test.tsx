@@ -10,7 +10,6 @@ import {
   expect,
   it,
   vi,
-  type MockInstance,
 } from "vitest";
 import {
   PortfolioChatClientError,
@@ -142,7 +141,7 @@ describe("docked portfolio Guide", () => {
 
     submit("Tell me about pitching");
     const citation = await screen.findByRole("button", {
-      name: "[E1] Music promo campaign pitching",
+      name: "Source: Music promo campaign pitching",
     });
     await screen.findByText((_, element) =>
       Boolean(element?.classList.contains("chat-answer") && element.textContent?.includes("Unknown [E2].")),
@@ -173,11 +172,11 @@ describe("docked portfolio Guide", () => {
 
     submit("Tell me about pitching");
     await screen.findByRole("button", {
-      name: "[E2] Music promo campaign pitching",
+      name: "Source: Music promo campaign pitching",
     });
 
     const followUp = await screen.findByRole("button", {
-        name: "Summarise Music promo campaign pitching",
+        name: "What problem does Music promo campaign pitching solve?",
       });
     expect(followUp.querySelector('[data-control="chevron"]')).toBeTruthy();
     expect(
@@ -203,9 +202,9 @@ describe("docked portfolio Guide", () => {
     // Advance inside act so the state change the timer makes is committed
     // before each assertion reads the DOM.
     await act(() => vi.advanceTimersByTimeAsync(9_999));
-    expect(screen.queryByText("Still thinking. The records are long.")).toBeNull();
+    expect(screen.queryByText("Still thinking…")).toBeNull();
     await act(() => vi.advanceTimersByTimeAsync(1));
-    expect(screen.getByText("Still thinking. The records are long.")).toBeTruthy();
+    expect(screen.getByText("Still thinking…")).toBeTruthy();
     expect(document.querySelector(".portfolio-guide-twirl")).toBeTruthy();
   });
 
@@ -219,7 +218,7 @@ describe("docked portfolio Guide", () => {
     submit("Retry this exactly");
 
     const retry = await screen.findByRole("button", { name: "Try again" });
-    expect(screen.getByText("Something went wrong.")).toBeTruthy();
+    expect(screen.getByText("The Guide could not finish that reply.")).toBeTruthy();
     expect(screen.queryByText("partial")).toBeNull();
     fireEvent.click(retry);
     await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(2));
@@ -238,7 +237,7 @@ describe("docked portfolio Guide", () => {
     render(<PortfolioChat askPortfolio={async () => {}} resetSignal={0} />);
 
     const input = screen.getByLabelText("Ask a question about the portfolio");
-    expect((input as HTMLTextAreaElement).disabled).toBe(true);
+    expect((input as HTMLTextAreaElement).disabled).toBe(false);
     expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
 
     online = true;
@@ -308,7 +307,7 @@ describe("docked portfolio Guide", () => {
       }
       submit("Tell me about pitching");
       const followUp = await screen.findByRole("button", {
-        name: "Summarise Music promo campaign pitching",
+        name: "What problem does Music promo campaign pitching solve?",
       });
 
       if (blockedBy === "offline") {
@@ -410,7 +409,7 @@ describe("docked portfolio Guide", () => {
 
       const retry = await screen.findByRole("button", { name: "Try again" });
       expect(askPortfolio).not.toHaveBeenCalled();
-      expect(screen.getByText("Something went wrong.")).toBeTruthy();
+      expect(screen.getByText("The Guide could not finish that reply.")).toBeTruthy();
       // The failure notice is component state; the user bubble is the
       // runtime's own subscription and can commit a beat later on a starved
       // worker, so wait for it instead of reading it synchronously.
@@ -567,58 +566,61 @@ describe("docked portfolio Guide", () => {
     await waitFor(() => expect(reset).toHaveBeenCalledTimes(1));
   });
 
-  it("reveals the first word before the complete answer and removes settled abort listeners", async () => {
-    // Catches the local reveal collapsing into one paint or retaining listeners after normal waits.
-    vi.useFakeTimers();
-    let addAbortListener: MockInstance<AbortSignal["addEventListener"]> | undefined;
-    let removeAbortListener: MockInstance<AbortSignal["removeEventListener"]> | undefined;
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent, signal }) => {
-      addAbortListener = vi.spyOn(signal!, "addEventListener");
-      removeAbortListener = vi.spyOn(signal!, "removeEventListener");
-      onEvent({ type: "answer_delta", delta: "First second third fourth fifth sixth." });
+  it("shows incoming text before the request completes without an artificial reveal delay", async () => {
+    let finish!: () => void;
+    const askPortfolio: AskPortfolio = async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "First validated sentence." });
+      await new Promise<void>(resolve => { finish = resolve; });
+      onEvent({ type: "answer_delta", delta: " Second sentence." });
       onEvent({ type: "done" });
-    });
-    render(<PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />);
-
-    submit("Reveal this");
-    await vi.waitFor(() => {
-      const visibleAnswer = document.querySelector(".chat-answer")?.textContent;
-      expect(visibleAnswer).toContain("First");
-      expect(visibleAnswer).not.toBe("First second third fourth fifth sixth.");
-    }, { interval: 1, timeout: 100 });
-
-    await vi.advanceTimersByTimeAsync(1_000);
-    await vi.waitFor(() =>
-      expect(screen.getByText("First second third fourth fifth sixth.")).toBeTruthy(),
-    );
-    expect(addAbortListener).toHaveBeenCalledTimes(6);
-    expect(removeAbortListener).toHaveBeenCalledTimes(6);
+    };
+    render(<PortfolioChat askPortfolio={askPortfolio} />);
+    submit("Tell me about your work");
+    expect(await screen.findByText("First validated sentence.")).toBeTruthy();
+    expect(document.querySelector(".portfolio-chat")?.getAttribute("data-pending")).toBe("true");
+    await act(async () => finish());
+    expect(await screen.findByText("First validated sentence. Second sentence.")).toBeTruthy();
   });
 
-  it("aborts an in-progress word reveal when reset starts a new conversation", async () => {
-    // Catches old reveal timers repopulating a transcript after reset.
-    vi.useFakeTimers();
-    let signal: AbortSignal | undefined;
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
-      signal = options.signal;
-      options.onEvent({ type: "answer_delta", delta: "First second third fourth fifth sixth." });
-      options.onEvent({ type: "done" });
-    });
-    const { rerender } = render(
-      <PortfolioChat askPortfolio={askPortfolio} resetSignal={0} />,
-    );
-    submit("Reveal then reset");
-    await vi.waitFor(() => {
-      const visibleAnswer = document.querySelector(".chat-answer")?.textContent;
-      expect(visibleAnswer).toContain("First");
-      expect(visibleAnswer).not.toBe("First second third fourth fifth sixth.");
-    }, { interval: 1, timeout: 100 });
+  it.each(["Wave hello", "Can you dance?", "Go for a swim", "Play Brain Food"])(
+    "handles %s locally while offline and without a challenge token", async (question) => {
+      vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+      const askPortfolio = vi.fn<AskPortfolio>(async () => { throw new Error("No network for play"); });
+      const onEffects = vi.fn();
+      render(<PortfolioChat askPortfolio={askPortfolio} turnstileSiteKey="test"
+        renderTurnstile={async () => ({ reset() {}, remove() {} })}
+        avatarIntegration={{ onTurnStart() {}, onFirstText() {}, onEffects }} />);
+      const button = await screen.findByRole("button", { name: question });
+      expect((button as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(button);
+      await waitFor(() => expect(onEffects).toHaveBeenCalledTimes(1));
+      expect(askPortfolio).not.toHaveBeenCalled();
+    },
+  );
 
-    rerender(<PortfolioChat askPortfolio={askPortfolio} resetSignal={1} />);
-    expect(signal?.aborted).toBe(true);
-    expect(screen.queryByText("Reveal then reset")).toBeNull();
-    await vi.advanceTimersByTimeAsync(1_000);
-    expect(screen.queryByText("First second third fourth fifth sixth.")).toBeNull();
+  it("hides unavailable action suggestions and explains a typed command", async () => {
+    const askPortfolio = vi.fn<AskPortfolio>();
+    const onEffects = vi.fn();
+    render(<PortfolioChat askPortfolio={askPortfolio}
+      actionAvailability={{ status: "unavailable", reducedMotion: false, gameSupported: true }}
+      avatarIntegration={{ onTurnStart() {}, onFirstText() {}, onEffects }} />);
+    expect(screen.queryByRole("button", { name: "Can you dance?" })).toBeNull();
+    submit("Can you dance?");
+    expect(await screen.findByText(/avatar couldn't load/i)).toBeTruthy();
+    expect(onEffects).not.toHaveBeenCalled();
+    expect(askPortfolio).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["budget_exhausted", /daily allowance/i, false],
+    ["rate_limited", /wait a minute/i, true],
+    ["misconfigured", /temporarily unavailable/i, false],
+  ])("explains %s without exposing internal service details", async (code, message, retryable) => {
+    render(<PortfolioChat askPortfolio={async () => { throw new PortfolioChatClientError(code, "SECRET INTERNAL DETAILS"); }} />);
+    submit("Tell me about Bradley");
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(screen.queryByText("SECRET INTERNAL DETAILS")).toBeNull();
+    expect(Boolean(screen.queryByRole("button", { name: "Try again" }))).toBe(retryable);
   });
 
   it("aborts stale turns and ignores their late events", async () => {
@@ -796,7 +798,7 @@ describe("docked portfolio Guide", () => {
     expect(onLayoutChange).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
     await screen.findByText((_, element) =>
-      Boolean(element?.classList.contains("chat-answer") && element.textContent === "Copy this [E1]."),
+      Boolean(element?.classList.contains("chat-answer") && element.textContent === "Copy this Music promo campaign pitching."),
     );
     fireEvent.click(screen.getByRole("button", { name: "Copy answer" }));
     expect(writeText).toHaveBeenCalledWith("Copy this [E1].");
