@@ -92,6 +92,29 @@ describe("useAvatarStage", () => {
     });
   });
 
+  it.each([1440, 1041])("swims out of the right Guide with a map ending at %i", async (mapRight) => {
+    vi.stubGlobal("innerWidth", 1440); vi.stubGlobal("innerHeight", 900);
+    const reader = document.createElement("section"); reader.className = "portfolio-reader";
+    reader.getBoundingClientRect = elementAt(320, 40, 721, 860).getBoundingClientRect;
+    document.body.appendChild(reader);
+    const { result } = renderHook(() => useAvatarStage({ assistantOpen: true, reducedMotion: false }));
+    try {
+      act(() => {
+        result.current.registerAvatarStage(elementAt(320, 40, mapRight - 320, 320));
+        result.current.registerAvatarDock(elementAt(1066, 424, 350, 136));
+        void result.current.avatarRuntime.queueSwimLap();
+      });
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const snapshot = result.current.avatarRuntime.getSnapshot();
+      expect(snapshot.phase).toBe("swimming");
+      expect(snapshot.motion!.points.some(point => point.y < 424)).toBe(true);
+      // The route can cross its own empty avatar area, but still clears Reader.
+      expect(snapshot.motion!.points.every(point => point.x >= 1129)).toBe(true);
+      await act(async () => { await vi.runAllTimersAsync(); });
+      expect(result.current.avatarRuntime.getSnapshot()).toMatchObject({ phase: "idle", position: { x: 1241, y: 560 } });
+    } finally { reader.remove(); }
+  });
+
   it("re-docks on any Guide resize, not only the avatar area's", () => {
     const observed: Element[] = [];
     const original = globalThis.ResizeObserver;

@@ -58,12 +58,12 @@ export function useAvatarStage({
   const readStage = useCallback((): AvatarStageGeometry => {
     const viewport = viewportSize();
     const stageBounds = stageRef.current?.getBoundingClientRect();
+    const chatBounds = chatRef.current?.getBoundingClientRect();
     const width =
       stageBounds && stageBounds.width > 0
-        ? Math.max(1, Math.min(viewport.width, stageBounds.right))
+        ? Math.max(1, Math.min(viewport.width, Math.max(stageBounds.right, chatBounds?.right ?? 0)))
         : viewport.width;
     const floorY = viewport.height - bottomInset;
-    const chatBounds = chatRef.current?.getBoundingClientRect();
     const docked = Boolean(chatBounds && chatBounds.width > 0 && chatBounds.height > 0);
     const dock = docked && chatBounds
       ? {
@@ -86,6 +86,9 @@ export function useAvatarStage({
       dock,
       dockHeight,
       obstacles,
+      swimObstacles: [obstacleFor(reader)].filter(
+        (value): value is AvatarStageObstacle => value !== null,
+      ),
       viewport: { width, height: viewport.height, floorY },
     };
   }, []);

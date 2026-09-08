@@ -19,7 +19,8 @@ replace clips by name. Clip names lose Meshy's `Armature|…|baselayer` wrapper.
 
 `bradley-meshy-rigged.glb` is the earlier untextured Meshy Pro export from
 2026-08-25. It shares the portrait's 24-joint rig and is kept for its
-conversational `Agree_Gesture`, which the portrait was never exported with.
+conversational `Agree_Gesture` and dedicated `Wave_One_Hand` greeting, which
+the portrait was never exported with.
 
 The production asset is rebuilt with one repository command:
 
@@ -44,6 +45,8 @@ wrist, shoulder, neck, and pelvis adjustments.
 The pose is baked after asset optimization and validates the exact baseline
 SHA-256 before applying any offsets. Each edited Idle rotation channel gets
 its own keyframe data so shared accessors cannot affect other animations.
+The wave is retargeted and appended after this hash-validated pose bake, so
+adding a gesture does not change the accepted baseline or any existing clip.
 The bind pose, skin weights, textures, and other clips stay unchanged. Rebuilds
 start from the original sources, so the manual offsets are applied once.
 

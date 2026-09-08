@@ -7,7 +7,9 @@ Gallery: `/design#composition` (via `PortfolioExperience`) · Tests:
 Owns the fixed avatar runtime, the map and chat element registrations, and the
 effects that keep its dock in step with scroll, resize, Guide visibility, and
 the visitor's motion preference. The registered Guide avatar area supplies the
-dock's bottom-center point once it has positive layout dimensions.
+dock's bottom-center point once it has positive layout dimensions. Swimming
+can cross this empty area; Reader remains an obstacle. The stage includes Guide
+even when the Map ends to its left.
 
 ## Arguments
 

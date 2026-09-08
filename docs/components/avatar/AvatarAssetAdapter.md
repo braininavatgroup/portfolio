@@ -7,7 +7,7 @@ Loads the textured `/avatars/bradley-quiet-portrait.glb` using
 [`lib/avatar/config.ts`](../../../lib/avatar/config.ts) and drives every clip
 through `useAnimations`. Locomotion preserves Hips Y but removes X/Z travel;
 the controller owns stage position. The climb-out `swimming_to_edge`, full
-turns, and all eight dances play once and hold until the animation changes.
+turns, the wave greeting, and all eight dances play once and hold until the animation changes.
 
 ## Props
 

@@ -49,7 +49,7 @@ function rawBradleyGlbMinimumY() {
 }
 
 describe("GLB avatar configuration", () => {
-  it.each(["full_turn_left", "step_hip_hop_dance", "jazz_dance", "cardio_dance", "funny_dancing_02", "all_night_dance", "funny_dancing_03", "not_your_mom", "denim_pop_dance"] as const)("holds %s after one performance", (clip) => {
+  it.each(["wave", "full_turn_left", "step_hip_hop_dance", "jazz_dance", "cardio_dance", "funny_dancing_02", "all_night_dance", "funny_dancing_03", "not_your_mom", "denim_pop_dance"] as const)("holds %s after one performance", (clip) => {
     const mixer = new AnimationMixer(new Group());
     const action = mixer.clipAction(new AnimationClip(clip, 1, []));
     configureActionLoop(action, clip);
@@ -93,6 +93,7 @@ describe("GLB avatar configuration", () => {
         "Jazz_Dance",
         "Walking",
         "Wave_One_Hand",
+        "Big_Wave_Hello",
       ]),
     ).toEqual(
       new Set([
@@ -101,6 +102,7 @@ describe("GLB avatar configuration", () => {
         "swim_forward",
         "jazz_dance",
         "walking",
+        "wave",
       ]),
     );
   });

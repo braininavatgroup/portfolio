@@ -183,7 +183,7 @@ export function getAvatarPlaybackRate(animation: AvatarClip) {
 
 /** Completed performances hold their final frame until the runtime returns to idle. */
 export function isOneShotClip(animation: AvatarClip) {
-  return animation === "swimming_to_edge" || animation === "full_turn_left" ||
+  return animation === "swimming_to_edge" || animation === "wave" || animation === "full_turn_left" ||
     (avatarDances as readonly AvatarClip[]).includes(animation);
 }
 

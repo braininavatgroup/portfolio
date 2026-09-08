@@ -11,23 +11,25 @@ export type GuidePromptSubject = Pick<
   "id" | "title"
 >;
 
-const brainFoodPrompt: GuidePrompt = { text: "Play Brain Food", tone: "playful" };
+const actionPrompts: readonly GuidePrompt[] = [
+  { text: "Wave hello", tone: "playful" },
+  { text: "Can you dance?", tone: "playful" },
+  { text: "Go for a swim", tone: "playful" },
+  { text: "Play Brain Food", tone: "playful" },
+];
 
 const starterSets = [
   [
     { text: "Where should I start?", evidenceId: "thread:making-work-playable" },
     { text: "What does Brain in a Vat do?", evidenceId: "node:music-practice" },
-    { text: "Can you dance?" },
   ],
   [
     { text: "Which projects are in production?", evidenceId: "node:dubs" },
     { text: "How did the agency lead to consulting?", evidenceId: "node:systems-consulting" },
-    { text: "Go for a swim" },
   ],
   [
     { text: "What is Making work playable about?", evidenceId: "thread:making-work-playable" },
     { text: "What did Bradley do at INFAMOUS PR?", evidenceId: "node:infamous" },
-    { text: "Wave hello" },
   ],
 ] as const;
 
@@ -50,8 +52,7 @@ export function getGuideInitialPrompts(
 
   return [
     ...serious.map((prompt) => ({ ...prompt, tone: "serious" as const })),
-    { ...set[2], tone: "playful" as const },
-    brainFoodPrompt,
+    ...actionPrompts,
   ];
 }
 
@@ -71,12 +72,12 @@ export function getGuideFollowUpPrompts(
         tone: "serious",
         evidenceId: subject.id,
       },
-      brainFoodPrompt,
+      ...actionPrompts,
     ];
   }
   return [
     { text: "Where should Bradley's story start?", tone: "serious" },
     { text: "Which projects are in production?", tone: "serious" },
-    brainFoodPrompt,
+    ...actionPrompts,
   ];
 }

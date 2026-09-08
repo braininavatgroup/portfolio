@@ -56,6 +56,14 @@ function isDirectDanceRequest(question: string) {
   );
 }
 
+function directAvatarRequest(question: string): "dance" | "wave" | "swim_lap" | null {
+  if (isDirectDanceRequest(question)) return "dance";
+  const request = question.trim().replace(/\s+/g, " ");
+  if (/^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:wave(?: hello)?|give me a wave)(?: (?:to|for) me)?(?: please)?[.!?]*$/i.test(request)) return "wave";
+  if (/^(?:bradley,?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:swim(?: a lap)?|go for a swim|take a swim)(?: for me)?(?: please)?[.!?]*$/i.test(request)) return "swim_lap";
+  return null;
+}
+
 const portfolioAgentInstructions =
   `You are the conversational guide to Bradley Berkman's portfolio, but you can also chat naturally with visitors. Classify every turn as exactly one mode: portfolio, social, or general.
 
@@ -69,7 +77,7 @@ Always answer directly and use only as much detail as the visitor's question nee
 
 You can control the animated Bradley avatar on this page through avatarAction. When a visitor addresses "you" with a physical action request, they mean that avatar. Treat those requests as social turns, briefly acknowledge the action, and never claim that you cannot move or have no body.
 
-Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose stroll only when the visitor explicitly asks Bradley to walk, take a walk, or stretch his legs. Choose dance only when the visitor explicitly asks Bradley to dance. Choose turn only when the visitor explicitly asks Bradley to turn around or show his back. Choose brain_food only when the visitor explicitly asks to play or start the Brain Food game. Choose none for every other request. Never infer a swim, walk, dance, or turn request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
+Choose swim_lap only when the visitor explicitly asks Bradley to swim. Choose stroll only when the visitor explicitly asks Bradley to walk, take a walk, or stretch his legs. Choose dance only when the visitor explicitly asks Bradley to dance. Choose wave only when the visitor explicitly asks Bradley to wave or wave hello. Choose turn only when the visitor explicitly asks Bradley to turn around or show his back. Choose brain_food only when the visitor explicitly asks to play or start the Brain Food game. Choose none for every other request. Never infer a swim, walk, wave, dance, or turn request from metaphorical language, portfolio topics, or general enthusiasm. The application owns the route, speed, and animation.`;
 
 function portfolioAgentOutput(
   evidence: PortfolioChatProviderInput["evidence"],
@@ -83,14 +91,14 @@ function portfolioAgentOutput(
         evidenceIds: z.array(z.enum(evidenceIds)),
       }),
     ),
-    avatarAction: z.enum(["none", "swim_lap", "stroll", "dance", "turn", "brain_food"]),
+    avatarAction: z.enum(["none", "swim_lap", "stroll", "dance", "turn", "wave", "brain_food"]),
   });
 }
 
 type PortfolioAgentOutput = {
   mode: "portfolio" | "social" | "general";
   sentences: Array<{ text: string; evidenceIds: string[] }>;
-  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "brain_food";
+  avatarAction: "none" | "swim_lap" | "stroll" | "dance" | "turn" | "wave" | "brain_food";
 };
 
 type InvalidEvidenceFailureKind =
@@ -215,10 +223,11 @@ export function createOpenAIPortfolioProvider({
         yield "Use Arrow keys or WASD to swim through every node. Escape brings you back. Brain Food needs a keyboard and a larger window.";
         return;
       }
-      if (isDirectDanceRequest(input.question)) {
+      const directAction = directAvatarRequest(input.question);
+      if (directAction) {
         input.onMode?.("social");
-        input.onEffects?.({ avatarAction: "dance", issues: [] });
-        yield "Here we go.";
+        input.onEffects?.({ avatarAction: directAction, issues: [] });
+        yield directAction === "wave" ? "Hello there." : "Here we go.";
         return;
       }
       const agent = new Agent({

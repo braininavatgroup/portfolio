@@ -63,7 +63,8 @@ test("the production build copies the configured Bradley avatar byte-for-byte", 
       "Step_Hip_Hop_Dance",
       "Jazz_Dance",
       "Agree_Gesture",
+      "Wave_One_Hand",
     ],
-    "built model carries the portrait clips plus the retargeted agree gesture",
+    "built model carries the portrait clips plus the retargeted agree and wave gestures",
   );
 });

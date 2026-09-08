@@ -68,6 +68,7 @@ export const portraitClipNames: Record<string, string> = {
 export const shippedClipNames = [
   ...Object.values(portraitClipNames),
   ...retargetedClipNames,
+  "Wave_One_Hand",
 ];
 
 const textureMaximumSize = "1024";
@@ -100,6 +101,13 @@ export function prepareAvatarGlb(portrait: Buffer, legacy: Buffer) {
   }
   delete target.json.extensionsUsed;
   delete target.json.extensionsRequired;
+  return writeGlb(target);
+}
+
+/** Append new gestures after the hash-validated pose bake, preserving its exact baseline. */
+export function appendAvatarGestures(posed: Buffer, legacy: Buffer) {
+  const target = parseGlb(posed);
+  retargetClips(target, parseGlb(legacy), [["Wave_One_Hand", relaxedArms]]);
   return writeGlb(target);
 }
 
@@ -151,7 +159,7 @@ export function buildBradleyAvatar(
     );
     mkdirSync(dirname(absoluteOutputPath), { recursive: true });
     writeFileSync(absoluteOutputPath, repairAvatarTexture(
-      posed,
+      appendAvatarGestures(posed, readFileSync(resolve(repositoryRoot, legacySourcePath))),
       readFileSync(resolve(repositoryRoot, `${textureRepairPrefix}-uv.bin`)),
       readFileSync(resolve(repositoryRoot, `${textureRepairPrefix}.webp`)),
       repair.sourceUvSha256,
