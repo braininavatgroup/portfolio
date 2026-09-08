@@ -799,7 +799,7 @@ describe("PortfolioReader", () => {
       throw new Error(`${id} has no carousel visual`);
     }
 
-    const strips = screen.getAllByRole("group", { name: /Carousel of marquee clients/ });
+    const strips = screen.getAllByRole("group", { name: "Clients. Clients" });
     expect(strips).toHaveLength(block.slides!.length);
     expect(strips.map((strip) => strip.getAttribute("data-direction"))).toEqual(
       block.slides!.map((_, index) => (index % 2 === 0 ? "forward" : "backward")),
