@@ -193,3 +193,9 @@ single-operator Workers.dev site preview remains tracked in BIV-317, while the
 public-domain deployment remains false-gated until its activation packet is
 approved. Chat-specific preview
 access was retired by BIV-321.
+
+## Media redaction
+
+Run `npm run media:studio` to reopen the local redaction studio. See
+[the studio guide](docs/visuals/redaction-studio.md) for saved-work locations,
+new media, and the export/review workflow. Originals and selections stay private.
