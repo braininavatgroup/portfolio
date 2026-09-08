@@ -505,7 +505,8 @@ export function PortfolioReadingRoom({
     ? (storedLayout.slots.main === "guide" || (!rightCollapsed && !storedLayout.hidden.includes("guide")))
     : storedMobileTab === "map";
 
-  useEffect(() => {
+  // The avatar must enter/leave with its pane before resize delivery begins.
+  useLayoutEffect(() => {
     onGuideVisibilityChange?.(guideVisible);
   }, [guideVisible, onGuideVisibilityChange]);
 
