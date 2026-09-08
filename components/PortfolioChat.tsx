@@ -11,6 +11,7 @@ import {
   type ChatModelAdapter,
   type TextMessagePartProps,
 } from "@assistant-ui/react";
+import { createPortal } from "react-dom";
 import {
   createContext,
   useCallback,
@@ -183,17 +184,21 @@ function GuideAssistantText({ text }: TextMessagePartProps) {
       {parseGuideAnswerSegments(text, evidence).map((segment, index) =>
         segment.type === "text" ? (
           segment.text
-        ) : (
-          <button
-            aria-label={`Source: ${segment.evidence.title}`}
+        ) : segment.text === `[E${segment.label}]` ? null : (
+          <a
+            title={segment.evidence.title}
             className="portfolio-guide-citation"
             data-register={evidenceRegister(segment.target)}
             key={`${index}-${segment.label}`}
-            onClick={() => navigate?.(segment.target, segment.evidence)}
-            type="button"
+            href={segment.target.type === "home" ? "/" : segment.target.type === "thread" ? `/?view=graph#thread/${segment.target.id}` : `/?view=graph#${segment.target.id}`}
+            onClick={(event) => {
+              if (!navigate || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              navigate(segment.target, segment.evidence);
+            }}
           >
-            {segment.evidence.title}
-          </button>
+            {segment.text}
+          </a>
         ),
       )}
     </p>
@@ -227,7 +232,7 @@ function GuideAssistantMessage() {
       <button
         aria-label="Copy answer"
         className="portfolio-guide-copy"
-        onClick={() => void navigator.clipboard?.writeText(answer)}
+        onClick={() => void navigator.clipboard?.writeText(answer.replace(/\[(?!E[1-9]\d*\])([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/\s*\[E[1-9]\d*\]/g, ""))}
         type="button"
       >
         <GuideControlGlyph kind="copy" />
@@ -753,6 +758,8 @@ export function PortfolioChat({
     runtime.thread.startRun({ parentId: userMessage.id });
   }
 
+  const [scrollControls, setScrollControls] = useState<HTMLDivElement | null>(null);
+
   const composerDisabled = pending;
   const initialPrompts = getGuideInitialPrompts(visitSeed).filter(prompt => promptAvailable(prompt.text));
 
@@ -833,8 +840,12 @@ export function PortfolioChat({
                 </ThreadPrimitive.Suggestions>
               </div></GuideFollowUps>
               </div>
-              <ThreadPrimitive.ScrollToBottom className="portfolio-guide-latest">Latest reply ↓</ThreadPrimitive.ScrollToBottom>
+              {scrollControls ? createPortal(
+                <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><GuideControlGlyph kind="chevron" /></ThreadPrimitive.ScrollToBottom>,
+                scrollControls,
+              ) : null}
             </ThreadPrimitive.Viewport>
+            <div className="portfolio-guide-scroll-controls" ref={setScrollControls} />
           </ThreadPrimitive.Root>
           {turnstileSiteKey ? (
             <div

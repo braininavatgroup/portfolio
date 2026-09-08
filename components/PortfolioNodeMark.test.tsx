@@ -51,7 +51,7 @@ describe("PortfolioControlGlyph", () => {
     const stylesheet = await readFile(resolve(process.cwd(), "app/globals.css"), "utf8");
     const rule = stylesheet.match(/\.portfolio-control-pattern\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toContain('mask-image: var(--control-shape), url("/biv-brain-symbol.svg")');
-    expect(rule).toContain("mask-size: contain, 170% 170%");
+    expect(rule).toContain("mask-size: contain, 100% 100%");
     expect(rule).toContain("mask-composite: intersect");
     expect(rule).toContain("background: currentColor");
   });

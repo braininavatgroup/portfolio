@@ -16,7 +16,9 @@ Workflow metadata lives in `reporting-workflow`; the drafts have the
 1400 × 840 desktop viewport and device pixel ratio 2, producing a 2800 × 1680
 PNG. It replaces the earlier 1× capture without changing the inline text size. CSS crops it to
 just the three draft rows, excluding the toolbar and result count. Both workflow
-and drafts open their full original screenshots in the Reader overlay. The drafts
+and drafts open full screenshots in the Reader overlay. The drafts screenshot has
+Bradley's selected sidebar labels and campaign subject prefixes pixelated; its
+private original remains in the local redaction studio library. The drafts
 image reserves its original 1400:840 proportions before loading, so Safari can
 detect its intersection with the cropped viewport and request the lazy image.
 
@@ -42,7 +44,7 @@ The prose explains the process; the workflow screenshot supplies supporting evid
 | --- | --- | --- |
 | `reporting-dashboard.png` | Published MAMA SAY report, retrieved September 8, 2026 | Authentic overview capture used only on origins where embedding is unavailable. |
 | `reporting-result-workflow.png` | Bradley's supplied `.context/attachments/2omujb/image.png` | Original bytes; empty canvas cropped inline with CSS. |
-| `reporting-drafts-2x.png` | Gmail, captured with Chrome DevTools on September 8, 2026 | Native 2× capture; three-row list cropped inline with CSS. |
+| `reporting-drafts-2x.png` | Gmail, captured with Chrome DevTools on September 8, 2026 | Native 2× capture with selected labels and subject prefixes pixelated; three-row list cropped inline with CSS. |
 
 The earlier n8n and Airtable captures are no longer public assets or page
 content. They remain recoverable in `.context/reporting-retired-captures/`,

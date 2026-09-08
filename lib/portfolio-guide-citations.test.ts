@@ -27,6 +27,14 @@ const evidence: PortfolioGroundingEvidence[] = [
 ];
 
 describe("Guide citation segments", () => {
+  it("uses the original phrase as link text and keeps adjacent punctuation in prose", () => {
+    expect(parseGuideAnswerSegments("His [pitching workflow][E1], with human approval.", evidence)).toEqual([
+      { type: "text", text: "His " },
+      { type: "citation", text: "pitching workflow", label: 1, evidence: evidence[0], target: { type: "node", id: "pitching" } },
+      { type: "text", text: ", with human approval." },
+    ]);
+  });
+
   it("turns only canonical in-range evidence labels into citation segments", () => {
     // Catches malformed and unknown labels becoming misleading navigation actions.
     expect(

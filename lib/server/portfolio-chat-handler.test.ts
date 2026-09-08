@@ -24,6 +24,14 @@ async function readEvents(response: Response) {
 }
 
 describe("portfolio chat route handler", () => {
+  it("streams a phrase citation without splitting the sentence at its link", async () => {
+    const handler = createPortfolioChatHandler({ getProvider: () => ({ async *streamAnswer() {
+      yield "His [pitching workflow][E1] keeps approval human.\n\n";
+    } }) });
+    const events = await readEvents(await handler(questionRequest("What does Bradley do?")));
+    expect(events.filter(event => event.type === "answer_delta").map(event => event.delta)).toEqual(["His [pitching workflow][E1] keeps approval human.\n\n"]);
+  });
+
   it("validates each cited sentence within a completed streamed paragraph", async () => {
     const handler = createPortfolioChatHandler({ getProvider: () => ({ async *streamAnswer() {
       yield "Human approval stays explicit. [E1] Research and outreach lead into it. [E1]\n\n";

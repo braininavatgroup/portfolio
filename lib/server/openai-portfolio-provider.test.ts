@@ -66,6 +66,28 @@ function portfolioOutput(
 }
 
 describe("OpenAI portfolio provider", () => {
+  it("links the authored phrase to validated evidence without appending its title", async () => {
+    const provider = createOpenAIPortfolioProvider({ apiKey: "sk-test", model: "test",
+      fetchImplementation: async () => completedResponse(portfolioOutput([
+        { text: "His [pitching workflow](node:pitching) keeps approval human.", evidenceIds: ["node:pitching"] },
+      ])),
+    });
+    const chunks = [];
+    for await (const chunk of provider.streamAnswer({ question: "What did Bradley build?", evidence })) chunks.push(chunk);
+    expect(chunks.join("").trim()).toBe("His [pitching workflow][E1] keeps approval human.");
+  });
+
+  it("rejects a phrase linked to a source outside its sentence evidence", async () => {
+    const provider = createOpenAIPortfolioProvider({ apiKey: "sk-test", model: "test",
+      fetchImplementation: async () => completedResponse(portfolioOutput([
+        { text: "His [workflow](node:reporting) keeps approval human.", evidenceIds: ["node:pitching"] },
+      ])),
+    });
+    await expect(async () => {
+      for await (const chunk of provider.streamAnswer({ question: "What did Bradley build?", evidence: [...evidence, secondEvidence] })) void chunk;
+    }).rejects.toThrow();
+  });
+
   it("delivers a validated sentence before the model finishes the response", async () => {
     const output = portfolioOutput([
       { text: "First fact.", evidenceIds: ["node:pitching"] },

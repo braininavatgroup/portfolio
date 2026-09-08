@@ -600,11 +600,14 @@ describe("PortfolioReadingRoom mobile", () => {
   });
 
   it("keeps Map at 52 percent over Guide at 48 percent and shows the selected Read chip", () => {
+    const onToggleAvatar = vi.fn();
     const { container } = render(
       <PortfolioReadingRoom
         {...roomProps()}
         selectedId={dubs.id}
         selectedSubject={dubs}
+        onToggleAvatar={onToggleAvatar}
+        avatarHidden={false}
       />,
     );
 
@@ -621,10 +624,13 @@ describe("PortfolioReadingRoom mobile", () => {
     expect(container.querySelector(".portfolio-reading-room-mobile-avatar")).not.toBeNull();
     const readChip = screen.getByRole("button", { name: "Read Dubs" });
     expect(readChip).toBeTruthy();
+    const toolbar = readChip.closest(".portfolio-reading-room-map-controls")!;
+    fireEvent.click(within(toolbar as HTMLElement).getByRole("button", { name: "Hide avatar" }));
+    expect(onToggleAvatar).toHaveBeenCalledOnce();
     expect(readChip.querySelector(`[data-family="${dubs.family}"]`)).not.toBeNull();
     expect(within(readChip).getByText("Dubs")).toBeTruthy();
     expect(within(readChip).getByText("Read")).toBeTruthy();
-    expect(readChip.querySelector('[data-control-glyph="readArrow"]')).not.toBeNull();
+    expect(readChip.querySelector('[data-control-glyph="readArrow"]')).toBeNull();
     expect(container.querySelector(".portfolio-reading-room-mobile-map .portfolio-reading-room-mobile-avatar")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Read Dubs" }));
@@ -750,7 +756,7 @@ describe("Reading Room stylesheet", () => {
     expect(bar).toContain("height: 40px");
     expect(top).toContain("height: 44px");
     expect(tabs).toContain("height: 56px");
-    const contentsRow = stylesheet.match(/\.portfolio-contents-row\s*\{([^}]*)\}/)?.[1] ?? "";
+    const contentsRow = stylesheet.match(/\.portfolio-contents-row,\s*\.reader-index-row\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(contentsRow).toContain("min-height: 28px");
     expect(contentsRow).not.toMatch(/\n\s*height: 28px/);
     expect(tabs).toContain("env(safe-area-inset-bottom, 0px)");
@@ -763,10 +769,10 @@ describe("Reading Room stylesheet", () => {
     expect(avatar).toContain("bottom: 12px");
     expect(avatar).toContain("right: 16px");
     expect(chip).toContain("border-radius: 6px");
-    expect(chip).toContain("left: 16px");
+    expect(chip).not.toContain("position: absolute");
     expect(chip).toContain("height: 32px");
     expect(chip).toContain("padding: 0 10px 0 8px");
-    expect(chip).toContain("top: 12px");
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-map-canvas\s*\{[^}]*min-height: 0/);
     expect(mainSlotSurface).toContain("background: var(--map-paper-near)");
     expect(viewSurfaces).toContain("background: transparent");
     expect(stylesheet).not.toMatch(/\.portfolio-reading-room-pane\[data-view=/);

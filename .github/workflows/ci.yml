@@ -29,7 +29,13 @@ jobs:
       - run: npm test
       - run: npm run test:dev-start
       - run: npm run test:worktree-bootstrap
+      # test:rendered runs the full build, and that build is the artifact the
+      # deploy workflow ships. The Turnstile site key is public and compiled
+      # into the client bundle, so it has to be present here. Empty until the
+      # variable exists, which leaves the challenge off exactly as today.
       - run: npm run test:rendered
+        env:
+          VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY: ${{ vars.PORTFOLIO_CHAT_TURNSTILE_SITE_KEY }}
       - name: Upload tested main-preview artifact
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4

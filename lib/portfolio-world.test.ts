@@ -128,7 +128,7 @@ describe("accepted portfolio world", () => {
     ]);
   });
 
-  it("shows both Themes and every membership connection at rest", () => {
+  it("shows the Theme tree at rest and reveals membership on selection", () => {
     const roots = [
       "thread-making-work-playable",
       "thread-philosophy",
@@ -145,7 +145,6 @@ describe("accepted portfolio world", () => {
           .map(({ layer, to }) => `${layer}:${to}`),
       ).toEqual([
         ...roots.map((to) => `story-root:${to}`),
-        ...portfolioThreads.flatMap((thread) => thread.members.map((id) => `story-membership:${id}`)),
       ]);
       expect(getWorldFocusIds({ activeThreadId: null, selectedId })).toEqual(
         new Set(["bradley", ...roots]),
@@ -168,7 +167,6 @@ describe("accepted portfolio world", () => {
       [
         "story-root:bradley->thread-making-work-playable",
         "story-root:bradley->thread-philosophy",
-        ...portfolioThreads.flatMap((thread) => thread.members.map((id) => `story-membership:${thread.nodeId}->${id}`)),
       ],
     ],
     [
@@ -309,7 +307,7 @@ describe("authored content contract", () => {
     ).toBe(false);
   });
 
-  it("publishes every ready campaign video through Mux with a local MP4 fallback", () => {
+  it("publishes selected campaign redactions without untreated streaming alternatives", () => {
     for (const nodeId of ["kickoff", "pitching"]) {
       const visual = portfolioWorldNodeById
         .get(nodeId)!
@@ -323,7 +321,7 @@ describe("authored content contract", () => {
         throw new Error(`${nodeId} has no video visual`);
       }
 
-      expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(visual.muxPlaybackId).toBeUndefined();
       expect(visual.src).toMatch(/^\/visuals\/campaign\/.+\.mp4$/);
       expect(isPortfolioVisualReady(visual)).toBe(true);
     }

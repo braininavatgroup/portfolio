@@ -3,7 +3,7 @@
 Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
 Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
-The Reading Room's always-mounted Guide adapts `AskPortfolio` to an `@assistant-ui/react` local runtime, preserving grounding, validation, limits, and the `[E#]` wire format.
+The Reading Room's always-mounted Guide adapts `AskPortfolio` to an `@assistant-ui/react` local runtime, preserving grounding, validation, limits, and the `[phrase][E#]` inline-link format and legacy `[E#]` attribution metadata.
 
 Validated text appears as it arrives; `onNavigateEvidence` routes inline citations to Map and Reader.
 
@@ -55,8 +55,8 @@ export function PortfolioChatExample() {
 
 - Without `askPortfolio`, the Guide calls the production route; tests need a stub.
 - A `turnstileSiteKey` without a working renderer keeps submission gated.
-- Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
-- The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer Latest reply. Failed streams remove their partial text.
+- Copy strips wire markup; links retain their phrase. Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
+- The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer the accessible Jump to latest reply chevron in a separate row. Failed streams remove their partial text.
 - A send that loses eligibility (offline, expired challenge) fails with one retry.
 - Avatar callback failures stay isolated from the text response.
 - The first server and client render both assume online. Actual

@@ -1,5 +1,7 @@
 "use client";
 
+import { portfolioOverviewLabel, portfolioOverviewPositions } from "../lib/portfolio-overview-layout";
+
 import {
   useCallback,
   useEffect,
@@ -15,6 +17,7 @@ import {
   isWorldLinkActive,
   portfolioInterfaceText,
   portfolioThreadById,
+  portfolioWorldIndexSections,
   portfolioWorldNodeById,
   portfolioWorldNodes,
   type PortfolioWorldFamily,
@@ -222,18 +225,18 @@ function labelBoxFor(
   node: RuntimeNode,
   palette: Pick<
     WorldPalette,
-    "compact" | "hoveredNodeId" | "selectedNodeId" | "width"
+    "compact" | "hoveredNodeId" | "selectedNodeId" | "width" | "resting"
   >,
 ): LayoutBox | null {
   const point = node.screen;
   if (!point || node.labelLines.length === 0) return null;
-  const { compact } = palette;
+  const compact = palette.compact || palette.resting;
   const showLabel = shouldShowLabel(node, palette);
   if (!showLabel) return null;
   const isBradley = node.id === "bradley";
-  const scale = compact ? COMPACT_LABEL_SCALE : isBradley ? BRADLEY_LABEL_SCALE : 1;
+  const scale = palette.compact ? COMPACT_LABEL_SCALE : isBradley ? BRADLEY_LABEL_SCALE : 1;
   const width = node.labelWidth * scale;
-  const lineHeight = compact ? COMPACT_LINE_HEIGHT : LABEL_LINE_HEIGHT;
+  const lineHeight = palette.compact ? COMPACT_LINE_HEIGHT : LABEL_LINE_HEIGHT;
   const height = node.labelLines.length * lineHeight;
   if (!compact) {
     return {
@@ -243,7 +246,7 @@ function labelBoxFor(
       height,
     };
   }
-  const onRight = compactLabelOnRight(point.x, palette.width);
+  const onRight = palette.resting || compactLabelOnRight(point.x, palette.width);
   return {
     x: onRight ? point.x + COMPACT_LABEL_INSET : point.x - COMPACT_LABEL_INSET - width,
     y: point.y - height / 2,
@@ -496,6 +499,7 @@ function wrapLabel(
  */
 type WorldPalette = {
   compact: boolean;
+  resting?: boolean;
   connector: string;
   editingNodeId: string | undefined;
   hoveredNodeId: string | undefined;
@@ -510,6 +514,7 @@ function readWorldPalette(world: HTMLElement, width: number): WorldPalette {
   const registers = new Map<string, string>();
   return {
     compact: world.dataset.compact === "true",
+    resting: !world.dataset.selectedNode || world.dataset.selectedNode === "bradley",
     connector: cssColor(style, "--map-connector", "#4f585d"),
     editingNodeId: world.dataset.editingLabel,
     hoveredNodeId: world.dataset.hoveredNode,
@@ -528,9 +533,10 @@ function readWorldPalette(world: HTMLElement, width: number): WorldPalette {
 
 function shouldShowLabel(
   node: Pick<RuntimeNode, "family" | "id">,
-  palette: Pick<WorldPalette, "compact" | "hoveredNodeId" | "selectedNodeId">,
+  palette: Pick<WorldPalette, "compact" | "hoveredNodeId" | "selectedNodeId" | "resting">,
 ) {
   return (
+    palette.resting ||
     !palette.compact ||
     node.id === "bradley" ||
     node.family === "story" ||
@@ -640,7 +646,6 @@ export function PortfolioWorld({
         false,
         size.current,
         camera.current,
-        measureRef.current,
       );
       for (const node of nodes) node.goalAlpha = 1;
       return;
@@ -670,7 +675,6 @@ export function PortfolioWorld({
         selectedId === "bradley",
         size.current,
         camera.current,
-        measureRef.current,
       );
       return;
     }
@@ -764,7 +768,7 @@ export function PortfolioWorld({
       );
       fitOverview();
       if (brainFoodRef.current?.active) {
-        applyRestGoals(runtime.current, false, size.current, camera.current, measure);
+        applyRestGoals(runtime.current, false, size.current, camera.current);
         for (const node of runtime.current) node.goalAlpha = 1;
       } else if (state.current.activeThreadId) {
         applyStoryGoals(
@@ -788,7 +792,6 @@ export function PortfolioWorld({
           state.current.selectedId === "bradley",
           size.current,
           camera.current,
-          measure,
         );
       }
     };
@@ -810,13 +813,15 @@ export function PortfolioWorld({
     motion?.addEventListener?.("change", updateMotion);
 
     let lastLabelWidth = -1;
+    let lastResting: boolean | undefined;
     const connectorMemory: ConnectorMemory = new Map();
     const render = () => {
       // Read before the node buttons are written below, so the reads land on
       // clean style instead of forcing a recalculation per node.
       const palette = readWorldPalette(world, size.current.width);
       const { width, height } = size.current;
-      const labelWidth = palette.compact ? 96 : LABEL_MAX_WIDTH;
+      const layout = palette.resting ? portfolioOverviewPositions([[], [], []], [], { width, height }) : null;
+      const labelWidth = layout ? layout.labelWidth / (palette.compact ? COMPACT_LABEL_SCALE : 1) : palette.compact ? 96 : LABEL_MAX_WIDTH;
       const nodes = runtime.current;
       const active = state.current;
       const currentCamera = camera.current;
@@ -846,8 +851,11 @@ export function PortfolioWorld({
           height,
         );
         // Re-wrap only when the available width has changed.
-        if (labelWidth !== lastLabelWidth) {
-          node.labelLines = wrapLabel(node.label, measure, labelWidth);
+        if (labelWidth !== lastLabelWidth || palette.resting !== lastResting) {
+          const label = palette.resting ? node.label.replace(/^Brain in a Vat /, "").replace(/^Music promo campaign /, "Campaign ") : node.label;
+          node.labelLines = palette.resting && node.id !== "bradley"
+            ? portfolioOverviewLabel(label, measure, labelWidth)
+            : wrapLabel(label, measure, node.id === "bradley" ? 160 : labelWidth);
           node.labelWidth = Math.max(...node.labelLines.map(measure));
         }
         node.labelBox = labelBoxFor(node, palette);
@@ -903,6 +911,7 @@ export function PortfolioWorld({
         }
       }
       lastLabelWidth = labelWidth;
+      lastResting = palette.resting;
       if (!disposed) frame = window.requestAnimationFrame(render);
     };
     frame = window.requestAnimationFrame(render);
@@ -1466,76 +1475,19 @@ export function centreComposition(
 
 function applyRestGoals(
   nodes: RuntimeNode[],
-  spotlightBradley: boolean,
+  _spotlightBradley: boolean,
   dimensions: { width: number; height: number },
   camera: Camera,
-  measure: (value: string) => number = (value) => value.length * 6.2,
 ) {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const focusIds = getWorldFocusIds({ activeThreadId: null, selectedId: null });
-  const root = byId.get("bradley")?.base;
-  const lit = new Map<string, Point3>();
-  for (const id of focusIds) {
-    const base = byId.get(id)?.base;
-    if (!base) continue;
-    lit.set(
-      id,
-      spotlightBradley && root && id !== "bradley"
-        ? spreadFrom(root, base, BRADLEY_SPOTLIGHT_SPREAD)
-        : clone(base),
-    );
+  if (!dimensions.width || !dimensions.height) return;
+  const records = portfolioWorldIndexSections.flatMap(section => section.type === "nodes" ? [[...section.nodeIds]] : []);
+  const themes = nodes.filter(node => node.family === "story").map(node => node.id);
+  const layout = portfolioOverviewPositions(records, themes, dimensions);
+  for (const node of nodes) {
+    const screen = layout.positions.get(node.id);
+    node.goal = screen ? worldPointAtDepth(screen, 1100, overview.position, overview.target, camera.fov, dimensions.width, dimensions.height) : clone(node.base);
+    node.goalAlpha = REST_FIELD_ALPHA;
   }
-  const seated = dimensions.width > 0 && dimensions.height > 0;
-  // The tree's real lines: the trunk to the junction, then the branches.
-  const stories = [...focusIds].filter((id) => id !== "bradley");
-  // The junction is screen-space geometry (drawLinks computes the same), so
-  // project, branch, and lift the point back to Bradley's depth.
-  const rootGoal = lit.get("bradley");
-  const project = (point: Point3) =>
-    projectWorldPoint(
-      point,
-      overview.position,
-      overview.target,
-      camera.fov,
-      dimensions.width,
-      dimensions.height,
-    );
-  const rootScreen = seated && rootGoal ? project(rootGoal) : null;
-  const storyScreens = stories.map((id) => project(lit.get(id)!));
-  const junction =
-    rootGoal && rootScreen && storyScreens.every(Boolean)
-      ? worldPointAtDepth(
-          storyTreeJunction(rootScreen, storyScreens.map((screen) => screen!)),
-          rootGoal.z,
-          overview.position,
-          overview.target,
-          camera.fov,
-          dimensions.width,
-          dimensions.height,
-        )
-      : null;
-  const treeLines: (readonly [string, string])[] = junction
-    ? [["bradley", "junction"], ...stories.map((id) => ["junction", id] as const)]
-    : stories.map((id) => ["bradley", id] as const);
-  const litWithJunction = new Map(lit);
-  if (junction) litWithJunction.set("junction", junction);
-  const field = seated
-    ? fieldGoals(
-        nodes,
-        litWithJunction,
-        treeLines,
-        overview,
-        camera.fov,
-        dimensions,
-        measure,
-        compositionRng(spotlightBradley ? "bradley" : "rest"),
-      )
-    : new Map<string, Point3>();
-  // The tree is authored and stays put; the field seats around it.
-  nodes.forEach((node) => {
-    node.goal = clone(lit.get(node.id) ?? field.get(node.id) ?? node.base);
-    node.goalAlpha = focusIds.has(node.id) ? 1 : REST_FIELD_ALPHA;
-  });
   camera.goalPosition = clone(overview.position);
   camera.goalTarget = clone(overview.target);
 }
@@ -1683,7 +1635,7 @@ function drawLinks(
     layer === "story-root" || layer === "spotlight-root";
 
   for (const link of links) {
-    if (isRoot(link.layer)) continue;
+    if (isRoot(link.layer) || isRestingWorldSelection(selectedId)) continue;
     const from = byId.get(link.from);
     const to = byId.get(link.to);
     if (!from?.screen || !to?.screen) continue;
@@ -1823,7 +1775,7 @@ function drawNode(
   }
   context.restore();
 
-  const compact = palette.compact;
+  const compact = palette.compact || palette.resting;
   const showLabel = shouldShowLabel(node, palette);
   // While the map-label input is open its canvas text stays hidden so the
   // draft renders exactly once, in the input.
@@ -1831,22 +1783,22 @@ function drawNode(
 
   context.save();
   context.globalAlpha = node.alpha * statusAlpha;
-  context.font = compact
+  context.font = palette.compact
     ? '400 11px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif'
     : isBradley
       ? BRADLEY_FONT
       : FONT;
   context.fillStyle = ink;
   context.textBaseline = "middle";
-  const labelLineHeight = compact ? 12 : LABEL_LINE_HEIGHT;
+  const labelLineHeight = palette.compact ? 12 : LABEL_LINE_HEIGHT;
   const labelX = compact
-    ? point.x + (compactLabelOnRight(point.x, palette.width) ? 12 : -12)
+    ? point.x + ((palette.resting || compactLabelOnRight(point.x, palette.width)) ? 12 : -12)
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
     : point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP) + LABEL_LINE_HEIGHT * 0.5;
   context.textAlign = compact
-    ? compactLabelOnRight(point.x, palette.width)
+    ? palette.resting || compactLabelOnRight(point.x, palette.width)
       ? "left"
       : "right"
     : "center";

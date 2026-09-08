@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
+import { useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAvatarStage } from "./useAvatarStage";
 
@@ -54,6 +55,18 @@ describe("useAvatarStage", () => {
 
     rerender({ open: false });
     expect(result.current.avatarRuntime.getSnapshot().visible).toBe(false);
+  });
+
+  it("settles avatar visibility before the browser measures a pane switch", () => {
+    const observations: boolean[] = [];
+    const { rerender } = renderHook(({ open }) => {
+      const { avatarRuntime } = useAvatarStage({ assistantOpen: open, reducedMotion: false });
+      useLayoutEffect(() => {
+        observations.push(avatarRuntime.getSnapshot().visible);
+      }, [avatarRuntime, open]);
+    }, { initialProps: { open: true } });
+    rerender({ open: false });
+    expect(observations).toEqual([true, false]);
   });
 
   it("uses the bottom center of the mobile avatar area as the dock", () => {
@@ -139,4 +152,3 @@ describe("useAvatarStage", () => {
     }
   });
 });
-

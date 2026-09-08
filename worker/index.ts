@@ -6,6 +6,10 @@ import {
   type MainPreviewAuthEnv,
 } from "./main-preview-auth";
 import {
+  withPublicPortfolio,
+  type PublicPortfolioEnv,
+} from "./public-portfolio";
+import {
   handlePortfolioFeedbackAdmin,
   withPortfolioFeedback,
   type PortfolioFeedbackEnv,
@@ -17,7 +21,8 @@ export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
   MainPreviewAuthEnv &
-  PortfolioFeedbackEnv;
+  PortfolioFeedbackEnv &
+  PublicPortfolioEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 // Image security config. SVG sources with .svg extension auto-skip the
@@ -66,7 +71,11 @@ const worker = {
     const admin = await handlePortfolioFeedbackAdmin(request, env);
     if (admin) return admin;
     return withMainPreviewPassword(request, env, () =>
-      withPortfolioFeedback(request, env, () => serveApplication(request, env, ctx)),
+      withPortfolioFeedback(request, env, () =>
+        withPublicPortfolio(request, env, () =>
+          serveApplication(request, env, ctx),
+        ),
+      ),
     );
   },
 };

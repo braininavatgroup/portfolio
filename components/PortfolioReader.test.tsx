@@ -146,7 +146,7 @@ describe("PortfolioReader", () => {
     const onSelectThread = vi.fn();
     render(<PortfolioReader {...baseProps} onSelect={onSelect} onSelectThread={onSelectThread} />);
 
-    const links = screen.getAllByRole("button").filter((button) =>
+    const links = screen.getAllByRole("link").filter((button) =>
       button.classList.contains("reader-inline-link"),
     );
     expect(links.map((link) => link.textContent)).toEqual([
@@ -201,7 +201,7 @@ describe("PortfolioReader", () => {
   it("floats the selected image or glyph under a hovered or focused inline link", () => {
     const { container } = render(<PortfolioReader {...baseProps} />);
     const link = (name: string) =>
-      screen.getAllByRole("button", { name }).find((button) =>
+      screen.getAllByRole("link", { name }).find((button) =>
         button.classList.contains("reader-inline-link"),
       )!;
     const preview = () => container.querySelector<HTMLElement>(".reader-inline-link-preview");
@@ -360,7 +360,7 @@ describe("PortfolioReader", () => {
       .body.flatMap((block) => (typeof block === "string" ? inlineLinkTargets(block) : []))
       .find((target) => target.kind === "external");
     const anchor = container.querySelector<HTMLAnchorElement>(
-      ".reader-composed-body a.reader-inline-link",
+      '.reader-composed-body a.reader-inline-link[data-external="true"]',
     );
     expect(external?.kind).toBe("external");
     expect(anchor?.getAttribute("href")).toBe(external && "href" in external ? external.href : "");
@@ -390,7 +390,7 @@ describe("PortfolioReader", () => {
 
     fireEvent.click(
       container.querySelector<HTMLAnchorElement>(
-        ".reader-composed-body a.reader-inline-link",
+        '.reader-composed-body a.reader-inline-link[data-external="true"]',
       )!,
     );
 
@@ -482,8 +482,9 @@ describe("PortfolioReader", () => {
     expect(screenAperture).toContain(inlineVideo);
     expect(inlineFigure).toContain(inlineVideo);
     expect(inlineFigure.getAttribute("data-media-surface")).toBe("floating");
-    expect(inlineVideo.querySelectorAll("source")).toHaveLength(0);
-    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(inlineVideo.querySelectorAll("source")).toHaveLength(1);
+    expect(inlineVideo.querySelector("source")?.getAttribute("src")).toBe(visual.src);
+    expect(visual.muxPlaybackId).toBeUndefined();
     expect(
       inlineFigure.querySelector<HTMLImageElement>(".reader-device-frame")?.getAttribute("src"),
     ).toBe(visual.frameSrc);
@@ -579,7 +580,7 @@ describe("PortfolioReader", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  it("composites the official Apple frame over the adaptive video in every browser", () => {
+  it("composites the official Apple frame over the redacted video in every browser", () => {
     const kickoff = portfolioWorldNodeById.get("kickoff")!;
     const visual = kickoff.body.find(
       (block) => typeof block !== "string" && block.type === "visual",
@@ -591,8 +592,9 @@ describe("PortfolioReader", () => {
     render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
 
     const video = screen.getByLabelText(visual.alt ?? visual.purpose);
-    expect(video.querySelector("source")).toBeNull();
-    expect(visual.muxPlaybackId).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(video.querySelectorAll("source")).toHaveLength(1);
+    expect(video.querySelector("source")?.getAttribute("src")).toBe(visual.src);
+    expect(visual.muxPlaybackId).toBeUndefined();
     expect(document.querySelector(".reader-device-frame")).toBeTruthy();
   });
 

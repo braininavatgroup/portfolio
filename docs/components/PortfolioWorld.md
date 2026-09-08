@@ -54,11 +54,10 @@ export function PortfolioWorldExample() {
   compact labels sit right of nodes in the left 30 percent, else left.
 - **Brain Food disables node buttons and hides connectors.** Outside that
   mode, every map node remains available; portfolio media never mounts here.
-- **Default overview shows the full field and Theme membership connections.** Selection focuses related work.
+- **Default overview labels the full field in Contents columns.** Only the Bradley-to-Theme tree is connected at rest; selection reveals membership and factual relationships. `lib/portfolio-overview-layout.ts` bounds labels to two lines and keeps the short Products column clear for the mobile avatar.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it);
-  tests assert rules, not coordinates. The rest pose is centred in its slot
-  (`centreComposition`) and the field's insets are symmetric.
+  tests assert rules, not coordinates. The overview derives its seats from the measured slot; selected poses retain their seeded spatial layout.
 - **The field seats after the lit nodes settle**, outside the overlap solver;
   pass every drawn lit line to `fieldGoals`. A lower relation is valid, but no
   line crosses a label: selected-label rays clear first, then related nodes
