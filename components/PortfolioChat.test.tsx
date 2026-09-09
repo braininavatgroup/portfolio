@@ -277,7 +277,7 @@ describe("docked portfolio Guide", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
-  it("waits for meaningful scrollback before showing latest, with room to return without flicker", async () => {
+  it("preserves manual scrollback without adding a jump control", async () => {
     render(<PortfolioChat askPortfolio={async (_question, { onEvent }) => {
       onEvent({ type: "answer_delta", delta: "A sufficiently long answer." });
       onEvent({ type: "done" });
@@ -299,9 +299,10 @@ describe("docked portfolio Guide", () => {
     scrollTo(604);
     expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
     scrollTo(603);
-    expect(screen.getByRole("button", { name: "Jump to latest reply" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
+    expect(viewport.scrollTop).toBe(603);
     scrollTo(640);
-    expect(screen.getByRole("button", { name: "Jump to latest reply" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
     scrollTo(652);
     expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
   });
@@ -358,12 +359,18 @@ describe("docked portfolio Guide", () => {
     }} openSession={async () => true} />);
     submit("Opening question");
     await screen.findByRole("button", { name: "Try again" });
+    // The retry notice is component state; the runtime mounts its question
+    // separately. Wait for its alignment effect before checking cleanup.
+    const openingObserver = await waitFor(() => {
+      const question = document.querySelector(".chat-question");
+      const observer = observers.find(item => question && item.elements.has(question));
+      expect(observer).toBeDefined();
+      return observer!;
+    });
     const firstQuestion = document.querySelector(".chat-question")!;
-    const openingObserver = observers.find(observer => observer.elements.has(firstQuestion));
-    expect(openingObserver).toBeDefined();
     submit("A different question after the failure");
     await screen.findByText("The next question succeeds.");
-    expect(openingObserver!.elements.has(firstQuestion)).toBe(false);
+    await waitFor(() => expect(openingObserver.elements.has(firstQuestion)).toBe(false));
   });
 
   it("opens a follow-up at its beginning and preserves scrollback as that answer grows", async () => {

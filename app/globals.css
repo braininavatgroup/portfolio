@@ -4762,8 +4762,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   }
 }
 
-.portfolio-guide-avatar-toggle,
-.portfolio-guide-latest {
+.portfolio-guide-avatar-toggle {
   align-self: flex-end;
   background: var(--reader-paper);
   border: 0;
@@ -4780,42 +4779,10 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   top: var(--reader-space-1);
 }
 
-.portfolio-guide-scroll-controls {
-  display: none;
-  flex: 0 0 32px;
-  justify-content: flex-end;
-  padding: 0 var(--reader-space-3);
-}
-
-.portfolio-guide-scroll-controls:has(.portfolio-guide-latest:not(:disabled)) {
-  display: flex;
-}
-
-.portfolio-guide-latest {
-  border: 1px solid var(--map-line-strong);
-  display: grid;
-  height: 32px;
-  padding: 0;
-  place-items: center;
-  width: 32px;
-}
-
-.portfolio-guide-latest .portfolio-control-glyph {
-  height: 18px;
-  margin: 0;
-  transform: rotate(90deg);
-  width: 18px;
-}
-
-.portfolio-guide-latest:disabled {
-  visibility: hidden;
-}
-
 .portfolio-guide-error a:focus-visible,
 .portfolio-guide-suggestion:focus-visible,
 .portfolio-guide-citation:focus-visible,
-.portfolio-guide-avatar-toggle:focus-visible,
-.portfolio-guide-latest:focus-visible {
+.portfolio-guide-avatar-toggle:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }

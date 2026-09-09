@@ -267,7 +267,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     const beforeUrl = window.location.href;
     const slots = () => Array.from(document.querySelectorAll<HTMLElement>("[data-reading-room-slot]")).map(element => [element.dataset.readingRoomSlot, element.dataset.view, element.dataset.collapsed]);
     const beforeSlots = slots();
-    fireEvent.click(screen.getByRole("button", {name: "Play Brain Food"}));
+    fireEvent.click(await screen.findByRole("button", {name: "Play Brain Food"}));
     await waitFor(() => expect(screen.getByLabelText("Test avatar overlay").dataset.phase).toBe("brain-food"));
     expect(document.querySelector('[data-reading-room-slot="main"]')?.getAttribute("data-view")).toBe("map");
     fireEvent.click(screen.getByRole("button", {name: "Exit Brain Food"}));

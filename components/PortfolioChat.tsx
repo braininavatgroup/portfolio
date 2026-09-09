@@ -11,7 +11,6 @@ import {
   type ChatModelAdapter,
   type TextMessagePartProps,
 } from "@assistant-ui/react";
-import { createPortal } from "react-dom";
 import {
   createContext,
   useCallback,
@@ -389,51 +388,17 @@ function GuideFollowUps({ children }: { children: ReactNode }) {
   return hasMessages ? children : null;
 }
 
-function GuideViewport({ children, scrollControls }: {
-  children: ReactNode;
-  scrollControls: HTMLDivElement | null;
-}) {
-  const viewport = useRef<HTMLDivElement | null>(null);
-  const [showLatest, setShowLatest] = useState(false);
-  const updateLatest = useCallback(() => {
-    const element = viewport.current;
-    if (!element) return;
-    const distance = element.scrollHeight - element.clientHeight - element.scrollTop;
-    // The control itself occupies 32px. A wider 48px hysteresis prevents
-    // inserting/removing its row from toggling the control back and forth.
-    setShowLatest(visible => distance > (visible ? 48 : 96));
-  }, []);
-  useEffect(() => {
-    const element = viewport.current;
-    if (!element) return;
-    let frame = 0;
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(updateLatest);
-    });
-    observer.observe(element);
-    if (element.firstElementChild) observer.observe(element.firstElementChild);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, [updateLatest]);
+function GuideViewport({ children }: { children: ReactNode }) {
   return (
     <ThreadPrimitive.Viewport
       autoScroll={false}
       className="portfolio-chat-viewport"
-      onScroll={updateLatest}
-      ref={viewport}
       scrollToBottomOnInitialize={false}
       scrollToBottomOnRunStart={false}
       scrollToBottomOnThreadSwitch={false}
       turnAnchor="top"
     >
       {children}
-      {showLatest && scrollControls ? createPortal(
-        <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><PortfolioControlGlyph kind="chevron" size="inline" /></ThreadPrimitive.ScrollToBottom>,
-        scrollControls,
-      ) : null}
     </ThreadPrimitive.Viewport>
   );
 }
@@ -822,8 +787,6 @@ export function PortfolioChat({
     runtime.thread.startRun({ parentId: userMessage.id });
   }
 
-  const [scrollControls, setScrollControls] = useState<HTMLDivElement | null>(null);
-
   const secureSessionUrl = failedQuestion?.code === "session_required"
     && typeof location !== "undefined"
     && location.protocol === "http:"
@@ -865,7 +828,7 @@ export function PortfolioChat({
             className="portfolio-chat-thread"
             data-guide-primitive="thread"
           >
-            <GuideViewport scrollControls={scrollControls}>
+            <GuideViewport>
               <div className="portfolio-chat-content">
               <ThreadPrimitive.Messages
                 components={{
@@ -917,7 +880,6 @@ export function PortfolioChat({
               </div></GuideFollowUps>
               </div>
             </GuideViewport>
-            <div className="portfolio-guide-scroll-controls" ref={setScrollControls} />
           </ThreadPrimitive.Root>
           <ComposerPrimitive.Root
             className="portfolio-chat-composer"
