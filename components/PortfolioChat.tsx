@@ -329,6 +329,20 @@ function GuideFollowUps({ children }: { children: ReactNode }) {
   return hasMessages ? children : null;
 }
 
+function GuideViewport({ children }: { children: ReactNode }) {
+  const hasMessages = useAuiState((state) => state.thread.messages.length > 0);
+  return (
+    <ThreadPrimitive.Viewport
+      autoScroll={hasMessages}
+      className="portfolio-chat-viewport"
+      scrollToBottomOnInitialize={hasMessages}
+      scrollToBottomOnThreadSwitch={hasMessages}
+    >
+      {children}
+    </ThreadPrimitive.Viewport>
+  );
+}
+
 function GuideThreadStateReporter({
   onThreadStateChange,
 }: {
@@ -357,6 +371,7 @@ export function PortfolioChat({
   const composerPlaceholder = portfolioInterfaceText["chat.composerPlaceholder"];
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState("");
+  const [challengeAttempt, setChallengeAttempt] = useState(0);
   const [failedQuestion, setFailedQuestion] = useState<{
     question: string;
     canRetry: boolean;
@@ -705,7 +720,7 @@ export function PortfolioChat({
       turnstileController.current?.remove();
       turnstileController.current = null;
     };
-  }, [renderTurnstileWidget, turnstileSiteKey, updateChallengeToken]);
+  }, [challengeAttempt, renderTurnstileWidget, turnstileSiteKey, updateChallengeToken]);
 
   const setAvatarElement = useCallback(
     (element: HTMLDivElement | null) => {
@@ -789,7 +804,7 @@ export function PortfolioChat({
             className="portfolio-chat-thread"
             data-guide-primitive="thread"
           >
-            <ThreadPrimitive.Viewport autoScroll className="portfolio-chat-viewport">
+            <GuideViewport>
               <div className="portfolio-chat-content">
               <ThreadPrimitive.Messages
                 components={{
@@ -844,7 +859,7 @@ export function PortfolioChat({
                 <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><GuideControlGlyph kind="chevron" /></ThreadPrimitive.ScrollToBottom>,
                 scrollControls,
               ) : null}
-            </ThreadPrimitive.Viewport>
+            </GuideViewport>
             <div className="portfolio-guide-scroll-controls" ref={setScrollControls} />
           </ThreadPrimitive.Root>
           {turnstileSiteKey ? (
@@ -855,6 +870,11 @@ export function PortfolioChat({
             >
               <div ref={turnstileContainer} />
               {challengeMessage ? <p className="chat-note">{challengeMessage}</p> : null}
+              {challengeMessage === portfolioInterfaceText["chat.verificationUnavailable"] ? (
+                <button className="chat-verification-retry" onClick={() => setChallengeAttempt((attempt) => attempt + 1)} type="button">
+                  Retry verification
+                </button>
+              ) : null}
             </div>
           ) : null}
           <ComposerPrimitive.Root

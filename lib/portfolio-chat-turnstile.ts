@@ -18,12 +18,13 @@ export type TurnstileRenderer = (
 ) => Promise<TurnstileController>;
 
 type TurnstileApi = {
-  ready(callback: () => void): void;
   render(
     container: HTMLElement,
     options: {
       sitekey: string;
       action: "portfolio_chat";
+      appearance: "interaction-only";
+      size: "flexible";
       callback(token: string): void;
       "error-callback"(): void;
       "expired-callback"(): void;
@@ -56,12 +57,18 @@ function loadTurnstile(): Promise<TurnstileApi> {
     const script = existing instanceof HTMLScriptElement ? existing : document.createElement("script");
     const finish = () => {
       if (window.turnstile) resolve(window.turnstile);
-      else reject(new Error("Turnstile loaded without an API."));
+      else {
+        script.remove();
+        reject(new Error("Turnstile loaded without an API."));
+      }
     };
     script.addEventListener("load", finish, { once: true });
     script.addEventListener(
       "error",
-      () => reject(new Error("Turnstile could not load.")),
+      () => {
+        script.remove();
+        reject(new Error("Turnstile could not load."));
+      },
       { once: true },
     );
     if (!existing) {
@@ -85,18 +92,16 @@ export const renderTurnstile: TurnstileRenderer = async (
   callbacks,
 ) => {
   const api = await loadTurnstile();
-  const widgetId = await new Promise<TurnstileWidgetId>((resolve) => {
-    api.ready(() => {
-      resolve(
-        api.render(container, {
-          sitekey: siteKey,
-          action: "portfolio_chat",
-          callback: callbacks.onToken,
-          "error-callback": callbacks.onError,
-          "expired-callback": callbacks.onExpired,
-        }),
-      );
-    });
+  // loadTurnstile resolves after the async script's load event. ready() is
+  // incompatible with async/defer scripts, even when their API already exists.
+  const widgetId = api.render(container, {
+    sitekey: siteKey,
+    action: "portfolio_chat",
+    appearance: "interaction-only",
+    size: "flexible",
+    callback: callbacks.onToken,
+    "error-callback": callbacks.onError,
+    "expired-callback": callbacks.onExpired,
   });
 
   return {

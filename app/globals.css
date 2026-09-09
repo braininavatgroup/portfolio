@@ -2972,7 +2972,7 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-guide-avatar {
   flex: 1 1 auto;
-  min-height: 80px;
+  min-height: var(--reader-space-4);
 }
 
 /* The thread sizes to what it holds, so an empty Guide leaves the avatar
@@ -3110,7 +3110,8 @@ body:has(.portfolio-reading-room-mobile) {
   margin: 12px 0 0;
 }
 
-.portfolio-guide-error button {
+.portfolio-guide-error button,
+.chat-verification-retry {
   appearance: none;
   background: transparent;
   border: 0;

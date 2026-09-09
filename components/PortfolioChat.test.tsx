@@ -46,6 +46,50 @@ function submit(question: string) {
 }
 
 describe("docked portfolio Guide", () => {
+  it("unlocks suggested questions after the async Turnstile script loads", async () => {
+    // The real Turnstile API rejects ready() for async/defer scripts. Exercise
+    // our real loader and renderer instead of injecting a renderer that hides it.
+    const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
+      options.onEvent({ type: "answer_delta", delta: "A portfolio answer." });
+      options.onEvent({ type: "done" });
+    });
+    render(<PortfolioChat askPortfolio={askPortfolio} turnstileSiteKey="site-key" />);
+    const input = screen.getByLabelText("Ask a question about the portfolio") as HTMLTextAreaElement;
+    const starter = document.querySelector<HTMLButtonElement>(".portfolio-guide-suggestion")!;
+    expect(starter.disabled).toBe(true);
+    const failedScript = document.querySelector<HTMLScriptElement>("#portfolio-chat-turnstile-script")!;
+    await act(async () => { failedScript.dispatchEvent(new Event("error")); });
+    fireEvent.click(await screen.findByRole("button", { name: "Retry verification" }));
+    const script = document.querySelector<HTMLScriptElement>("#portfolio-chat-turnstile-script")!;
+    expect(script).not.toBe(failedScript);
+    expect(script.async).toBe(true);
+    const api = {
+      ready() { throw new Error("Remove async/defer before using turnstile.ready()"); },
+      render(_container: HTMLElement, options: { callback(token: string): void }) {
+        options.callback("verified-test-token");
+        return "widget-1";
+      },
+      reset() {},
+      remove() {},
+    };
+    window.turnstile = api;
+    try {
+      await act(async () => { script.dispatchEvent(new Event("load")); });
+      await waitFor(() => expect(starter.disabled).toBe(false));
+      expect(input.disabled).toBe(false);
+      fireEvent.click(starter);
+      await waitFor(() => expect(askPortfolio).toHaveBeenCalledWith(
+        starter.textContent,
+        expect.objectContaining({ challengeToken: "verified-test-token" }),
+      ));
+      expect(await screen.findByText("A portfolio answer.")).toBeTruthy();
+    } finally {
+      cleanup();
+      delete window.turnstile;
+      script.remove();
+    }
+  });
+
   it("hydrates online-first connectivity markup before synchronizing the browser state", async () => {
     vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
 

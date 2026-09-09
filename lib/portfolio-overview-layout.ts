@@ -1,35 +1,75 @@
-/** A readable overview, independent of theme membership density.
- * The shell supplies the canvas size after reserving its toolbar row.
- * Records follow Contents order; selecting one restores its spatial relations.
- */
+import { fieldCandidates } from "./portfolio-world-field";
+import { compositionRng } from "./portfolio-world-zones";
+import { relaxWorldOverlaps } from "./portfolio-world-layout";
+import { projectWorldPoint, worldPointAtDepth } from "./portfolio-world-projection";
+import type { PortfolioWorldNode } from "./portfolio-world";
+
+export const portfolioOverviewNodeLabel = (label: string) => label
+  .replace(/^Brain in a Vat /, "").replace(/^Music promo campaign /, "Campaign ");
+
+/** Fit the authored spatial graph to its actual slot, then use the same
+ * overlap solver as selected compositions. Contents ordering is not geometry. */
 export function portfolioOverviewPositions(
-  recordGroups: readonly (readonly string[])[],
-  themeIds: readonly string[],
+  nodes: readonly Pick<PortfolioWorldNode, "id" | "label" | "position">[],
   { width, height }: { width: number; height: number },
+  measure: (text: string) => number = text => text.length * 6.2,
+  compact = false,
 ) {
-  const columns = Math.max(1, recordGroups.length);
-  const inset = Math.max(16, (width - 840) / 2);
-  const cell = (width - inset * 2) / columns;
-  const labelWidth = Math.min(120, cell - 28);
-  const contentHeight = Math.min(height, 440);
-  const top = (height - contentHeight) / 2;
-  const positions = new Map<string, { x: number; y: number }>();
-  positions.set("bradley", { x: Math.max(inset, width / 2 - 56), y: top + 20 });
-  themeIds.forEach((id, index) => positions.set(id, {
-    x: inset + index * (width - inset * 2) / Math.max(1, themeIds.length),
-    y: top + Math.min(76, contentHeight * 0.25),
+  const labelWidth = width < 400 ? 64 : Math.min(132, width * 0.24);
+  const scale = compact ? 11 / 12.5 : 1;
+  const identity = nodes.find(node => node.id === "bradley")?.label;
+  const measured = (text: string) => measure(text) * (text === identity && !compact ? 14 / 12.5 : scale);
+  const camera = { position: { x: 0, y: 0, z: -760 }, target: { x: 0, y: 0, z: 760 }, fov: 1300 };
+  const xs = nodes.map(node => node.position.x);
+  const ys = nodes.map(node => node.position.y);
+  const left = labelWidth / 2 + 18;
+  const right = width - left;
+  const top = Math.min(40, height * 0.1);
+  const bottom = height - (compact ? 40 : 54);
+  const positions = new Map(nodes.map(node => {
+    const x = left + (node.position.x - Math.min(...xs)) / Math.max(1, Math.max(...xs) - Math.min(...xs)) * (right - left);
+    const y = top + (node.position.y - Math.min(...ys)) / Math.max(1, Math.max(...ys) - Math.min(...ys)) * (bottom - top);
+    return [node.id, worldPointAtDepth({ x, y }, 1300, camera.position, camera.target, camera.fov, width, height)];
   }));
-  const rows = Math.max(1, ...recordGroups.map(group => group.length));
-  const start = top + Math.min(132, contentHeight * 0.42);
-  const gap = Math.min(88, (top + contentHeight - 26 - start) / Math.max(1, rows - 1));
-  recordGroups.forEach((group, column) => group.forEach((id, row) => positions.set(id, {
-    x: inset + column * cell,
-    y: start + row * gap,
-  })));
-  return { positions, labelWidth };
+  // Narrow and tall slots need a field around the tree, not a stretched arc.
+  // Reuse the selected map's seeded candidate seats before relaxation.
+  if (width < 600 || height > width) {
+    const candidates = fieldCandidates({ left, right, top, bottom }, nodes.length, compositionRng("overview"));
+    const seated: { x: number; y: number }[] = [];
+    const tall = height > width && width >= 600;
+    const priority = (id: string) => id === "bradley" ? 2 : tall && id.startsWith("thread-") ? 1 : 0;
+    for (const node of [...nodes].sort((a, b) => priority(b.id) - priority(a.id))) {
+      const authored = projectWorldPoint(positions.get(node.id)!, camera.position, camera.target, camera.fov, width, height)!;
+      const score = (point: { x: number; y: number }) => {
+        const separation = seated.length ? Math.min(...seated.map(other => Math.hypot((point.x - other.x) / 1.3, point.y - other.y))) : 0;
+        return separation - Math.hypot(point.x - authored.x, point.y - authored.y) * 0.08;
+      };
+      const seat = node.id === "bradley"
+        ? { ...authored, y: tall ? height * node.position.y / 100 : authored.y }
+        : tall && node.id.startsWith("thread-")
+          ? authored
+          : candidates.reduce((best, point) => score(point) > score(best) ? point : best);
+      seated.push(seat);
+      positions.set(node.id, worldPointAtDepth(seat, 1300, camera.position, camera.target, camera.fov, width, height));
+    }
+  }
+  relaxWorldOverlaps({
+    positions,
+    nodes: nodes.map(node => ({ id: node.id, label: portfolioOverviewNodeLabel(node.label), pinned: false })),
+    camera, viewport: { width, height }, measure: measured,
+    wrap: (label, measureText) => label === identity ? [label] : portfolioOverviewLabel(label, measureText, labelWidth),
+    lineHeight: compact ? 12 : 15, iterations: 200, padding: 8, minHalfWidth: 12,
+    footprint: { top: 12, extraHeight: 30 },
+    margins: { left: 16, right: 16, top: 16, bottom: 16 },
+    bounds: { x: 10000, y: 10000, z: [480, 1600] },
+  });
+  return {
+    positions: new Map([...positions].map(([id, point]) => [id, projectWorldPoint(point, camera.position, camera.target, camera.fov, width, height)!])),
+    labelWidth,
+  };
 }
 
-/** At most two lines, each bounded by its column, with the full accessible
+/** At most two lines, each bounded by the available canvas space, with the full accessible
  * name retained on the node button. Long overview labels use an ellipsis. */
 export function portfolioOverviewLabel(label: string, measure: (text: string) => number, width: number): string[] {
   if (measure(label) <= width) return [label];
@@ -42,4 +82,46 @@ export function portfolioOverviewLabel(label: string, measure: (text: string) =>
     return `${text.trimEnd()}…`;
   };
   return [fit(first), ...(words.length ? [fit(words.join(" "))] : [])];
+}
+
+/** Keep the authored straight relationship, with a gap wherever an unrelated
+ * label covers it. Dense overview webs cannot always move every label clear of
+ * every edge; clipping preserves the full topology without drawing through text. */
+export function overviewConnectorSegments(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  labels: readonly { x: number; y: number; width: number; height: number }[],
+  clearance = 8,
+) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const blocked: [number, number][] = [];
+  for (const label of labels) {
+    let start = 0;
+    let end = 1;
+    for (const [origin, direction, low, high] of [
+      [from.x, dx, label.x - clearance, label.x + label.width + clearance],
+      [from.y, dy, label.y - clearance, label.y + label.height + clearance],
+    ]) {
+      if (Math.abs(direction) < 1e-9) {
+        if (origin < low || origin > high) { end = -1; break; }
+      } else {
+        const a = (low - origin) / direction;
+        const b = (high - origin) / direction;
+        start = Math.max(start, Math.min(a, b));
+        end = Math.min(end, Math.max(a, b));
+      }
+    }
+    if (end > start) blocked.push([start, end]);
+  }
+  blocked.sort((a, b) => a[0] - b[0]);
+  const point = (t: number) => ({ x: from.x + dx * t, y: from.y + dy * t });
+  const visible: { start: { x: number; y: number }; end: { x: number; y: number } }[] = [];
+  let cursor = 0;
+  for (const [start, end] of blocked) {
+    if (start > cursor) visible.push({ start: point(cursor), end: point(start) });
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < 1) visible.push({ start: point(cursor), end: to });
+  return visible;
 }

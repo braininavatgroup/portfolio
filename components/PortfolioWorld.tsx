@@ -1,6 +1,6 @@
 "use client";
 
-import { portfolioOverviewLabel, portfolioOverviewPositions } from "../lib/portfolio-overview-layout";
+import { portfolioOverviewLabel, portfolioOverviewPositions, portfolioOverviewNodeLabel, overviewConnectorSegments } from "../lib/portfolio-overview-layout";
 
 import {
   useCallback,
@@ -17,7 +17,6 @@ import {
   isWorldLinkActive,
   portfolioInterfaceText,
   portfolioThreadById,
-  portfolioWorldIndexSections,
   portfolioWorldNodeById,
   portfolioWorldNodes,
   type PortfolioWorldFamily,
@@ -230,7 +229,7 @@ function labelBoxFor(
 ): LayoutBox | null {
   const point = node.screen;
   if (!point || node.labelLines.length === 0) return null;
-  const compact = palette.compact || palette.resting;
+  const compact = palette.compact && !palette.resting;
   const showLabel = shouldShowLabel(node, palette);
   if (!showLabel) return null;
   const isBradley = node.id === "bradley";
@@ -246,7 +245,7 @@ function labelBoxFor(
       height,
     };
   }
-  const onRight = palette.resting || compactLabelOnRight(point.x, palette.width);
+  const onRight = compactLabelOnRight(point.x, palette.width);
   return {
     x: onRight ? point.x + COMPACT_LABEL_INSET : point.x - COMPACT_LABEL_INSET - width,
     y: point.y - height / 2,
@@ -643,9 +642,10 @@ export function PortfolioWorld({
     if (brainFood?.active) {
       applyRestGoals(
         nodes,
-        false,
+        compact,
         size.current,
         camera.current,
+        measureRef.current,
       );
       for (const node of nodes) node.goalAlpha = 1;
       return;
@@ -672,9 +672,10 @@ export function PortfolioWorld({
     if (isRestingWorldSelection(selectedId)) {
       applyRestGoals(
         nodes,
-        selectedId === "bradley",
+        compact,
         size.current,
         camera.current,
+        measureRef.current,
       );
       return;
     }
@@ -687,7 +688,7 @@ export function PortfolioWorld({
       measureRef.current,
       byId.get("bradley")?.goal,
     );
-  }, [activeThreadId, brainFood?.active, focusIds, selectedId]);
+  }, [activeThreadId, brainFood?.active, compact, focusIds, selectedId]);
 
   useEffect(() => {
     const world = worldRef.current;
@@ -768,7 +769,7 @@ export function PortfolioWorld({
       );
       fitOverview();
       if (brainFoodRef.current?.active) {
-        applyRestGoals(runtime.current, false, size.current, camera.current);
+        applyRestGoals(runtime.current, world.dataset.compact === "true", size.current, camera.current, measure);
         for (const node of runtime.current) node.goalAlpha = 1;
       } else if (state.current.activeThreadId) {
         applyStoryGoals(
@@ -789,9 +790,10 @@ export function PortfolioWorld({
       } else {
         applyRestGoals(
           runtime.current,
-          state.current.selectedId === "bradley",
+          world.dataset.compact === "true",
           size.current,
           camera.current,
+          measure,
         );
       }
     };
@@ -820,8 +822,7 @@ export function PortfolioWorld({
       // clean style instead of forcing a recalculation per node.
       const palette = readWorldPalette(world, size.current.width);
       const { width, height } = size.current;
-      const layout = palette.resting ? portfolioOverviewPositions([[], [], []], [], { width, height }) : null;
-      const labelWidth = layout ? layout.labelWidth / (palette.compact ? COMPACT_LABEL_SCALE : 1) : palette.compact ? 96 : LABEL_MAX_WIDTH;
+      const labelWidth = palette.resting ? (width < 400 ? 64 : Math.min(132, width * 0.24)) / (palette.compact ? COMPACT_LABEL_SCALE : 1) : palette.compact ? 96 : LABEL_MAX_WIDTH;
       const nodes = runtime.current;
       const active = state.current;
       const currentCamera = camera.current;
@@ -852,7 +853,7 @@ export function PortfolioWorld({
         );
         // Re-wrap only when the available width has changed.
         if (labelWidth !== lastLabelWidth || palette.resting !== lastResting) {
-          const label = palette.resting ? node.label.replace(/^Brain in a Vat /, "").replace(/^Music promo campaign /, "Campaign ") : node.label;
+          const label = palette.resting ? portfolioOverviewNodeLabel(node.label) : node.label;
           node.labelLines = palette.resting && node.id !== "bradley"
             ? portfolioOverviewLabel(label, measure, labelWidth)
             : wrapLabel(label, measure, node.id === "bradley" ? 160 : labelWidth);
@@ -1475,14 +1476,13 @@ export function centreComposition(
 
 function applyRestGoals(
   nodes: RuntimeNode[],
-  _spotlightBradley: boolean,
+  compact: boolean,
   dimensions: { width: number; height: number },
   camera: Camera,
+  measure: (value: string) => number = value => value.length * 6.2,
 ) {
   if (!dimensions.width || !dimensions.height) return;
-  const records = portfolioWorldIndexSections.flatMap(section => section.type === "nodes" ? [[...section.nodeIds]] : []);
-  const themes = nodes.filter(node => node.family === "story").map(node => node.id);
-  const layout = portfolioOverviewPositions(records, themes, dimensions);
+  const layout = portfolioOverviewPositions(nodes, dimensions, measure, compact);
   for (const node of nodes) {
     const screen = layout.positions.get(node.id);
     node.goal = screen ? worldPointAtDepth(screen, 1100, overview.position, overview.target, camera.fov, dimensions.width, dimensions.height) : clone(node.base);
@@ -1617,7 +1617,17 @@ function drawLinks(
     context.lineWidth = active ? 1.1 : 0.54;
     context.beginPath();
     context.moveTo(points[0].x, points[0].y);
-    for (const point of points.slice(1)) context.lineTo(point.x, point.y);
+    let pen = points[0];
+    for (let index = 1; index < points.length; index++) {
+      const segments = palette.resting
+        ? overviewConnectorSegments(points[index - 1], points[index], nodes.flatMap(node => node.labelBox ? [node.labelBox] : []))
+        : [{ start: points[index - 1], end: points[index] }];
+      for (const segment of segments) {
+        if (segment.start.x !== pen.x || segment.start.y !== pen.y) context.moveTo(segment.start.x, segment.start.y);
+        context.lineTo(segment.end.x, segment.end.y);
+        pen = segment.end;
+      }
+    }
     context.stroke();
     context.restore();
   };
@@ -1635,7 +1645,7 @@ function drawLinks(
     layer === "story-root" || layer === "spotlight-root";
 
   for (const link of links) {
-    if (isRoot(link.layer) || isRestingWorldSelection(selectedId)) continue;
+    if (isRoot(link.layer)) continue;
     const from = byId.get(link.from);
     const to = byId.get(link.to);
     if (!from?.screen || !to?.screen) continue;
@@ -1775,7 +1785,7 @@ function drawNode(
   }
   context.restore();
 
-  const compact = palette.compact || palette.resting;
+  const compact = palette.compact && !palette.resting;
   const showLabel = shouldShowLabel(node, palette);
   // While the map-label input is open its canvas text stays hidden so the
   // draft renders exactly once, in the input.
@@ -1796,7 +1806,7 @@ function drawNode(
     : point.x;
   const labelY = compact
     ? point.y - ((node.labelLines.length - 1) * labelLineHeight) / 2
-    : point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP) + LABEL_LINE_HEIGHT * 0.5;
+    : point.y + (isBradley ? BRADLEY_LABEL_TOP : LABEL_TOP) + labelLineHeight * 0.5;
   context.textAlign = compact
     ? palette.resting || compactLabelOnRight(point.x, palette.width)
       ? "left"
