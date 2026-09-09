@@ -17,6 +17,7 @@
     "setup:chat": "bash scripts/setup-portfolio-chat.sh",
     "setup:main-preview": "bash scripts/setup-main-preview.sh",
     "setup:feedback": "bash scripts/setup-portfolio-feedback.sh",
+    "setup:insights": "bash scripts/setup-portfolio-insights.sh",
     "test": "vitest run && npm run test:media-studio && npm run test:clip-studio",
     "typecheck": "tsc --noEmit",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",
@@ -36,7 +37,8 @@
     "predev": "npm run build:sharing",
     "clip:studio": "node scripts/clip-studio/server.mjs",
     "clip:render": "node scripts/clip-studio/render.mjs",
-    "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs"
+    "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs",
+    "insights": "node scripts/portfolio-insights.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",
