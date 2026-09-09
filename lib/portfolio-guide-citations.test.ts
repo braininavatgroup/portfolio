@@ -14,7 +14,7 @@ const evidence: PortfolioGroundingEvidence[] = [
   },
   {
     id: "thread:making-work-playable",
-    title: "Making work playable",
+    title: "Making Work Playable",
     excerpt: "A thread through the portfolio.",
     href: "/?view=graph#thread/making-work-playable",
   },

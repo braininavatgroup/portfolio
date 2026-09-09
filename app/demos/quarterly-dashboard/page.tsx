@@ -10,7 +10,7 @@ export default function DashboardPage() {
   return (
     <QuarterlyDashboard
       returnHref="/?view=graph#real-estate"
-      returnLabel="Back to Real-estate deal tracker"
+      returnLabel="Real-Estate Deal Tracker"
     />
   );
 }

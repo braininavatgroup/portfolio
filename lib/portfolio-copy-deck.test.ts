@@ -113,7 +113,7 @@ describe("renderCopyDeckPages", () => {
   it("renders a thread as its title and bold lede, and parks its map node text in the site text", () => {
     const thread = document.threads["making-work-playable"];
     const node = document.records["thread-making-work-playable"];
-    expect(pageAt(`${document.interface["index.section.threads"]}/Making work playable.md`).startsWith(`# ${thread.title}\n\n**${thread.lede}**\n\n`)).toBe(true);
+    expect(pageAt(`${document.interface["index.section.threads"]}/Making Work Playable.md`).startsWith(`# ${thread.title}\n\n**${thread.lede}**\n\n`)).toBe(true);
     const siteText = pageAt(COPY_DECK_SITE_TEXT_NOTE);
     expect(siteText).toContain(`### ${node.label}\n\n${node.summary}`);
   });

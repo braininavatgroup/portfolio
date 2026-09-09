@@ -86,6 +86,7 @@ The live shadow tokens are not mode-switched:
 | `--world-warm` | `--world-electric-pink` | `--world-hot-pink` | Operations marks |
 | `--world-bridge` | `--world-violet` | `--world-violet-dark` | Bridge marks |
 | `--world-cool` | `--world-production-cyan` | `--world-production-cyan-dark` | In Production marks |
+| `--world-chem` | `--world-lichen` | `--world-acid` | Chemical register — the Brain Food status line |
 
 `--register` is a link-local alias that selects one `--world-*` register; `.reader-inline-link[data-register]` and the node marks set it.
 
@@ -130,6 +131,7 @@ only voice below 11px and appears only in mobile navigation. Nothing is
 | --- | --- | --- | --- |
 | `--font-reader` | `"NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif` | Accepted world and reader type stack | None |
 | `--world-hit-area` | `34px` | World node button hit area | None |
+| `--world-hud-top` | `calc(var(--reader-space-3) + 48px)` | Top inset for world overlay text; drops to `--reader-space-3` wherever the world's own mast is hidden | None |
 | `--cursor-size` | `34px` | Segmented cursor envelope | None |
 | `--mobile-controls-inline-end` | `max(14px, env(safe-area-inset-right))` | Mobile chat inset | None |
 | `--mac-menu-bar-gap-left` | `16px` | Spacing between live menu bar glyphs left of the centre icon; set inline by `MacMenuBar` from the measured column | None |

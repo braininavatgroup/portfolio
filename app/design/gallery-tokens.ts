@@ -23,6 +23,7 @@ export const semanticAliases: readonly { token: string; role: string }[] = [
   { token: "--world-warm", role: "Operations marks" },
   { token: "--world-bridge", role: "Bridge marks" },
   { token: "--world-cool", role: "In Production marks" },
+  { token: "--world-chem", role: "Chemical register — the Brain Food status line" },
 ];
 
 /** Shadow tokens, which the live stylesheet does not switch by mode. */

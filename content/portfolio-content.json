@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 31,
+  "revision": 32,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -270,59 +270,59 @@
                   "label": "Yet More"
                 },
                 {
-                  "alt": "20/20 Vision — Record Label",
+                  "alt": "20/20 Vision — Record label",
                   "label": "20/20 Vision"
                 },
                 {
-                  "alt": "Armada Music — Record Label",
+                  "alt": "Armada Music — Record label",
                   "label": "Armada Music"
                 },
                 {
-                  "alt": "Braslive — Record Label",
+                  "alt": "Braslive — Record label",
                   "label": "Braslive"
                 },
                 {
-                  "alt": "Breakaway Projects — Record Label",
+                  "alt": "Breakaway Projects — Record label",
                   "label": "Breakaway Projects"
                 },
                 {
-                  "alt": "Higher Ground — Record Label",
+                  "alt": "Higher Ground — Record label",
                   "label": "Higher Ground"
                 },
                 {
-                  "alt": "LE YORA — Record Label",
+                  "alt": "LE YORA — Record label",
                   "label": "LE YORA"
                 },
                 {
-                  "alt": "Local Void Records — Record Label",
+                  "alt": "Local Void Records — Record label",
                   "label": "Local Void Records"
                 },
                 {
-                  "alt": "NUSONIDO — Record Label",
+                  "alt": "NUSONIDO — Record label",
                   "label": "NUSONIDO"
                 },
                 {
-                  "alt": "POP TMRW — Record Label",
+                  "alt": "POP TMRW — Record label",
                   "label": "POP TMRW"
                 },
                 {
-                  "alt": "Shapeless Culture — Record Label",
+                  "alt": "Shapeless Culture — Record label",
                   "label": "Shapeless Culture"
                 },
                 {
-                  "alt": "Smiile — Record Label",
+                  "alt": "Smiile — Record label",
                   "label": "Smiile"
                 },
                 {
-                  "alt": "The Orchard — Music Distribution",
+                  "alt": "The Orchard — Music distribution",
                   "label": "The Orchard"
                 },
                 {
-                  "alt": "WHYNOTUS — Record Label",
+                  "alt": "WHYNOTUS — Record label",
                   "label": "WHYNOTUS"
                 },
                 {
-                  "alt": "X — Record Label",
+                  "alt": "X — Record label",
                   "label": "X"
                 }
               ]
@@ -440,7 +440,7 @@
       }
     },
     "real-estate": {
-      "label": "Real-estate deal tracker",
+      "label": "Real-Estate Deal Tracker",
       "kind": "Solutions",
       "summary": "A brokerage team's deal operation mapped end to end, with explicit stages and named owners, and a real-time dashboard created inside the Google tools they already use.",
       "paragraphs": {
@@ -457,7 +457,7 @@
       }
     },
     "touring": {
-      "label": "Tour advancing system",
+      "label": "Tour Advancing System",
       "kind": "Solutions",
       "summary": "A tour-advancing system that turns one show record into role-specific forms, a day sheet, an artist calendar, and email drafts the manager reviews before sending.",
       "paragraphs": {
@@ -602,7 +602,7 @@
       }
     },
     "thread-making-work-playable": {
-      "label": "Making work playable",
+      "label": "Making Work Playable",
       "kind": "Theme",
       "summary": "A theme about responsive tools that become fluent enough to think and work through.",
       "paragraphs": {
@@ -625,7 +625,7 @@
   },
   "threads": {
     "making-work-playable": {
-      "title": "Making work playable",
+      "title": "Making Work Playable",
       "lede": "I build tools and systems that make space to think.",
       "paragraphs": {
         "p1": "A good tool rewards repetition the way an instrument does. As you become fluent, you can give more of your attention to what you're trying to express. You know how it will respond, and that familiarity gives you room to improvise. I want that same relationship with the tools I work with. The actions I repeat most should take the least effort, and the tool should respond reliably enough that I can stay with the thought.",
