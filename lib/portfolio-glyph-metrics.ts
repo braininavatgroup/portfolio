@@ -1,6 +1,8 @@
 /** Shared rendering contract. Artwork owns its optical position; consumers
  * choose a context size, never a per-icon scale or translation. */
 export const PORTFOLIO_GLYPH = {
+  // Presentation only: preserve authored paths, layout envelopes, and hit areas.
+  artworkScale: 0.9,
   control: { surface: 20, ink: 18, stroke: 1.25 },
   node: { surface: 18, stroke: 1.45 },
   lineCap: "round",

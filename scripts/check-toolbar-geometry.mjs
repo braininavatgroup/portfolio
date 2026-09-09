@@ -31,7 +31,7 @@ export async function checkToolbarGeometry(page) {
       throw new Error(`Toolbar artwork drift: ${JSON.stringify(row)}`);
     }
     for (const action of row.actions) {
-      if (!near(action.centerY, row.centerY) || action.size.some(size => !near(size, 20))) {
+      if (!near(action.centerY, row.centerY) || action.size.some(size => !near(size, 18))) {
         throw new Error(`Toolbar action drift: ${JSON.stringify(row)}`);
       }
     }

@@ -1843,14 +1843,14 @@ function drawNode(
   const color = palette.register(node.register);
   const ink = palette.ink;
   const isBradley = node.id === "bradley";
-  const size = isBradley ? BRADLEY_MARK_SIZE : MARK_SIZE;
+  const size = (isBradley ? BRADLEY_MARK_SIZE : MARK_SIZE) * PORTFOLIO_GLYPH.artworkScale;
   const statusAlpha = node.status === "past" ? PAST_WORLD_ALPHA : 1;
   context.save();
   context.translate(point.x, point.y);
   context.globalAlpha = node.alpha * statusAlpha;
   context.fillStyle = color;
   context.strokeStyle = color;
-  context.lineWidth = PORTFOLIO_NODE_MARK_STROKE;
+  context.lineWidth = PORTFOLIO_NODE_MARK_STROKE * PORTFOLIO_GLYPH.artworkScale;
   context.lineJoin = PORTFOLIO_GLYPH.lineJoin;
   context.lineCap = PORTFOLIO_GLYPH.lineCap;
 

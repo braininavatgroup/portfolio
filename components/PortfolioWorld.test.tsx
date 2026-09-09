@@ -807,7 +807,7 @@ describe("PortfolioWorld canvas paint", () => {
       '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
     );
     expect(
-      record.drawImageWidths.some((width) => Math.abs(width * 0.9 - 20.58) < 0.001),
+      record.drawImageWidths.some((width) => Math.abs(width * 0.9 - 20.58 * 0.9) < 0.001),
     ).toBe(true);
   });
 

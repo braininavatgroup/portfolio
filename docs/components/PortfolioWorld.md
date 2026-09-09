@@ -63,5 +63,5 @@ export function PortfolioWorldExample() {
   line crosses a label: selected-label rays clear first, then related nodes
   nudge sideways away from non-incident lit lines.
 - **Canvas type and size are code-side.** Labels are 12.5px, Bradley 14px with
-  his enlarged-crop circle at the existing 21px scale. The canvas and DOM share `/glyph-textures/circle.svg`; canvas sizing accounts for its transparent inset. Widths cache per wrap; never measure in the frame.
+  his enlarged-crop circle at the authored 21px scale with the shared 0.9 artwork reduction. The canvas and DOM share `/glyph-textures/circle.svg`; canvas sizing accounts for its transparent inset. Widths cache per wrap; never measure in the frame.
 - **Past changes opacity, not color** (`PAST_WORLD_ALPHA`); the register stays.

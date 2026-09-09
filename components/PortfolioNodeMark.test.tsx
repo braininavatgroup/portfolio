@@ -3,6 +3,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  PortfolioNodeMark,
+  PortfolioContactMark,
   PortfolioControlGlyph,
   PortfolioControlMark,
 } from "./PortfolioNodeMark";
@@ -71,5 +73,21 @@ describe("PortfolioControlGlyph", () => {
 
   it("shares the left-panel artwork across mobile and desktop", () => {
     expect(portfolioControlMarkPrimitives("mobileSidebar")).toEqual(portfolioControlMarkPrimitives("sidebarLeft"));
+  });
+});
+
+it("applies the approved artwork reduction once across controls, nodes, identity, and contacts", () => {
+  const { container } = render(<>
+    <PortfolioControlGlyph kind="avatarShown" />
+    <PortfolioControlGlyph kind="avatarHidden" />
+    <PortfolioControlGlyph kind="copy" size="compact" />
+    <PortfolioNodeMark family="identity" register="identity" />
+    <PortfolioContactMark kind="email" />
+  </>);
+  const marks = container.querySelectorAll<HTMLElement>(".portfolio-control-glyph, .portfolio-node-mark");
+  expect(marks).toHaveLength(5);
+  marks.forEach(mark => {
+    expect(mark.style.scale).toBe("0.9");
+    expect(mark.querySelector('[style*="scale: 0.9"]')).toBeNull();
   });
 });

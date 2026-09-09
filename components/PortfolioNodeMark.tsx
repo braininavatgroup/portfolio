@@ -106,6 +106,7 @@ export function PortfolioNodeMark({
     <span
       aria-hidden="true"
       className="portfolio-node-mark"
+      style={{ scale: PORTFOLIO_GLYPH.artworkScale }}
       data-family={family}
       data-register={register}
     >
@@ -125,6 +126,7 @@ export function PortfolioContactMark({ kind }: { kind: PortfolioContactMarkKind 
     <span
       aria-hidden="true"
       className="portfolio-node-mark"
+      style={{ scale: PORTFOLIO_GLYPH.artworkScale }}
       data-contact={kind}
       data-family="contact"
       data-register="identity"
@@ -166,7 +168,7 @@ export function PortfolioControlMark({
 
 export function PortfolioControlGlyph({ kind, size = "standard" }: { kind: PortfolioControlMarkKind; size?: PortfolioGlyphSize }) {
   return (
-    <span aria-hidden="true" className="portfolio-control-glyph" data-control-glyph={kind} data-glyph-size={size}>
+    <span aria-hidden="true" className="portfolio-control-glyph" style={{ scale: PORTFOLIO_GLYPH.artworkScale }} data-control-glyph={kind} data-glyph-size={size}>
       {kind === "map" || kind === "chat" || kind === "avatarShown" || kind === "avatarHidden" ? (
         size === "standard" ? <PatternedControlGlyph kind={kind} /> : (
           <span className="portfolio-control-pattern-frame" style={{ transform: `scale(${PORTFOLIO_GLYPH_SIZES[size] / CONTROL_SURFACE_SIZE})` }}>
