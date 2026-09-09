@@ -1341,6 +1341,7 @@ input:focus-visible {
   --world-warm: var(--world-electric-pink);
   --world-bridge: var(--world-violet);
   --world-cool: var(--world-production-cyan);
+  --world-chem: var(--world-lichen);
   background: var(--map-paper);
   color: var(--ink);
   font-family: var(--font-reader);
@@ -1372,6 +1373,7 @@ input:focus-visible {
     --world-warm: var(--world-hot-pink);
     --world-bridge: var(--world-violet-dark);
     --world-cool: var(--world-production-cyan-dark);
+    --world-chem: var(--world-acid);
     color-scheme: dark;
   }
 }
@@ -1468,6 +1470,7 @@ body:has(.portfolio-composition) {
 }
 
 .portfolio-world {
+  --world-hud-top: calc(var(--reader-space-3) + 48px);
   background: var(--map-paper);
   inset: 0;
   overflow: hidden;
@@ -1487,13 +1490,13 @@ body:has(.portfolio-composition) {
 }
 
 .portfolio-world-brain-food-status {
-  color: var(--map-muted);
+  color: var(--world-chem);
   font: var(--reader-type-caption) var(--font-reader);
   left: var(--reader-space-3);
   letter-spacing: 0.01em;
   margin: 0;
   position: absolute;
-  top: calc(var(--reader-space-3) + 48px);
+  top: var(--world-hud-top);
   z-index: 3;
 }
 
@@ -1715,6 +1718,14 @@ body:has(.portfolio-reading-room-desktop) {
 .portfolio-reading-room-pane-body > .portfolio-world > .portfolio-world-mast,
 .portfolio-reading-room-mobile-map > .portfolio-world > .portfolio-world-mast {
   display: none;
+}
+
+/* With no mast to clear, the Brain Food status line sits flush in the inset. */
+.portfolio-reading-room-pane-body > .portfolio-world,
+.portfolio-reading-room-mobile-map > .portfolio-world,
+.portfolio-reading-room-view-host > .portfolio-world,
+.portfolio-reading-room-map-canvas .portfolio-world {
+  --world-hud-top: var(--reader-space-3);
 }
 
 /* Each desktop view sits in one host that the shell reparents between slot
