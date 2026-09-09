@@ -47,7 +47,7 @@ export function ReaderCarouselExample() {
 
 - Reduced motion keeps the strip still. Fine-pointer hover and keyboard focus pause scrolling; leaving resumes it.
 - Platform marks inherit the card contrast and brighten over a subtle background on hover or keyboard focus; the focus ring remains visible.
-- Touch focuses the image button. Tab continues into the card's accessible platform links, each with a tooltip and a new-tab target.
+- A touch press opens the card and holds it open (`data-open` on the item) until another opens or a press lands outside the strip; a mouse keeps its hover-only card. Focus cannot hold a card open for touch: revealing it between press and release retargets the click to the list item, and touch browsers drop focus before a link's click lands, so a focus-only card swallowed every platform-link tap. Tab continues into the card's accessible platform links, each with a tooltip and a new-tab target.
 - Images use precompressed local WebP files with explicit 128px dimensions, lazy loading, and asynchronous decoding; the native image element deliberately avoids runtime transformation. Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
 - `.reader-visual-block img` stretches images; the carousel overrides that to 128px square. Keep this override when changing shared media styles.
 - Every asset needs corresponding alt text in the content document; content/structure parity tests guard their alignment.

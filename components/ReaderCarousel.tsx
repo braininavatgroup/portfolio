@@ -95,6 +95,12 @@ export function ReaderCarousel({
   speed?: number;
 }) {
   const reducedMotion = usePrefersReducedMotion();
+  // Which card a *touch* opened. A mouse still reveals cards by hover alone.
+  // Touch has no hover and cannot lean on focus either: revealing the card
+  // between press and release retargets the click to the list item, and a
+  // touch browser drops focus before a link's click lands — so a focus-only
+  // card vanished under the finger and swallowed every platform-link tap.
+  const [openSrc, setOpenSrc] = useState<string | null>(null);
   const plugins = useMemo(
     () => [
       AutoScroll({
@@ -122,7 +128,7 @@ export function ReaderCarousel({
     if (!emblaApi) return;
     const root = emblaApi.rootNode();
     let disposed = false;
-    const shouldPause = () => reducedMotion || root.contains(document.activeElement) || (
+    const shouldPause = () => reducedMotion || openSrc !== null || root.contains(document.activeElement) || (
       window.matchMedia("(pointer: fine)").matches && root.matches(":hover")
     );
     const stop = () => emblaApi.plugins().autoScroll?.stop();
@@ -151,7 +157,22 @@ export function ReaderCarousel({
       emblaApi.off("autoScroll:play", guardPlay);
       emblaApi.off("reInit", restart);
     };
-  }, [emblaApi, reducedMotion]);
+  }, [emblaApi, openSrc, reducedMotion]);
+
+  // A press outside the strip closes the open card, the way a tap away
+  // dismisses any other transient surface. Presses inside the strip belong to
+  // the cards themselves: a trigger opens its own card, a link opens its site.
+  useEffect(() => {
+    if (!openSrc || !emblaApi) return;
+    const root = emblaApi.rootNode();
+    const dismiss = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Node && root.contains(target)) return;
+      setOpenSrc(null);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [emblaApi, openSrc]);
 
   return (
     <div
@@ -164,11 +185,21 @@ export function ReaderCarousel({
       <div className="reader-carousel-viewport" ref={viewportRef}>
         <ul className="reader-carousel-track">
           {assets.map((asset) => (
-            <li className="reader-carousel-item" key={asset.src}>
+            <li
+              className="reader-carousel-item"
+              data-open={openSrc === asset.src ? "true" : undefined}
+              key={asset.src}
+            >
               <button
                 aria-label={`Show details for ${asset.label ?? asset.alt}`}
                 className="reader-carousel-trigger"
                 onClick={(event) => event.currentTarget.focus()}
+                // The press, not the click: a tap's click is retargeted to the
+                // list item once the card appears, so the button never sees
+                // it. A mouse keeps its hover-only card.
+                onPointerDown={(event) => {
+                  if (event.pointerType !== "mouse") setOpenSrc(asset.src);
+                }}
                 type="button"
               >
                 {/* Precompressed local WebP thumbnails; runtime optimization adds an unnecessary request path. */}
