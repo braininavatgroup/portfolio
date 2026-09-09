@@ -558,7 +558,7 @@ describe("PortfolioWorld canvas paint", () => {
       labelAlphas: new Map<string, number>(),
       pathAlphas: [] as number[],
       moveToCalls: 0,
-      strokes: [] as Array<{ lineToCount: number; style: string }>,
+      strokes: [] as Array<{ lineToCount: number; style: string; alpha: number }>,
       translateCalls: 0,
     };
     let lineToCount = 0;
@@ -580,6 +580,7 @@ describe("PortfolioWorld canvas paint", () => {
       stroke: () => {
         record.strokes.push({
           lineToCount,
+          alpha: Number(target.globalAlpha),
           style: String(target.strokeStyle),
         });
       },
@@ -702,6 +703,13 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
   });
 
+  it("paints the overview relationship web at readable opacity", async () => {
+    const connector = "rgb(12, 34, 56)";
+    const record = paintWithConnector(connector);
+    await new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+    expect(record.strokes.filter(stroke => stroke.style === connector && stroke.alpha >= 0.35).length).toBeGreaterThan(12);
+  });
+
   it("strokes Bradley's trunk and strongest branch as one joined path", async () => {
     const connector = "rgb(12, 34, 56)";
     const record = paintWithConnector(connector);
@@ -786,7 +794,7 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.fillTexts).toContain("Writ");
   });
 
-  it("places compact labels to the right of nodes left of thirty percent", async () => {
+  it("centres overview labels beneath their marks in compact slots", async () => {
     const width = 915;
     const record = paintWithConnector("rgb(1, 2, 3)", { compact: true, width });
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
@@ -798,8 +806,8 @@ describe("PortfolioWorld canvas paint", () => {
     const label = record.fillTextCalls.find(({ value }) => value.startsWith("Making work"));
 
     expect(nodeX).toBeLessThan(width * 0.3);
-    expect(label?.align).toBe("left");
-    expect(label?.x).toBeGreaterThan(nodeX);
+    expect(label?.align).toBe("center");
+    expect(label?.x).toBeCloseTo(nodeX);
   });
 });
 

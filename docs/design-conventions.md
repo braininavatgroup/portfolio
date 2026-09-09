@@ -340,7 +340,7 @@ the clip never snaps mid-motion. Every related label also clears every
 non-incident lit segment by 8px; the smallest modest sideways node nudge wins,
 so a sloping trunk cannot brush the first or last word. The tree at rest is one
 trunk from Bradley to a junction (`lib/portfolio-story-tree.ts`) and branches
-from there; nothing draws Bradley-to-Story lines directly.
+from there; nothing draws Bradley-to-Story lines directly. In the fully connected overview, straight connectors are interrupted eight pixels around intervening labels so a dense web never paints across text.
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
@@ -498,7 +498,7 @@ spacing token.
 ## 9. Mobile review pass
 
 - Reader inline navigation uses real anchors with controlled primary-click navigation. This lets links wrap with surrounding punctuation and preserves modified-click behavior.
-- The default map places Background, Solutions, and Products in the same column order as Contents. Its upper tree connects Bradley to Themes; membership lines appear on selection. All overview records have labels, bounded to two lines in their columns. Full names remain on their accessible buttons.
+- The default map spreads the authored spatial graph across its measured canvas. Its upper tree connects Bradley to Themes, and factual and membership relationships remain visible throughout the overview. All overview records have labels beneath their marks, bounded to two lines. Straight connectors leave eight pixels around intervening overview labels. Full names remain on their accessible buttons.
 - The mobile map toolbar occupies a real row. The canvas measures the remaining area, including during selection and resizing. Read has no arrow; Hide/Show avatar shares the row.
 - Reader, Map, and Guide use the brain asset at its native pattern scale in an 18px control envelope. Inactive tabs use muted ink without separately fading the pattern.
 - Guide follows growing answers only while at the bottom. Scrolling up preserves position. The downward chevron occupies a separate 32px row, so visibility changes do not change the message viewport or cover prose.

@@ -128,7 +128,7 @@ describe("accepted portfolio world", () => {
     ]);
   });
 
-  it("shows the Theme tree at rest and reveals membership on selection", () => {
+  it("shows the factual and membership web at rest", () => {
     const roots = [
       "thread-making-work-playable",
       "thread-philosophy",
@@ -143,9 +143,7 @@ describe("accepted portfolio world", () => {
         links
           .filter((link) => isWorldLinkActive(link, selectedId))
           .map(({ layer, to }) => `${layer}:${to}`),
-      ).toEqual([
-        ...roots.map((to) => `story-root:${to}`),
-      ]);
+      ).toEqual(links.map(({ layer, to }) => `${layer}:${to}`));
       expect(getWorldFocusIds({ activeThreadId: null, selectedId })).toEqual(
         new Set(["bradley", ...roots]),
       );
@@ -162,13 +160,6 @@ describe("accepted portfolio world", () => {
   });
 
   it.each([
-    [
-      "bradley",
-      [
-        "story-root:bradley->thread-making-work-playable",
-        "story-root:bradley->thread-philosophy",
-      ],
-    ],
     [
       "thread-making-work-playable",
       [
