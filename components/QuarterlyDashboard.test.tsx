@@ -22,7 +22,7 @@ describe("quarterly dashboard", () => {
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "Ryan + Ryan Quarterly Pitch Conversion",
+        name: "Listing Pitch Conversion",
       }),
     ).not.toBeNull();
     expect(screen.getByRole("navigation", { name: "Dashboard pages" })).not.toBeNull();
@@ -50,7 +50,7 @@ describe("quarterly dashboard", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Ryan + Ryan Quarterly Pitch Conversion",
+        name: "Listing Pitch Conversion",
       }),
     ).not.toBeNull();
     expect(getSelect("combobox", "Year").value).toBe("2026");
@@ -76,8 +76,10 @@ describe("quarterly dashboard", () => {
 
     expect(screen.getByRole("heading", { name: "Pitch Detail" })).not.toBeNull();
     expect(
-      [...getSelect("listbox", "Stage").selectedOptions].map((option) => option.value),
-    ).toEqual(["Signed exclusive"]);
+      screen
+        .getByRole("button", { name: "Signed exclusive", pressed: true })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
     expect(screen.queryByText("Lost", { selector: "td" })).toBeNull();
   });
 
