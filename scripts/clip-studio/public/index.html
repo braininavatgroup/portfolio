@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clip studio</title>
+    <link rel="stylesheet" href="/studio.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="clip-studio">
+      <section class="clip-studio-stage">
+        <canvas id="frame"></canvas>
+        <div class="clip-studio-transport">
+          <button type="button" id="play">Play</button>
+          <input id="scrub" type="range" min="0" max="1" step="0.001" value="0" />
+          <output id="time">0.00s</output>
+        </div>
+      </section>
+
+      <aside class="clip-studio-panel">
+        <div class="clip-studio-modes" role="tablist">
+          <button type="button" id="mode-play" data-mode="play" aria-selected="true">Play</button>
+          <button type="button" id="mode-edit" data-mode="edit" aria-selected="false">Scripted</button>
+        </div>
+        <p class="clip-studio-status" id="status">Loading the avatar…</p>
+
+        <section class="clip-studio-mode" id="play-panel">
+          <div class="clip-studio-row">
+            <button type="button" id="live-record" data-recording="false">Record</button>
+            <button type="button" id="live-face">Face me (C)</button>
+            <button type="button" id="live-restart">Restart</button>
+          </div>
+          <output class="clip-studio-readout" id="live-readout">0.0s · 0 eaten</output>
+          <div class="clip-studio-fields">
+            <label class="clip-studio-field">
+              <span>Mode</span>
+              <select id="live-mode">
+                <option value="chase">Brain Food</option>
+                <option value="rain">Falling nodes</option>
+              </select>
+            </label>
+            <label class="clip-studio-field">
+              <span>Clip</span>
+              <select id="live-clip"></select>
+            </label>
+            <label class="clip-studio-field">
+              <span>Speed</span>
+              <input id="live-speed" type="range" min="0.3" max="3" step="0.05" value="1" />
+            </label>
+            <label class="clip-studio-field">
+              <span>Float</span>
+              <select id="live-pose">
+                <option value="float">Floating</option>
+                <option value="upright">Upright</option>
+              </select>
+            </label>
+            <label class="clip-studio-field">
+              <span>Turn (Z / X)</span>
+              <input id="live-angle" type="range" min="0" max="360" step="2" value="90" />
+            </label>
+            <label class="clip-studio-field">
+              <span>Roll (Q / E)</span>
+              <input id="live-roll" type="range" min="0" max="360" step="2" value="0" />
+            </label>
+            <label class="clip-studio-field">
+              <span>Tilt (R / F)</span>
+              <input id="live-tilt" type="range" min="0" max="360" step="2" value="0" />
+            </label>
+            <label class="clip-studio-field">
+              <span>Tumble</span>
+              <input id="live-tumble" type="range" min="0" max="4" step="0.05" value="1" />
+            </label>
+          </div>
+          <p class="clip-studio-note">
+            Arrow keys or WASD move. Left-drag steers toward the pointer;
+            right-drag (or Shift-drag) turns and tilts, and the wheel rolls.
+            <kbd>C</kbd> faces the camera, <kbd>1</kbd>–<kbd>9</kbd> fire the
+            first nine animations, Shift queues one, <kbd>Esc</kbd> drops back to
+            the base clip. Space starts and stops recording; takes land in
+            <code>.context/clips</code>.
+          </p>
+
+          <details class="clip-studio-group" open>
+            <summary>Animations</summary>
+            <label class="clip-studio-field">
+              <span>Base clip</span>
+              <select id="live-base"></select>
+            </label>
+            <output class="clip-studio-readout" id="live-queue"></output>
+            <div class="clip-studio-library" id="live-library"></div>
+          </details>
+        </section>
+
+        <details class="clip-studio-group" open>
+          <summary>Scene</summary>
+          <div class="clip-studio-fields" id="scene-fields"></div>
+        </details>
+
+        <details class="clip-studio-group" open>
+          <summary>Background</summary>
+          <div class="clip-studio-fields" id="background-fields"></div>
+        </details>
+
+        <section class="clip-studio-mode" id="edit-panel" hidden>
+        <header class="clip-studio-head">
+          <select id="spec" aria-label="Spec"></select>
+          <button type="button" id="save">Save</button>
+          <button type="button" id="render">Render MP4</button>
+        </header>
+
+        <details class="clip-studio-group" open>
+          <summary>Shots <span class="clip-studio-count" id="shot-count"></span></summary>
+          <ol class="clip-studio-shots" id="shots"></ol>
+          <div class="clip-studio-row">
+            <button type="button" id="fit-duration">Fit clip to shots</button>
+          </div>
+          <div class="clip-studio-row">
+            <button type="button" data-shot-action="add">Add</button>
+            <button type="button" data-shot-action="duplicate">Duplicate</button>
+            <button type="button" data-shot-action="up">Move up</button>
+            <button type="button" data-shot-action="down">Move down</button>
+            <button type="button" data-shot-action="delete">Delete</button>
+          </div>
+          <div class="clip-studio-fields" id="shot-fields"></div>
+        </details>
+
+
+        <details class="clip-studio-group">
+          <summary>Frame</summary>
+          <div class="clip-studio-fields" id="frame-fields"></div>
+        </details>
+
+        <details class="clip-studio-group">
+          <summary>Spec JSON</summary>
+          <textarea id="json" spellcheck="false" rows="14"></textarea>
+          <div class="clip-studio-row">
+            <button type="button" id="apply-json">Apply JSON</button>
+          </div>
+        </details>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/app.mjs"></script>
+  </body>
+</html>

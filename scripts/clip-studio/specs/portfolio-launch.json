@@ -1,0 +1,77 @@
+{
+  "name": "portfolio-launch",
+  "duration": 15,
+  "theme": "dark",
+  "background": {
+    "kind": "aurora",
+    "speed": 1,
+    "intensity": 1
+  },
+  "shots": [
+    {
+      "clip": "Wave_One_Hand",
+      "duration": 3,
+      "framing": "full",
+      "orbit": [
+        -14,
+        -4
+      ],
+      "dolly": [
+        1.06,
+        1
+      ],
+      "text": {
+        "kicker": null,
+        "title": null,
+        "subtitle": null,
+        "place": "lower",
+        "align": "left"
+      }
+    },
+    {
+      "clip": "Idle",
+      "duration": 4,
+      "framing": "mid",
+      "orbit": [
+        8,
+        -6
+      ],
+      "transition": "dip"
+    },
+    {
+      "clip": "Full_Turn_Left",
+      "duration": 3,
+      "framing": "hero",
+      "offset": 1.2,
+      "rate": 1.3,
+      "orbit": [
+        -20,
+        10
+      ],
+      "dolly": [
+        1.1,
+        0.94
+      ],
+      "transition": "dip"
+    },
+    {
+      "clip": "Step_Hip_Hop_Dance",
+      "duration": 3,
+      "framing": "full",
+      "orbit": [
+        12,
+        -12
+      ],
+      "transition": "dip"
+    },
+    {
+      "clip": "Jazz_Dance",
+      "duration": 2,
+      "framing": "full",
+      "orbit": [
+        -8,
+        0
+      ]
+    }
+  ]
+}

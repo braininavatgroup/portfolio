@@ -1,0 +1,143 @@
+{
+  "name": "portfolio-fall",
+  "duration": 20,
+  "theme": "dark",
+  "background": {
+    "kind": "video",
+    "film": "nmf-story",
+    "speed": 0.9,
+    "intensity": 1.15,
+    "glow": false,
+    "smoothing": 0.1,
+    "rules": false
+  },
+  "vignette": 0.56,
+  "texture": "none",
+  "grain": 0,
+  "echo": 0.64,
+  "echoStyle": "fall",
+  "cameraDrift": 2.25,
+  "rain": {
+    "enabled": true,
+    "count": 120,
+    "speed": 0.95,
+    "scale": 4.6,
+    "labels": false,
+    "fog": 0.015,
+    "seed": 5
+  },
+  "shots": [
+    {
+      "clip": "Swim_Forward",
+      "duration": 20,
+      "framing": "swim",
+      "motion": "float",
+      "rate": 0.55,
+      "orbit": [
+        7,
+        -5
+      ],
+      "dolly": [
+        1.08,
+        0.84
+      ],
+      "float": {
+        "turn": [
+          178,
+          92
+        ],
+        "roll": [
+          0,
+          0
+        ],
+        "tilt": [
+          0,
+          0
+        ],
+        "spin": [
+          1,
+          0.9
+        ],
+        "rates": {
+          "turn": 38,
+          "roll": 0,
+          "tilt": 0
+        },
+        "wobble": {
+          "roll": 24,
+          "tilt": 16,
+          "period": 6.5
+        }
+      },
+      "place": {
+        "from": [
+          0.35,
+          2.75
+        ],
+        "to": [
+          0,
+          1.6
+        ]
+      },
+      "track": [
+        {
+          "at": 0,
+          "clip": "Swim_Forward",
+          "rate": 0.55
+        },
+        {
+          "at": 8.5,
+          "clip": "All_Night_Dance",
+          "rate": 0.8,
+          "fade": 0.45,
+          "offset": 2.6
+        },
+        {
+          "at": 15,
+          "clip": "Swim_Forward",
+          "rate": 0.5,
+          "fade": 0.7
+        }
+      ],
+      "text": {
+        "kicker": null,
+        "title": null,
+        "subtitle": null,
+        "place": "lower",
+        "align": "left"
+      },
+      "beats": [
+        {
+          "at": 13.1,
+          "in": 1.2,
+          "hold": 1.2,
+          "out": 1.2,
+          "orbit": 0,
+          "sweep": 58,
+          "dolly": 0.62,
+          "turn": 90,
+          "roll": 0,
+          "tilt": 0,
+          "place": [
+            0,
+            1.8
+          ],
+          "highlight": 0.5
+        }
+      ]
+    }
+  ],
+  "dipDepth": 0.08,
+  "mark": false,
+  "blend": 1.15,
+  "trails": 0.45,
+  "sway": 0.175,
+  "hidden": [
+    "infamous"
+  ],
+  "palette": {
+    "registers": {
+      "identity": "#b6df5b"
+    }
+  }
+}

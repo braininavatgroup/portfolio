@@ -1,0 +1,280 @@
+:root {
+  color-scheme: dark;
+  --paper: #19140f;
+  --near: #211c18;
+  --line: rgb(240 230 220 / 18%);
+  --ink: #f0e6dc;
+  --muted: #a69c92;
+  --accent: #b6df5b;
+  --bad: #ff554a;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  margin: 0;
+}
+
+.clip-studio {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.clip-studio-stage {
+  display: grid;
+  gap: 12px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.clip-studio-stage canvas {
+  align-self: center;
+  background: var(--near);
+  border-radius: 8px;
+  justify-self: center;
+  /* The frame is portrait; height leads so it always fits the stage row. */
+  height: 100%;
+  max-width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  width: auto;
+}
+
+.clip-studio-transport {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.clip-studio-transport input[type="range"] {
+  flex: 1;
+}
+
+.clip-studio-transport output {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 110px;
+  text-align: right;
+}
+
+.clip-studio-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+
+.clip-studio-head {
+  display: flex;
+  gap: 8px;
+}
+
+.clip-studio-head select {
+  flex: 1;
+}
+
+.clip-studio-status {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.clip-studio-status[data-tone="bad"] {
+  color: var(--bad);
+}
+
+.clip-studio-status[data-tone="good"] {
+  color: var(--accent);
+}
+
+button,
+select,
+input,
+textarea {
+  background: var(--near);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+input[type="checkbox"] {
+  justify-self: start;
+}
+
+input[type="range"] {
+  padding: 0;
+}
+
+textarea {
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clip-studio-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.clip-studio-group summary {
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.clip-studio-count {
+  color: var(--muted);
+}
+
+.clip-studio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.clip-studio-row button {
+  flex: 1;
+  font-size: 12px;
+  padding: 5px 6px;
+}
+
+.clip-studio-shots {
+  display: grid;
+  font-size: 13px;
+  gap: 2px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.clip-studio-shots li {
+  border-left: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 5px 8px;
+}
+
+.clip-studio-shots li[data-selected="true"] {
+  background: rgb(240 230 220 / 8%);
+  color: var(--ink);
+}
+
+.clip-studio-shots li[data-playing="true"] {
+  border-left-color: var(--accent);
+}
+
+.clip-studio-fields {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 10px;
+}
+
+.clip-studio-field {
+  display: grid;
+  gap: 4px;
+}
+
+.clip-studio-field span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.clip-studio-field:has(textarea) {
+  grid-column: 1 / -1;
+}
+
+.clip-studio-modes {
+  display: flex;
+  gap: 6px;
+}
+
+.clip-studio-modes button {
+  flex: 1;
+}
+
+.clip-studio-modes button[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #19140f;
+}
+
+.clip-studio-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* `display: flex` above would otherwise defeat the hidden attribute. */
+.clip-studio-mode[hidden] {
+  display: none;
+}
+
+.clip-studio-readout {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+#live-record[data-recording="true"] {
+  background: #ff554a;
+  border-color: #ff554a;
+  color: #19140f;
+}
+
+.clip-studio-transport[hidden] {
+  display: none;
+}
+
+.clip-studio-field:has(:disabled) span {
+  opacity: 0.4;
+}
+
+input:disabled,
+button:disabled[id] {
+  opacity: 0.4;
+}
+
+.clip-studio-library {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 10px;
+}
+
+.clip-studio-library button {
+  font-size: 12px;
+  padding: 6px;
+  text-align: left;
+}
+
+.clip-studio-library button[data-playing="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #19140f;
+}

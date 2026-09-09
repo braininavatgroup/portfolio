@@ -16,3 +16,7 @@
   on the live site). Read `docs/content/copy-deck.md` before applying one: it
   says how to diff the deck against a fresh export and where each key lives in
   `content/portfolio-content.json`.
+- Social video for the portfolio is authored as a JSON spec under
+  `scripts/clip-studio/specs/` and rendered with `npm run clip:render`. Read
+  `docs/clip-studio.md` before changing a spec or the renderer; `--still` gives
+  a single frame in seconds, which is how to iterate on wording and framing.
