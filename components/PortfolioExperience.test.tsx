@@ -7,11 +7,20 @@ import { startPrivacySafeReplay } from "../lib/portfolio-analytics";
 import { portfolioWorldNodeById, portfolioWorldNodes } from "../lib/portfolio-world";
 import { PortfolioExperience } from "./PortfolioExperience";
 
+const avatarLoading = vi.hoisted(() => ({
+  defer: false,
+  finish: undefined as (() => void) | undefined,
+}));
+
 vi.mock("./avatar/AvatarOverlay", async () => {
   const React = await import("react");
   return {
     AvatarOverlay: ({ runtime }: { runtime: AvatarRuntime }) => {
-      React.useEffect(() => runtime.setAvailableClips(new Set(Object.keys(avatarClips) as AvatarClip[])), [runtime]);
+      React.useEffect(() => {
+        const finish = () => runtime.setAvailableClips(new Set(Object.keys(avatarClips) as AvatarClip[]));
+        if (avatarLoading.defer) avatarLoading.finish = finish;
+        else finish();
+      }, [runtime]);
       const snapshot = React.useSyncExternalStore(
         runtime.subscribe,
         runtime.getSnapshot,
@@ -22,6 +31,7 @@ vi.mock("./avatar/AvatarOverlay", async () => {
           aria-label="Test avatar overlay"
           data-animation={snapshot.animation}
           data-phase={snapshot.phase}
+          data-ready={snapshot.ready ? "true" : "false"}
           data-visible={snapshot.visible ? "true" : "false"}
         />
       );
@@ -117,6 +127,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  avatarLoading.defer = false;
+  avatarLoading.finish = undefined;
   mediaListeners.clear();
   vi.restoreAllMocks();
   vi.useRealTimers();
@@ -266,11 +278,21 @@ describe("PortfolioExperience Reading Room integration", () => {
   });
 
   it("runs Brain Food on the live Map and restores the selected Reader record on Escape", async () => {
+    avatarLoading.defer = true;
     await renderExperience();
     selectContentsRecord("Dubs");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
 
-    await screen.findByLabelText("Test avatar overlay");
+    const avatar = await screen.findByLabelText("Test avatar overlay");
+    expect(avatar.dataset.ready).toBe("false");
+    fireEvent.keyDown(document, { key: "G", shiftKey: true });
+    expect(screen.queryByText(/Brain Food ·/)).toBeNull();
+
+    // Mounting the lazy overlay does not mean its animation assets are ready.
+    // Control readiness explicitly instead of racing the effect on a busy runner.
+    await waitFor(() => expect(avatarLoading.finish).toBeTypeOf("function"));
+    act(() => avatarLoading.finish!());
+    await waitFor(() => expect(avatar.dataset.ready).toBe("true"));
     fireEvent.keyDown(document, { key: "G", shiftKey: true });
 
     expect(await screen.findByText(/Brain Food · 13 left/)).toBeTruthy();
