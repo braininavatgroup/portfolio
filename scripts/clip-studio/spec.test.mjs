@@ -455,3 +455,45 @@ test("the server lists specs, serves them, and refuses paths that escape", async
     server.close();
   }
 });
+
+test("a missing tool is named rather than failing part-way", async () => {
+  const { assertRenderTools, cachedBrowser, ffmpegAdvice, hasFfmpeg, loadPlaywright, playwrightAdvice } =
+    await import("./tools.mjs");
+
+  // What a machine happens to have is not the assertion; what it is told is.
+  assert.equal(typeof (await hasFfmpeg()), "boolean");
+  assert.match(ffmpegAdvice, /brew install ffmpeg/);
+  assert.match(playwrightAdvice, /npm run clip:setup/);
+
+  const present = async () => true,
+    absent = async () => false,
+    playwright = () => ({ chromium: {} });
+
+  await assertRenderTools({ ffmpeg: present, playwright });
+  await assert.rejects(
+    assertRenderTools({ ffmpeg: absent, playwright }),
+    /brew install ffmpeg/,
+  );
+  await assert.rejects(
+    assertRenderTools({
+      ffmpeg: present,
+      playwright: () => {
+        throw new Error(playwrightAdvice);
+      },
+    }),
+    /clip:setup/,
+  );
+
+  // A machine with no Playwright at all is told what to run, not shown a
+  // resolution error from deep inside the renderer.
+  assert.throws(
+    () =>
+      loadPlaywright(() => {
+        throw new Error("Cannot find module");
+      }),
+    /clip:setup/,
+  );
+
+  // The cached-browser fallback answers with a path or nothing, never a throw.
+  assert.equal(cachedBrowser("/nowhere-on-this-machine"), null);
+});

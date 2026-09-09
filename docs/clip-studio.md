@@ -4,6 +4,29 @@ A local tool that turns the avatar's animation clips into a short vertical
 video for social posts. It is authoring tooling under `scripts/`, not an
 application route, and nothing it produces is published by the portfolio build.
 
+## First run on a new machine
+
+The studio itself needs nothing but this repository: `npm run clip:studio`
+serves the page, and the preview, the painted backgrounds, and play mode all
+work straight away.
+
+Two things are needed to write a video, and each is checked before any work
+starts, so a missing one is named rather than found twenty seconds in:
+
+```sh
+brew install ffmpeg     # writes the MP4, and converts a recorded take
+npm run clip:setup      # the browser the renderer steps frames through
+```
+
+`clip:setup` is only needed if the machine has no Playwright at all. The
+renderer takes one from wherever it finds it — `PLAYWRIGHT_MODULE`, a
+project-local install, the global one, or a copy npx has unpacked — and if that
+package's own browser build is missing it falls back to the newest one already
+in the shared cache.
+
+The falling-map background plays a film from the music-promo repository; see
+[Films](#films). Without it, every other background still works.
+
 ## Making a clip
 
 ```sh
@@ -429,6 +452,8 @@ where the camera swings round, holds him square to it, and lets go.
 - `scripts/clip-studio/fonts.mjs`: one-time download of the two Neue Haas faces
   into `node_modules/.cache/clip-studio/fonts`. Without a network the renderer
   falls back to the system stack.
+- `scripts/clip-studio/tools.mjs`: what the studio needs from the machine —
+  ffmpeg, Playwright, a browser — and the message for each when it is absent.
 - `scripts/clip-studio/render.mjs`: the checked-in managed runner. One headless
   browser per invocation, an ephemeral context, artifacts scoped to
   `.context/clips`, frames piped straight to ffmpeg.
@@ -443,5 +468,7 @@ function of `t` alone, and the grain tile is seeded, so the preview, a rerender,
 and the export agree frame for frame. Software-rendered WebGL is deterministic
 smoke evidence; final feel belongs in a walk.
 
-ffmpeg is a prerequisite (`brew install ffmpeg`), as is a Playwright install —
-either a project-local one or `PLAYWRIGHT_MODULE` pointing at an installed copy.
+ffmpeg and a Playwright install are prerequisites; see
+[First run on a new machine](#first-run-on-a-new-machine).
+`scripts/clip-studio/tools.mjs` holds those checks and what to say when one
+fails.

@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readBrandFont } from "./fonts.mjs";
 import { filmPath } from "./films.mjs";
+import { ffmpegAdvice, hasFfmpeg } from "./tools.mjs";
 import { resolveSpec } from "./public/spec.mjs";
 
 const codeDir = path.dirname(fileURLToPath(import.meta.url)),
@@ -119,6 +120,7 @@ function readTake(request, limit = 600_000_000) {
 
 /** Writes the take beside the rendered clips, converted to the posting shape. */
 async function saveTake(take) {
+  if (!(await hasFfmpeg())) throw new Error(ffmpegAdvice);
   const outDir = path.join(repoDir, ".context/clips"),
     now = new Date(),
     pad = (value) => String(value).padStart(2, "0"),
