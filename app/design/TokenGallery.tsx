@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { portfolioInterfaceText } from "../../lib/portfolio-world";
 import { Section } from "./gallery-ui";
 import {
   dimensionTokens,
@@ -230,7 +231,7 @@ export function TokenGallery() {
                   data-theme={mode}
                   key={mode}
                 >
-                  {specimen.render("Work should be playable. I build the systems that make it so.")}
+                  {specimen.render(portfolioInterfaceText["index.throughline"])}
                 </div>
               ))}
             </div>

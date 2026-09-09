@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "revision": 29,
+  "revision": 30,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
       "kind": "About",
-      "summary": "Work should be playable. I build the systems that make it so.",
+      "summary": "I build tools and systems that make space to think.",
       "paragraphs": {
         "p1": "Hey, I'm Bradley.",
         "p2": "I founded and run Brain in a Vat Group, a company with three divisions: a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consultancy, and a [product studio](record:product-studio). I love untangling messy information and turning it into a playable instrument that anyone can see, run, and improve.",
-        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous). As demand grew beyond what I could do by hand, I started building systems to scale without compromising quality.",
+        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating from USC in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous). When demand grew beyond my ability to service it manually, I built systems to scale my output without compromising quality.",
         "p4": "When I founded Brain in a Vat Music Promotions in 2024, building a strong systems infrastructure for the business was top of mind. I developed automated workflows for [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), customizing the business's processes to suit my exact mental model, preferences, and innovations.",
-        "p5": "I want [work to be playable](thread:making-work-playable) for everyone, and I realized that the problems I'd been solving for myself are all too pervasive in modern knowledge work. My consulting work brings those systems to other businesses, including a [deal-tracking dashboard](record:real-estate) for a real-estate team and a [tour-advancing suite](record:touring) for an artist manager. In the product studio, I build software designed to make work feel more fluid: [Dubs](record:dubs) lets you listen to documents and dictate inline notes, while [Writ](record:writ) keeps your Mac on your preferred audio devices.",
+        "p5": "It didn’t take long to realize that the problems I’d been solving for myself were common across modern knowledge work. I wanted to make [work more playable](thread:making-work-playable) for other people, too, so I began consulting with other businesses. I’ve since built a [deal-tracking dashboard](record:real-estate) for a real-estate team and a [tour-advancing suite](record:touring) for an artist manager. In the product studio, I build software designed to make work feel more fluid: [Dubs](record:dubs) lets you listen to documents and dictate inline notes, while [Writ](record:writ) keeps your Mac on your preferred audio devices.",
         "p6": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
         "p7": "Thanks for stopping by."
       },
@@ -26,7 +26,7 @@
         "p1": "By the time I joined the agency in 2021, INFAMOUS PR had spent fifteen years at the top of electronic music PR.",
         "p2": "INFAMOUS specialized in narrative-driven campaigns that ran over many months, which often narrowed the projects taken on to albums, tours, and larger activations. Meanwhile, the streaming economy was pushing dance music's release cycle toward singles and EPs with a short shelf life and not much of a story for journalists to pitch their editors. There was lots of inbound business from the agency's clients who wanted to promote these releases, but the agency was turning them away due to the difficulty landing placements for these sorts of campaigns through the confines of a traditional PR campaign. I was hired to solve that problem.",
         "p3": "There was no playbook, so the early campaigns were experiments. The services I offer have always been heavily shaped by client feedback, and in the early days, there was a lot of evolution between campaigns. Pitching music to be supported by playlist curators across streaming platforms was the first service launched, but I went on to offer a suite of services including radio plugging, a modified PR service focused on individual releases, YouTube distribution, and social media post seeding and influencer campaigns.",
-        "p4": "When demand for the services outpaced what I could do by hand, I started building the workflows that carried them. The first ones were small: browser macros, text snippets, and mail merge. But watching them do work I’d always done by hand felt like creating magic. I kept looking for the next thing I could automate. That feeling led me to realize that the shape and feel of the work was itself something I could iterate on and improve."
+        "p4": "When demand for the services outpaced what I could do manually, I started building the workflows that allowed me to handle the necessary volume. The first ones were small: browser macros, text snippets, and mail merge. But watching them do work I’d always done by hand felt like creating magic. I kept looking for the next thing I could automate. That feeling led me to realize that the shape and feel of the work was itself something I could iterate on and improve."
       },
       "placeholders": {},
       "visuals": {
@@ -350,7 +350,7 @@
       "summary": "The studio where the tools I built for my own day become software other people can use.",
       "paragraphs": {
         "p1": "Every product in the Brain in a Vat Product Studio started as a fix for a part of my own day that was just a bit worse than it ought to be. [Dubs](record:dubs) exists because I was briefing agents from memory after walks. [Writ](record:writ) exists because my audio kept landing on the wrong device between calls. Neither began as a product. At some point I stopped treating these instances of scratching my own itch as a distraction from the work and made it another side of the work.",
-        "p2": "The products share a thesis with everything else here. [Work should be playable](thread:making-work-playable), and the tools that make that the case are responsive enough to practice on and, eventually, stop noticing. Dubs holds that standard with its frictionless document and idea capture. Writ holds it by never needing to be reopened."
+        "p2": "These products reflect the same idea behind everything I build: [work should be playable](thread:making-work-playable). I want tools familiar and dependable enough that I can concentrate on what I'm doing without thinking about how to operate them. Dubs lets me listen to a document and capture thoughts as they come, without returning to a keyboard. Writ keeps my audio on the devices I prefer, removing an interruption I used to deal with every day. Both give me more freedom to stay with an idea."
       },
       "placeholders": {},
       "visuals": {}
@@ -375,10 +375,10 @@
     "pitching": {
       "label": "Music promo campaign pitching",
       "kind": "Solutions",
-      "summary": "Weekly curator targeting driven by recorded taste, with the one read the data can't make kept human.",
+      "summary": "Weekly curator targeting driven by recorded taste.",
       "paragraphs": {
         "p1": "The system is built on one idea: taste can be recorded, and recorded taste can drive targeting.",
-        "p2": "It started as a spreadsheet. Every curator's adds, passes, and feedback went into it by hand, and hundreds of pitch emails were personalized one at a time until mail merge made real segments possible. That spreadsheet is now two databases. Each curator has one record, with their playlists rolling up underneath it. Campaigns and playlists share one genre ontology. Every week the system matches live campaigns to curators, dedupes against every prior pitch and existing placement, holds each curator to at most one pitch a week no matter how many campaigns are live, and compiles a draft target list with its reasoning attached.",
+        "p2": "It started as a spreadsheet. Every curator's adds, passes, and feedback was entered by hand, and hundreds of pitch emails were personalized one at a time until mail merge made real segments possible. That spreadsheet is now two databases. Each curator has one record, with their playlists rolling up underneath it. Campaigns and playlists share one genre ontology. Every week the system matches live campaigns to curators, dedupes against every prior pitch and existing placement, holds each curator to at most one pitch a week no matter how many campaigns are live, and compiles a draft target list with its reasoning attached.",
         "p3": "I still review that list, and the ontology is limited on purpose. The one read it leaves out is whether a track reads commercial or underground, the call that sends two same-genre tracks to different playlists. I could keep adding qualitative tags forever, and a trained ear is cheaper than that data architecture will ever be. So the human step sits where the judgment actually lives, and I can override any match.",
         "p4": "Two backstops recover what the restraint gives up. Reporting feeds missing genre tags back into the database whenever a playlist turns out to play something it wasn't mapped for. And every pitch links a playlist of all current campaigns, so a curator can always find the track I didn't send.",
         "p5": "Pitching people music they don't want is how they stop opening your emails. Staying valuable to curators is the whole business, and this system is how that restraint scales. What once took twelve hours per campaign now takes two."
@@ -482,7 +482,7 @@
       "kind": "Products",
       "summary": "A tool for human thinking in the age of agents.",
       "paragraphs": {
-        "p1": "Most knowledge work is forced into occurring within a small set of tools: a Word document, an email thread, a chat window, a paper notebook. Each is right for some part of thinking and wrong for the rest. Sitting over a keyboard and editing word by word is essential for refining an idea once it exists, but it's a poor way to innovate a new one. In the early stages of shaping some idea, I prefer an audible instrument to think — to be able to listen to information while I'm on a walk away from my desk, and to leave my thoughts as contextualized notes directly on the document, just by talking. Dubs is that instrument.",
+        "p1": "Most knowledge work is forced to occur within a small set of tools: a Word document, an email thread, a chat window, or a paper notebook. Each is right for some part of thinking and wrong for the rest. Sitting over a keyboard and editing word by word is essential for refining an idea once it exists, but it's a poor way to innovate a new one. In the early stages of shaping an idea, I prefer to use an audible instrument to think — to be able to listen to information, and to leave my thoughts as contextualized notes directly on the document just by talking. Dubs is that instrument.",
         "p2": "Send documents directly from their original sources to your Dubs inbox. Move between reading and listening, capture ideas inline by voice or text, and return to the same place across devices. Documents, annotations, and notes form a linked Markdown library for organizing and developing ideas. From there, send information into other tools and workflows or give agents exactly the context they need.",
         "p3": "Dubs is in beta testing, with public release pending.",
         "p4": "Join the waitlist at [dubs.md](https://dubs.md)."
@@ -618,7 +618,7 @@
       "summary": "Debate and philosophy taught me to make an argument clear. Building systems made that clarity practical.",
       "paragraphs": {
         "p1": "Years of competitive debate and then a Philosophy, Politics, and Law degree taught me how to take a position apart, find the premise everything rests on, and rebuild the case so that someone who disagrees can still follow every step.",
-        "p2": "The training turned out to be the right preparation for working with AI. Directing an agent was not dissimilar from training my employee. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited."
+        "p2": "This training combined with my educational background turned out to be the right preparation for working with AI. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited."
       },
       "placeholders": {},
       "visuals": {}
@@ -627,14 +627,14 @@
   "threads": {
     "making-work-playable": {
       "title": "Making work playable",
-      "lede": "Work should be playable. I build tools and systems that make it so.",
+      "lede": "I build tools and systems that make space to think.",
       "paragraphs": {
         "p1": "A good tool rewards repetition the way an instrument does. As you become fluent, you can give more of your attention to what you're trying to express. You know how it will respond, and that familiarity gives you room to improvise. I want that same relationship with the tools I work with. The actions I repeat most should take the least effort, and the tool should respond reliably enough that I can stay with the thought.",
         "p2": "For a long time, much of running my agency demanded a different kind of attention. Starting a campaign meant carrying information across four apps. Pitching meant matching music to curators in spreadsheets. Reporting meant gathering evidence scattered across platforms and emails. All of it needed care, and all of it competed for the attention I wanted to give the music, the clients, and the business.",
         "p3": "Building better systems changed where that attention went. [Kickoff](record:kickoff) now prepares the records, invoice, folder, and client email for me to review. [Pitching](record:pitching) assembles a target list with its reasoning attached, leaving me to judge whether the music actually fits. [Reporting](record:reporting) gathers campaign results and prepares the dashboards and email drafts. Each system takes on the preparation that used to occupy me before I could make the call. I can spend more time listening, considering a campaign's direction, or thinking about what a client needs to hear.",
         "p4": "That's why I care about these improvements beyond the hours they save. When work feels like a treadmill stuck on high, it's difficult to see the bigger picture. Working *on* the systems gave me enough distance from the daily administration to reconsider the work itself. Campaigns received more deliberation where it mattered, client relationships got more attention, and I had room to think about where the agency should go.",
         "p5": "My consulting work starts with the same question: what is consuming someone's attention before they can use their judgment? For a [real-estate team](record:real-estate), it was keeping track of deals across tools and people. For a [tour manager](record:touring), it was remembering which show details were missing and keeping the day sheet, calendar, and email threads consistent. The systems I built give that information somewhere dependable to live, inside tools the teams already use. Their usefulness depends on how much easier they make the next decision.",
-        "p6": "I've also learned that having room to think means being able to leave the desk. [Dubs](record:dubs) lets me listen to a document on a walk and dictate notes into it as ideas arrive. [Writ](record:writ) keeps my audio inputs and outputs where I want them, removing a recurring interruption. These are smaller changes, but they come from paying attention to the conditions in which I think well.",
+        "p6": "I've also learned that having room to think means being able to leave the desk. [Dubs](record:dubs) lets me listen to a document on a walk and dictate notes into it as ideas arrive. [Writ](record:writ) keeps my audio inputs and outputs where I want them, removing a recurring interruption. These products come from paying attention to the conditions in which I think well.",
         "p7": "Making work playable means designing those conditions deliberately. With an instrument, fluency gives you more freedom in what you can play. I build systems because I want that freedom in my working day: enough familiarity to move easily, and enough room to follow an idea I hadn't planned on."
       },
       "placeholders": {},
@@ -648,10 +648,10 @@
         "p2": "Years of competitive debate and then a Philosophy, Politics, and Law degree taught me how to take a position apart, find the premise everything rests on, and rebuild the case so that someone who disagrees can still follow every step.",
         "p3": "At INFAMOUS, inventing the services meant living their costs. A large percentage of every week went to compiling evidence of finished work, personalizing hundreds of pitches by hand, and manually deduplicating in/out-of network curators while researching pitch targets. The first instruments I developed were small automations: keyboard and browser macros, text snippets, and mail merge, but it was the first time I understood the shape and feel of the work was itself something I could iterate and improve on.",
         "p4": "A defining moment was handing off the (at this point largely still manual) process to a new employee — a remote assistant with no music background and English as his second language. This exercise forced me to define the process better than I ever had for myself. Every step, edge case, and condition that felt obvious to me had to become a clear instruction for someone else to follow reliably.",
-        "p5": "Running my own businesses has compounded this. The low-context executor became an AI agent as often as a person, and agent-driven automation matured into a real operating advantage, built to my own judgment and taste.",
+        "p5": "Founding and running my own businesses has compounded this. The low-context executor became an AI agent as often as a person, and agent-driven automation matured into a real operating advantage, built to my own judgment and taste.",
         "p6": "That advantage became a second practice. Consulting is doing for other teams what I did for my own operation: turning fuzzy workflows into explicit states and owners inside the tools people already use.",
-        "p7": "The training turned out to be the right preparation for working with AI. Directing an agent was not dissimilar from training my employee. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited.",
-        "p8": "Debate also trained me to look for the second-order consequence, the thing hidden in the text that is often unnoticed, which could produce unwanted results. Writing instructions for agents, and editing the outputs produced by agents, is exactly that. The checklists I once wrote for a human assistant now go to agents."
+        "p7": "This training combined with my educational background turned out to be the right preparation for working with AI. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited.",
+        "p8": "Debate and Philosophy also trained me to look for the second-order consequence, the thing hidden in the text that is often unnoticed, which could produce unwanted results. Writing instructions for agents, and editing the outputs produced by agents, is exactly that. The checklists I once wrote for a human assistant now go to agents."
       },
       "placeholders": {},
       "visuals": {}
@@ -668,7 +668,7 @@
   },
   "interface": {
     "layout.skipLink": "Skip to portfolio content",
-    "index.throughline": "Work should be playable. I build the systems that make it so.",
+    "index.throughline": "I build tools and systems that make space to think.",
     "world.mast": "Bradley Berkman",
     "visualStage.eyebrow": "Map visual",
     "reader.indexTitle": "Index",

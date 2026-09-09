@@ -158,7 +158,7 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
-      "work to be playable",
+      "work more playable",
       "deal-tracking dashboard",
       "tour-advancing suite",
       "Dubs",
