@@ -72,6 +72,20 @@ export type AvatarPhase =
   | "brain-food"
   | "celebrating";
 
+/**
+ * Phases where the figure stands on the dock and only gestures. These have to
+ * follow the dock as it moves: the Guide's avatar area shrinks as the thread
+ * fills, and a gesture that ignored the change left the figure standing over
+ * the answer it was reacting to. Traversal phases own their own position.
+ */
+const dockedPhases = new Set<AvatarPhase>([
+  "idle",
+  "reacting",
+  "waving",
+  "turning",
+  "dancing",
+]);
+
 export type AvatarStageObstacle = {
   left: number;
   top: number;
@@ -246,7 +260,7 @@ export class AvatarRuntime {
   }
 
   refreshDock() {
-    if (this.#snapshot.phase !== "idle") return;
+    if (!dockedPhases.has(this.#snapshot.phase)) return;
     const stage = this.#readStage();
     this.#update({ position: stage.dock, fitHeight: stage.dockHeight ?? null });
   }
@@ -494,10 +508,12 @@ export class AvatarRuntime {
   }
 
   #idleAtDock() {
+    const stage = this.#readStage();
     this.#update({
       phase: "idle",
       animation: "idle",
-      position: this.#readStage().dock,
+      position: stage.dock,
+      fitHeight: stage.dockHeight ?? null,
       motion: null,
       facing: "front",
       swimHeading: null,

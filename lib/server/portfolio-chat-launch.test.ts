@@ -1,38 +1,49 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  createPortfolioChatLaunchGuard,
-  createTurnstileVerifier,
-} from "./portfolio-chat-launch";
+import { createPortfolioChatLaunchGuard } from "./portfolio-chat-launch";
+import { mintSession } from "./portfolio-chat-session";
 
 const publicConfig = {
-  turnstileRequired: true,
+  sessionRequired: true,
   identifierSecret: "privacy-safe-identifier-secret-32-chars",
-  turnstileSecret: "turnstile-test-secret",
   dailyRequestLimit: 12,
 };
 
-function chatRequest(ip = "203.0.113.10") {
+const clock = 1_700_000_000_000;
+
+/** The cookie a visitor's browser would replay after opening a session. */
+async function sessionCookie(
+  ip = "203.0.113.10",
+  secret = publicConfig.identifierSecret,
+) {
+  const { deriveActorKey } = await import("./portfolio-chat-launch");
+  const actorKey = await deriveActorKey(secret, ip);
+  const minted = await mintSession({ secret, actorKey, now: clock });
+  return minted.setCookie.split(";")[0]!;
+}
+
+function chatRequest(ip = "203.0.113.10", cookie?: string) {
   return new Request("https://portfolio.test/api/portfolio-chat", {
     method: "POST",
-    headers: ip ? { "cf-connecting-ip": ip } : {},
+    headers: {
+      ...(ip ? { "cf-connecting-ip": ip } : {}),
+      ...(cookie ? { cookie } : {}),
+    },
     body: JSON.stringify({ question: "How does pitching work?" }),
   });
 }
 
 describe("portfolio chat launch guard", () => {
   /**
-   * turnstileRequired gates the challenge only. It used to short-circuit the
+   * sessionRequired gates the session token only. It used to short-circuit the
    * whole guard, which skipped the per-IP throttle too — so any deployment
-   * with the flag off (main-preview sets it false) had no per-actor limit at
-   * all. The limiter now runs whenever one is bound.
+   * with the flag off had no per-actor limit at all. The limiter now runs
+   * whenever one is bound.
    */
-  it("throttles per actor even when the challenge is disabled", async () => {
+  it("throttles per actor even when the session is not required", async () => {
     const rateLimit = vi.fn().mockResolvedValue({ success: true });
-    const verifyTurnstile = vi.fn();
     const guard = createPortfolioChatLaunchGuard({
-      config: { turnstileRequired: false },
+      config: { sessionRequired: false },
       rateLimiter: { limit: rateLimit },
-      verifyTurnstile,
       randomId: () => "direct-request",
     });
 
@@ -40,12 +51,11 @@ describe("portfolio chat launch guard", () => {
 
     expect(result).toEqual({ ok: true, requestId: "direct-request" });
     expect(rateLimit).toHaveBeenCalledTimes(1);
-    expect(verifyTurnstile).not.toHaveBeenCalled();
   });
 
-  it("rejects a throttled actor when the challenge is disabled", async () => {
+  it("rejects a throttled actor when the session is not required", async () => {
     const guard = createPortfolioChatLaunchGuard({
-      config: { turnstileRequired: false },
+      config: { sessionRequired: false },
       rateLimiter: { limit: async () => ({ success: false }) },
       randomId: () => "direct-request",
     });
@@ -57,9 +67,9 @@ describe("portfolio chat launch guard", () => {
   });
 
   /** No limiter bound is the local/dev shape; it must still serve. */
-  it("serves when no limiter is bound and the challenge is disabled", async () => {
+  it("serves when no limiter is bound and the session is not required", async () => {
     const guard = createPortfolioChatLaunchGuard({
-      config: { turnstileRequired: false },
+      config: { sessionRequired: false },
       randomId: () => "direct-request",
     });
 
@@ -74,41 +84,26 @@ describe("portfolio chat launch guard", () => {
       name: "identifier secret",
       config: { ...publicConfig, identifierSecret: undefined },
       rateLimiter: { limit: vi.fn() },
-      verifyTurnstile: vi.fn(),
-    },
-    {
-      name: "Turnstile secret",
-      config: { ...publicConfig, turnstileSecret: undefined },
-      rateLimiter: { limit: vi.fn() },
-      verifyTurnstile: vi.fn(),
     },
     {
       name: "route limiter",
       config: publicConfig,
       rateLimiter: undefined,
-      verifyTurnstile: vi.fn(),
-    },
-    {
-      name: "Turnstile verifier",
-      config: publicConfig,
-      rateLimiter: { limit: vi.fn() },
-      verifyTurnstile: undefined,
     },
   ])(
     "fails closed when public mode is missing its $name",
-    async ({ config, rateLimiter, verifyTurnstile }) => {
+    async ({ config, rateLimiter }) => {
       const record = vi.fn();
       const guard = createPortfolioChatLaunchGuard({
         config,
         rateLimiter,
-        verifyTurnstile,
         randomId: () => "request-misconfigured",
         record,
       });
 
-      const result = await guard(chatRequest(), {
-        challengeToken: "private-challenge-token",
-      });
+      const result = await guard(
+        chatRequest("203.0.113.10", await sessionCookie()),
+      );
 
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error("Incomplete public controls must reject.");
@@ -118,40 +113,29 @@ describe("portfolio chat launch guard", () => {
         message: "Ask the portfolio is not configured.",
       });
       if (rateLimiter) expect(rateLimiter.limit).not.toHaveBeenCalled();
-      if (verifyTurnstile) expect(verifyTurnstile).not.toHaveBeenCalled();
       expect(record).toHaveBeenCalledWith({
         event: "portfolio_chat_preflight",
         requestId: "request-misconfigured",
         outcome: "misconfigured",
       });
-      expect(JSON.stringify(record.mock.calls)).not.toContain("private-challenge");
     },
   );
 
-  it("requires successful Turnstile verification before consuming a rate limit", async () => {
+  it("requires a session token before consuming a rate limit", async () => {
     const rateLimit = vi.fn();
-    const verifyTurnstile = vi.fn(async () => false);
     const guard = createPortfolioChatLaunchGuard({
       config: publicConfig,
       rateLimiter: { limit: rateLimit },
-      verifyTurnstile,
+      now: () => clock,
     });
 
-    const result = await guard(chatRequest(), {
-      challengeToken: "single-use-token",
-    });
+    const result = await guard(chatRequest());
 
     expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("Failed challenge must reject.");
+    if (result.ok) throw new Error("A missing session must reject.");
     expect(result.response.status).toBe(403);
     expect(await result.response.json()).toMatchObject({
-      code: "challenge_failed",
-    });
-    expect(verifyTurnstile).toHaveBeenCalledWith({
-      token: "single-use-token",
-      secret: "turnstile-test-secret",
-      expectedAction: "portfolio_chat",
-      expectedHostname: "portfolio.test",
+      code: "session_required",
     });
     expect(rateLimit).not.toHaveBeenCalled();
   });
@@ -164,19 +148,19 @@ describe("portfolio chat launch guard", () => {
     const guard = createPortfolioChatLaunchGuard({
       config: publicConfig,
       rateLimiter: { limit },
-      verifyTurnstile: async () => true,
       randomId: () => "public-request",
+      now: () => clock,
     });
 
-    const first = await guard(chatRequest("203.0.113.10"), {
-      challengeToken: "first-token",
-    });
-    const repeated = await guard(chatRequest("203.0.113.10"), {
-      challengeToken: "second-token",
-    });
-    const different = await guard(chatRequest("203.0.113.11"), {
-      challengeToken: "third-token",
-    });
+    const first = await guard(
+      chatRequest("203.0.113.10", await sessionCookie("203.0.113.10")),
+    );
+    const repeated = await guard(
+      chatRequest("203.0.113.10", await sessionCookie("203.0.113.10")),
+    );
+    const different = await guard(
+      chatRequest("203.0.113.11", await sessionCookie("203.0.113.11")),
+    );
 
     expect(first.ok).toBe(true);
     if (!first.ok) throw new Error("Configured public controls must pass.");
@@ -196,17 +180,103 @@ describe("portfolio chat launch guard", () => {
     );
   });
 
+  it("renews the session on every accepted request", async () => {
+    // A conversation that outlives one session window must not stop to
+    // re-establish itself mid-answer.
+    let now = clock;
+    const guard = createPortfolioChatLaunchGuard({
+      config: publicConfig,
+      rateLimiter: { limit: async () => ({ success: true }) },
+      randomId: () => "public-request",
+      now: () => now,
+    });
+    const cookie = await sessionCookie();
+
+    const first = await guard(chatRequest("203.0.113.10", cookie));
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("A live session must pass.");
+    expect(first.session?.expiresAt).toBe(clock / 1_000 + 1_800);
+    expect(first.session?.setCookie).toContain("pc_session=");
+    expect(first.session?.setCookie).toContain("HttpOnly");
+    expect(first.session?.setCookie).toContain("Secure");
+    expect(first.session?.setCookie).not.toContain("203.0.113");
+
+    now = clock + 600_000;
+    const later = await guard(chatRequest("203.0.113.10", cookie));
+    expect(later.ok).toBe(true);
+    if (!later.ok) throw new Error("A live session must pass.");
+    expect(later.session!.expiresAt).toBeGreaterThan(first.session!.expiresAt);
+  });
+
+  it.each([
+    ["another actor", "203.0.113.11", clock],
+    ["the same actor after it lapses", "203.0.113.10", clock + 1_801_000],
+  ])("refuses a session replayed by %s", async (_case, ip, at) => {
+    let now = clock;
+    const guard = createPortfolioChatLaunchGuard({
+      config: publicConfig,
+      rateLimiter: { limit: async () => ({ success: true }) },
+      randomId: () => "public-request",
+      now: () => now,
+    });
+    const cookie = await sessionCookie();
+
+    now = at;
+    const replayed = await guard(chatRequest(ip, cookie));
+
+    expect(replayed.ok).toBe(false);
+    if (replayed.ok) throw new Error("A replayed session must reject.");
+    expect(replayed.response.status).toBe(403);
+    expect(await replayed.response.json()).toMatchObject({
+      code: "session_required",
+    });
+  });
+
+  it("refuses a forged session signature", async () => {
+    const guard = createPortfolioChatLaunchGuard({
+      config: publicConfig,
+      rateLimiter: { limit: async () => ({ success: true }) },
+      now: () => clock,
+    });
+
+    const forged = await guard(
+      chatRequest(
+        "203.0.113.10",
+        `pc_session=v1.${clock / 1_000 + 1_800}.notarealsignature`,
+      ),
+    );
+
+    expect(forged.ok).toBe(false);
+    if (forged.ok) throw new Error("A forged session must reject.");
+    expect(forged.response.status).toBe(403);
+  });
+
+  it("still throttles an actor holding a valid session", async () => {
+    const limit = vi.fn(async () => ({ success: false }));
+    const guard = createPortfolioChatLaunchGuard({
+      config: publicConfig,
+      rateLimiter: { limit },
+      now: () => clock,
+    });
+
+    const throttled = await guard(
+      chatRequest("203.0.113.10", await sessionCookie()),
+    );
+
+    expect(limit).toHaveBeenCalledTimes(1);
+    if (throttled.ok) throw new Error("A throttled actor must reject.");
+    expect(throttled.response.status).toBe(429);
+  });
+
   it("fails closed when the trusted connecting actor is unavailable", async () => {
     const limit = vi.fn();
     const guard = createPortfolioChatLaunchGuard({
       config: publicConfig,
       rateLimiter: { limit },
-      verifyTurnstile: async () => true,
+      now: () => clock,
     });
 
-    const result = await guard(chatRequest(""), {
-      challengeToken: "single-use-token",
-    });
+    const result = await guard(chatRequest(""));
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("Missing connecting actor must reject.");
@@ -219,12 +289,12 @@ describe("portfolio chat launch guard", () => {
     const guard = createPortfolioChatLaunchGuard({
       config: publicConfig,
       rateLimiter: { limit: async () => ({ success: false }) },
-      verifyTurnstile: async () => true,
+      now: () => clock,
     });
 
-    const result = await guard(chatRequest(), {
-      challengeToken: "single-use-token",
-    });
+    const result = await guard(
+      chatRequest("203.0.113.10", await sessionCookie()),
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("Exhausted public limit must reject.");
@@ -242,13 +312,13 @@ describe("portfolio chat launch guard", () => {
           throw new Error("binding-secret-detail");
         },
       },
-      verifyTurnstile: async () => true,
+      now: () => clock,
       record,
     });
 
-    const result = await guard(chatRequest(), {
-      challengeToken: "private-challenge-token",
-    });
+    const result = await guard(
+      chatRequest("203.0.113.10", await sessionCookie()),
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("Thrown launch dependency must reject.");
@@ -258,73 +328,5 @@ describe("portfolio chat launch guard", () => {
       calls: record.mock.calls,
     });
     expect(serialized).not.toContain("binding-secret-detail");
-    expect(serialized).not.toContain("private-challenge-token");
-  });
-});
-
-describe("Turnstile verifier", () => {
-  it("posts the token and server secret to Siteverify and returns only its decision", async () => {
-    const requests: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
-    const verifier = createTurnstileVerifier(async (input, init) => {
-      requests.push([input, init]);
-      return Response.json({
-        success: true,
-        action: "portfolio_chat",
-        hostname: "portfolio.test",
-      });
-    });
-
-    await expect(
-      verifier({
-        token: "visitor-token",
-        secret: "server-secret",
-        expectedAction: "portfolio_chat",
-        expectedHostname: "portfolio.test",
-      }),
-    ).resolves.toBe(true);
-    expect(requests).toHaveLength(1);
-    const [url, init] = requests[0] ?? [];
-    expect(url).toBe(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    );
-    expect(init?.method).toBe("POST");
-    expect(init?.signal).toBeInstanceOf(AbortSignal);
-    expect(JSON.parse(String(init?.body))).toEqual({
-      response: "visitor-token",
-      secret: "server-secret",
-    });
-  });
-
-  it.each([
-    new Response("upstream detail", { status: 500 }),
-    Response.json({ success: false, "error-codes": ["bad-secret"] }),
-    Response.json({ success: "yes" }),
-  ])("fails closed on unsuccessful or malformed verification", async (response) => {
-    const verifier = createTurnstileVerifier(async () => response.clone());
-
-    await expect(
-      verifier({
-        token: "visitor-token",
-        secret: "server-secret",
-        expectedAction: "portfolio_chat",
-        expectedHostname: "portfolio.test",
-      }),
-    ).resolves.toBe(false);
-  });
-
-  it.each([
-    { success: true, action: "other_action", hostname: "portfolio.test" },
-    { success: true, action: "portfolio_chat", hostname: "other.test" },
-  ])("rejects a valid token minted for another context", async (result) => {
-    const verifier = createTurnstileVerifier(async () => Response.json(result));
-
-    await expect(
-      verifier({
-        token: "visitor-token",
-        secret: "server-secret",
-        expectedAction: "portfolio_chat",
-        expectedHostname: "portfolio.test",
-      }),
-    ).resolves.toBe(false);
   });
 });

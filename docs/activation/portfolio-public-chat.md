@@ -2,12 +2,12 @@
 
 Status: prepared for review; public activation is not authorized by this change.
 The current target is `bradley-portfolio-main-preview`, configured by
-`wrangler.main-preview.jsonc`. Its password remains required, Turnstile remains
-off, and the shared allowance remains 200 model requests per UTC day.
+`wrangler.main-preview.jsonc`. Its password gate is disabled in the checked-in configuration, the chat session
+token is required, and the shared allowance is 1,000 model requests per UTC day.
 
 ## Proposed public settings
 
-Keep the existing 25 requests/minute per-IP throttle and the global 200/day
+Keep the existing 25 requests/minute per-IP throttle and the global 1,000/day
 allowance for the initial public release. These are different limits: one
 visitor can hit the minute limit, while all visitors share the daily allowance.
 Local wave, dance, swim, and Brain Food commands consume neither allowance nor
@@ -15,12 +15,14 @@ model calls. The allowance bounds requests, not a fixed dollar amount. The
 model, input size, and 3,000-token output ceiling also determine cost; changing
 the allowance requires a separately approved spending scope.
 
-Enable Turnstile only with its matching build-time
-`VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY`, server `TURNSTILE_SECRET_KEY`, a
-`PORTFOLIO_CHAT_IDENTIFIER_SECRET` of at least 32 characters, and the bound
-rate limiter. The server checks the challenge action and hostname and requires
-a trusted client IP in public challenge mode. Missing dependencies fail closed.
-No production secret values were read or verified for this preparation.
+There is no interactive bot check. `PORTFOLIO_CHAT_SESSION_REQUIRED` needs a
+`PORTFOLIO_CHAT_IDENTIFIER_SECRET` of at least 32 characters and the bound rate
+limiter; the endpoint then requires a session cookie the worker issues from
+`/api/portfolio-chat/session`, bound to a digest of the client IP and renewed on
+every accepted request. It is a speed bump against scripts that never load the
+site, not a wall — the per-IP throttle and the daily allowance are what bound
+the damage. Missing dependencies fail closed. No production secret values were
+read or verified for this preparation.
 
 ## Evidence before activation
 

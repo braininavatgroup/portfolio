@@ -78,7 +78,7 @@ test("server-renders the accepted composition as the landing state", async () =>
   assert.match(html, /id=["']portfolio-question["']/i);
   assert.match(
     html,
-    /placeholder=["']Ask a follow-up["']/i,
+    /placeholder=["']Ask about the portfolio["']/i,
   );
   assert.match(html, /aria-label=["']Portfolio reading room["']/i);
   assert.match(html, /data-reading-room-slot=["']main["']/i);
@@ -154,7 +154,6 @@ test("the production build does not inline server secrets into artifacts", async
     "sk-client-leak-sentinel",
     "model-client-leak-sentinel",
     "identifier-secret-client-leak-sentinel",
-    "turnstile-secret-client-leak-sentinel",
   ]) {
     assert.doesNotMatch(builtArtifacts, new RegExp(sentinel));
   }

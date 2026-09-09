@@ -15,7 +15,6 @@ import {
   PortfolioChatClientError,
   type AskPortfolio,
 } from "../lib/portfolio-chat-client";
-import type { TurnstileRenderer } from "../lib/portfolio-chat-turnstile";
 import { PortfolioChat } from "./PortfolioChat";
 
 afterEach(() => {
@@ -46,48 +45,21 @@ function submit(question: string) {
 }
 
 describe("docked portfolio Guide", () => {
-  it("unlocks suggested questions after the async Turnstile script loads", async () => {
-    // The real Turnstile API rejects ready() for async/defer scripts. Exercise
-    // our real loader and renderer instead of injecting a renderer that hides it.
+  it("opens a chat session on mount so the first question is not slower", async () => {
+    // The endpoint asks for a session token; establishing it lazily on the
+    // first send would make that question pay for a second round trip.
+    const openSession = vi.fn(async () => true);
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, options) => {
       options.onEvent({ type: "answer_delta", delta: "A portfolio answer." });
       options.onEvent({ type: "done" });
     });
-    render(<PortfolioChat askPortfolio={askPortfolio} turnstileSiteKey="site-key" />);
-    const input = screen.getByLabelText("Ask a question about the portfolio") as HTMLTextAreaElement;
+    render(<PortfolioChat askPortfolio={askPortfolio} openSession={openSession} />);
+
+    await waitFor(() => expect(openSession).toHaveBeenCalledTimes(1));
     const starter = document.querySelector<HTMLButtonElement>(".portfolio-guide-suggestion")!;
-    expect(starter.disabled).toBe(true);
-    const failedScript = document.querySelector<HTMLScriptElement>("#portfolio-chat-turnstile-script")!;
-    await act(async () => { failedScript.dispatchEvent(new Event("error")); });
-    fireEvent.click(await screen.findByRole("button", { name: "Retry verification" }));
-    const script = document.querySelector<HTMLScriptElement>("#portfolio-chat-turnstile-script")!;
-    expect(script).not.toBe(failedScript);
-    expect(script.async).toBe(true);
-    const api = {
-      ready() { throw new Error("Remove async/defer before using turnstile.ready()"); },
-      render(_container: HTMLElement, options: { callback(token: string): void }) {
-        options.callback("verified-test-token");
-        return "widget-1";
-      },
-      reset() {},
-      remove() {},
-    };
-    window.turnstile = api;
-    try {
-      await act(async () => { script.dispatchEvent(new Event("load")); });
-      await waitFor(() => expect(starter.disabled).toBe(false));
-      expect(input.disabled).toBe(false);
-      fireEvent.click(starter);
-      await waitFor(() => expect(askPortfolio).toHaveBeenCalledWith(
-        starter.textContent,
-        expect.objectContaining({ challengeToken: "verified-test-token" }),
-      ));
-      expect(await screen.findByText("A portfolio answer.")).toBeTruthy();
-    } finally {
-      cleanup();
-      delete window.turnstile;
-      script.remove();
-    }
+    expect(starter.disabled).toBe(false);
+    fireEvent.click(starter);
+    expect(await screen.findByText("A portfolio answer.")).toBeTruthy();
   });
 
   it("hydrates online-first connectivity markup before synchronizing the browser state", async () => {
@@ -269,6 +241,30 @@ describe("docked portfolio Guide", () => {
     expect(document.querySelector(".portfolio-guide-twirl")).toBeTruthy();
   });
 
+  it.each([false, true])("releases a stalled reply, including after partial text: %s", async (partial) => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const askPortfolio: AskPortfolio = (_question, options) => {
+      signal = options.signal;
+      if (partial) {
+        options.onEvent({ type: "turn_mode", mode: "portfolio" });
+        options.onEvent({ type: "answer_delta", delta: "Unfinished reply" });
+      }
+      return new Promise(() => {});
+    };
+    render(<PortfolioChat askPortfolio={askPortfolio} openSession={async () => true} />);
+    await act(async () => {
+      submit("A stalled question");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(20_000));
+    expect(signal?.aborted).toBe(true);
+    expect(screen.getByText("That reply took too long to arrive.")).toBeTruthy();
+    expect(screen.queryByText("Unfinished reply")).toBeNull();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending")).toBe("false");
+  });
+
   it("shows exact error copy and permits one retry of the failed question", async () => {
     // Catches retries changing the question or creating an unbounded retry loop.
     const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
@@ -306,23 +302,15 @@ describe("docked portfolio Guide", () => {
     await waitFor(() => expect((input as HTMLTextAreaElement).disabled).toBe(false));
   });
 
-  it.each(["offline", "missing challenge token"] as const)(
-    "blocks starter prompts while %s",
-    async (blockedBy) => {
+  it("blocks starter prompts while offline", async () => {
       // Catches starter prompts bypassing the same submission gate as the composer.
-      let online = blockedBy !== "offline";
+      let online = false;
       vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
       const askPortfolio = vi.fn<AskPortfolio>(async () => {});
-      const renderTurnstile: TurnstileRenderer = async () => ({
-        remove: vi.fn(),
-        reset: vi.fn(),
-      });
       render(
         <PortfolioChat
           askPortfolio={askPortfolio}
-          renderTurnstile={renderTurnstile}
           resetSignal={0}
-          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
         />,
       );
 
@@ -338,17 +326,10 @@ describe("docked portfolio Guide", () => {
     },
   );
 
-  it.each(["offline", "missing challenge token"] as const)(
-    "blocks follow-up prompts while %s",
-    async (blockedBy) => {
+  it("blocks follow-up prompts while offline", async () => {
       // Catches generated follow-ups starting a protected request after eligibility expires.
       let online = true;
       vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
-      let deliverToken: ((token: string) => void) | undefined;
-      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
-        deliverToken = callbacks.onToken;
-        return { remove: vi.fn(), reset: vi.fn() };
-      };
       const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
         onEvent({ type: "evidence", evidence: [evidence] });
         onEvent({ type: "answer_delta", delta: "A weekly workflow [E1]." });
@@ -357,24 +338,16 @@ describe("docked portfolio Guide", () => {
       render(
         <PortfolioChat
           askPortfolio={askPortfolio}
-          renderTurnstile={renderTurnstile}
           resetSignal={0}
-          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
         />,
       );
-      if (blockedBy === "missing challenge token") {
-        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
-        deliverToken?.("challenge-token");
-      }
       submit("Tell me about pitching");
       const followUp = await screen.findByRole("button", {
         name: "What problem does Music promo campaign pitching solve?",
       });
 
-      if (blockedBy === "offline") {
-        online = false;
-        fireEvent(window, new Event("offline"));
-      }
+      online = false;
+      fireEvent(window, new Event("offline"));
       await waitFor(() => expect((followUp as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(followUp);
       await act(async () => {});
@@ -383,39 +356,24 @@ describe("docked portfolio Guide", () => {
     },
   );
 
-  it.each(["offline", "missing challenge token"] as const)(
-    "blocks retry while %s",
-    async (blockedBy) => {
-      // Catches the error recovery path bypassing connectivity or challenge eligibility.
+  it("blocks retry while offline", async () => {
+      // Catches the error recovery path bypassing connectivity eligibility.
       let online = true;
       vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
-      let deliverToken: ((token: string) => void) | undefined;
-      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
-        deliverToken = callbacks.onToken;
-        return { remove: vi.fn(), reset: vi.fn() };
-      };
       const askPortfolio = vi.fn<AskPortfolio>(async () => {
         throw new PortfolioChatClientError("provider failed", "provider_error");
       });
       render(
         <PortfolioChat
           askPortfolio={askPortfolio}
-          renderTurnstile={renderTurnstile}
           resetSignal={0}
-          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
         />,
       );
-      if (blockedBy === "missing challenge token") {
-        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
-        deliverToken?.("challenge-token");
-      }
       submit("Retry this exactly");
       const retry = await screen.findByRole("button", { name: "Try again" });
 
-      if (blockedBy === "offline") {
-        online = false;
-        fireEvent(window, new Event("offline"));
-      }
+      online = false;
+      fireEvent(window, new Event("offline"));
       await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(retry);
       await act(async () => {});
@@ -424,20 +382,11 @@ describe("docked portfolio Guide", () => {
     },
   );
 
-  it.each(["offline", "missing challenge token"] as const)(
-    "marks a question that loses eligibility at send time as failed instead of orphaning it while %s",
-    async (blockedBy) => {
+  it("marks a question that loses eligibility at send time as failed instead of orphaning it", async () => {
       // Catches the adapter's silent return leaving a user bubble with no answer,
       // no error, and no place in later turns' conversation history.
       let online = true;
       vi.spyOn(window.navigator, "onLine", "get").mockImplementation(() => online);
-      let deliverToken: ((token: string) => void) | undefined;
-      let expireToken: (() => void) | undefined;
-      const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
-        deliverToken = callbacks.onToken;
-        expireToken = callbacks.onExpired;
-        return { remove: vi.fn(), reset: vi.fn() };
-      };
       const askPortfolio = vi.fn<AskPortfolio>(async (question, { onEvent }) => {
         onEvent({ type: "answer_delta", delta: `${question} answered.` });
         onEvent({ type: "done" });
@@ -445,26 +394,19 @@ describe("docked portfolio Guide", () => {
       render(
         <PortfolioChat
           askPortfolio={askPortfolio}
-          renderTurnstile={renderTurnstile}
           resetSignal={0}
-          turnstileSiteKey={blockedBy === "missing challenge token" ? "site-key" : undefined}
         />,
       );
-      if (blockedBy === "missing challenge token") {
-        await waitFor(() => expect(deliverToken).toBeTypeOf("function"));
-        deliverToken?.("challenge-token");
-      }
       const input = screen.getByLabelText("Ask a question about the portfolio");
       fireEvent.change(input, { target: { value: "Was this lost?" } });
       const send = screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement;
       await waitFor(() => expect(send.disabled).toBe(false));
 
       // Eligibility lapses after the UI check passed: the browser drops
-      // offline without firing an event, or the challenge token expires in
-      // the same tick as the click, before React can disable the control.
+      // offline without firing an event, in the same tick as the click and
+      // before React can disable the control.
       act(() => {
-        if (blockedBy === "offline") online = false;
-        else expireToken?.();
+        online = false;
         fireEvent.click(send);
       });
 
@@ -479,17 +421,11 @@ describe("docked portfolio Guide", () => {
         screen.getByRole("region", { name: "Portfolio Guide" }).getAttribute("data-pending"),
       ).toBe("false");
 
-      if (blockedBy === "offline") {
-        fireEvent(window, new Event("offline"));
-        await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
-        expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
-        online = true;
-        fireEvent(window, new Event("online"));
-      } else {
-        expect((retry as HTMLButtonElement).disabled).toBe(true);
-        expect(screen.getByText("Complete verification before asking.")).toBeTruthy();
-        deliverToken?.("challenge-token");
-      }
+      fireEvent(window, new Event("offline"));
+      await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
+      expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
+      online = true;
+      fireEvent(window, new Event("online"));
       await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(false));
       fireEvent.click(retry);
       await screen.findByText("Was this lost? answered.");
@@ -499,7 +435,6 @@ describe("docked portfolio Guide", () => {
       expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
       expect(screen.getAllByText("Was this lost?")).toHaveLength(1);
 
-      if (blockedBy === "missing challenge token") deliverToken?.("second-token");
       submit("Next question");
       await screen.findByText("Next question answered.");
 
@@ -594,37 +529,36 @@ describe("docked portfolio Guide", () => {
     expect(signal?.aborted).toBe(true);
   });
 
-  it("waits for Turnstile, forwards one token, and resets the widget after the turn", async () => {
-    // Catches assistant-ui keyboard submission bypassing the challenge gate.
-    let deliverToken: ((token: string) => void) | undefined;
-    const reset = vi.fn();
-    const renderTurnstile: TurnstileRenderer = async (_container, _siteKey, callbacks) => {
-      deliverToken = callbacks.onToken;
-      return { reset, remove: vi.fn() };
-    };
-    const askPortfolio = vi.fn<AskPortfolio>(async (_question, { onEvent }) => {
-      onEvent({ type: "answer_delta", delta: "Verified." });
+  it("re-establishes a lapsed session and answers the same question", async () => {
+    // The endpoint refuses a request whose session has expired. That is the
+    // endpoint's business, not the visitor's: recover once and carry on.
+    const openSession = vi.fn(async () => true);
+    let attempt = 0;
+    const askPortfolio = vi.fn<AskPortfolio>(async (question, { onEvent }) => {
+      attempt += 1;
+      if (attempt === 1) {
+        throw new PortfolioChatClientError(
+          "session_required",
+          "Reload the page to ask again.",
+        );
+      }
+      onEvent({ type: "answer_delta", delta: `${question} answered.` });
       onEvent({ type: "done" });
     });
     render(
       <PortfolioChat
         askPortfolio={askPortfolio}
-        renderTurnstile={renderTurnstile}
+        openSession={openSession}
         resetSignal={0}
-        turnstileSiteKey="site-key"
       />,
     );
-    const input = screen.getByLabelText("Ask a question about the portfolio");
-    fireEvent.change(input, { target: { value: "Verified question" } });
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-    expect(askPortfolio).not.toHaveBeenCalled();
 
-    deliverToken?.("challenge-token");
-    await waitFor(() => expect(screen.queryByText("Verification is required before asking.")).toBeNull());
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-    await screen.findByText("Verified.");
-    expect(askPortfolio.mock.calls[0]![1].challengeToken).toBe("challenge-token");
-    await waitFor(() => expect(reset).toHaveBeenCalledTimes(1));
+    submit("Did this survive?");
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    fireEvent.click(retry);
+
+    await screen.findByText("Did this survive? answered.");
+    expect(askPortfolio).toHaveBeenCalledTimes(2);
   });
 
   it("shows incoming text before the request completes without an artificial reveal delay", async () => {
@@ -644,12 +578,12 @@ describe("docked portfolio Guide", () => {
   });
 
   it.each(["Wave hello", "Can you dance?", "Go for a swim", "Play Brain Food"])(
-    "handles %s locally while offline and without a challenge token", async (question) => {
+    "handles %s locally while offline and without a session", async (question) => {
       vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
       const askPortfolio = vi.fn<AskPortfolio>(async () => { throw new Error("No network for play"); });
       const onEffects = vi.fn();
-      render(<PortfolioChat askPortfolio={askPortfolio} turnstileSiteKey="test"
-        renderTurnstile={async () => ({ reset() {}, remove() {} })}
+      render(<PortfolioChat askPortfolio={askPortfolio}
+        openSession={async () => false}
         avatarIntegration={{ onTurnStart() {}, onFirstText() {}, onEffects }} />);
       const button = await screen.findByRole("button", { name: question });
       expect((button as HTMLButtonElement).disabled).toBe(false);

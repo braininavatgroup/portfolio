@@ -84,15 +84,25 @@ export function portfolioOverviewLabel(label: string, measure: (text: string) =>
   return [fit(first), ...(words.length ? [fit(words.join(" "))] : [])];
 }
 
+export type OverviewConnectorSegment = {
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+  /** This end was cut by a label rather than being where the line really stops. */
+  fadeStart: boolean;
+  fadeEnd: boolean;
+};
+
 /** Keep the authored straight relationship, with a gap wherever an unrelated
  * label covers it. Dense overview webs cannot always move every label clear of
- * every edge; clipping preserves the full topology without drawing through text. */
+ * every edge; clipping preserves the full topology without drawing through text.
+ * The cut ends are reported so the renderer can fade them out instead of
+ * letting a line start in midair. */
 export function overviewConnectorSegments(
   from: { x: number; y: number },
   to: { x: number; y: number },
   labels: readonly { x: number; y: number; width: number; height: number }[],
-  clearance = 8,
-) {
+  clearance = 2,
+): OverviewConnectorSegment[] {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const blocked: [number, number][] = [];
@@ -116,12 +126,26 @@ export function overviewConnectorSegments(
   }
   blocked.sort((a, b) => a[0] - b[0]);
   const point = (t: number) => ({ x: from.x + dx * t, y: from.y + dy * t });
-  const visible: { start: { x: number; y: number }; end: { x: number; y: number } }[] = [];
+  const visible: OverviewConnectorSegment[] = [];
   let cursor = 0;
   for (const [start, end] of blocked) {
-    if (start > cursor) visible.push({ start: point(cursor), end: point(start) });
+    if (start > cursor) {
+      visible.push({
+        start: point(cursor),
+        end: point(start),
+        fadeStart: cursor > 0,
+        fadeEnd: true,
+      });
+    }
     cursor = Math.max(cursor, end);
   }
-  if (cursor < 1) visible.push({ start: point(cursor), end: to });
+  if (cursor < 1) {
+    visible.push({
+      start: point(cursor),
+      end: to,
+      fadeStart: cursor > 0,
+      fadeEnd: false,
+    });
+  }
   return visible;
 }

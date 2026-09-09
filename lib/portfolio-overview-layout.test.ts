@@ -56,15 +56,17 @@ it("bounds long overview labels to two lines without crossing into the adjacent 
   expect(lines.join(" ")).toContain("…");
 });
 
-it("keeps overview webs straight and eight pixels clear of intervening labels", () => {
+it("keeps overview webs straight and two pixels clear of intervening label lines", () => {
   const label = { x: 40, y: 30, width: 30, height: 20 };
   const segments = overviewConnectorSegments({ x: 0, y: 40 }, { x: 120, y: 40 }, [label]);
+  // Only the ends the label cut fade; the ends where the line really stops
+  // stay flat, so a connector never appears to begin in midair.
   expect(segments).toEqual([
-    { start: { x: 0, y: 40 }, end: { x: 32, y: 40 } },
-    { start: { x: 78, y: 40 }, end: { x: 120, y: 40 } },
+    { start: { x: 0, y: 40 }, end: { x: 38, y: 40 }, fadeStart: false, fadeEnd: true },
+    { start: { x: 72, y: 40 }, end: { x: 120, y: 40 }, fadeStart: true, fadeEnd: false },
   ]);
   expect(overviewConnectorSegments({ x: 0, y: 0 }, { x: 120, y: 0 }, [label])).toEqual([
-    { start: { x: 0, y: 0 }, end: { x: 120, y: 0 } },
+    { start: { x: 0, y: 0 }, end: { x: 120, y: 0 }, fadeStart: false, fadeEnd: false },
   ]);
   expect(overviewConnectorSegments({ x: 45, y: 35 }, { x: 60, y: 45 }, [label])).toEqual([]);
 });

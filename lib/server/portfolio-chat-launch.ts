@@ -1,7 +1,9 @@
+import { mintSession, verifySession } from "./portfolio-chat-session";
+
 export type PortfolioChatRuntimeConfig = {
-  turnstileRequired: boolean;
+  /** Public deployments require a session token issued to the visitor's page. */
+  sessionRequired: boolean;
   identifierSecret?: string;
-  turnstileSecret?: string;
   dailyRequestLimit?: number;
 };
 
@@ -13,7 +15,7 @@ export type PortfolioChatLaunchEvent = {
   event: "portfolio_chat_preflight";
   requestId: string;
   outcome:
-    | "challenge_failed"
+    | "session_required"
     | "rate_limited"
     | "budget_exhausted"
     | "misconfigured";
@@ -22,14 +24,18 @@ export type PortfolioChatLaunchEvent = {
 type LaunchGuardOptions = {
   config: PortfolioChatRuntimeConfig;
   rateLimiter?: PortfolioChatRateLimiter;
-  verifyTurnstile?: (input: {
-    token: string;
-    secret: string;
-    expectedAction: string;
-    expectedHostname: string;
-  }) => Promise<boolean>;
   record?: (event: PortfolioChatLaunchEvent) => void;
   randomId?: () => string;
+  now?: () => number;
+};
+
+/**
+ * A live session for this actor, renewed on every accepted request so an active
+ * conversation never expires mid-answer.
+ */
+export type PortfolioChatSession = {
+  expiresAt: number;
+  setCookie: string;
 };
 
 export type PortfolioChatLaunchResult =
@@ -37,6 +43,7 @@ export type PortfolioChatLaunchResult =
       ok: true;
       requestId: string;
       safetyIdentifier?: string;
+      session?: PortfolioChatSession;
     }
   | { ok: false; response: Response };
 
@@ -79,19 +86,24 @@ function identifierSecretUsable(config: PortfolioChatRuntimeConfig) {
   return (config.identifierSecret?.length ?? 0) >= 32;
 }
 
-function challengeConfigured(
-  config: PortfolioChatRuntimeConfig,
-  verifyTurnstile: LaunchGuardOptions["verifyTurnstile"],
-) {
-  return Boolean(config.turnstileSecret) && Boolean(verifyTurnstile);
-}
-
 /** HMAC when a secret is available, plain SHA-256 otherwise. */
 async function digest(secret: string | undefined, value: string) {
   if (secret && secret.length >= 32) return hmac(secret, value);
   return new Uint8Array(
     await crypto.subtle.digest("SHA-256", encoder.encode(value)),
   );
+}
+
+/**
+ * The one derivation both the session issuer and the guard use, so a token
+ * minted for a visitor verifies for that same visitor and nobody else. The
+ * secret exists so the key cannot be reversed to an address.
+ */
+export async function deriveActorKey(
+  secret: string | undefined,
+  connectingIp: string,
+) {
+  return base64Url(await digest(secret, `portfolio-chat:${connectingIp}`));
 }
 
 function rejection(
@@ -105,58 +117,15 @@ function rejection(
   };
 }
 
-export function createTurnstileVerifier(
-  fetchImplementation: typeof fetch = fetch,
-) {
-  return async function verifyTurnstile({
-    token,
-    secret,
-    expectedAction,
-    expectedHostname,
-  }: {
-    token: string;
-    secret: string;
-    expectedAction: string;
-    expectedHostname: string;
-  }) {
-    try {
-      const response = await fetchImplementation(
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ response: token, secret }),
-          signal: AbortSignal.timeout(5_000),
-        },
-      );
-      if (!response.ok) {
-        void response.body?.cancel().catch(() => {});
-        return false;
-      }
-      const result: unknown = await response.json();
-      return (
-        result !== null &&
-        typeof result === "object" &&
-        Reflect.get(result, "success") === true &&
-        Reflect.get(result, "action") === expectedAction &&
-        Reflect.get(result, "hostname") === expectedHostname
-      );
-    } catch {
-      return false;
-    }
-  };
-}
-
 export function createPortfolioChatLaunchGuard({
   config,
   rateLimiter,
-  verifyTurnstile,
   record,
   randomId = () => crypto.randomUUID(),
+  now = () => Date.now(),
 }: LaunchGuardOptions) {
   return async function guard(
     request: Request,
-    input: { challengeToken?: string } = {},
   ): Promise<PortfolioChatLaunchResult> {
     const requestId = randomId();
     const reject = (
@@ -170,20 +139,39 @@ export function createPortfolioChatLaunchGuard({
 
     const connectingIp = request.headers.get("cf-connecting-ip");
 
-    // The Turnstile challenge and the per-IP throttle are independent
-    // controls. This used to return early for the whole guard when
-    // turnstileRequired was false, which skipped the throttle and the
-    // identifier derivation too — so wherever the flag was off, the endpoint
-    // had no per-actor limit at all. The flag now gates only the challenge.
-    if (config.turnstileRequired) {
-      // Public mode still fails closed on any missing control: an exposed
-      // endpoint without a challenge, a limiter, or an identifier secret is a
-      // misconfiguration, not something to serve degraded.
+    // The actor key is derived once: the session cookie binds to it, the
+    // throttle keys on it, and the provider receives it as a safety
+    // identifier. The secret exists so none of those can be reversed to an IP.
+    // The throttle key never leaves this worker, so it falls back to a plain
+    // digest rather than disabling the limiter.
+    let actorKey: string | undefined;
+    if (connectingIp) {
+      try {
+        actorKey = await deriveActorKey(config.identifierSecret, connectingIp);
+      } catch {
+        return reject(
+          503,
+          "misconfigured",
+          "Ask the portfolio is not configured.",
+        );
+      }
+    }
+
+    let session: PortfolioChatSession | undefined;
+
+    // The session token and the per-IP throttle are independent controls. The
+    // flag used to return early for the whole guard, which skipped the throttle
+    // and the identifier derivation too — so wherever it was off, the endpoint
+    // had no per-actor limit at all. It now gates only the session.
+    if (config.sessionRequired) {
+      // Public mode fails closed on any missing control: an exposed endpoint
+      // without a limiter or an identifier secret is a misconfiguration, not
+      // something to serve degraded.
       if (
-        !challengeConfigured(config, verifyTurnstile) ||
         !identifierSecretUsable(config) ||
         !rateLimiter ||
-        !connectingIp
+        !connectingIp ||
+        !actorKey
       ) {
         return reject(
           503,
@@ -192,30 +180,30 @@ export function createPortfolioChatLaunchGuard({
         );
       }
 
-      const challengeToken = input.challengeToken;
-      if (typeof challengeToken !== "string") {
-        return reject(403, "challenge_failed", "Verification failed.");
+      const live = await verifySession({
+        cookieHeader: request.headers.get("cookie"),
+        secret: config.identifierSecret!,
+        actorKey,
+        now: now(),
+      }).catch(() => null);
+      if (!live) {
+        return reject(403, "session_required", "Reload the page to ask again.");
       }
-      try {
-        const verified = await verifyTurnstile!({
-          token: challengeToken,
-          secret: config.turnstileSecret!,
-          expectedAction: "portfolio_chat",
-          expectedHostname: new URL(request.url).hostname,
-        });
-        if (!verified) {
-          return reject(403, "challenge_failed", "Verification failed.");
-        }
-      } catch {
-        return reject(403, "challenge_failed", "Verification failed.");
-      }
+
+      // Renewed on every accepted request, so a long conversation never has to
+      // stop and re-establish itself mid-answer.
+      session = await mintSession({
+        secret: config.identifierSecret!,
+        actorKey,
+        now: now(),
+      });
     }
 
     if (!rateLimiter) {
-      return { ok: true, requestId };
+      return { ok: true, requestId, ...(session ? { session } : {}) };
     }
 
-    if (!connectingIp) {
+    if (!connectingIp || !actorKey) {
       return reject(
         503,
         "misconfigured",
@@ -224,12 +212,6 @@ export function createPortfolioChatLaunchGuard({
     }
 
     try {
-      // The secret exists so the identifier handed to the provider cannot be
-      // reversed to an IP. The throttle key never leaves this worker, so it
-      // falls back to a plain digest rather than disabling the limiter.
-      const actorKey = base64Url(
-        await digest(config.identifierSecret, `portfolio-chat:${connectingIp}`),
-      );
       const limited = await rateLimiter.limit({
         key: `portfolio-chat:${actorKey}`,
       });
@@ -239,6 +221,7 @@ export function createPortfolioChatLaunchGuard({
       return {
         ok: true,
         requestId,
+        ...(session ? { session } : {}),
         ...(identifierSecretUsable(config)
           ? { safetyIdentifier: `pc_${actorKey}` }
           : {}),

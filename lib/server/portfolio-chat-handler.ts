@@ -55,7 +55,6 @@ type PortfolioChatHandlerDependencies = {
 const maxRequestBytes = 12_288;
 const maxSingleTurnRequestBytes = 4_096;
 const maxQuestionLength = 600;
-const maxChallengeTokenLength = 2_048;
 const oneTimeGeneralNudge =
   "If you feel like changing subjects, Bradley's portfolio is nearby, pretending not to hover.";
 
@@ -63,7 +62,6 @@ export type ParsedPortfolioChatRequest = {
   question: string;
   conversation?: PortfolioChatMessage[];
   visitState?: PortfolioChatVisitState;
-  challengeToken?: string;
   grounding?: PortfolioGrounding;
 };
 
@@ -352,22 +350,6 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
   if (question.length > maxQuestionLength) {
     throw new RequestError(413, "question_too_long", "Question is too long.");
   }
-  const challengeToken =
-    parsed && typeof parsed === "object" && "challengeToken" in parsed
-      ? Reflect.get(parsed, "challengeToken")
-      : undefined;
-  if (
-    challengeToken !== undefined &&
-    (typeof challengeToken !== "string" ||
-      !challengeToken ||
-      challengeToken.length > maxChallengeTokenLength)
-  ) {
-    throw new RequestError(
-      400,
-      "invalid_request",
-      "Verification token is invalid.",
-    );
-  }
   const rawConversation =
     parsed && typeof parsed === "object" && "conversation" in parsed
       ? Reflect.get(parsed, "conversation")
@@ -417,7 +399,6 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
     question: question.trim(),
     ...(conversation?.length ? { conversation } : {}),
     ...(visitState ? { visitState } : {}),
-    ...(typeof challengeToken === "string" ? { challengeToken } : {}),
   };
 }
 

@@ -38,6 +38,56 @@ describe("minimal avatar runtime", () => {
     expect(avatar.getSnapshot()).toMatchObject({ ready: false, failed: true });
   });
 
+  it("follows the shrinking dock through a gesture instead of standing over the answer", async () => {
+    // Catches the reaction freezing the figure at the dock it had when the
+    // answer started: the Guide's avatar area shrinks as the thread fills, and
+    // a frozen figure ends up drawn on top of the reply it is reacting to.
+    let current: AvatarStageGeometry = stage;
+    const avatar = new AvatarRuntime(() => current);
+    avatar.show();
+
+    void avatar.react();
+    expect(avatar.getSnapshot()).toMatchObject({ phase: "reacting" });
+
+    current = {
+      ...stage,
+      dock: { x: 920, y: 420 },
+      dockHeight: 96,
+    };
+    avatar.refreshDock();
+
+    expect(avatar.getSnapshot()).toMatchObject({
+      phase: "reacting",
+      position: { x: 920, y: 420 },
+      fitHeight: 96,
+    });
+
+    await vi.advanceTimersByTimeAsync(ANSWER_REACTION_MS);
+    expect(avatar.getSnapshot()).toMatchObject({
+      phase: "idle",
+      position: { x: 920, y: 420 },
+      fitHeight: 96,
+    });
+  });
+
+  it("leaves a travelling figure where it is when the dock moves", async () => {
+    // The traversal phases own their own position; re-anchoring them mid-lap
+    // would teleport the figure.
+    let current: AvatarStageGeometry = stage;
+    const avatar = new AvatarRuntime(() => current);
+    avatar.show();
+
+    void avatar.queueSwimLap();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(avatar.getSnapshot().phase).toBe("swimming");
+    const travelling = avatar.getSnapshot().position;
+
+    current = { ...stage, dock: { x: 100, y: 100 } };
+    avatar.refreshDock();
+
+    expect(avatar.getSnapshot().position).toEqual(travelling);
+  });
+
   it("queues a dedicated wave after the answer and restores the accepted idle", async () => {
     const avatar = runtime(); avatar.show();
     void avatar.react();

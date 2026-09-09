@@ -1,11 +1,16 @@
 import { createOpenAIPortfolioProvider } from "./openai-portfolio-provider";
 import {
   createPortfolioChatLaunchGuard,
-  createTurnstileVerifier,
+  deriveActorKey,
   type PortfolioChatLaunchEvent,
   type PortfolioChatRateLimiter,
   type PortfolioChatRuntimeConfig,
+  type PortfolioChatSession,
 } from "./portfolio-chat-launch";
+import {
+  mintSession,
+  sessionHeaderName,
+} from "./portfolio-chat-session";
 import {
   createPortfolioChatHandler,
   parsePortfolioChatRequest,
@@ -25,11 +30,11 @@ export type PortfolioChatBudgetNamespace = {
 export type PortfolioChatRuntimeEnv = {
   PORTFOLIO_CHAT_IDENTIFIER_SECRET?: string;
   PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT?: string;
-  PORTFOLIO_CHAT_TURNSTILE_REQUIRED?: string;
-  TURNSTILE_SECRET_KEY?: string;
+  PORTFOLIO_CHAT_SESSION_REQUIRED?: string;
   OPENAI_API_KEY?: string;
   OPENAI_PORTFOLIO_MODEL?: string;
   OPENAI_PORTFOLIO_REASONING_EFFORT?: string;
+  OPENAI_PORTFOLIO_VERBOSITY?: string;
   PORTFOLIO_CHAT_RATE_LIMITER?: PortfolioChatRateLimiter;
   PORTFOLIO_CHAT_BUDGET?: PortfolioChatBudgetNamespace;
 };
@@ -47,6 +52,7 @@ type PortfolioChatRuntimeOptions = {
 
 const reasoningEfforts = new Set([
   "none",
+  "minimal",
   "low",
   "medium",
   "high",
@@ -54,8 +60,13 @@ const reasoningEfforts = new Set([
   "max",
 ]);
 
+const verbosities = new Set(["low", "medium", "high"]);
+
+type Verbosity = "low" | "medium" | "high";
+
 type ReasoningEffort =
   | "none"
+  | "minimal"
   | "low"
   | "medium"
   | "high"
@@ -72,8 +83,7 @@ function runtimeConfig(env: PortfolioChatRuntimeEnv): PortfolioChatRuntimeConfig
   return {
     identifierSecret: env.PORTFOLIO_CHAT_IDENTIFIER_SECRET,
     dailyRequestLimit: positiveInteger(env.PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT),
-    turnstileRequired: env.PORTFOLIO_CHAT_TURNSTILE_REQUIRED === "true",
-    turnstileSecret: env.TURNSTILE_SECRET_KEY,
+    sessionRequired: env.PORTFOLIO_CHAT_SESSION_REQUIRED === "true",
   };
 }
 
@@ -87,6 +97,22 @@ function jsonResponse(status: number, body: object) {
   });
 }
 
+/**
+ * Republishes the response with the renewed session. The body is passed through
+ * untouched so the answer keeps streaming.
+ */
+function withSession(response: Response, session?: PortfolioChatSession) {
+  if (!session) return response;
+  const headers = new Headers(response.headers);
+  headers.set(sessionHeaderName, String(session.expiresAt));
+  headers.append("set-cookie", session.setCookie);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function configuredProvider(env: PortfolioChatRuntimeEnv) {
   const effort = env.OPENAI_PORTFOLIO_REASONING_EFFORT;
   return (
@@ -94,7 +120,9 @@ function configuredProvider(env: PortfolioChatRuntimeEnv) {
     Boolean(env.OPENAI_PORTFOLIO_MODEL) &&
     Boolean(env.PORTFOLIO_CHAT_BUDGET) &&
     Boolean(positiveInteger(env.PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT)) &&
-    (!effort || reasoningEfforts.has(effort))
+    (!effort || reasoningEfforts.has(effort)) &&
+    (!env.OPENAI_PORTFOLIO_VERBOSITY ||
+      verbosities.has(env.OPENAI_PORTFOLIO_VERBOSITY))
   );
 }
 
@@ -143,12 +171,43 @@ export function createPortfolioChatRuntime({
   const guard = createPortfolioChatLaunchGuard({
     config,
     rateLimiter: env.PORTFOLIO_CHAT_RATE_LIMITER,
-    verifyTurnstile: createTurnstileVerifier(fetchImplementation),
     randomId,
     record: safeRecord,
+    now,
   });
 
   return {
+    /**
+     * Issues the token the chat endpoint asks for. The Guide calls this once on
+     * mount so the cookie is in place before anyone types, and the first
+     * question is no slower than the rest.
+     */
+    async handleSession(request: Request) {
+      if (!config.sessionRequired) {
+        return jsonResponse(200, { required: false });
+      }
+      const connectingIp = request.headers.get("cf-connecting-ip");
+      if (!connectingIp || (config.identifierSecret?.length ?? 0) < 32) {
+        return jsonResponse(503, {
+          code: "misconfigured",
+          message: "Ask the portfolio is not configured.",
+        });
+      }
+      const actorKey = await deriveActorKey(
+        config.identifierSecret,
+        connectingIp,
+      );
+      const session = await mintSession({
+        secret: config.identifierSecret!,
+        actorKey,
+        now: now(),
+      });
+      return withSession(
+        jsonResponse(200, { required: true, expiresAt: session.expiresAt }),
+        session,
+      );
+    },
+
     async handleChat(request: Request) {
       if (!configuredProvider(env)) {
         safeRecord({
@@ -171,9 +230,7 @@ export function createPortfolioChatRuntime({
       const parsed = await parsePortfolioChatRequest(request);
       if (!parsed.ok) return parsed.response;
 
-      const launch = await guard(request, {
-        challengeToken: parsed.value.challengeToken,
-      });
+      const launch = await guard(request);
       if (!launch.ok) return launch.response;
       const grounding = groundPortfolioQuestion(parsed.value.question);
       if (grounding.evidence.length > 0) {
@@ -187,10 +244,13 @@ export function createPortfolioChatRuntime({
             requestId: launch.requestId,
             outcome: "budget_exhausted",
           });
-          return jsonResponse(503, {
-            code: "budget_exhausted",
-            message: "The answer service has reached its daily limit.",
-          });
+          return withSession(
+            jsonResponse(503, {
+              code: "budget_exhausted",
+              message: "The answer service has reached its daily limit.",
+            }),
+            launch.session,
+          );
         }
       }
       const providerFactory =
@@ -202,6 +262,7 @@ export function createPortfolioChatRuntime({
             reasoningEffort: env.OPENAI_PORTFOLIO_REASONING_EFFORT as
               | ReasoningEffort
               | undefined,
+            verbosity: env.OPENAI_PORTFOLIO_VERBOSITY as Verbosity | undefined,
             fetchImplementation,
           }));
       const handler = createPortfolioChatHandler({
@@ -214,7 +275,10 @@ export function createPortfolioChatRuntime({
         now,
         record: safeRecord,
       });
-      return handler(request, { ...parsed.value, grounding });
+      return withSession(
+        await handler(request, { ...parsed.value, grounding }),
+        launch.session,
+      );
     },
   };
 }

@@ -22,31 +22,42 @@ import type { PortfolioChatTurnMode } from "../portfolio-chat-protocol";
 type OpenAIPortfolioProviderOptions = {
   apiKey: string;
   model: string;
-  reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  reasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | "max";
+  /** Shorter answers finish sooner; the Guide should be brief anyway. */
+  verbosity?: "low" | "medium" | "high";
   fetchImplementation?: typeof fetch;
 };
 
-function groundedInput({
-  question,
-  evidence,
-  conversation,
-}: PortfolioChatProviderInput) {
+function groundedInput({ question, conversation, evidence }: PortfolioChatProviderInput) {
+  return [
+    user([{
+      type: "input_text",
+      text: groundedEvidence(evidence),
+      promptCacheBreakpoint: { mode: "explicit" },
+    }]),
+    ...(conversation ?? []).map(({ role, content }) =>
+      role === "user" ? user(content) : assistant(content),
+    ),
+    user(`Current question: ${question}`),
+  ];
+}
+
+/** Keep reference material before changing history, with its own cache endpoint. */
+function groundedEvidence(evidence: PortfolioChatProviderInput["evidence"]) {
   const sources = evidence
     .map(
       (item, index) =>
         `[E${index + 1}] id=${item.id}\nTitle: ${item.title}\nPortfolio context: ${item.excerpt}\nPortfolio link: ${item.href}`,
     )
     .join("\n\n");
-
-  const currentTurn = user(
-    `Current question: ${question}\n\nPortfolio evidence:\n${sources}`,
-  );
-  return [
-    ...(conversation ?? []).map(({ role, content }) =>
-      role === "user" ? user(content) : assistant(content),
-    ),
-    currentTurn,
-  ];
+  return `Portfolio evidence:\n${sources}`;
 }
 
 const portfolioAgentInstructions =
@@ -225,6 +236,7 @@ export function createOpenAIPortfolioProvider({
   apiKey,
   model,
   reasoningEffort,
+  verbosity,
   fetchImplementation = fetch,
 }: OpenAIPortfolioProviderOptions): PortfolioChatProvider {
   const openAIClient = new OpenAI({
@@ -257,9 +269,13 @@ export function createOpenAIPortfolioProvider({
         modelSettings: {
           maxTokens: 3_000,
           store: false,
+          // The prefix is the same on every request, so hold it long enough to
+          // still be warm for the next visitor rather than the next sentence.
+          promptCacheOptions: { mode: "explicit", ttl: "30m" },
           ...(reasoningEffort
             ? { reasoning: { effort: reasoningEffort } }
             : {}),
+          ...(verbosity ? { text: { verbosity } } : {}),
           ...(input.safetyIdentifier
             ? {
                 providerData: {

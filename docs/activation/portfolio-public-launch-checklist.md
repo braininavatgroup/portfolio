@@ -56,27 +56,25 @@ the launch work; it does not authorize deployment or changes to live controls.
   `tests/main-preview-worker-config.test.mjs`.
   Chat protections are independent of the password gate and unchanged: the
   per-IP throttle and the derived actor identity run whether or not the
-  Turnstile flag is set (`lib/server/portfolio-chat-launch.ts`, proved by
-  "throttles per actor even when the challenge is disabled"), the daily
-  provider budget still caps spend at 200, and the guard fails closed on a
+  session flag is set (`lib/server/portfolio-chat-launch.ts`, proved by
+  "throttles per actor even when the session is not required"), the daily
+  provider budget still caps spend at 1,000, and the guard fails closed on a
   missing limiter or connecting IP. See the two boundaries below for what this
   does *not* cover.
-- [x] Turnstile is required on the public candidate.
-  `npm run setup:turnstile` provisioned all three controls on 2026-09-08 and
-  recorded them in `.context/turnstile-clarity-setup.md`: the `portfolio-chat`
-  widget (mode managed, both hostnames), the site key as the
-  `PORTFOLIO_CHAT_TURNSTILE_SITE_KEY` repository variable, and the
-  `TURNSTILE_SECRET_KEY` and `PORTFOLIO_CHAT_IDENTIFIER_SECRET` Worker
-  secrets. The rate limiter was already bound. With all four in place,
-  `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` is `true` and `ci.yml` passes the site
-  key into the build that becomes the deployed artifact.
-  Deployment constraint: the site key is compiled into the client bundle, so
-  the deployed artifact must come from a CI run that had the repository
-  variable set. An artifact built before 2026-09-08 ships no challenge, and
-  the guard rejects every question with 403.
-  Sequencing: `docs/activation/portfolio-public-chat.md` asks that the
-  challenge be validated behind the password first, then the password
-  removed. These two pull requests can be deployed in that order.
+- [x] A session token, not a bot check, guards the public candidate.
+  Cloudflare Turnstile was removed on 2026-09-09: it demanded a fresh
+  single-use token per message, so Cloudflare escalated repeat askers to a
+  visible checkbox between every question. The endpoint now requires a signed,
+  IP-bound, HttpOnly session cookie issued by `/api/portfolio-chat/session`
+  and renewed on every accepted request
+  (`lib/server/portfolio-chat-session.ts`, `PORTFOLIO_CHAT_SESSION_REQUIRED`).
+  It needs only `PORTFOLIO_CHAT_IDENTIFIER_SECRET` and the bound rate limiter
+  — both already provisioned — and nothing is compiled into the client bundle,
+  so any CI artifact carries it.
+  Scope, stated plainly: this stops scripts that never load the site. It does
+  not stop anyone willing to fetch a session first. That is the accepted
+  trade — the per-IP throttle and the 1,000/day allowance bound the damage, and
+  the failure mode is a day of "come back tomorrow", not an unbounded bill.
 - [x] Prepare public analytics. Eligible public HTML must carry
   `data-portfolio-analytics-context="external"`. Keep local development and
   private previews excluded, and preserve personal browser opt-outs.

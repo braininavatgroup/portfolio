@@ -26,16 +26,17 @@ the deployment and rollback procedure.
 
 | Setting | Value |
 | --- | --- |
-| `PORTFOLIO_CHAT_TURNSTILE_REQUIRED` | `false` |
-| `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `200` |
-| `OPENAI_PORTFOLIO_MODEL` | `gpt-5.6-terra` |
-| `OPENAI_PORTFOLIO_REASONING_EFFORT` | `medium` |
+| `PORTFOLIO_CHAT_SESSION_REQUIRED` | `false` |
+| `PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT` | `1000` |
+| `OPENAI_PORTFOLIO_MODEL` | `gpt-5.6-sol` |
+| `OPENAI_PORTFOLIO_REASONING_EFFORT` | `low` |
+| `OPENAI_PORTFOLIO_VERBOSITY` | `low` |
 
 The provider ceiling is 3,000 output tokens, shared between model reasoning and
 the visible answer. Store `OPENAI_API_KEY` only as an encrypted Worker secret.
 The site's Workers.dev boundary owns pre-launch access; chat has no access-code
 endpoint, session cookie, or preview-attempt limiter. Do not configure
-Turnstile, `PORTFOLIO_CHAT_IDENTIFIER_SECRET`, or a chat route limiter for this
+a chat session token, `PORTFOLIO_CHAT_IDENTIFIER_SECRET`, or a chat route limiter for this
 single-operator Worker. Those public controls are a separate dormant launch
 configuration and must be activated only through an independently reviewed
 change. The OpenAI Agents SDK runner has one text agent, one model turn, no
@@ -79,13 +80,13 @@ seven-day expiry, and each result below:
 | Direct chat | A grounded question streams through `/api/portfolio-chat` without a second chat-specific unlock flow |
 | Removed route | The built application route table does not register `/api/portfolio-chat/preview` |
 | Conversation | One follow-up uses at most six in-memory user and assistant messages; reload clears them |
-| Budget | The Durable Object receives a limit of 200 and rejects exhaustion before provider construction |
+| Budget | The Durable Object receives a limit of 1,000 and rejects exhaustion before provider construction |
 | Provider failure | The route returns the redacted provider error contract without leaking upstream detail |
 | Secret isolation | No key, prompt, answer, IP address, access token, or secret appears in client assets or structured telemetry |
 | Configuration | The endpoint is always registered and a missing provider dependency returns the redacted configuration error before provider construction |
 
 The budget exhaustion and provider-failure checks use deterministic local or
-isolated test inputs. They do not consume the live 200-request allowance merely
+isolated test inputs. They do not consume the live 1,000-request allowance merely
 to force failure states.
 
 ## Containment and rollback

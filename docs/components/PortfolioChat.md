@@ -9,12 +9,11 @@ Validated text appears as it arrives; `onNavigateEvidence` routes inline citatio
 
 ## Props
 
-No prop is required in production. `askPortfolio` and `renderTurnstile` are
-test/gallery seams; `turnstileSiteKey` enables challenge gating.
+No prop is required in production. `askPortfolio` and `openSession` are test/gallery seams.
 `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
 narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
-Local play commands bypass model quota, network, and Turnstile. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
+Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
 
 Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged.
 
@@ -32,7 +31,7 @@ Guide fills the slot and adds no positioning or shadow.
 ## Example
 
 ```tsx
-import { galleryAskPortfolio, galleryRenderTurnstile } from "app/design/fixtures";
+import { galleryAskPortfolio } from "app/design/fixtures";
 import { PortfolioChat } from "components/PortfolioChat";
 
 export function PortfolioChatExample() {
@@ -41,9 +40,8 @@ export function PortfolioChatExample() {
       <section style={{ height: "100%" }}>
         <PortfolioChat
           // Omit both stubs in production: the defaults are
-          // `streamPortfolioAnswer` and the real Turnstile renderer.
+          // `streamPortfolioAnswer` and the real session opener.
           askPortfolio={galleryAskPortfolio}
-          renderTurnstile={galleryRenderTurnstile}
         />
       </section>
     </div>
@@ -54,11 +52,12 @@ export function PortfolioChatExample() {
 ## Pitfalls
 
 - Without `askPortfolio`, the Guide calls the production route; tests need a stub.
-- A `turnstileSiteKey` without a working renderer keeps submission gated. The real loader renders after the async script loads; do not call Turnstile `ready()` on an async/defer script. Failed loads expose Retry verification and replace the failed script. Verification UI appears only when interaction is needed and fits the pane width.
+- There is no visible bot check. The endpoint asks for a session cookie, which `openSession` establishes on mount so the first question is no slower than the rest; the guard renews it on every accepted request. A lapsed session surfaces as `session_required`, which `streamPortfolioAnswer` recovers from once, silently, by re-opening and resending. Do not reintroduce an interactive challenge without a decision to charge visitors for it.
 - Copy strips wire markup; links retain their phrase. Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
 - Empty suggestions stay at the top when the pane shrinks, and the avatar yields space before the questions. Only a conversation enables automatic scrolling.
 - The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer the accessible Jump to latest reply chevron in a separate row. Failed streams remove their partial text.
-- A send that loses eligibility (offline, expired challenge) fails with one retry.
+- A send that goes offline fails with one retry.
+- Twenty seconds without new text aborts the reply, clears partial text, and offers one retry.
 - Avatar callback failures stay isolated from the text response.
 - The first server and client render both assume online. Actual `navigator.onLine` state is synchronized after mount to keep hydration stable.
 - `useLocalRuntime` owns thread detach and request cancellation on unmount; the

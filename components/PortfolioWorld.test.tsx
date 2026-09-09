@@ -549,6 +549,8 @@ describe("PortfolioWorld canvas paint", () => {
    */
   function recordingContext() {
     const record = {
+      gradientStops: [] as Array<{ offset: number; color: string }>,
+      gradients: [] as Array<{ x0: number; y0: number; x1: number; y1: number; stops: Array<{ offset: number; color: string }> }>,
       drawImageWidths: [] as number[],
       strokeStyles: [] as string[],
       fillStyles: [] as string[],
@@ -563,6 +565,14 @@ describe("PortfolioWorld canvas paint", () => {
     };
     let lineToCount = 0;
     const target: Record<string, unknown> = {
+      createLinearGradient: (x0: number, y0: number, x1: number, y1: number) => {
+        const stops: Array<{ offset: number; color: string }> = [];
+        record.gradients.push({ x0, y0, x1, y1, stops });
+        return { addColorStop: (offset: number, color: string) => {
+          stops.push({ offset, color });
+          record.gradientStops.push({ offset, color });
+        } };
+      },
       beginPath: () => {
         lineToCount = 0;
         record.pathAlphas.push(Number(target.globalAlpha));
@@ -693,6 +703,31 @@ describe("PortfolioWorld canvas paint", () => {
     expect(source).toBe("/biv-brain-symbol.svg");
   });
 
+  it("fades label-clipped connectors in their resolved hue", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    expect(record.gradientStops.some(({ offset, color }) =>
+      (offset === 0 || offset === 1) && color === "rgba(1, 2, 3, 0)",
+    )).toBe(true);
+    expect(record.gradientStops.some(({ offset, color }) =>
+      offset > 0 && offset < 1 && color.startsWith("rgba(1, 2, 3, "),
+    )).toBe(true);
+  });
+
+  it("fades the trunk immediately below Bradley's own label", async () => {
+    const record = paintWithConnector("rgb(1, 2, 3)");
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    const label = record.fillTextCalls.filter(({ value }) => value.includes("Berkman")).at(-1)!;
+    expect(label).toBeTruthy();
+    const gradient = record.gradients.find(({ x0, y0, x1, stops }) =>
+      Math.abs(x0 - label.x) < 0.01 && Math.abs(x1 - label.x) < 0.01 &&
+      Math.abs(y0 - (label.y + 15 / 2 + 2)) < 0.01 &&
+      stops[0]?.color === "rgba(1, 2, 3, 0)",
+    );
+    expect(gradient, "the endpoint was trimmed before label fading").toBeTruthy();
+    expect(gradient!.stops[1].offset * Math.abs(gradient!.y1 - gradient!.y0)).toBeCloseTo(7);
+  });
+
   it("actually paints, and strokes connectors with the resolved token", async () => {
     const record = paintWithConnector("rgb(1, 2, 3)");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
@@ -710,9 +745,9 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokes.filter(stroke => stroke.style === connector && stroke.alpha >= 0.35).length).toBeGreaterThan(12);
   });
 
-  it("strokes Bradley's trunk and strongest branch as one joined path", async () => {
+  it("strokes the selected map trunk and strongest branch as one joined path", async () => {
     const connector = "rgb(12, 34, 56)";
-    const record = paintWithConnector(connector);
+    const record = paintWithConnector(connector, { selectedId: "pitching" });
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     expect(

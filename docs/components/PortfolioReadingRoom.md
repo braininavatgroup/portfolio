@@ -27,7 +27,7 @@ shell once; its live Map must size from its slot.
 ## Example
 
 ```tsx
-import { galleryAskPortfolio, galleryRenderTurnstile } from "app/design/fixtures";
+import { galleryAskPortfolio } from "app/design/fixtures";
 import { PortfolioChat } from "components/PortfolioChat";
 import { PortfolioReader } from "components/PortfolioReader";
 import { PortfolioReadingRoom } from "components/PortfolioReadingRoom";
@@ -47,7 +47,6 @@ export function PortfolioReadingRoomExample() {
           <PortfolioChat
             askPortfolio={galleryAskPortfolio}
             onThreadStateChange={setGuideHasThread}
-            renderTurnstile={galleryRenderTurnstile}
           />
         )}
         guideHasThread={guideHasThread}
