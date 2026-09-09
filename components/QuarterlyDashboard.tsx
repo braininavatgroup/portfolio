@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   buildQuarterTrend,
   filterPitches,
@@ -70,16 +70,15 @@ function TrendChart({
   onSelect: (period: QuarterTrend) => void;
   trend: readonly QuarterTrend[];
 }) {
-  const width = 1160;
-  const height = 268;
-  const inset = { bottom: 44, left: 58, right: 58, top: 26 };
-  const plotWidth = width - inset.left - inset.right;
-  const plotHeight = height - inset.top - inset.bottom;
+  // The plot is drawn in a stretched 0-100 space so it fills whatever box CSS
+  // gives it. Nothing that has to keep its shape lives in that space: strokes
+  // opt out of scaling, and the points and labels are HTML positioned by the
+  // same percentages, so text stays at its real size at every width.
   const maxPitches = Math.max(50, ...trend.map((period) => period.pitches));
   const x = (index: number) =>
-    inset.left + (trend.length === 1 ? plotWidth / 2 : (index / (trend.length - 1)) * plotWidth);
-  const countY = (value: number) => inset.top + plotHeight - (value / maxPitches) * plotHeight;
-  const rateY = (value: number) => inset.top + plotHeight - (value / 50) * plotHeight;
+    trend.length === 1 ? 50 : (index / (trend.length - 1)) * 100;
+  const countY = (value: number) => 100 - (value / maxPitches) * 100;
+  const rateY = (value: number) => 100 - (value / 50) * 100;
   const points = (field: "pitches" | "signedExclusives" | "conversionRate") =>
     trend
       .map((period, index) => {
@@ -88,73 +87,60 @@ function TrendChart({
       })
       .join(" ");
 
-  const activate = (event: KeyboardEvent<SVGGElement>, period: QuarterTrend) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect(period);
-    }
-  };
-
   return (
-    <div className="quarterly-dashboard-chart-scroll">
-      <svg
-        aria-label="Quarterly pitch, exclusive, and conversion trends"
-        className="quarterly-dashboard-chart"
-        role="img"
-        viewBox={`0 0 ${width} ${height}`}
-      >
-        <g className="quarterly-dashboard-chart-grid">
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const y = inset.top + plotHeight * ratio;
-            return <line key={ratio} x1={inset.left} x2={width - inset.right} y1={y} y2={y} />;
-          })}
-        </g>
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="pitches"
-          points={points("pitches")}
-        />
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="exclusives"
-          points={points("signedExclusives")}
-        />
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="conversion"
-          points={points("conversionRate")}
-        />
-        {trend.map((period, index) => {
-          const cx = x(index);
-          const cy = countY(period.pitches);
-          const selected = period.label === activeLabel;
-          return (
-            <g
-              aria-label={`Show ${period.label}`}
-              className="quarterly-dashboard-chart-target"
-              data-selected={selected}
-              key={period.label}
-              onClick={() => onSelect(period)}
-              onKeyDown={(event) => activate(event, period)}
-              role="button"
-              tabIndex={0}
-            >
-              <circle className="quarterly-dashboard-chart-hit" cx={cx} cy={cy} r="18" />
-              <circle className="quarterly-dashboard-chart-point" cx={cx} cy={cy} r={selected ? 6 : 4} />
-              <title>
-                {`${period.label}: ${period.pitches} pitches, ${period.signedExclusives} exclusives, ${formatPercent(period.conversionRate)} conversion`}
-              </title>
-            </g>
-          );
-        })}
-        <g className="quarterly-dashboard-chart-labels">
-          {trend.map((period, index) => (
-            <text key={period.label} textAnchor="middle" x={x(index)} y={height - 12}>
-              {period.label}
-            </text>
+    <div className="quarterly-dashboard-chart">
+      <div className="quarterly-dashboard-chart-plot">
+        <svg
+          aria-label="Quarterly pitch, exclusive, and conversion trends"
+          className="quarterly-dashboard-chart-lines"
+          preserveAspectRatio="none"
+          role="img"
+          viewBox="0 0 100 100"
+        >
+          <g className="quarterly-dashboard-chart-grid">
+            {[0, 25, 50, 75, 100].map((y) => (
+              <line key={y} x1="0" x2="100" y1={y} y2={y} vectorEffect="non-scaling-stroke" />
+            ))}
+          </g>
+          {(
+            [
+              ["pitches", "pitches"],
+              ["exclusives", "signedExclusives"],
+              ["conversion", "conversionRate"],
+            ] as const
+          ).map(([series, field]) => (
+            <polyline
+              className="quarterly-dashboard-chart-line"
+              data-series={series}
+              key={series}
+              points={points(field)}
+              vectorEffect="non-scaling-stroke"
+            />
           ))}
-        </g>
-      </svg>
+        </svg>
+        {trend.map((period, index) => (
+          <button
+            aria-label={`Show ${period.label}`}
+            className="quarterly-dashboard-chart-point"
+            data-selected={period.label === activeLabel}
+            key={period.label}
+            onClick={() => onSelect(period)}
+            style={{
+              left: `${x(index)}%`,
+              top: `${countY(period.pitches)}%`,
+            }}
+            title={`${period.label}: ${period.pitches} pitches, ${period.signedExclusives} exclusives, ${formatPercent(period.conversionRate)} conversion`}
+            type="button"
+          />
+        ))}
+      </div>
+      <div className="quarterly-dashboard-chart-labels">
+        {trend.map((period, index) => (
+          <span key={period.label} style={{ left: `${x(index)}%` }}>
+            {period.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -567,7 +553,7 @@ export function QuarterlyDashboard({
         <header className="quarterly-dashboard-header">
           <div>
             <p>Quarterly review</p>
-            <DashboardHeading>Listing Pitch Conversion</DashboardHeading>
+            <DashboardHeading>Brokerage Pitch Conversion</DashboardHeading>
           </div>
           <div className="quarterly-dashboard-actions">
             <button onClick={() => window.print()} type="button">

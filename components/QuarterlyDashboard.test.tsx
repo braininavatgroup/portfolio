@@ -22,7 +22,7 @@ describe("quarterly dashboard", () => {
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "Listing Pitch Conversion",
+        name: "Brokerage Pitch Conversion",
       }),
     ).not.toBeNull();
     expect(screen.getByRole("navigation", { name: "Dashboard pages" })).not.toBeNull();
@@ -50,7 +50,7 @@ describe("quarterly dashboard", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Listing Pitch Conversion",
+        name: "Brokerage Pitch Conversion",
       }),
     ).not.toBeNull();
     expect(getSelect("combobox", "Year").value).toBe("2026");

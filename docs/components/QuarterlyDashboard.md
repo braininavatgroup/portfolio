@@ -3,7 +3,7 @@
 Source: [`components/QuarterlyDashboard.tsx`](../../components/QuarterlyDashboard.tsx) ·
 Route: `/demos/quarterly-dashboard` · Tests: `components/QuarterlyDashboard.test.tsx`
 
-The complete listing pitch-conversion work sample. It generates its stable
+The complete brokerage pitch-conversion work sample. It generates its stable
 record set in memory, calculates every displayed metric, and owns summary and
 detail navigation, filters, chart cross-filtering, CSV download, and print.
 
@@ -38,11 +38,11 @@ export function QuarterlyDashboardExample() {
 
 - Generated rows live only in component memory. Do not replace them with a
   checked-in JSON or CSV fixture.
-- Trend calculations intentionally ignore the selected year and quarter while
-  honoring stage and competitor filters, so the period comparison remains
-  visible.
-- The SVG trend targets use `role="button"` because SVG cannot contain HTML
-  buttons. Preserve both Enter and Space activation.
+- Trend calculations ignore the selected year and quarter but honor stage and
+  competitor filters, so the period comparison stays visible.
+- Only the trend lines live in the chart's stretched 0-100 space, with
+  `vector-effect="non-scaling-stroke"`. Points and labels are HTML placed by the
+  same percentages. SVG text there would shrink to a few pixels in a column.
 - CSV download requires browser `Blob` and object-URL APIs. It must remain in a
   user event rather than running during server render.
 - Use `embedded` inside another page. A page must not contain a nested

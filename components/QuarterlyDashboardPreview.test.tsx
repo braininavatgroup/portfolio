@@ -22,7 +22,7 @@ describe("QuarterlyDashboardPreview", () => {
     expect(
       within(dashboard).getByRole("heading", {
         level: 2,
-        name: "Listing Pitch Conversion",
+        name: "Brokerage Pitch Conversion",
       }),
     ).not.toBeNull();
     expect(screen.queryByRole("link", { name: "Open full dashboard" })).toBeNull();
