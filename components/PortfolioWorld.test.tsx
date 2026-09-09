@@ -819,7 +819,7 @@ describe("PortfolioWorld canvas paint", () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     expect(record.fillTexts).toContain("Bradley Berkman");
-    expect(record.fillTexts).toContain("Making work");
+    expect(record.fillTexts).toContain("Making Work");
     expect(record.fillTexts).toContain("Philosophy");
     expect(record.fillTexts).toContain("Dubs");
     expect(record.fillTexts).not.toContain("Writ");
@@ -835,10 +835,10 @@ describe("PortfolioWorld canvas paint", () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     const node = screen.getByRole("button", {
-      name: "Theme Making work playable",
+      name: "Theme Making Work Playable",
     });
     const nodeX = Number.parseFloat(node.style.left) / 100 * width;
-    const label = record.fillTextCalls.find(({ value }) => value.startsWith("Making work"));
+    const label = record.fillTextCalls.find(({ value }) => value.startsWith("Making Work"));
 
     expect(nodeX).toBeLessThan(width * 0.3);
     expect(label?.align).toBe("center");
@@ -988,7 +988,7 @@ describe("spotlight composition", () => {
       camera,
       measure: (value) => value.length * 6.2,
       related,
-      relatedLabels: new Map([["making-work-playable", "Making work playable"]]),
+      relatedLabels: new Map([["making-work-playable", "Making Work Playable"]]),
       spotlight,
       viewport,
     });

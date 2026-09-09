@@ -9,7 +9,7 @@ describe("quarterly dashboard route", () => {
     expect(page.type).toBe(QuarterlyDashboard);
     expect(page.props).toMatchObject({
       returnHref: "/?view=graph#real-estate",
-      returnLabel: "Back to Real-estate deal tracker",
+      returnLabel: "Real-Estate Deal Tracker",
     });
     expect(metadata.title).toBe("Quarterly pitch conversion | Bradley Berkman");
     expect(metadata.description).toContain("interactive quarterly pitch-conversion dashboard");

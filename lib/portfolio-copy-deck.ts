@@ -22,7 +22,7 @@ export const COPY_DECK_FOLDER = "Portfolio copy";
 export const COPY_DECK_SITE_TEXT_NOTE = "Site text.md";
 
 export type CopyDeckPage = {
-  /** Path inside the folder, e.g. "Threads/Making work playable.md". */
+  /** Path inside the folder, e.g. "Threads/Making Work Playable.md". */
   path: string;
   content: string;
 };

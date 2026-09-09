@@ -70,7 +70,7 @@ describe("portfolio chat grounding", () => {
       expect(pitching?.excerpt).toContain(line);
     }
     expect(pitching?.excerpt).toContain(
-      "Themes: Making work playable; Philosophy",
+      "Themes: Making Work Playable; Philosophy",
     );
   });
 

@@ -33,13 +33,13 @@ describe("quarterly dashboard", () => {
     render(
       <QuarterlyDashboard
         returnHref="/?view=graph#real-estate"
-        returnLabel="Back to Real-estate deal tracker"
+        returnLabel="Real-Estate Deal Tracker"
       />,
     );
 
     expect(
       screen
-        .getByRole("link", { name: "Back to Real-estate deal tracker" })
+        .getByRole("link", { name: "Real-Estate Deal Tracker" })
         .getAttribute("href"),
     ).toBe("/?view=graph#real-estate");
   });

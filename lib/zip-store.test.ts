@@ -14,7 +14,7 @@ describe("zipStore", () => {
   it("writes an archive the system unzip can list and extract byte-for-byte", () => {
     const entries = [
       { path: "Portfolio copy/Bradley Berkman.md", content: "# Bradley Berkman\n\nHey — I'm Bradley.\n" },
-      { path: "Portfolio copy/Threads/Making work playable.md", content: "# Making work playable\n" },
+      { path: "Portfolio copy/Threads/Making Work Playable.md", content: "# Making Work Playable\n" },
       { path: "Portfolio copy/Site text.md", content: "" },
     ];
     const archive = zipStore(entries, new Date(2026, 8, 5, 12, 0, 0));

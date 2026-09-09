@@ -82,7 +82,7 @@ test("the quarterly dashboard demo renders as a complete public route", async ()
   assert.match(html, /Pitch Detail/i);
   assert.match(html, /Print or save as PDF/i);
   assert.match(html, /href="\/\?view=graph#real-estate"/i);
-  assert.match(html, /Back to Real-estate deal tracker/i);
+  assert.match(html, /Real-Estate Deal Tracker/i);
 });
 
 test("retired work routes stay retired", async () => {
@@ -119,7 +119,7 @@ test("the copy deck is served as a zip of notes and from its export page", async
   assert.deepEqual(Array.from(bytes.slice(0, 4)), [0x50, 0x4b, 0x03, 0x04]);
   const text = new TextDecoder().decode(bytes);
   assert.ok(text.includes("Portfolio copy/Bradley Berkman.md"));
-  assert.ok(text.includes(`Portfolio copy/${content.interface["index.section.threads"]}/Making work playable.md`));
+  assert.ok(text.includes(`Portfolio copy/${content.interface["index.section.threads"]}/Making Work Playable.md`));
   assert.ok(text.includes("Portfolio copy/Site text.md"));
   assert.ok(text.includes(content.records.bradley.paragraphs.p1));
 
