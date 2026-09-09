@@ -60,7 +60,6 @@ export function PortfolioChatExample() {
 - The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer the accessible Jump to latest reply chevron in a separate row. Failed streams remove their partial text.
 - A send that loses eligibility (offline, expired challenge) fails with one retry.
 - Avatar callback failures stay isolated from the text response.
-- The first server and client render both assume online. Actual
-  `navigator.onLine` state is synchronized after mount to keep hydration stable.
+- The first server and client render both assume online. Actual `navigator.onLine` state is synchronized after mount to keep hydration stable.
 - `useLocalRuntime` owns thread detach and request cancellation on unmount; the
   Guide only clears its local timer and request reference in component cleanup.
