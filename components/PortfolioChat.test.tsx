@@ -101,8 +101,8 @@ describe("docked portfolio Guide", () => {
 
     const starters = await screen.findAllByRole("button", { name: /^(Where|What|Can|Which|How|Go|Wave|Play)/ });
     expect(starters).toHaveLength(6);
-    expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(2);
-    expect(starters.filter((starter) => starter.querySelector(".portfolio-guide-suggestion-mark"))).toHaveLength(4);
+    expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(6);
+    expect(starters.some((starter) => starter.querySelector('[data-control="chevron"]'))).toBe(false);
     fireEvent.click(starters[0]!);
     await waitFor(() => expect(document.querySelector('[data-guide-primitive="message"]')).toBeTruthy());
   });
@@ -194,7 +194,11 @@ describe("docked portfolio Guide", () => {
     const followUp = await screen.findByRole("button", {
         name: "What problem does Music promo campaign pitching solve?",
       });
-    expect(followUp.querySelector('[data-control="chevron"]')).toBeTruthy();
+    expect(followUp.querySelector('.portfolio-node-mark[data-family="component"][data-register="bridge"]')).toBeTruthy();
+    for (const suggestion of screen.getAllByTestId("guide-suggestion")) {
+      expect(suggestion.querySelector(".portfolio-node-mark")).toBeTruthy();
+      expect(suggestion.querySelector('[data-control="chevron"]')).toBeNull();
+    }
     expect(
       screen.queryByRole("button", { name: "Summarise Campaign reporting" }),
     ).toBeNull();

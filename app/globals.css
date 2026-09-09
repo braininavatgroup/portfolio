@@ -1768,6 +1768,7 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-reading-room-mobile-guide .portfolio-chat {
   background: var(--map-paper-near);
+  justify-content: flex-end;
 }
 
 .portfolio-reading-room-mobile-avatar {
@@ -1796,7 +1797,7 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-thread {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   margin-top: var(--reader-space-1);
   max-height: none;
 }
@@ -3011,7 +3012,7 @@ body:has(.portfolio-reading-room-mobile) {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 var(--reader-space-3) var(--reader-space-2);
+  padding: 0 var(--reader-space-3);
   scrollbar-width: none;
 }
 
@@ -3152,7 +3153,7 @@ body:has(.portfolio-reading-room-mobile) {
   appearance: none;
   background: transparent;
   border: 0;
-  color: var(--ink, var(--reader-ink-light));
+  color: var(--reader-muted, var(--reader-muted-light));
   cursor: pointer;
   display: flex;
   font: var(--reader-type-row) var(--font-reader);
@@ -3171,27 +3172,6 @@ body:has(.portfolio-reading-room-mobile) {
   .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
     display: none;
   }
-}
-
-.portfolio-guide-suggestion-mark {
-  -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
-  background: currentColor;
-  display: block;
-  flex: 0 0 15px;
-  height: 15px;
-  mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
-  width: 15px;
-}
-
-.portfolio-guide-suggestion .portfolio-control-glyph {
-  height: 18px;
-  margin: 0;
-  width: 18px;
-}
-
-.portfolio-guide-suggestion .portfolio-control-glyph svg {
-  height: 18px;
-  width: 18px;
 }
 
 .portfolio-chat-composer {
@@ -3282,7 +3262,7 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-reading-room-mobile-guide .portfolio-chat-composer {
   background: var(--map-paper);
   height: 44px;
-  margin: 0 var(--reader-space-3) var(--reader-space-2);
+  margin: var(--reader-space-1) var(--reader-space-3) var(--reader-space-2);
 }
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-composer textarea {
@@ -4586,10 +4566,14 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 }
 
 .portfolio-guide-scroll-controls {
-  display: flex;
+  display: none;
   flex: 0 0 32px;
   justify-content: flex-end;
   padding: 0 var(--reader-space-3);
+}
+
+.portfolio-guide-scroll-controls:has(.portfolio-guide-latest:not(:disabled)) {
+  display: flex;
 }
 
 .portfolio-guide-latest {
@@ -4612,6 +4596,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   visibility: hidden;
 }
 
+.portfolio-guide-suggestion:focus-visible,
 .portfolio-guide-citation:focus-visible,
 .portfolio-guide-avatar-toggle:focus-visible,
 .portfolio-guide-latest:focus-visible {

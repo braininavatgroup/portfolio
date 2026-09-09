@@ -15,7 +15,7 @@ narrow avatar runtime and layout callbacks. The avatar integration accepts only
 turn start, first rendered text, and the closed avatar/game effect contract.
 Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
 
-Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged.
+Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged. All prompts use the shared node mark, matching their evidence when available and falling back to Bradley's identity glyph. Labels use muted reader ink.
 
 The Reading Room uses three coordination props:
 
@@ -54,8 +54,8 @@ export function PortfolioChatExample() {
 - Without `askPortfolio`, the Guide calls the production route; tests need a stub.
 - There is no visible bot check. The endpoint asks for a session cookie, which `openSession` establishes on mount so the first question is no slower than the rest; the guard renews it on every accepted request. A lapsed session surfaces as `session_required`, which `streamPortfolioAnswer` recovers from once, silently, by re-opening and resending. Do not reintroduce an interactive challenge without a decision to charge visitors for it.
 - Copy strips wire markup; links retain their phrase. Only canonical, in-range `[E#]` labels with a Reading Room target are actions.
-- Empty suggestions stay at the top when the pane shrinks, and the avatar yields space before the questions. Only a conversation enables automatic scrolling.
-- The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer the accessible Jump to latest reply chevron in a separate row. Failed streams remove their partial text.
+- Empty suggestions sit above the composer on desktop and mobile; the avatar yields space before the questions when the pane shrinks. Only a conversation enables automatic scrolling.
+- The viewport owns scrolling; follow new replies at the bottom, preserve scrollback, and offer the accessible Jump to latest reply chevron in a separate row only while scrolled away from the bottom. The unused row collapses so suggestions sit directly above the composer. Failed streams remove their partial text.
 - A send that goes offline fails with one retry.
 - Twenty seconds without new text aborts the reply, clears partial text, and offers one retry.
 - Avatar callback failures stay isolated from the text response.
