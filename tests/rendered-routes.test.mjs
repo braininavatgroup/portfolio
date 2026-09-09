@@ -23,6 +23,20 @@ async function render(pathname, userAgent = "LinkedInBot/1.0") {
   );
 }
 
+function assertCanonical(head, url) {
+  const link = head.match(/<link\b[^>]*\brel="canonical"[^>]*>/)?.[0] ?? "";
+  const href = link.match(/\bhref="([^"]+)"/)?.[1];
+  assert.ok(href, `canonical link must exist for ${url}`);
+  assert.equal(new URL(href).href, new URL(url).href, `canonical link must point to ${url}`);
+}
+
+async function assertSharingImage(id) {
+  const png = await readFile(new URL(`../dist/client/sharing/${id}.png`, import.meta.url));
+  assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(png.readUInt32BE(16), 1200, `${id} image width`);
+  assert.equal(png.readUInt32BE(20), 630, `${id} image height`);
+}
+
 test("all canonical record and theme URLs return their own crawler-readable previews", async () => {
   const content = JSON.parse(await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
   for (const [id, record] of Object.entries(content.records)) {
@@ -33,14 +47,11 @@ test("all canonical record and theme URLs return their own crawler-readable prev
     const head = html.split("</head>")[0];
     assert.match(head, /property="og:title"/);
     assert.match(head, /property="og:description"/);
-    assert.ok(head.includes(`https://bradleyberkman.com/index/${id}`));
+    assertCanonical(head, `https://bradleyberkman.com/index/${id}`);
     assert.ok(head.includes(`/sharing/${id}.png`));
     assert.match(head, /name="twitter:card" content="summary_large_image"/);
     assert.ok(html.includes(record.label.replaceAll("&", "&amp;")), `${id} is server rendered`);
-    const png = await readFile(new URL(`../dist/client/sharing/${id}.png`, import.meta.url));
-    assert.deepEqual([...png.subarray(0,8)], [137,80,78,71,13,10,26,10]);
-    assert.equal(png.readUInt32BE(16), 1200);
-    assert.equal(png.readUInt32BE(20), 630);
+    await assertSharingImage(id);
   }
   assert.equal((await render("/index")).status, 404);
   assert.equal((await render("/index/not-a-project")).status, 404);
@@ -53,8 +64,9 @@ test("every supporting HTML page has its own canonical, Open Graph and Twitter p
     const head = (await response.text()).split("</head>")[0];
     assert.match(head, /property="og:title"/);
     assert.match(head, /property="og:description"/);
-    assert.ok(head.includes(`https://bradleyberkman.com${path}`));
+    assertCanonical(head, `https://bradleyberkman.com${path}`);
     assert.ok(head.includes(`/sharing/${image}.png`));
+    await assertSharingImage(image);
     assert.match(head, /name="twitter:card" content="summary_large_image"/);
   }
 });
