@@ -1,5 +1,7 @@
 "use client";
 
+import { PORTFOLIO_GLYPH } from "../lib/portfolio-glyph-metrics";
+
 import { portfolioOverviewLabel, portfolioOverviewPositions, portfolioOverviewNodeLabel, overviewConnectorSegments } from "../lib/portfolio-overview-layout";
 
 import {
@@ -687,7 +689,7 @@ export function PortfolioWorld({
     if (typeof Image === "undefined") return;
     const image = new Image();
     const cache = brainCache.current;
-    image.src = "/biv-brain-symbol.svg";
+    image.src = "/glyph-textures/circle.svg";
     brainImage.current = image;
     return () => {
       brainImage.current = null;
@@ -1680,7 +1682,7 @@ function drawLinks(
     context.save();
     context.lineCap = "round";
     context.lineJoin = "round";
-    context.lineWidth = active ? 1.1 : 0.54;
+    context.lineWidth = palette.resting ? 0.7 : active ? 1.1 : 0.54;
 
     // A label-clipped end used to stop dead, so a line appeared to begin in
     // midair beside the text. Those ends ramp out instead; ends that are where
@@ -1741,7 +1743,7 @@ function drawLinks(
   };
   // There is always a spotlight — rest reads as Bradley — so a line is either
   // part of the current composition or nearly gone.
-  const strengthOf = (active: boolean) => (active ? 0.78 : 0.025);
+  const strengthOf = (active: boolean) => palette.resting ? 0.38 : active ? 0.78 : 0.025;
   const anchor = (node: RuntimeNode, screen: ProjectedPoint): ConnectorAnchor => ({
     x: screen.x,
     y: screen.y,
@@ -1841,26 +1843,29 @@ function drawNode(
   const color = palette.register(node.register);
   const ink = palette.ink;
   const isBradley = node.id === "bradley";
-  const size = isBradley ? BRADLEY_MARK_SIZE : MARK_SIZE;
+  const size = (isBradley ? BRADLEY_MARK_SIZE : MARK_SIZE) * PORTFOLIO_GLYPH.artworkScale;
   const statusAlpha = node.status === "past" ? PAST_WORLD_ALPHA : 1;
   context.save();
   context.translate(point.x, point.y);
   context.globalAlpha = node.alpha * statusAlpha;
   context.fillStyle = color;
   context.strokeStyle = color;
-  context.lineWidth = PORTFOLIO_NODE_MARK_STROKE;
-  context.lineJoin = "round";
+  context.lineWidth = PORTFOLIO_NODE_MARK_STROKE * PORTFOLIO_GLYPH.artworkScale;
+  context.lineJoin = PORTFOLIO_GLYPH.lineJoin;
+  context.lineCap = PORTFOLIO_GLYPH.lineCap;
 
   for (const primitive of portfolioNodeMarkPrimitives(node.family, size)) {
     if (primitive.kind === "brain") {
       const glyph = tintedBrain(image, color, cache);
       if (glyph) {
+        // The shared SVG has 18px of ink in a 20px surface. Preserve map ink size.
+        const surfaceSize = size * 0.98 * (20 / 18);
         context.drawImage(
           glyph,
-          -size * 0.49,
-          -size * 0.49,
-          size * 0.98,
-          size * 0.98,
+          -surfaceSize / 2,
+          -surfaceSize / 2,
+          surfaceSize,
+          surfaceSize,
         );
       }
       continue;

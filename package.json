@@ -29,7 +29,8 @@
     "copy-deck": "tsx scripts/portfolio-copy-deck.ts",
     "media:studio": "node scripts/media-studio/server.mjs",
     "media:scan": "tsx scripts/media-studio/scan.mjs",
-    "test:media-studio": "node --test scripts/media-studio/*.test.mjs"
+    "test:media-studio": "node --test scripts/media-studio/*.test.mjs",
+    "glyphs:generate": "tsx scripts/generate-portfolio-glyph-textures.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",
@@ -71,6 +72,7 @@
     "jsdom": "^29.1.1",
     "knip": "^6.34.0",
     "react-server-dom-webpack": "19.2.8",
+    "svg-path-bbox": "2.1.0",
     "tsx": "4.23.12",
     "typescript": "5.9.3",
     "typescript-eslint": "8.59.3",

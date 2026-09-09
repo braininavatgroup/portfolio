@@ -36,10 +36,7 @@ import {
   type PortfolioChatMessage,
 } from "../lib/portfolio-chat-conversation";
 import type { PortfolioGroundingEvidence } from "../lib/portfolio-grounding";
-import {
-  portfolioControlMarkPrimitives,
-  type PortfolioControlMarkKind,
-} from "../lib/portfolio-control-mark";
+
 import {
   parseGuideAnswerSegments,
   type GuideEvidenceTarget,
@@ -60,7 +57,7 @@ import {
   type PortfolioWorldRegister,
 } from "../lib/portfolio-world";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
-import { PortfolioNodeMark } from "./PortfolioNodeMark";
+import { PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "./PortfolioNodeMark";
 
 import { actionAcknowledgement, actionUnavailableReason, directAvatarRequest, type GuideActionAvailability } from "../lib/portfolio-chat-actions";
 
@@ -116,25 +113,6 @@ function subscribeConnectivity(onChange: () => void) {
 const getOfflineSnapshot = () => !navigator.onLine;
 const getOfflineServerSnapshot = () => false;
 
-function GuideControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
-  return (
-    <span aria-hidden="true" className="portfolio-control-glyph" data-control={kind}>
-      <svg focusable="false" viewBox="-9 -9 18 18">
-        {portfolioControlMarkPrimitives(kind).map((primitive, index) => {
-          if (primitive.kind !== "path") return null;
-          return (
-            <path
-              d={primitive.d}
-              fill={primitive.fill ? "currentColor" : "none"}
-              key={index}
-              stroke={primitive.fill ? "none" : undefined}
-            />
-          );
-        })}
-      </svg>
-    </span>
-  );
-}
 
 function messageText(message: {
   content: readonly { type: string; text?: string }[];
@@ -231,7 +209,7 @@ function GuideAssistantMessage() {
         onClick={() => void navigator.clipboard?.writeText(answer.replace(/\[(?!E[1-9]\d*\])([^\]\n]+)\]\[E[1-9]\d*\]/g, "$1").replace(/\s*\[E[1-9]\d*\]/g, ""))}
         type="button"
       >
-        <GuideControlGlyph kind="copy" />
+        <PortfolioControlGlyph kind="copy" size="compact" />
       </button>
     </MessagePrimitive.Root>
   );
@@ -787,9 +765,13 @@ export function PortfolioChat({
             ref={setAvatarElement}
           />
           {onToggleAvatar ? (
-            <button className="portfolio-guide-avatar-toggle" onClick={onToggleAvatar} type="button">
-              {actionAvailability.status === "hidden" ? "Show avatar" : "Hide avatar"}
-            </button>
+            <PortfolioControlMark
+              aria-label={actionAvailability.status === "hidden" ? "Show avatar" : "Hide avatar"}
+              aria-pressed={!(actionAvailability.status === "hidden")}
+              className="portfolio-guide-avatar-toggle"
+              kind={actionAvailability.status === "hidden" ? "avatarHidden" : "avatarShown"}
+              onClick={onToggleAvatar}
+            />
           ) : null}
           <ThreadPrimitive.Root
             className="portfolio-chat-thread"
@@ -847,7 +829,7 @@ export function PortfolioChat({
               </div></GuideFollowUps>
               </div>
               {scrollControls ? createPortal(
-                <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><GuideControlGlyph kind="chevron" /></ThreadPrimitive.ScrollToBottom>,
+                <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><PortfolioControlGlyph kind="chevron" size="inline" /></ThreadPrimitive.ScrollToBottom>,
                 scrollControls,
               ) : null}
             </GuideViewport>
@@ -892,7 +874,7 @@ export function PortfolioChat({
               className="portfolio-guide-send"
               disabled={pending || !submissionEligible}
             >
-              <GuideControlGlyph kind="send" />
+              <PortfolioControlGlyph kind="send" size="inline" />
             </ComposerPrimitive.Send>
           </ComposerPrimitive.Root>
           </section>

@@ -8,7 +8,8 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { PortfolioAnalyticsPreference } from "../../components/PortfolioAnalytics";
 import { PortfolioChat } from "../../components/PortfolioChat";
-import { PortfolioContactMark, PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PortfolioContactMark, PortfolioControlGlyph, PortfolioControlMark, PortfolioNodeMark } from "../../components/PortfolioNodeMark";
+import { PORTFOLIO_GLYPH_SIZES } from "../../lib/portfolio-glyph-metrics";
 import { portfolioControlMarkKinds } from "../../lib/portfolio-control-mark";
 import { portfolioContactMarkKinds } from "../../lib/portfolio-contact-mark";
 import { PortfolioReader } from "../../components/PortfolioReader";
@@ -76,6 +77,14 @@ function NodeMarkGrid() {
           <div className="design-mark-cell" key={kind}>
             <PortfolioControlMark aria-label={kind} kind={kind} label={kind} />
             <small>control</small>
+          </div>
+        ))}
+      </div>
+      <div className="design-mark-grid" aria-label="Control size specimens">
+        {Object.keys(PORTFOLIO_GLYPH_SIZES).map(size => (
+          <div className="design-mark-cell" key={size}>
+            <PortfolioControlGlyph kind="copy" size={size as keyof typeof PORTFOLIO_GLYPH_SIZES} />
+            <small>{size} · {PORTFOLIO_GLYPH_SIZES[size as keyof typeof PORTFOLIO_GLYPH_SIZES]}px</small>
           </div>
         ))}
       </div>
@@ -295,7 +304,7 @@ export function CompositionSections() {
     <>
       <Section
         id="marks"
-        note="One optical envelope and one stroke weight across every family. The register supplies the colour."
+        note="Approved A artwork, shared context sizes, and explicit control / node strokes. The register supplies the colour."
         source="components/PortfolioNodeMark.tsx"
         title="Node marks"
       >

@@ -31,27 +31,22 @@ export function portfolioOverviewPositions(
     const y = top + (node.position.y - Math.min(...ys)) / Math.max(1, Math.max(...ys) - Math.min(...ys)) * (bottom - top);
     return [node.id, worldPointAtDepth({ x, y }, 1300, camera.position, camera.target, camera.fov, width, height)];
   }));
-  // Narrow and tall slots need a field around the tree, not a stretched arc.
-  // Reuse the selected map's seeded candidate seats before relaxation.
-  if (width < 600 || height > width) {
-    const candidates = fieldCandidates({ left, right, top, bottom }, nodes.length, compositionRng("overview"));
-    const seated: { x: number; y: number }[] = [];
-    const tall = height > width && width >= 600;
-    const priority = (id: string) => id === "bradley" ? 2 : tall && id.startsWith("thread-") ? 1 : 0;
-    for (const node of [...nodes].sort((a, b) => priority(b.id) - priority(a.id))) {
-      const authored = projectWorldPoint(positions.get(node.id)!, camera.position, camera.target, camera.fov, width, height)!;
-      const score = (point: { x: number; y: number }) => {
-        const separation = seated.length ? Math.min(...seated.map(other => Math.hypot((point.x - other.x) / 1.3, point.y - other.y))) : 0;
-        return separation - Math.hypot(point.x - authored.x, point.y - authored.y) * 0.08;
-      };
-      const seat = node.id === "bradley"
-        ? { ...authored, y: tall ? height * node.position.y / 100 : authored.y }
-        : tall && node.id.startsWith("thread-")
-          ? authored
-          : candidates.reduce((best, point) => score(point) > score(best) ? point : best);
-      seated.push(seat);
-      positions.set(node.id, worldPointAtDepth(seat, 1300, camera.position, camera.target, camera.fov, width, height));
-    }
+  // Use the same seeded field at every aspect ratio. Wider slots must not
+  // switch back to a fixed authored arc. Separation keeps the loose pose readable.
+  const candidates = fieldCandidates({ left, right, top, bottom }, nodes.length, compositionRng("overview"));
+  const seated: { x: number; y: number }[] = [];
+  const priority = (id: string) => id === "bradley" ? 1 : 0;
+  for (const node of [...nodes].sort((a, b) => priority(b.id) - priority(a.id))) {
+    const authored = projectWorldPoint(positions.get(node.id)!, camera.position, camera.target, camera.fov, width, height)!;
+    const score = (point: { x: number; y: number }) => {
+      const separation = seated.length ? Math.min(...seated.map(other => Math.hypot((point.x - other.x) / 1.3, point.y - other.y))) : 0;
+      return separation - Math.hypot(point.x - authored.x, point.y - authored.y) * 0.08;
+    };
+    const seat = node.id === "bradley"
+      ? authored
+      : candidates.reduce((best, point) => score(point) > score(best) ? point : best);
+    seated.push(seat);
+    positions.set(node.id, worldPointAtDepth(seat, 1300, camera.position, camera.target, camera.fov, width, height));
   }
   relaxWorldOverlaps({
     positions,

@@ -1,7 +1,6 @@
 # PortfolioChat
 
-Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) ·
-Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
+Source: [`components/PortfolioChat.tsx`](../../components/PortfolioChat.tsx) · Gallery: `/design#chat` · Tests: `components/PortfolioChat.test.tsx`
 
 The Reading Room's always-mounted Guide adapts `AskPortfolio` to an `@assistant-ui/react` local runtime, preserving grounding, validation, limits, and the `[phrase][E#]` inline-link format and legacy `[E#]` attribution metadata.
 
@@ -9,11 +8,7 @@ Validated text appears as it arrives; `onNavigateEvidence` routes inline citatio
 
 ## Props
 
-No prop is required in production. `askPortfolio` and `openSession` are test/gallery seams.
-`avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the
-narrow avatar runtime and layout callbacks. The avatar integration accepts only
-turn start, first rendered text, and the closed avatar/game effect contract.
-Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
+No prop is required in production. `askPortfolio` and `openSession` are test/gallery seams. `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the narrow avatar runtime and layout callbacks. The avatar integration accepts only turn start, first rendered text, and the closed avatar/game effect contract. Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
 
 Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged. All prompts use the shared node mark, matching their evidence when available and falling back to Bradley's identity glyph. Labels use muted reader ink.
 
@@ -25,8 +20,7 @@ The Reading Room uses three coordination props:
 
 ## Requires
 
-Use a `.portfolio-composition` ancestor and a slot with a definite height. The
-Guide fills the slot and adds no positioning or shadow.
+Use a `.portfolio-composition` ancestor and a slot with a definite height. The Guide fills the slot and adds no positioning or shadow.
 
 ## Example
 
@@ -60,5 +54,6 @@ export function PortfolioChatExample() {
 - Twenty seconds without new text aborts the reply, clears partial text, and offers one retry.
 - Avatar callback failures stay isolated from the text response.
 - The first server and client render both assume online. Actual `navigator.onLine` state is synchronized after mount to keep hydration stable.
-- `useLocalRuntime` owns thread detach and request cancellation on unmount; the
-  Guide only clears its local timer and request reference in component cleanup.
+- `useLocalRuntime` owns thread detach and request cancellation on unmount; the Guide only clears its local timer and request reference in component cleanup.
+
+Guide actions use `PortfolioControlGlyph` directly: compact copy (16px), inline latest/send (18px). Suggestions use the evidence-linked node marks from main. There is no Guide-specific SVG renderer. The latest-reply wrapper rotates the shared chevron downward.

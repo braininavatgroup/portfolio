@@ -344,14 +344,16 @@ from there; nothing draws Bradley-to-Story lines directly. In the fully connecte
 
 **Rule 6.4 — Factual marks share one envelope.** Register marks are authored against
 `PORTFOLIO_NODE_MARK_SIZE = 15` in `lib/portfolio-node-mark.ts`, which yields
-an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor`, miter
+an 18-unit viewBox rendered in an 18px box, with `stroke: currentColor`, round
 joins, and `stroke-width: 1.45`, colored only by `--world-<register>` via `data-register`.
 Author new geometry against 15, not 18, or it draws 20% oversized. Bradley's
 symbol (`.portfolio-node-brain`) is an 18px mask of `/biv-brain-symbol.svg`
 filled with `currentColor`. `PortfolioWorld` loads the same SVG and paints it at
 21px for the canvas root node. Map and Guide marks clip the SVG brain pattern
-inside their supplied hexagon and bubble outlines. The Guide outline alone uses
-a 1.15 stroke. Contact and control marks join the shared envelope.
+inside their supplied hexagon and bubble outlines. Controls preserve the approved A geometry on a 20px surface with a 1.25px
+non-scaling stroke. Node/contact marks use 1.45px. Shared constants in
+`lib/portfolio-glyph-metrics.ts` govern rendering; geometry checks validate
+authored paths without fitting or repositioning them at runtime.
 
 **Rule 6.5 — Controls are node marks.** Use `PortfolioControlMark` for Reading
 Room chrome and actions. Bar controls may use a 32px square hit area with a 6px
@@ -366,8 +368,8 @@ surface. Temporary overlays remain reserved for bounded product needs.
 **Rule 6.7 — Layout resets on load.** Every fresh load starts with Reader in
 main, Map upper right, Guide lower right, and Contents on the left, at default
 sizes with panels open. Resizing, swapping, and collapsing last only for the
-mounted visit; browser storage never restores a layout. Reset layout restores
-these defaults without changing Reader content or the Guide conversation.
+mounted visit; browser storage never restores a layout. There is no manual
+layout-reset control in the interface.
 Panels remain user-resizable within their specified minimums. Reader content is a centred column of at most
 680px inside its slot, with a 632px content maximum and 24px gutters; a slot
 narrower than 680px reflows it rather than clipping it.
@@ -501,8 +503,8 @@ spacing token.
 ## 9. Mobile review pass
 
 - Reader inline navigation uses real anchors with controlled primary-click navigation. This lets links wrap with surrounding punctuation and preserves modified-click behavior.
-- The default map spreads the authored spatial graph across its measured canvas. Its upper tree connects Bradley to Themes, and factual and membership relationships remain visible throughout the overview. All overview records have labels beneath their marks, bounded to two lines. Straight connectors leave two pixels around each intervening label line and fade over seven pixels at clipped ends. Full names remain on their accessible buttons.
+- The default map uses a loose seeded field across its measured canvas at every aspect ratio. Overview connections are thinner and quieter than selected-map connections. Its upper tree connects Bradley to Themes, and factual and membership relationships remain visible throughout the overview. All overview records have labels beneath their marks, bounded to two lines. Straight connectors leave two pixels around each intervening label line and fade over seven pixels at clipped ends. Full names remain on their accessible buttons.
 - The mobile map toolbar occupies a real row. The canvas measures the remaining area, including during selection and resizing. Read has no arrow; Hide/Show avatar shares the row.
-- Reader, Map, and Guide use the brain asset at its native pattern scale in an 18px control envelope. Inactive tabs use muted ink without separately fading the pattern.
+- Reader and identity nodes use the approved centered 1.65× brain crop inside the family’s circular outline. Map and Guide use the approved patterned silhouettes with independently rotated and offset crops at 1.65 scale in an 18px control envelope. The avatar uses the approved connected-bust silhouette; hidden state is a solid silhouette in muted ink. Inactive tabs use muted ink without separately fading the pattern. All glyph artwork renders at the shared 0.9 scale, including map nodes, contacts, and Guide controls; layout envelopes and click targets retain their authored sizes.
 - Guide follows growing answers only while at the bottom. Scrolling up preserves position. The downward chevron occupies a separate 32px row while scrolled away from the bottom. The unused row collapses so suggestions sit directly above the composer without a reserved gap.
 - Guide links use the model's natural phrase, validated against that sentence's evidence. Standalone attribution markers remain in the wire history but add no source-title text to the rendered answer.

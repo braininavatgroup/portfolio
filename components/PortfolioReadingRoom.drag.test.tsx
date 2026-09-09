@@ -269,27 +269,7 @@ it("ignores old browser layouts and discards adjustments on a fresh mount", () =
 
 });
 
-it("resets swapped and collapsed panels without remounting their contents", () => {
-  const props = {...roomProps(new MemoryStorage()), storage: undefined, guide: <StatefulGuideProbe />, map: <StatefulMapProbe />};
-  const {container} = render(<PortfolioReadingRoom {...props} />);
-  const guide = screen.getByTestId("stateful-guide");
-  const map = screen.getByTestId("stateful-map");
-  fireEvent.click(guide);
-  fireEvent.click(map);
-  swap("main", "bottom");
-  fireEvent.click(screen.getByRole("button", {name: "Hide Contents"}));
-  fireEvent.click(screen.getByRole("button", {name: "Hide side panes"}));
-  fireEvent.click(screen.getByRole("button", {name: "Reset layout"}));
-  expect(slot(container, "main").dataset.view).toBe("reader");
-  expect(slot(container, "top").dataset.view).toBe("map");
-  expect(slot(container, "bottom").dataset.view).toBe("guide");
-  expect(slot(container, "bottom").dataset.collapsed).toBe("false");
-  expect(container.querySelector(".portfolio-reading-room-main-mast")).toBeNull();
-  expect(container.querySelector('#right')?.getAttribute("data-collapsed")).toBe("false");
-  expect(screen.getByTestId("stateful-guide")).toBe(guide);
-  expect(guide.textContent).toBe("Guide turns: 2");
-  expect(screen.getByTestId("stateful-map")).toBe(map);
-  expect(map.textContent).toBe("Map visits: 2");
-  expect(props.onHome).not.toHaveBeenCalled();
-  expect(props.onGuideReset).not.toHaveBeenCalled();
+it("does not expose a manual layout reset", () => {
+  render(<PortfolioReadingRoom {...roomProps(new MemoryStorage())} />);
+  expect(screen.queryByRole("button", { name: "Reset layout" })).toBeNull();
 });

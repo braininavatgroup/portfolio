@@ -1,3 +1,4 @@
+import { PORTFOLIO_GLYPH } from "./portfolio-glyph-metrics";
 import type { PortfolioWorldFamily } from "./portfolio-world";
 
 export const PORTFOLIO_NODE_MARK_SIZE = 15;
@@ -55,7 +56,7 @@ export function portfolioNodeMarkVertices(
  * at this circle, never inside it, so a line cannot bleed through the open
  * arms of an asterisk or the gaps in a triangle.
  */
-export const PORTFOLIO_NODE_MARK_STROKE = 1.45;
+export const PORTFOLIO_NODE_MARK_STROKE = PORTFOLIO_GLYPH.node.stroke;
 
 export function portfolioNodeMarkRadius(
   family: PortfolioWorldFamily,

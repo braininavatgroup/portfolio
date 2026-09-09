@@ -70,3 +70,14 @@ it("keeps overview webs straight and two pixels clear of intervening label lines
   ]);
   expect(overviewConnectorSegments({ x: 45, y: 35 }, { x: 60, y: 45 }, [label])).toEqual([]);
 });
+
+it("gives wide overview fields a seeded pose instead of a fixed authored arrangement", () => {
+  setWorldSeed(1);
+  const a = portfolioOverviewPositions(portfolioWorldNodes, {width:1000,height:600});
+  setWorldSeed(7);
+  const b = portfolioOverviewPositions(portfolioWorldNodes, {width:1000,height:600});
+  const moved = portfolioWorldNodes.filter(n=>n.id!=="bradley" && Math.hypot(a.positions.get(n.id)!.x-b.positions.get(n.id)!.x,a.positions.get(n.id)!.y-b.positions.get(n.id)!.y)>5);
+  expect(moved.length).toBeGreaterThan(6);
+  setWorldSeed(1);
+  expect(portfolioOverviewPositions(portfolioWorldNodes,{width:1000,height:600}).positions).toEqual(a.positions);
+});

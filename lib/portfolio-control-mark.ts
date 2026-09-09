@@ -1,12 +1,11 @@
 import type { PortfolioNodeMarkPrimitive } from "./portfolio-node-mark";
 
-/**
- * The control glyphs: one primitive each, authored in the node-mark envelope
- * (the −9…9 viewBox that `PORTFOLIO_NODE_MARK_SIZE = 15` yields) so a control
- * reads at the same optical size and stroke as a register mark. The component
- * fills the `map` and `chat` outlines with the brain pattern.
- */
+/** Approved A artwork, authored in a centered 20-unit canvas.
+ * Coordinates include the accepted sizing and optical placement. Rendering
+ * never fits or recenters a path. Bounds checks live in the test suite. */
 export type PortfolioControlMarkKind =
+  | "avatarShown"
+  | "avatarHidden"
   | "map"
   | "index"
   | "chat"
@@ -26,6 +25,8 @@ export type PortfolioControlMarkKind =
   | "readArrow";
 
 export const portfolioControlMarkKinds: readonly PortfolioControlMarkKind[] = [
+  "avatarShown",
+  "avatarHidden",
   "map",
   "index",
   "chat",
@@ -47,63 +48,62 @@ export const portfolioControlMarkKinds: readonly PortfolioControlMarkKind[] = [
 
 const stroke = (d: string): PortfolioNodeMarkPrimitive => ({ kind: "path", d, fill: false });
 
+// One 18px painted square frame for all panel controls. A’s 1.25px stroke
+// and corner radius are retained; the old short rectangle broke row alignment.
+const panelFrame = "M-7.178571-8.375H7.178571A1.196429 1.196429 0 0 1 8.375-7.178571V7.178571A1.196429 1.196429 0 0 1 7.178571 8.375H-7.178571A1.196429 1.196429 0 0 1-8.375 7.178571V-7.178571A1.196429 1.196429 0 0 1-7.178571-8.375Z";
+
 export function portfolioControlMarkPrimitives(
   kind: PortfolioControlMarkKind,
 ): readonly PortfolioNodeMarkPrimitive[] {
   switch (kind) {
+    // Approved connected bust: one closed silhouette, centered in 18px of ink.
+    case "avatarShown":
+    case "avatarHidden":
+      return [stroke("M0-8.375C2.1-8.375 3.3-6.8 3.3-4.6C3.3-2.6 2.3-1.2 1.6-.7V1C2.8 2 7.5 2.8 7.5 6.4V8.375H-7.5V6.4C-7.5 2.8-2.8 2-1.6 1V-.7C-2.3-1.2-3.3-2.6-3.3-4.6C-3.3-6.8-2.1-8.375 0-8.375Z")];
     case "map":
-      return [stroke("M6.93 4L0 8L-6.93 4L-6.93 -4L0 -8L6.93 -4Z")];
+      return [stroke("M-1.131757-8.035473Q0-8.714527 1.131757-8.035473L6.451014-4.97973Q7.58277-4.300676 7.58277-3.055743V3.055743Q7.58277 4.300676 6.451014 4.97973L1.131757 8.035473Q0 8.714527-1.131757 8.035473L-6.451014 4.97973Q-7.58277 4.300676-7.58277 3.055743V-3.055743Q-7.58277-4.300676-6.451014-4.97973Z")];
     case "index":
-      return [stroke("M-7 -5H7 M-7 0H7 M-7 5H7")];
+      return [stroke("M-8.375-5.982143H8.375M-8.375 0H8.375M-8.375 5.982143H8.375")];
     case "chat":
       return [
         stroke(
-          "M7.5 -1.6A7.5 5 0 1 0 -6.85 0.43L-7.4 6.6L-3.52 2.81A7.5 5 0 0 0 7.5 -1.6Z",
+          "M0-8.375C5.127551-8.375 8.318027-5.298469 8.318027-0.968537 8.318027 3.361395 4.89966 6.32398 0 6.32398H-2.278912L-6.608844 8.375-5.92517 4.159014C-7.520408 2.791667-8.318027 1.082483-8.318027-0.968537-8.318027-5.298469-5.127551-8.375 0-8.375Z",
         ),
       ];
     case "close":
-      return [stroke("M-5.5 -5.5L5.5 5.5 M-5.5 5.5L5.5 -5.5")];
+      return [stroke("M-8.375-8.375L8.375 8.375M-8.375 8.375L8.375-8.375")];
     case "previous":
-      return [stroke("M3 -6.5L-3.5 0L3 6.5")];
+      return [stroke("M4.1875-8.375L-4.1875 0 4.1875 8.375")];
     case "next":
-      return [stroke("M-3 -6.5L3.5 0L-3 6.5")];
+      return [stroke("M-4.1875-8.375L4.1875 0-4.1875 8.375")];
     case "send":
-      return [stroke("M6 -5V1H-5 M-2 -2L-5 1L-2 4")];
+      return [stroke("M8.375-6.852273V2.284091H-8.375M-3.806818-2.284091L-8.375 2.284091-3.806818 6.852273")];
     case "minimize":
-      return [stroke("M-7 0H7")];
+      return [stroke("M-8.375 0H8.375")];
     case "sidebarLeft":
-      return [
-        stroke(
-          "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M-2.5 -5.5V5.5",
-        ),
-      ];
     case "mobileSidebar":
-      return [
-        stroke(
-          "M-6.5 -6H6.5A1 1 0 0 1 7.5 -5V5A1 1 0 0 1 6.5 6H-6.5A1 1 0 0 1 -7.5 5V-5A1 1 0 0 1 -6.5 -6Z M-2.5 -6V6",
-        ),
-      ];
+      return [stroke(`${panelFrame}M-2.991071-8.375V8.375`)];
     case "sidebarRight":
-      return [
-        stroke(
-          "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M2.5 -5.5V5.5",
-        ),
-      ];
+      return [stroke(`${panelFrame}M2.991071-8.375V8.375`)];
     case "panelBottom":
-      return [
-        stroke(
-          "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M-7 1H7",
-        ),
-      ];
+      return [stroke(`${panelFrame}M-8.375 1.196429H8.375`)];
     case "reader":
-      return [stroke("M-7 -5H7 M-7 0H7 M-7 5H1")];
+      return [stroke("M-8.375-5.982143H8.375M-8.375 0H8.375M-8.375 5.982143H1.196429")];
     case "copy":
-      return [stroke("M-2 -2H6V6H-2Z M2 -2V-6H-6V2H-2")];
+      return [stroke("M-2.791667-2.791667H8.375V8.375H-2.791667ZM2.791667-2.791667V-8.375H-8.375V2.791667H-2.791667")];
     case "newChat":
-      return [stroke("M-6 0H6 M0 -6V6")];
+      return [stroke("M-8.375 0H8.375M0-8.375V8.375")];
     case "chevron":
-      return [stroke("M-3 -6.5L3.5 0L-3 6.5")];
+      return [stroke("M-4.1875-8.375L4.1875 0-4.1875 8.375")];
     case "readArrow":
-      return [stroke("M-5 0H5 M1 -4L5 0L1 4")];
+      return [stroke("M-8.375 0H8.375M1.675-6.7L8.375 0 1.675 6.7")];
   }
 }
+
+/** User-selected texture positioning; silhouette coordinates are authored above. */
+export const portfolioControlCrops = {
+  map: { textureTransform: "translate(-2px, 2px) rotate(65deg) scale(1.65)" },
+  chat: { textureTransform: "translate(1.25px, 2px) rotate(-10deg) scale(1.65)" },
+  avatarShown: { textureTransform: "translate(-0.25px, -2px) rotate(-55deg) scale(1.65)" },
+  avatarHidden: { textureTransform: "translate(-0.25px, -2px) rotate(-55deg) scale(1.65)" },
+} as const;

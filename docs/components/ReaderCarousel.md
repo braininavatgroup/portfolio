@@ -47,7 +47,7 @@ export function ReaderCarouselExample() {
 
 - Reduced motion keeps the strip still. Fine-pointer hover and keyboard focus pause scrolling; leaving resumes it.
 - Touch focuses the image button. Tab continues into the card's accessible platform links, each with a tooltip and a new-tab target.
-- Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
+- Images use precompressed local WebP files with explicit 128px dimensions, lazy loading, and asynchronous decoding; the native image element deliberately avoids runtime transformation. Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
 - `.reader-visual-block img` stretches images; the carousel overrides that to 128px square. Keep this override when changing shared media styles.
 - Every asset needs corresponding alt text in the content document; content/structure parity tests guard their alignment.
 - Cards show Instagram and Spotify when present. Beatport appears only when Spotify is absent, regardless of client type. There is no Artist/Label row.
@@ -58,4 +58,4 @@ BiV (`music-practice`) and INFAMOUS (`infamous`) use the same `readyCarousel` he
 
 BiV's 45 clients come from https://braininavat.dance/, checked 8 September 2026. Port London's Instagram source was `n`; keep only Spotify. INFAMOUS has Bradley's trimmed 20-client list and images in `public/visuals/clients/infamous/`; provenance is in [`docs/content/infamous-client-assets.json`](../content/infamous-client-assets.json). Names live in the content document; URLs in `lib/portfolio-structure.ts`.
 
-Sita Abellán links to SITA; Totally Enormous Extinct Dinosaurs to TEED; KH / Four Tet uses Four Tet's profiles. Instagram uses the source site's outline glyph. Spotify and Beatport use Simple Icons in currentColor at 18px inside 24px targets.
+Sita Abellán links to SITA; Totally Enormous Extinct Dinosaurs to TEED; KH / Four Tet uses Four Tet's profiles. Social marks use `PortfolioContactMark`: Instagram shares Contact’s outline; Spotify and Beatport retain their original brand paths. The shared 18px mark renderer sits inside 24px targets.

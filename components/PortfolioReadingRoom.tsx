@@ -284,6 +284,8 @@ function DesktopSlot({
   collapsed,
   ...barProps
 }: {
+  avatarHidden: boolean;
+  onToggleAvatar?: () => void;
   activeDragView: ReadingRoomView | null;
   /** The body only ever holds one view host, and the shell reparents hosts
    *  between bodies; a React sibling inside the body would break that. */
@@ -318,13 +320,21 @@ function DesktopSlot({
           onShowContents={barProps.onShowContents}
         />
       ) : null}
-      {(barProps.view === "guide" && barProps.guideHasThread) || barProps.slot === "bottom" ? (
+      {(barProps.view === "guide" && (barProps.guideHasThread || barProps.onToggleAvatar)) || barProps.slot === "bottom" ? (
         <span className="portfolio-reading-room-view-controls">
           {barProps.view === "guide" && barProps.guideHasThread ? (
             <PortfolioControlMark
               aria-label="Start a new Guide conversation"
               kind="newChat"
               onClick={barProps.onGuideReset}
+            />
+          ) : null}
+          {barProps.view === "guide" && !collapsed && barProps.onToggleAvatar ? (
+            <PortfolioControlMark
+              aria-label={barProps.avatarHidden ? "Show avatar" : "Hide avatar"}
+              aria-pressed={!barProps.avatarHidden}
+              kind={barProps.avatarHidden ? "avatarHidden" : "avatarShown"}
+              onClick={barProps.onToggleAvatar}
             />
           ) : null}
           {barProps.slot === "bottom" ? (
@@ -498,21 +508,6 @@ export function PortfolioReadingRoom({
     });
   }, [gameMode, layoutStorage]);
 
-  const resetLayout = useCallback(() => {
-    if (gameMode) return;
-    updateLayout(() => parseReadingRoomLayout(null));
-    setContentsCollapsed(false);
-    setRightCollapsed(false);
-    setMobileTab("reader");
-    const width = document.getElementById("reading-room-outer")?.clientWidth || viewportWidth;
-    const contents = 320 / Math.max(1, width - 1) * 100;
-    outerGroupRef.current?.setLayout({contents, workspace: 100 - contents});
-    const main = DEFAULT_READING_ROOM_LAYOUT.split * 100;
-    primaryGroupRef.current?.setLayout({main, right: 100 - main});
-    rightGroupRef.current?.setLayout({top: 40, bottom: 60});
-    notifyLayout();
-  }, [gameMode, notifyLayout, outerGroupRef, primaryGroupRef, rightGroupRef, updateLayout, viewportWidth]);
-
   const setViewHidden = useCallback((view: ReadingRoomView, hidden: boolean) => {
     updateLayout((current) => setReadingRoomViewHidden(current, view, hidden));
   }, [updateLayout]);
@@ -668,6 +663,8 @@ export function PortfolioReadingRoom({
   ), [guide, mapInMain, reader, renderMap, viewHosts]);
 
   const barProps = useCallback((slot: ReadingRoomSlot) => ({
+    avatarHidden,
+    onToggleAvatar,
     contentsCollapsed,
     guideHasThread,
     lowerCollapsed,
@@ -677,7 +674,7 @@ export function PortfolioReadingRoom({
     onToggleLower: toggleLower,
     slot,
     view: layout.slots[slot],
-  }), [contentsCollapsed, guideHasThread, layout.slots, lowerCollapsed, onGuideReset, onHome, showContents, toggleLower]);
+  }), [avatarHidden, onToggleAvatar, contentsCollapsed, guideHasThread, layout.slots, lowerCollapsed, onGuideReset, onHome, showContents, toggleLower]);
 
   const onDragStart = useCallback((event: DragStartEvent) => {
     const sourceSlot = slotFromEntityId(event.operation.source?.id);
@@ -749,9 +746,13 @@ export function PortfolioReadingRoom({
                   </button>
                 ) : null}
                 {onToggleAvatar ? (
-                  <button className="portfolio-reading-room-avatar-toggle" onClick={onToggleAvatar} type="button">
-                    {avatarHidden ? "Show avatar" : "Hide avatar"}
-                  </button>
+                  <PortfolioControlMark
+              aria-label={avatarHidden ? "Show avatar" : "Hide avatar"}
+              aria-pressed={!(avatarHidden)}
+              className="portfolio-reading-room-avatar-toggle"
+              kind={avatarHidden ? "avatarHidden" : "avatarShown"}
+              onClick={onToggleAvatar}
+            />
                 ) : null}
                 </div>
               </section>
@@ -798,14 +799,6 @@ export function PortfolioReadingRoom({
         data-right-collapsed={rightCollapsed ? "true" : "false"}
       >
         <span className="portfolio-reading-room-global-controls">
-          <button
-            className="portfolio-reading-room-reset"
-            disabled={gameMode}
-            onClick={resetLayout}
-            type="button"
-          >
-            Reset layout
-          </button>
           <PortfolioControlMark
             aria-label={rightCollapsed ? "Show side panes" : "Hide side panes"}
             kind="sidebarRight"

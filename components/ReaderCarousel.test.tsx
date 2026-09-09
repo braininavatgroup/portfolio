@@ -61,6 +61,8 @@ describe("ReaderCarousel", () => {
     );
     expect([...images].every((image) => image.getAttribute("loading") === "lazy")).toBe(true);
     expect([...images].every((image) => image.getAttribute("draggable") === "false")).toBe(true);
+    expect([...images].every(image => image.width === 128 && image.height === 128)).toBe(true);
+    expect([...images].every(image => image.getAttribute("decoding") === "async")).toBe(true);
     expect(strip.querySelector(".reader-carousel-viewport")).toBeTruthy();
   });
 
@@ -70,7 +72,7 @@ describe("ReaderCarousel", () => {
     const items = container.querySelectorAll(".reader-carousel-item");
     const adriatique = items[0].querySelector(".reader-carousel-card")!;
     expect(adriatique.querySelector("strong")?.textContent).toBe("Adriatique");
-    expect(adriatique.querySelector("span")).toBeNull();
+    expect(adriatique.querySelector(":scope > span")).toBeNull();
     const links = [...adriatique.querySelectorAll("a")];
     expect(links.map((link) => link.getAttribute("aria-label"))).toEqual([
       "Adriatique on Instagram", "Adriatique on Spotify",
