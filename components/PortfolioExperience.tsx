@@ -54,6 +54,9 @@ function useReducedMotion() {
 }
 
 function readWorldLocation() {
+  if (window.location.pathname.startsWith("/index/")) {
+    return { threadId: null, nodeId: decodeURIComponent(window.location.pathname.split("/")[2] ?? "") };
+  }
   const parts = window.location.hash.slice(1).split("/").filter(Boolean);
   if (parts[0] === "thread") {
     return { threadId: parts[1] ?? null, nodeId: parts[2] ?? null };
@@ -64,16 +67,18 @@ function readWorldLocation() {
 function pushWorldLocation(nodeId: string | null, threadId: string | null) {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "graph");
-  url.hash = threadId
-    ? `thread/${threadId}${nodeId ? `/${nodeId}` : ""}`
-    : nodeId ?? "";
+  const targetId = nodeId ?? (threadId ? portfolioThreadById.get(threadId)?.nodeId : null);
+  url.pathname = targetId ? `/index/${targetId}` : "/";
+  url.hash = "";
   window.history.pushState({ nodeId, threadId }, "", url);
 }
 
-export function PortfolioExperience() {
+export function PortfolioExperience({ initialNodeId = null }: { initialNodeId?: string | null } = {}) {
   const reducedMotion = useReducedMotion();
-  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(initialNodeId);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(
+    initialNodeId ? portfolioWorldNodeById.get(initialNodeId)?.threadId ?? null : null,
+  );
   const [gameNotice, setGameNotice] = useState("");
   const [avatarHidden, setAvatarHidden] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);

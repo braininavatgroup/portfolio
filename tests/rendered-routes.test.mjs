@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
-async function render(pathname) {
+async function render(pathname, userAgent = "LinkedInBot/1.0") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${pathname}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
     new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html" },
+      headers: { accept: "text/html", "user-agent": userAgent },
     }),
     {
       ASSETS: {
@@ -23,31 +23,51 @@ async function render(pathname) {
   );
 }
 
-test("canonical /index/<id> URLs redirect into the map reader", async () => {
-  // The flat /index page is gone; the dossier is the index. The per-record
-  // URLs stay as canonical addresses that land on the map with the record open.
-  const content = JSON.parse(
-    await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
-  );
-  const nodeIds = Object.keys(content.records).filter((id) => !id.startsWith("thread-"));
-  assert.equal(nodeIds.length, 12, "twelve nodes carry canonical URLs");
+function assertCanonical(head, url) {
+  const link = head.match(/<link\b[^>]*\brel="canonical"[^>]*>/)?.[0] ?? "";
+  const href = link.match(/\bhref="([^"]+)"/)?.[1];
+  assert.ok(href, `canonical link must exist for ${url}`);
+  assert.equal(new URL(href).href, new URL(url).href, `canonical link must point to ${url}`);
+}
 
-  const flatIndex = await render("/index");
-  assert.equal(flatIndex.status, 404, "/index is no longer a page");
+async function assertSharingImage(id) {
+  const png = await readFile(new URL(`../dist/client/sharing/${id}.png`, import.meta.url));
+  assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(png.readUInt32BE(16), 1200, `${id} image width`);
+  assert.equal(png.readUInt32BE(20), 630, `${id} image height`);
+}
 
-  for (const nodeId of nodeIds) {
-    const response = await render(`/index/${nodeId}`);
-    assert.ok(
-      [301, 302, 307, 308].includes(response.status),
-      `/index/${nodeId} redirects into the map`,
-    );
-    const location = new URL(
-      response.headers.get("location"),
-      "http://localhost",
-    );
-    assert.equal(location.pathname, "/");
-    assert.equal(location.search, "?view=graph");
-    assert.equal(location.hash, `#${nodeId}`);
+test("all canonical record and theme URLs return their own crawler-readable previews", async () => {
+  const content = JSON.parse(await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
+  for (const [id, record] of Object.entries(content.records)) {
+    const response = await render(`/index/${id}`);
+    assert.equal(response.status, 200, id);
+    assert.equal(response.headers.get("location"), null, "crawlers must not be redirected to generic home metadata");
+    const html = await response.text();
+    const head = html.split("</head>")[0];
+    assert.match(head, /property="og:title"/);
+    assert.match(head, /property="og:description"/);
+    assertCanonical(head, `https://bradleyberkman.com/index/${id}`);
+    assert.ok(head.includes(`/sharing/${id}.png`));
+    assert.match(head, /name="twitter:card" content="summary_large_image"/);
+    assert.ok(html.includes(record.label.replaceAll("&", "&amp;")), `${id} is server rendered`);
+    await assertSharingImage(id);
+  }
+  assert.equal((await render("/index")).status, 404);
+  assert.equal((await render("/index/not-a-project")).status, 404);
+});
+
+test("every supporting HTML page has its own canonical, Open Graph and Twitter preview", async () => {
+  for (const [path, image] of [["/", "home"], ["/privacy", "privacy"], ["/design", "design"], ["/copy-deck", "copy-deck"], ["/demos/touring", "demo-touring"], ["/demos/quarterly-dashboard", "demo-quarterly-dashboard"]]) {
+    const response = await render(path);
+    assert.equal(response.status, 200, path);
+    const head = (await response.text()).split("</head>")[0];
+    assert.match(head, /property="og:title"/);
+    assert.match(head, /property="og:description"/);
+    assertCanonical(head, `https://bradleyberkman.com${path}`);
+    assert.ok(head.includes(`/sharing/${image}.png`));
+    await assertSharingImage(image);
+    assert.match(head, /name="twitter:card" content="summary_large_image"/);
   }
 });
 

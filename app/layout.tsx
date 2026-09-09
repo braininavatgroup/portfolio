@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { CursorInstrument } from "../components/CursorInstrument";
 import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
+import { shareMetadata } from "../lib/portfolio-sharing";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `Bradley Berkman | ${portfolioInterfaceText["index.throughline"].replace(/\.$/, "")}`,
-  description: "The systems, operations, and products Bradley Berkman builds and runs.",
+  ...shareMetadata("home"),
   icons: { icon: "/biv-brain-symbol.png" },
 };
 

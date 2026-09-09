@@ -44,3 +44,6 @@ graphify-out/
 
 # Scratch output from Playwright MCP browser sessions
 .playwright-mcp/
+
+# Generated from the authored page metadata before dev/build
+/public/sharing/

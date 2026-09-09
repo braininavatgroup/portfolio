@@ -139,6 +139,17 @@ afterEach(() => {
 });
 
 describe("PortfolioExperience Reading Room integration", () => {
+  it("opens a canonical project URL without relying on a fragment", async () => {
+    await renderExperience({ url: "/index/dubs" });
+    expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
+    selectContentsRecord("Writ");
+    expect(window.location.pathname).toBe("/index/writ");
+    expect(window.location.hash).toBe("");
+    window.history.pushState({}, "", "/index/dubs");
+    fireEvent.popState(window);
+    await waitFor(() => expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy());
+  });
+
   it("attributes a content open to the UI location that selected it", async () => {
     const node = portfolioWorldNodes.find(
       (candidate) => candidate.id !== "bradley" && candidate.outlineType !== "why",
@@ -327,7 +338,7 @@ describe("PortfolioExperience Reading Room integration", () => {
     await renderExperience();
     selectContentsRecord("Dubs");
 
-    expect(window.location.hash).toBe("#dubs");
+    expect(window.location.pathname).toBe("/index/dubs");
     expect(screen.getByRole("complementary", { name: "Dubs record" })).toBeTruthy();
     expect(document.querySelector(".portfolio-world")).toBeTruthy();
 
@@ -347,7 +358,7 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     fireEvent.click(citation);
 
-    expect(window.location.hash).toBe("#pitching");
+    expect(window.location.pathname).toBe("/index/pitching");
     expect(screen.getByRole("button", { name: "Map tab" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "Read Music Promo Campaign Pitching" })).toBeTruthy();
   });
