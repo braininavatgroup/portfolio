@@ -136,7 +136,7 @@ exception is `.reader-copy-placeholder`, which draws a dotted
 ### Other dimension tokens
 
 `--cursor-size` and `--world-hit-area` (`34px`) live in `:root`. Reading Room
-pane dimensions belong to its persisted panel layout. The Reader centres a
+pane dimensions belong to its visit-scoped panel layout. The Reader centres a
 column of at most 680px with a 632px content maximum and 24px gutters; a
 narrower slot reflows the column to its own width.
 
@@ -363,9 +363,12 @@ opacity alone. Do not draw a control as a typographic glyph.
 and the lower 48 percent of the Map tab on mobile. It is not a floating chat
 surface. Temporary overlays remain reserved for bounded product needs.
 
-**Rule 6.7 — Pane sizes persist.** Contents, main, right, and the two side slots
-are user-resizable within their specified minimums. Persist their layouts under
-the Reading Room namespace. Reader content is a centred column of at most
+**Rule 6.7 — Layout resets on load.** Every fresh load starts with Reader in
+main, Map upper right, Guide lower right, and Contents on the left, at default
+sizes with panels open. Resizing, swapping, and collapsing last only for the
+mounted visit; browser storage never restores a layout. Reset layout restores
+these defaults without changing Reader content or the Guide conversation.
+Panels remain user-resizable within their specified minimums. Reader content is a centred column of at most
 680px inside its slot, with a 632px content maximum and 24px gutters; a slot
 narrower than 680px reflows it rather than clipping it.
 

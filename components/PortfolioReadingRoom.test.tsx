@@ -802,7 +802,7 @@ describe("Reading Room stylesheet", () => {
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-tab\s*\{[^}]*gap:\s*4px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-tabs\s*\{[^}]*justify-content:\s*space-around/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-global-controls\s*\{[^}]*right:\s*17px/);
-    expect(stylesheet).toMatch(/\.portfolio-reading-room-pane\[data-reading-room-slot="top"\] \.portfolio-reading-room-view-controls,\s*\.portfolio-reading-room-desktop\[data-right-collapsed="true"\] \.portfolio-reading-room-pane\[data-reading-room-slot="main"\] \.portfolio-reading-room-view-controls\s*\{[^}]*right:\s*57px/);
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-pane\[data-reading-room-slot="top"\] \.portfolio-reading-room-view-controls,\s*\.portfolio-reading-room-desktop\[data-right-collapsed="true"\] \.portfolio-reading-room-pane\[data-reading-room-slot="main"\] \.portfolio-reading-room-view-controls\s*\{[^}]*right:\s*157px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-guide \.portfolio-guide-send\s*\{[^}]*height:\s*32px/);
     expect(stylesheet).toMatch(/\.portfolio-contents-scroll,\s*\.reader-scroll,\s*\.portfolio-chat-thread\s*\{[^}]*scrollbar-width:\s*none/);
     expect(stylesheet).toMatch(/\.reader-scroll::-webkit-scrollbar[^{]*\{[^}]*display:\s*none/);

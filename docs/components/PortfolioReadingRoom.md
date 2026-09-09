@@ -4,8 +4,12 @@ Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadin
 
 At 1020px and above, Contents sits beside a main view and two stacked side views;
 dragging a 40px bar swaps Reader, Map, or Guide. Below 1020px, Contents, Reader,
-and Map become tabs; Map holds Guide at 52/48. Panel sizes persist through `react-resizable-panels`; slots and collapsed
-slots persist separately through `lib/reading-room-layout.ts`.
+and Map become tabs; Map holds Guide at 52/48. Panel sizes use `react-resizable-panels`; slots and collapsed
+slots use `lib/reading-room-layout.ts`. Both are remembered in memory for the
+mounted visit only. Fresh loads and refreshes always start with Reader in main,
+Map upper right, Guide lower right, default sizes, and open panels. Desktop
+Reset layout restores those defaults without remounting the views or clearing
+the article or conversation. It is disabled during Brain Food.
 
 ## Props
 
@@ -16,7 +20,7 @@ use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
 `onLayoutChange` fires after every resize, collapse, reopen, or swap.
 `viewRequest` reveals a view (reopens its column or slot; switches tab below
 1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
-Escape before Guide reset/Home. `storage` is a test seam.
+Escape before Guide reset/Home. `storage` is an in-memory test seam; never inject browser storage.
 `avatarHidden` and `onToggleAvatar` place Hide/Show beside Read in the mobile toolbar. The canvas occupies the remaining height below that row; Read has no arrow. `gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
 
 ## Requires
@@ -86,9 +90,10 @@ export function PortfolioReadingRoomExample() {
 
 - **The owner keeps navigation state**: URLs, visuals, citations, avatar, Brain Food.
 - **Mobile does not read or write desktop panel layout.** A tab change must not
-  corrupt the three desktop slots or any persisted panel group.
-- **Persistence restores after hydration.** The first client markup uses the
-  server-safe defaults, then applies stored slots and panel sizes after mount.
+  corrupt the three desktop slots or any visit-scoped panel group.
+- **Browser layouts are ignored.** Old localStorage entries are neither read
+  nor written. Server and client start from the same default slots. In-memory
+  panel preferences survive responsive transitions within the mounted visit.
 - **Bars are drag handles, not control containers.** Their marks use the
   non-interactive `PortfolioControlGlyph`; buttons are positioned siblings, and fine pointers show `grab` or `grabbing`.
 - **Dragging adds no ghost and no text.** dnd-kit feedback is `clone` with the
