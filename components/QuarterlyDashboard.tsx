@@ -206,27 +206,35 @@ function FilterBar({
         </select>
       </label>
       {showStages ? (
-        <label className="quarterly-dashboard-filter quarterly-dashboard-filter-stage">
-          <span>Stage</span>
-          <select
-            multiple
-            onChange={(event) =>
-              onChange({
-                ...filters,
-                stages: [...event.target.selectedOptions].map(
-                  (option) => option.value as PitchStage,
-                ),
-              })
-            }
-            value={[...filters.stages]}
+        <div className="quarterly-dashboard-filter quarterly-dashboard-filter-stage">
+          <span id="quarterly-dashboard-stage-label">Stage</span>
+          <div
+            aria-labelledby="quarterly-dashboard-stage-label"
+            className="quarterly-dashboard-chips"
+            role="group"
           >
-            {pitchStages.map((stage) => (
-              <option key={stage} value={stage}>
-                {stage}
-              </option>
-            ))}
-          </select>
-        </label>
+            {pitchStages.map((stage) => {
+              const selected = filters.stages.includes(stage);
+              return (
+                <button
+                  aria-pressed={selected}
+                  key={stage}
+                  onClick={() =>
+                    onChange({
+                      ...filters,
+                      stages: selected
+                        ? filters.stages.filter((value) => value !== stage)
+                        : [...filters.stages, stage],
+                    })
+                  }
+                  type="button"
+                >
+                  {stage}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       ) : null}
       <label className="quarterly-dashboard-filter quarterly-dashboard-filter-competitor">
         <span>Lost to</span>
@@ -376,12 +384,32 @@ function DashboardSummaryView({
   );
 }
 
-function DashboardDetailView({ pitches }: { pitches: readonly Pitch[] }) {
+function Cell({ label, value }: { label: string; value: string }) {
+  return (
+    <td data-empty={value === "—"} data-label={label}>
+      {value}
+    </td>
+  );
+}
+
+function DashboardDetailView({
+  onBack,
+  periodLabel,
+  pitches,
+  stages,
+}: {
+  onBack: () => void;
+  periodLabel: string;
+  pitches: readonly Pitch[];
+  stages: readonly PitchStage[];
+}) {
   const sorted = [...pitches].sort((a, b) =>
     (b.determinationDate ?? b.pitchDate).localeCompare(
       a.determinationDate ?? a.pitchDate,
     ),
   );
+  const summary = summarizePitches(sorted);
+  const scope = stages.length === 0 ? "All stages" : stages.join(", ");
 
   return (
     <section className="quarterly-dashboard-detail">
@@ -389,11 +417,33 @@ function DashboardDetailView({ pitches }: { pitches: readonly Pitch[] }) {
         <div>
           <p>Drill-down</p>
           <h2>Pitch Detail</h2>
+          <p className="quarterly-dashboard-detail-scope">
+            {`${periodLabel} · ${scope} · ${sorted.length} ${sorted.length === 1 ? "pitch" : "pitches"}`}
+          </p>
         </div>
-        <button onClick={() => downloadCsv(sorted)} type="button">
-          Download CSV
-        </button>
+        <div className="quarterly-dashboard-detail-actions">
+          <button onClick={onBack} type="button">
+            ← Summary
+          </button>
+          <button onClick={() => downloadCsv(sorted)} type="button">
+            Download CSV
+          </button>
+        </div>
       </div>
+      <dl className="quarterly-dashboard-detail-stats">
+        <div>
+          <dt>Signed</dt>
+          <dd>{summary.signedExclusives}</dd>
+        </div>
+        <div>
+          <dt>Open</dt>
+          <dd>{summary.openPitches}</dd>
+        </div>
+        <div>
+          <dt>Conversion</dt>
+          <dd>{formatPercent(summary.conversionRate)}</dd>
+        </div>
+      </dl>
       <div className="quarterly-dashboard-table-scroll">
         <table>
           <caption className="sr-only">Pitch detail rows</caption>
@@ -411,17 +461,17 @@ function DashboardDetailView({ pitches }: { pitches: readonly Pitch[] }) {
           <tbody>
             {sorted.map((pitch) => (
               <tr key={pitch.id}>
-                <td>{pitch.property}</td>
-                <td>{formatDate(pitch.pitchDate)}</td>
-                <td>
+                <td data-label="Property">{pitch.property}</td>
+                <td data-label="Pitched">{formatDate(pitch.pitchDate)}</td>
+                <td data-label="Stage">
                   <span className="quarterly-dashboard-stage" data-stage={pitch.stage}>
                     {pitch.stage}
                   </span>
                 </td>
-                <td>{formatDate(pitch.determinationDate)}</td>
-                <td>{formatMoney(pitch.listedPrice)}</td>
-                <td>{formatMoney(pitch.soldPrice)}</td>
-                <td>{pitch.lostTo ?? "—"}</td>
+                <Cell label="Resolved" value={formatDate(pitch.determinationDate)} />
+                <Cell label="Listed" value={formatMoney(pitch.listedPrice)} />
+                <Cell label="Sold" value={formatMoney(pitch.soldPrice)} />
+                <Cell label="Lost to" value={pitch.lostTo ?? "—"} />
               </tr>
             ))}
           </tbody>
@@ -517,7 +567,7 @@ export function QuarterlyDashboard({
         <header className="quarterly-dashboard-header">
           <div>
             <p>Quarterly review</p>
-            <DashboardHeading>Ryan + Ryan Quarterly Pitch Conversion</DashboardHeading>
+            <DashboardHeading>Listing Pitch Conversion</DashboardHeading>
           </div>
           <div className="quarterly-dashboard-actions">
             <button onClick={() => window.print()} type="button">
@@ -543,10 +593,18 @@ export function QuarterlyDashboard({
             trend={trend}
           />
         ) : (
-          <DashboardDetailView pitches={visiblePitches} />
+          <DashboardDetailView
+            onBack={() => setView("summary")}
+            periodLabel={periodLabel}
+            pitches={visiblePitches}
+            stages={filters.stages}
+          />
         )}
 
-        <footer className="quarterly-dashboard-footer">Updated 2 hours ago</footer>
+        <footer className="quarterly-dashboard-footer">
+          Residential brokerage work sample · synthetic data standing in for the team&rsquo;s
+          own sheets
+        </footer>
       </div>
     </DashboardRoot>
   );

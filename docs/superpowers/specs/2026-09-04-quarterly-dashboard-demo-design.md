@@ -2,13 +2,13 @@
 
 ## Goal
 
-Turn the abandoned Ryan + Ryan dashboard spike into a working, portfolio-ready interactive asset at `/demos/quarterly-dashboard`, with a clear path into and back out of the real-estate case study.
+Turn the abandoned brokerage dashboard spike into a working, portfolio-ready interactive asset at `/demos/quarterly-dashboard`, with a clear path into and back out of the real-estate case study.
 
 ## Product boundary
 
 This slice builds the dashboard and connects it to the existing real-estate portfolio record. It does not add screenshots, long-form case-study copy, Looker Studio, Apps Script, Google authentication, or a server-side data connection.
 
-The dashboard keeps the original teal-and-cream direction and the Ryan + Ryan working title. Redaction and final editorial treatment remain outside this slice.
+The dashboard keeps the original teal-and-cream direction. It carries no client name: the title, footer, and generated records describe an unnamed residential brokerage.
 
 ## Data contract
 
