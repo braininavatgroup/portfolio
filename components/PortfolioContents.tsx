@@ -21,9 +21,7 @@ type PortfolioContentsProps = {
 };
 
 function shortRecordLabel(node: PortfolioWorldNode): string {
-  return node.label
-    .replace(/^Brain in a Vat /, "")
-    .replace(/^Music promo campaign /, "Campaign ");
+  return node.label.replace(/^Brain in a Vat /, "");
 }
 
 function ContentsRow({

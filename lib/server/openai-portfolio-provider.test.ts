@@ -277,6 +277,8 @@ describe("OpenAI portfolio provider", () => {
     expect(body.instructions).toContain(
       "editorial workbench notes, not Bradley facts or published proof",
     );
+    expect(body.instructions).toContain('Refer to him as "Bradley" in conversation');
+    expect(body.instructions).toContain("You are an assistant, not Bradley himself");
     expect(requestBody).toContain("Portfolio context:");
   });
 

@@ -78,8 +78,8 @@ describe("PortfolioContents", () => {
     expect(screen.getByRole("button", { name: "Brain in a Vat Systems & AI Consulting" }).textContent).toContain(
       "Systems & AI Consulting",
     );
-    expect(screen.getByRole("button", { name: "Music promo campaign kickoff" }).textContent).toContain(
-      "Campaign kickoff",
+    expect(screen.getByRole("button", { name: "Music Promo Campaign Kickoff" }).textContent).toContain(
+      "Music Promo Campaign Kickoff",
     );
   });
 

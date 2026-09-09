@@ -69,7 +69,7 @@ function guideResponse({
   evidenceTarget?: { id: string; title: string };
 } = {}) {
   const evidenceId = evidenceTarget?.id ?? "pitching";
-  const evidenceTitle = evidenceTarget?.title ?? "Music promo campaign pitching";
+  const evidenceTitle = evidenceTarget?.title ?? "Music Promo Campaign Pitching";
   const encoder = new TextEncoder();
   const lines = [
     { type: "effects", effects: { avatarAction, issues: [] } },
@@ -349,7 +349,7 @@ describe("PortfolioExperience Reading Room integration", () => {
 
     expect(window.location.hash).toBe("#pitching");
     expect(screen.getByRole("button", { name: "Map tab" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: "Read Music promo campaign pitching" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Read Music Promo Campaign Pitching" })).toBeTruthy();
   });
 
   it("gives reader visual and Guide-thread Escape priority before returning the Reader to About", async () => {

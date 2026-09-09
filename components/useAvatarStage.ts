@@ -98,7 +98,10 @@ export function useAvatarStage({
   );
   const [avatarMounted, setAvatarMounted] = useState(false);
 
-  useEffect(() => {
+  // Callback refs have registered the dock before layout effects run. Install
+  // that geometry before showing the figure below, so its first visible frame
+  // never uses the constructor's bottom-right viewport fallback.
+  useLayoutEffect(() => {
     avatarRuntime.setStageReader(readStage);
     avatarRuntime.refreshDock();
   }, [avatarRuntime, readStage]);

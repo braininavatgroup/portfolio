@@ -35,12 +35,12 @@ describe("portfolioLinkPreview", () => {
     });
   });
 
-  it("skips prose, planned visuals, and interactive demos, and takes the first ready still", () => {
+  it("skips prose, planned visuals, and uncaptured demos, and takes the first ready still", () => {
     expect(
       portfolioLinkPreview([
         "A paragraph.",
         visual({ status: "planned", format: "image", src: "/planned.png" }),
-        visual({ format: "interactive", preview: "quarterly-dashboard", href: "/demos/x" }),
+        visual({ format: "interactive", href: "/demos/x" }),
         visual({ format: "video", src: "/v.mp4", captionsSrc: "/v.vtt" }),
         visual({ format: "image", src: "/first.png" }),
         visual({ format: "image", src: "/second.png" }),
@@ -56,7 +56,7 @@ describe("portfolioLinkPreview", () => {
     expect(still("touring")).toBe("/visuals/touring/advance-demo.png");
     expect(still("dubs")).toBe("/visuals/dubs/lock-screen.png");
     expect(still("writ")).toBe("/visuals/writ/output-priority.png");
-    expect(still("real-estate")).toBeUndefined();
+    expect(still("real-estate")).toBe("/visuals/real-estate/quarterly-dashboard.png");
     expect(still("infamous")).toBe("/visuals/clients/infamous/all-day-i-dream.webp");
     expect(portfolioLinkPreview(portfolioThreadById.get("philosophy")!.body)).toBeUndefined();
   });

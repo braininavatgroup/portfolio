@@ -12,24 +12,17 @@ export type GuidePromptSubject = Pick<
 >;
 
 const actionPrompts: readonly GuidePrompt[] = [
-  { text: "Wave hello", tone: "playful" },
-  { text: "Can you dance?", tone: "playful" },
-  { text: "Go for a swim", tone: "playful" },
   { text: "Play Brain Food", tone: "playful" },
 ];
 
 const starterSets = [
   [
     { text: "What kind of work does Bradley do?", evidenceId: "thread:making-work-playable" },
-    { text: "Which project best shows how Bradley thinks?", evidenceId: "node:music-practice" },
-  ],
-  [
-    { text: "Which projects can I try today?", evidenceId: "node:dubs" },
     { text: "What could Bradley help my team with?", evidenceId: "node:systems-consulting" },
   ],
   [
-    { text: "How did music lead Bradley into building software?", evidenceId: "thread:making-work-playable" },
-    { text: "Which project has a measurable result?", evidenceId: "node:infamous" },
+    { text: "Which projects can I try today?", evidenceId: "node:dubs" },
+    { text: "How does Bradley decide what to automate?", evidenceId: "thread:philosophy" },
   ],
 ] as const;
 
@@ -38,22 +31,24 @@ function starterSetIndex(visitSeed: number) {
   return ((integerSeed % starterSets.length) + starterSets.length) % starterSets.length;
 }
 
+function subjectPrompts(subject: GuidePromptSubject): GuidePrompt[] {
+  if (subject.id === "node:bradley" || subject.id === "entity:portfolio:brain") {
+    return starterSets[0].map(prompt => ({ ...prompt, tone: "serious" }));
+  }
+  return [
+    { text: `Tell me about ${subject.title}.`, tone: "serious", evidenceId: subject.id },
+    { text: "How does this connect to Bradley's other work?", tone: "serious", evidenceId: subject.id },
+  ];
+}
+
 export function getGuideInitialPrompts(
   visitSeed: number,
   subject?: GuidePromptSubject,
 ): GuidePrompt[] {
-  const set = starterSets[starterSetIndex(visitSeed)]!;
-  const serious = subject
-    ? [
-        { text: `What problem does ${subject.title} solve?`, evidenceId: subject.id },
-        { text: "How does this connect to Bradley's other work?", evidenceId: subject.id },
-      ]
-    : set.slice(0, 2);
-
-  return [
-    ...serious.map((prompt) => ({ ...prompt, tone: "serious" as const })),
-    ...actionPrompts,
-  ];
+  const serious: GuidePrompt[] = subject
+    ? subjectPrompts(subject)
+    : starterSets[starterSetIndex(visitSeed)]!.map(prompt => ({ ...prompt, tone: "serious" }));
+  return [...serious, ...actionPrompts];
 }
 
 export function getGuideFollowUpPrompts(
@@ -62,15 +57,18 @@ export function getGuideFollowUpPrompts(
 ): GuidePrompt[] {
   const subject = citedEvidence[0];
   const candidates: GuidePrompt[] = [
-    ...(subject ? [
-      { text: `What problem does ${subject.title} solve?`, tone: "serious" as const, evidenceId: subject.id },
-      { text: `What changed because of ${subject.title}?`, tone: "serious" as const, evidenceId: subject.id },
-    ] : []),
+    ...(subject ? subjectPrompts(subject) : []),
     { text: "What kind of work does Bradley do?", tone: "serious" },
     { text: "Which projects can I try today?", tone: "serious" },
     { text: "What could Bradley help my team with?", tone: "serious" },
     { text: "How does Bradley decide what to automate?", tone: "serious" },
   ];
   const asked = new Set(askedQuestions.map(question => question.trim().toLowerCase()));
-  return [...candidates.filter(prompt => !asked.has(prompt.text.toLowerCase())).slice(0, 2), ...actionPrompts];
+  const unasked = candidates.filter(prompt => {
+    const key = prompt.text.toLowerCase();
+    if (asked.has(key)) return false;
+    asked.add(key);
+    return true;
+  });
+  return [...unasked.slice(0, 2), ...actionPrompts];
 }

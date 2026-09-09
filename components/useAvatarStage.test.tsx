@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAvatarStage } from "./useAvatarStage";
@@ -67,6 +67,24 @@ describe("useAvatarStage", () => {
     }, { initialProps: { open: true } });
     rerender({ open: false });
     expect(observations).toEqual([true, false]);
+  });
+
+  it("uses the registered dock on the first visible layout, before passive effects", () => {
+    const observations: { x: number; y: number }[] = [];
+    function FirstVisibleStage() {
+      const { avatarRuntime, registerAvatarDock } = useAvatarStage({ assistantOpen: true, reducedMotion: false });
+      useLayoutEffect(() => {
+        observations.push(avatarRuntime.getSnapshot().position);
+      }, [avatarRuntime]);
+      return <div ref={(element) => {
+        if (element) element.getBoundingClientRect = elementAt(278, 488, 96, 96).getBoundingClientRect;
+        registerAvatarDock(element);
+      }} />;
+    }
+
+    render(<FirstVisibleStage />);
+
+    expect(observations).toEqual([{ x: 326, y: 584 }]);
   });
 
   it("uses the bottom center of the mobile avatar area as the dock", () => {

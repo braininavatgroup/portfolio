@@ -5,7 +5,7 @@ import { projectWorldPoint, worldPointAtDepth } from "./portfolio-world-projecti
 import type { PortfolioWorldNode } from "./portfolio-world";
 
 export const portfolioOverviewNodeLabel = (label: string) => label
-  .replace(/^Brain in a Vat /, "").replace(/^Music promo campaign /, "Campaign ");
+  .replace(/^Brain in a Vat /, "").replace(/^Music promo campaign /i, "Campaign ");
 
 /** Fit the authored spatial graph to its actual slot, then use the same
  * overlap solver as selected compositions. Contents ordering is not geometry. */

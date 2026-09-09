@@ -33,7 +33,7 @@ beforeEach(() => {
 
 const evidence = {
   id: "node:pitching",
-  title: "Music promo campaign pitching",
+  title: "Music Promo Campaign Pitching",
   excerpt: "A weekly curator workflow.",
   href: "/?view=graph#pitching",
 };
@@ -69,7 +69,7 @@ describe("docked portfolio Guide", () => {
       <PortfolioChat askPortfolio={async () => {}} resetSignal={0} />,
     );
     expect(html).toContain('data-offline="false"');
-    expect(html).not.toContain("The Guide is offline");
+    expect(html).not.toContain("Chat is offline");
 
     const host = document.createElement("div");
     host.innerHTML = html;
@@ -100,8 +100,8 @@ describe("docked portfolio Guide", () => {
     expect(screen.queryByRole("button", { name: /minimize portfolio assistant/i })).toBeNull();
 
     const starters = await screen.findAllByRole("button", { name: /^(Where|What|Can|Which|How|Go|Wave|Play)/ });
-    expect(starters).toHaveLength(6);
-    expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(6);
+    expect(starters).toHaveLength(3);
+    expect(starters.filter((starter) => starter.querySelector(".portfolio-node-mark"))).toHaveLength(3);
     expect(starters.some((starter) => starter.querySelector('[data-control="chevron"]'))).toBe(false);
     fireEvent.click(starters[0]!);
     await waitFor(() => expect(document.querySelector('[data-guide-primitive="message"]')).toBeTruthy());
@@ -175,7 +175,7 @@ describe("docked portfolio Guide", () => {
     // Catches uncited evidence taking precedence over the record discussed in the answer.
     const uncitedEvidence = {
       id: "node:reporting",
-      title: "Campaign reporting",
+      title: "Music Promo Campaign Reporting",
       excerpt: "A reporting workflow.",
       href: "/?view=graph#reporting",
     };
@@ -192,7 +192,7 @@ describe("docked portfolio Guide", () => {
     });
 
     const followUp = await screen.findByRole("button", {
-        name: "What problem does Music promo campaign pitching solve?",
+        name: "Tell me about Music Promo Campaign Pitching.",
       });
     expect(followUp.querySelector('.portfolio-node-mark[data-family="component"][data-register="bridge"]')).toBeTruthy();
     for (const suggestion of screen.getAllByTestId("guide-suggestion")) {
@@ -200,7 +200,7 @@ describe("docked portfolio Guide", () => {
       expect(suggestion.querySelector('[data-control="chevron"]')).toBeNull();
     }
     expect(
-      screen.queryByRole("button", { name: "Summarise Campaign reporting" }),
+      screen.queryByRole("button", { name: "Summarise Music Promo Campaign Reporting" }),
     ).toBeNull();
   });
 
@@ -221,13 +221,13 @@ describe("docked portfolio Guide", () => {
     expect(writeText).toHaveBeenCalledWith("The weekly workflow keeps approvals human.");
   });
 
-  it("shows the contractual slow state only after ten seconds without text", async () => {
+  it("changes the thinking message after four seconds without text", async () => {
     // Catches a premature or stale slow indicator.
     vi.useFakeTimers();
     render(<PortfolioChat askPortfolio={() => new Promise(() => {})} resetSignal={0} />);
     // Flush the run start inside act rather than polling with vi.waitFor:
     // under fake timers, waitFor advances the mocked clock on every poll, so
-    // a starved worker could burn the ten seconds before the assertions ran.
+    // a starved worker could burn the four seconds before the assertions ran.
     await act(async () => {
       submit("A slow question");
       // The runtime starts the run on its next tick; let that tick fire
@@ -238,11 +238,175 @@ describe("docked portfolio Guide", () => {
 
     // Advance inside act so the state change the timer makes is committed
     // before each assertion reads the DOM.
-    await act(() => vi.advanceTimersByTimeAsync(9_999));
-    expect(screen.queryByText("Still thinking…")).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(3_999));
+    expect(screen.queryByText("Thinking long and hard…")).toBeNull();
     await act(() => vi.advanceTimersByTimeAsync(1));
-    expect(screen.getByText("Still thinking…")).toBeTruthy();
+    expect(screen.getByText("Thinking long and hard…")).toBeTruthy();
     expect(document.querySelector(".portfolio-guide-twirl")).toBeTruthy();
+  });
+
+  it("removes thinking status as soon as text arrives, even while the stream remains open", async () => {
+    vi.useFakeTimers();
+    let receive: Parameters<AskPortfolio>[1]["onEvent"] | undefined;
+    render(<PortfolioChat askPortfolio={(_question, { onEvent }) => {
+      receive = onEvent;
+      return new Promise(() => {});
+    }} openSession={async () => true} />);
+    await act(async () => {
+      submit("Start an answer");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    expect(screen.getByText("Thinking long and hard…")).toBeTruthy();
+    await act(async () => {
+      receive?.({ type: "answer_delta", delta: "Here is the beginning." });
+    });
+    expect(screen.getByText("Here is the beginning.")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("offers one retry when a completed stream contains no visible answer", async () => {
+    render(<PortfolioChat askPortfolio={async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "   " });
+      onEvent({ type: "done" });
+    }} openSession={async () => true} />);
+    submit("Where is the answer?");
+    expect(await screen.findByText("Could not finish that reply.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  });
+
+  it("waits for meaningful scrollback before showing latest, with room to return without flicker", async () => {
+    render(<PortfolioChat askPortfolio={async (_question, { onEvent }) => {
+      onEvent({ type: "answer_delta", delta: "A sufficiently long answer." });
+      onEvent({ type: "done" });
+    }} openSession={async () => true} />);
+    submit("A question");
+    await screen.findByText("A sufficiently long answer.");
+    const viewport = document.querySelector<HTMLElement>(".portfolio-chat-viewport")!;
+    Object.defineProperties(viewport, {
+      scrollHeight: { configurable: true, value: 1_000 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    const scrollTo = (top: number) => {
+      viewport.scrollTop = top;
+      fireEvent.scroll(viewport);
+    };
+    scrollTo(700);
+    scrollTo(680);
+    expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
+    scrollTo(604);
+    expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
+    scrollTo(603);
+    expect(screen.getByRole("button", { name: "Jump to latest reply" })).toBeTruthy();
+    scrollTo(640);
+    expect(screen.getByRole("button", { name: "Jump to latest reply" })).toBeTruthy();
+    scrollTo(652);
+    expect(screen.queryByRole("button", { name: "Jump to latest reply" })).toBeNull();
+  });
+
+  it("keeps the first reply visible after submitting a tall first question", async () => {
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches(".chat-question") ? 480 : 0;
+    });
+    render(<PortfolioChat askPortfolio={() => new Promise(() => {})} openSession={async () => true} />);
+    submit("A very long first question");
+    await waitFor(() => expect(HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({ top: 384, behavior: "instant" }));
+  });
+
+  it("does not realign a tall opening question after the reader starts scrolling", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches(".chat-question") ? 480 : 0;
+    });
+    let receive: Parameters<AskPortfolio>[1]["onEvent"] | undefined;
+    render(<PortfolioChat askPortfolio={(_question, { onEvent }) => {
+      receive = onEvent;
+      return new Promise(() => {});
+    }} openSession={async () => true} />);
+    await act(async () => {
+      submit("A long opening question");
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    const viewport = document.querySelector<HTMLElement>(".portfolio-chat-viewport")!;
+    fireEvent.wheel(viewport, { deltaY: -80 });
+    vi.mocked(viewport.scrollTo).mockClear();
+    await act(async () => {
+      receive?.({ type: "answer_delta", delta: "The reply arrives after scrolling." });
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    expect(viewport.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("releases opening alignment when a new question follows a failed first reply", async () => {
+    const observers: { elements: Set<Element> }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      elements = new Set<Element>();
+      constructor() { observers.push(this); }
+      observe(element: Element) { this.elements.add(element); }
+      unobserve(element: Element) { this.elements.delete(element); }
+      disconnect() { this.elements.clear(); }
+    });
+    let turn = 0;
+    render(<PortfolioChat askPortfolio={async (_question, { onEvent }) => {
+      if (++turn === 1) throw new PortfolioChatClientError("provider_error", "Unavailable");
+      onEvent({ type: "answer_delta", delta: "The next question succeeds." });
+      onEvent({ type: "done" });
+    }} openSession={async () => true} />);
+    submit("Opening question");
+    await screen.findByRole("button", { name: "Try again" });
+    const firstQuestion = document.querySelector(".chat-question")!;
+    const openingObserver = observers.find(observer => observer.elements.has(firstQuestion));
+    expect(openingObserver).toBeDefined();
+    submit("A different question after the failure");
+    await screen.findByText("The next question succeeds.");
+    expect(openingObserver!.elements.has(firstQuestion)).toBe(false);
+  });
+
+  it("opens a follow-up at its beginning and preserves scrollback as that answer grows", async () => {
+    vi.useFakeTimers();
+    let receive: Parameters<AskPortfolio>[1]["onEvent"] | undefined;
+    let turn = 0;
+    render(<PortfolioChat askPortfolio={async (_question, { onEvent }) => {
+      if (++turn === 1) {
+        onEvent({ type: "answer_delta", delta: "First answer." });
+        onEvent({ type: "done" });
+      } else {
+        receive = onEvent;
+        onEvent({ type: "answer_delta", delta: "Second answer starts here." });
+        await new Promise(() => {});
+      }
+    }} openSession={async () => true} />);
+    await act(async () => {
+      submit("First question");
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    const viewport = document.querySelector<HTMLElement>(".portfolio-chat-viewport")!;
+    Object.defineProperties(viewport, {
+      scrollHeight: { configurable: true, value: 1_200 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches(".chat-question") && this.textContent === "Follow-up question" ? 500 : 0;
+    });
+    await act(async () => {
+      submit("Follow-up question");
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 500, behavior: "smooth" });
+    vi.mocked(viewport.scrollTo).mockClear();
+    viewport.scrollTop = 450;
+    fireEvent.scroll(viewport);
+    await act(async () => {
+      receive?.({ type: "answer_delta", delta: " More detail that should not move the reader." });
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(viewport.scrollTo).not.toHaveBeenCalled();
+    expect(viewport.scrollTop).toBe(450);
   });
 
   it.each([false, true])("releases a stalled reply, including after partial text: %s", async (partial) => {
@@ -279,8 +443,8 @@ describe("docked portfolio Guide", () => {
     submit("Retry this exactly");
 
     const retry = await screen.findByRole("button", { name: "Try again" });
-    expect(screen.getByText("The Guide could not finish that reply.")).toBeTruthy();
-    expect(screen.queryByText("partial")).toBeNull();
+    expect(screen.getByText("Could not finish that reply.")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText("partial")).toBeNull());
     fireEvent.click(retry);
     await waitFor(() => expect(askPortfolio).toHaveBeenCalledTimes(2));
     expect(askPortfolio.mock.calls.map(([question]) => question)).toEqual([
@@ -291,6 +455,27 @@ describe("docked portfolio Guide", () => {
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   });
 
+  it("offers HTTPS recovery when an HTTP visit cannot retain the secure session", async () => {
+    vi.stubGlobal("location", new URL("http://bradleyberkman.com/?view=graph#pitching"));
+    render(<PortfolioChat askPortfolio={async () => {
+      throw new PortfolioChatClientError("session_required", "Reload the page to ask again.");
+    }} openSession={async () => false} />);
+    submit("A question over HTTP");
+    const link = await screen.findByRole("link", { name: "Open the secure site" });
+    expect(link.getAttribute("href")).toBe("https://bradleyberkman.com/?view=graph#pitching");
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
+  it("keeps session retry available on HTTPS without suggesting an unnecessary redirect", async () => {
+    vi.stubGlobal("location", new URL("https://bradleyberkman.com/"));
+    render(<PortfolioChat askPortfolio={async () => {
+      throw new PortfolioChatClientError("session_required", "Reload the page to ask again.");
+    }} openSession={async () => false} />);
+    submit("A question over HTTPS");
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Open the secure site" })).toBeNull();
+  });
+
   it("tracks browser offline state and disables the composer with exact placeholder copy", async () => {
     // Catches a browser connectivity change leaving a sendable composer behind.
     let online = false;
@@ -299,7 +484,7 @@ describe("docked portfolio Guide", () => {
 
     const input = screen.getByLabelText("Ask a question about the portfolio");
     expect((input as HTMLTextAreaElement).disabled).toBe(false);
-    expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
+    expect(input.getAttribute("placeholder")).toBe("Chat is offline");
 
     online = true;
     fireEvent(window, new Event("online"));
@@ -347,7 +532,7 @@ describe("docked portfolio Guide", () => {
       );
       submit("Tell me about pitching");
       const followUp = await screen.findByRole("button", {
-        name: "What problem does Music promo campaign pitching solve?",
+        name: "Tell me about Music Promo Campaign Pitching.",
       });
 
       online = false;
@@ -416,7 +601,7 @@ describe("docked portfolio Guide", () => {
 
       const retry = await screen.findByRole("button", { name: "Try again" });
       expect(askPortfolio).not.toHaveBeenCalled();
-      expect(screen.getByText("The Guide could not finish that reply.")).toBeTruthy();
+      expect(screen.getByText("Could not finish that reply.")).toBeTruthy();
       // The failure notice is component state; the user bubble is the
       // runtime's own subscription and can commit a beat later on a starved
       // worker, so wait for it instead of reading it synchronously.
@@ -427,7 +612,7 @@ describe("docked portfolio Guide", () => {
 
       fireEvent(window, new Event("offline"));
       await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(true));
-      expect(input.getAttribute("placeholder")).toBe("The Guide is offline");
+      expect(input.getAttribute("placeholder")).toBe("Chat is offline");
       online = true;
       fireEvent(window, new Event("online"));
       await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(false));
@@ -507,7 +692,7 @@ describe("docked portfolio Guide", () => {
     expect(firstOptions?.signal?.aborted).toBe(true);
     expect(screen.queryByText("Abandon this")).toBeNull();
     await waitFor(() => expect(onThreadStateChange).toHaveBeenLastCalledWith(false));
-    expect(await screen.findAllByTestId("guide-suggestion")).toHaveLength(6);
+    expect(await screen.findAllByTestId("guide-suggestion")).toHaveLength(3);
 
     submit("Fresh question");
     await screen.findByText("Fresh answer.");
@@ -589,7 +774,9 @@ describe("docked portfolio Guide", () => {
       render(<PortfolioChat askPortfolio={askPortfolio}
         openSession={async () => false}
         avatarIntegration={{ onTurnStart() {}, onFirstText() {}, onEffects }} />);
-      const button = await screen.findByRole("button", { name: question });
+      const input = screen.getByLabelText("Ask a question about the portfolio");
+      fireEvent.change(input, { target: { value: question } });
+      const button = screen.getByRole("button", { name: "Ask" });
       expect((button as HTMLButtonElement).disabled).toBe(false);
       fireEvent.click(button);
       await waitFor(() => expect(onEffects).toHaveBeenCalledTimes(1));

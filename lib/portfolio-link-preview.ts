@@ -27,9 +27,10 @@ const hoverChoices: Readonly<Record<string, PortfolioLinkPreview>> = {
   "thread-philosophy": themeGlyph,
   "making-work-playable": themeGlyph,
   "thread-making-work-playable": themeGlyph,
-  kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Campaign kickoff workflow" },
-  pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Campaign pitching workflow" },
-  reporting: { src: "/visuals/campaign/reporting-dashboard.png", alt: "Campaign reporting dashboard" },
+  kickoff: { src: "/visuals/campaign/campaign-kickoff-poster.png", alt: "Music Promo Campaign Kickoff workflow" },
+  pitching: { src: "/visuals/campaign/pitch-pipeline-poster.png", alt: "Music Promo Campaign Pitching workflow" },
+  reporting: { src: "/visuals/campaign/reporting-dashboard.png", alt: "Music Promo Campaign Reporting dashboard" },
+  "real-estate": { src: "/visuals/real-estate/quarterly-dashboard.png", alt: "Quarterly real-estate pitch-conversion dashboard" },
   touring: { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" },
   dubs: { src: "/visuals/dubs/lock-screen.png", alt: "Dubs Lock Screen controls" },
   writ: { src: "/visuals/writ/output-priority.png", alt: "Writ output priorities" },
@@ -59,6 +60,9 @@ export function portfolioLinkPreviewLayout(
 
 function previewOfVisual(block: PortfolioVisualBlock): PortfolioLinkPreview | undefined {
   const format = portfolioVisualFormat(block);
+  if (format === "interactive" && block.preview === "quarterly-dashboard") {
+    return { src: "/visuals/real-estate/quarterly-dashboard.png", alt: "Quarterly real-estate pitch-conversion dashboard" };
+  }
   if (format === "interactive" && block.preview === "touring") {
     return { src: "/visuals/touring/advance-demo.png", alt: "Interactive tour advance showing outstanding promoter details" };
   }

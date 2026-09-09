@@ -34,7 +34,7 @@ export const galleryFamilyRegister: Record<
 const galleryEvidence: readonly PortfolioGroundingEvidence[] = [
   {
     id: "gallery-evidence-reporting",
-    title: "Music promo campaign reporting",
+    title: "Music Promo Campaign Reporting",
     excerpt:
       "Placements are reconciled against the campaign record before anything is reported.",
     href: "/?view=graph#reporting",

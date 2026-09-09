@@ -168,9 +168,7 @@ function viewMark(view: Exclude<ReadingRoomView, "reader">) {
 }
 
 function selectedLabel(node: PortfolioWorldNode) {
-  return node.label
-    .replace(/^Brain in a Vat /, "")
-    .replace(/^Music promo campaign /, "Campaign ");
+  return node.label.replace(/^Brain in a Vat /, "");
 }
 
 function slotFromEntityId(value: unknown): ReadingRoomSlot | null {
@@ -764,19 +762,16 @@ export function PortfolioReadingRoom({
                     <span className="portfolio-reading-room-read-label">
                       {selectedLabel(selectedSubject)}
                     </span>
-                    <span className="portfolio-reading-room-read-action">
-                      <span>Read</span>
-                    </span>
                   </button>
                 ) : null}
                 {onToggleAvatar ? (
                   <PortfolioControlMark
-              aria-label={avatarHidden ? "Show avatar" : "Hide avatar"}
-              aria-pressed={!(avatarHidden)}
-              className="portfolio-reading-room-avatar-toggle"
-              kind={avatarHidden ? "avatarHidden" : "avatarShown"}
-              onClick={onToggleAvatar}
-            />
+                    aria-label={avatarHidden ? "Show avatar" : "Hide avatar"}
+                    aria-pressed={!avatarHidden}
+                    className="portfolio-reading-room-avatar-toggle"
+                    kind={avatarHidden ? "avatarHidden" : "avatarShown"}
+                    onClick={onToggleAvatar}
+                  />
                 ) : null}
                 </div>
               </section>

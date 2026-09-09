@@ -180,10 +180,53 @@ function GuideAssistantText({ text }: TextMessagePartProps) {
 }
 
 function GuideUserMessage() {
+  const element = useRef<HTMLDivElement | null>(null);
+  const openingScrollCancelled = useRef(false);
+  const isFirstQuestion = useAuiState(state => state.message.index === 0 && state.thread.messages.length <= 2);
+  const openingReplyStarted = useAuiState(state =>
+    state.thread.messages[1]?.content.some(part => part.type === "text" && part.text.trim()) ?? false,
+  );
+  useEffect(() => {
+    // assistant-ui top anchoring excludes the first question. Keep its reply
+    // visible while the mobile pane settles, then stop at the first text.
+    const question = element.current;
+    const viewport = question?.closest<HTMLElement>(".portfolio-chat-viewport");
+    if (!isFirstQuestion || !question || !viewport || openingScrollCancelled.current) return;
+    let frame = 0;
+    const align = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (openingScrollCancelled.current || question.offsetHeight <= 96) return;
+        const top = viewport.scrollTop + question.getBoundingClientRect().top
+          - viewport.getBoundingClientRect().top + question.offsetHeight - 96;
+        viewport.scrollTo({ top, behavior: "instant" });
+      });
+    };
+    const cancel = () => { openingScrollCancelled.current = true; };
+    viewport.addEventListener("wheel", cancel, { passive: true });
+    viewport.addEventListener("touchstart", cancel, { passive: true });
+    viewport.addEventListener("pointerdown", cancel);
+    viewport.addEventListener("keydown", cancel);
+    const observer = new ResizeObserver(align);
+    if (!openingReplyStarted) {
+      observer.observe(viewport);
+      observer.observe(question);
+    }
+    align();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      viewport.removeEventListener("wheel", cancel);
+      viewport.removeEventListener("touchstart", cancel);
+      viewport.removeEventListener("pointerdown", cancel);
+      viewport.removeEventListener("keydown", cancel);
+    };
+  }, [isFirstQuestion, openingReplyStarted]);
   return (
     <MessagePrimitive.Root
       className="chat-question"
       data-guide-primitive="message"
+      ref={element}
     >
       <MessagePrimitive.Content components={{ Text: GuideUserText }} />
     </MessagePrimitive.Root>
@@ -286,7 +329,7 @@ function GuideInitialSuggestion({
 }
 
 /** How long a quiet run waits before it reassures, and before it gives up. */
-const slowNoticeMs = 10_000;
+const slowNoticeMs = 4_000;
 const stallTimeoutMs = 20_000;
 
 function isGuideSubmissionEligible({ online }: { online: boolean }) {
@@ -346,16 +389,51 @@ function GuideFollowUps({ children }: { children: ReactNode }) {
   return hasMessages ? children : null;
 }
 
-function GuideViewport({ children }: { children: ReactNode }) {
-  const hasMessages = useAuiState((state) => state.thread.messages.length > 0);
+function GuideViewport({ children, scrollControls }: {
+  children: ReactNode;
+  scrollControls: HTMLDivElement | null;
+}) {
+  const viewport = useRef<HTMLDivElement | null>(null);
+  const [showLatest, setShowLatest] = useState(false);
+  const updateLatest = useCallback(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const distance = element.scrollHeight - element.clientHeight - element.scrollTop;
+    // The control itself occupies 32px. A wider 48px hysteresis prevents
+    // inserting/removing its row from toggling the control back and forth.
+    setShowLatest(visible => distance > (visible ? 48 : 96));
+  }, []);
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateLatest);
+    });
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [updateLatest]);
   return (
     <ThreadPrimitive.Viewport
-      autoScroll={hasMessages}
+      autoScroll={false}
       className="portfolio-chat-viewport"
-      scrollToBottomOnInitialize={hasMessages}
-      scrollToBottomOnThreadSwitch={hasMessages}
+      onScroll={updateLatest}
+      ref={viewport}
+      scrollToBottomOnInitialize={false}
+      scrollToBottomOnRunStart={false}
+      scrollToBottomOnThreadSwitch={false}
+      turnAnchor="top"
     >
       {children}
+      {showLatest && scrollControls ? createPortal(
+        <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><PortfolioControlGlyph kind="chevron" size="inline" /></ThreadPrimitive.ScrollToBottom>,
+        scrollControls,
+      ) : null}
     </ThreadPrimitive.Viewport>
   );
 }
@@ -390,6 +468,7 @@ export function PortfolioChat({
   const [failedQuestion, setFailedQuestion] = useState<{
     question: string;
     canRetry: boolean;
+    code?: string;
     message?: string;
   } | null>(null);
   const [notice, setNotice] = useState("");
@@ -400,6 +479,7 @@ export function PortfolioChat({
   );
   const [pending, setPending] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [hasResponse, setHasResponse] = useState(false);
   const askPortfolioRef = useRef(askPortfolio);
   const avatarIntegrationRef = useRef(avatarIntegration);
   const availabilityRef = useRef(actionAvailability);
@@ -481,6 +561,7 @@ export function PortfolioChat({
         setNotice("");
         setPending(true);
         setSlow(false);
+        setHasResponse(false);
         const slowTimer = window.setTimeout(() => {
           if (isCurrent()) setSlow(true);
         }, slowNoticeMs);
@@ -565,6 +646,7 @@ export function PortfolioChat({
             if (answer && answer !== lastText) {
               window.clearTimeout(slowTimer);
               setSlow(false);
+              setHasResponse(true);
               let firstRendered: Promise<void> | undefined;
               if (!rendered) {
                 firstRendered = new Promise<void>(resolve => {
@@ -595,17 +677,15 @@ export function PortfolioChat({
         }
         if (!isCurrent()) return;
         if (failed || !completed || !answer.trim()) {
-          if (failed || !completed) {
-            const errors: Record<string, { message: string; retry: boolean }> = {
-              budget_exhausted: { message: "The Guide has reached its daily allowance. Please come back tomorrow. You can still explore and use the play controls.", retry: false },
-              rate_limited: { message: "Please wait a minute before asking again. You can still use the play controls.", retry: true },
-              misconfigured: { message: "The Guide is temporarily unavailable. You can still explore the portfolio and use the play controls.", retry: false },
-              session_required: { message: "The Guide could not finish that reply.", retry: true },
-              stalled: { message: "That reply took too long to arrive.", retry: true },
-            };
-            const error = errors[failureCode] ?? { message: "The Guide could not finish that reply.", retry: true };
-            setFailedQuestion({ question, canRetry: !isRetry && error.retry, message: error.message });
-          }
+          const errors: Record<string, { message: string; retry: boolean }> = {
+            budget_exhausted: { message: "Chat has reached its daily allowance. Please come back tomorrow. You can still explore and use the play controls.", retry: false },
+            rate_limited: { message: "Please wait a minute before asking again. You can still use the play controls.", retry: true },
+            misconfigured: { message: "Chat is temporarily unavailable. You can still explore the portfolio and use the play controls.", retry: false },
+            session_required: { message: "Could not finish that reply.", retry: true },
+            stalled: { message: "That reply took too long to arrive.", retry: true },
+          };
+          const error = errors[failureCode] ?? { message: "Could not finish that reply.", retry: true };
+          setFailedQuestion({ question, canRetry: !isRetry && error.retry, code: failureCode, message: error.message });
           await finishRun();
           yield { content: [], status: { type: "incomplete", reason: "error" } };
           return;
@@ -744,6 +824,14 @@ export function PortfolioChat({
 
   const [scrollControls, setScrollControls] = useState<HTMLDivElement | null>(null);
 
+  const secureSessionUrl = failedQuestion?.code === "session_required"
+    && typeof location !== "undefined"
+    && location.protocol === "http:"
+    && !["localhost", "127.0.0.1", "0.0.0.0", "[::1]"].includes(location.hostname)
+    && !location.hostname.endsWith(".localhost")
+    ? location.href.replace(/^http:/, "https:")
+    : null;
+
   const composerDisabled = pending;
   const initialPrompts = getGuideInitialPrompts(visitSeed).filter(prompt => promptAvailable(prompt.text));
 
@@ -777,7 +865,7 @@ export function PortfolioChat({
             className="portfolio-chat-thread"
             data-guide-primitive="thread"
           >
-            <GuideViewport>
+            <GuideViewport scrollControls={scrollControls}>
               <div className="portfolio-chat-content">
               <ThreadPrimitive.Messages
                 components={{
@@ -796,16 +884,16 @@ export function PortfolioChat({
                   ))}
                 </div>
               </ThreadPrimitive.Empty>
-              {pending ? (
+              {pending && !hasResponse ? (
                 <div className="portfolio-guide-slow" role="status">
                   <span aria-hidden="true" className="portfolio-guide-twirl" />
-                  <span>{slow ? "Still thinking…" : "Thinking…"}</span>
+                  <span>{slow ? "Thinking long and hard…" : "Thinking…"}</span>
                 </div>
               ) : null}
               {failedQuestion ? (
                 <p className="portfolio-guide-error">
-                  {failedQuestion.message ?? "The Guide could not finish that reply."}{" "}
-                  {failedQuestion.canRetry ? (
+                  {secureSessionUrl ? "Chat needs a secure connection." : failedQuestion.message ?? "Could not finish that reply."}{" "}
+                  {secureSessionUrl ? <a href={secureSessionUrl}>Open the secure site</a> : failedQuestion.canRetry ? (
                     <button
                       disabled={!submissionEligible}
                       onClick={retry}
@@ -828,10 +916,6 @@ export function PortfolioChat({
                 </ThreadPrimitive.Suggestions>
               </div></GuideFollowUps>
               </div>
-              {scrollControls ? createPortal(
-                <ThreadPrimitive.ScrollToBottom aria-label="Jump to latest reply" className="portfolio-guide-latest" title="Jump to latest reply"><PortfolioControlGlyph kind="chevron" size="inline" /></ThreadPrimitive.ScrollToBottom>,
-                scrollControls,
-              ) : null}
             </GuideViewport>
             <div className="portfolio-guide-scroll-controls" ref={setScrollControls} />
           </ThreadPrimitive.Root>
@@ -865,7 +949,7 @@ export function PortfolioChat({
               onKeyDown={guardComposerKey}
               emptyPlaceholder={openingPlaceholder}
               followUpPlaceholder={composerPlaceholder}
-              offlinePlaceholder="The Guide is offline"
+              offlinePlaceholder="Chat is offline"
               offline={offline}
               rows={1}
             />

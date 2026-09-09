@@ -18,7 +18,7 @@ describe('TouringDemo', () => {
     expect(within(sheet).getByText('Meet Alex at JFK arrivals at 14:30.')).not.toBeNull();
     fireEvent.click(screen.getByRole('button',{name:'Calendar'}));
     expect(screen.getByRole('link',{name:'Open day sheet ↗︎'}).getAttribute('href')).toBe('#'+sheet.id);
-    fireEvent.click(screen.getByRole('button', {name:'Reset show'}));
+    fireEvent.click(screen.getByRole('button', {name:'Reset'}));
     expect(screen.getByText('2 details still needed')).not.toBeNull();
     expect(screen.queryByText('Alex Reed')).toBeNull();
   });

@@ -58,6 +58,9 @@ export function UseAvatarStageExample() {
   a layout that has not settled.
 - **Registration is by callback ref, not by effect.** Passing a `useRef` object
   instead of the returned function registers nothing and fails silently.
+- **Geometry is installed before visibility in layout effects.** Moving the
+  stage reader into a passive effect exposes the viewport fallback on the first
+  visible layout, even when the dock has already registered.
 - **A zero-size avatar area is not a dock.** Before layout settles, the runtime
   uses its bounded viewport fallback so queued motion still has a valid origin.
 - **The dock reports its height.** `dockHeight` is the avatar area's height and

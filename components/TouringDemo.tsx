@@ -158,7 +158,7 @@ export function TouringDemo({ embedded = false }: Props) {
     <div className={embedded ? "portfolio-touring-embed" : "portfolio-composition portfolio-touring-page"}>
       {!embedded && <Link className="portfolio-touring-return" href="/?view=graph#touring">← Tour advancing system</Link>}
       <Root aria-busy={!ready} aria-label="Tour advancing demo" inert={!ready} className="portfolio-touring" data-embedded={embedded || undefined} id={embedded ? undefined : "main-content"}>
-        <div className="portfolio-touring-topline"><span>Interactive demo · fictional show</span><button onClick={reset} type="button">Reset show</button></div>
+        <div className="portfolio-touring-topline"><span>Interactive demo</span><button onClick={reset} type="button">Reset</button></div>
         <header className="portfolio-touring-header">
           <div><Heading>{show.artist}</Heading><p>{show.venue_name} · {evidence.date}</p></div>
           <span className="portfolio-touring-status" data-complete={complete}>{complete ? "Ready for show day" : "Waiting on promoter"}</span>

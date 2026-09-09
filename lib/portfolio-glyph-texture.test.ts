@@ -17,11 +17,10 @@ describe("vector glyph textures", () => {
   });
 });
 
-it("locks the approved enlarged circle crop and generated asset", async () => {
+it("locks the approved positioned circle crop and generated asset", async () => {
   const brain = await readFile(new URL("../public/biv-brain-symbol.svg", import.meta.url), "utf8");
   const generated = portfolioCircleGlyph(brain);
-  expect(generated).toContain('scale(1.65)');
+  expect(generated).toContain('transform="translate(1.15 3.17) rotate(-37) scale(1.6)"');
   expect(generated).toContain('<circle r="8.375" fill="none" stroke="black" stroke-width="1.25"/>');
-  expect(generated).not.toContain('rotate(');
   expect(await readFile(new URL("../public/glyph-textures/circle.svg", import.meta.url), "utf8")).toBe(generated);
 });

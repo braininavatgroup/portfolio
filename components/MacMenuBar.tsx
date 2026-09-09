@@ -80,15 +80,19 @@ export function MacPanelFrame({
   alt,
   src,
   loading,
+  width,
+  height,
 }: {
   alt: string;
   src: string;
   loading?: "lazy" | "eager";
+  width?: number;
+  height?: number;
 }) {
   return (
     <div className="mac-panel-frame">
       <MacMenuBar />
-      <img alt={alt} loading={loading} src={src} />
+      <img alt={alt} height={height} loading={loading} src={src} width={width} />
     </div>
   );
 }
