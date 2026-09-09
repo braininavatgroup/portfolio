@@ -101,9 +101,14 @@ export function cachedBrowser(home = process.env.HOME ?? "") {
 
 /**
  * Checks everything a render needs before it starts. Throws one message naming
- * what to do, rather than failing part-way through.
+ * what to do, rather than failing part-way through. The checks are injectable
+ * so both outcomes can be exercised on a machine that has the tools, or has
+ * neither.
  */
-export async function assertRenderTools() {
-  if (!(await hasFfmpeg())) throw new Error(ffmpegAdvice);
-  loadPlaywright();
+export async function assertRenderTools({
+  ffmpeg = hasFfmpeg,
+  playwright = loadPlaywright,
+} = {}) {
+  if (!(await ffmpeg())) throw new Error(ffmpegAdvice);
+  playwright();
 }
