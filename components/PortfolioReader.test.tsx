@@ -158,7 +158,7 @@ describe("PortfolioReader", () => {
       "kickoff",
       "pitching",
       "reporting",
-      "work to be playable",
+      "work more playable",
       "deal-tracking dashboard",
       "tour-advancing suite",
       "Dubs",
@@ -458,7 +458,7 @@ describe("PortfolioReader", () => {
     }
     render(<PortfolioReader {...baseProps} selectedId="kickoff" />);
     const reader = screen.getByRole("complementary", {
-      name: "Music promo campaign kickoff record",
+      name: "Music Promo Campaign Kickoff record",
     });
     const trigger = screen.getByRole("button", {
       name: `Open video in reader: ${visual.purpose}`,

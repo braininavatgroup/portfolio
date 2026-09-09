@@ -49,6 +49,21 @@ describe("portfolio overview", () => {
   });
 });
 
+it.each([
+  ["kickoff", "Kickoff"],
+  ["pitching", "Pitching"],
+  ["reporting", "Reporting"],
+])("keeps the canonical %s title distinct in the narrow mobile overview", (id, workflow) => {
+  const node = portfolioWorldNodes.find(node => node.id === id)!;
+  expect(node.label).toBe(`Music Promo Campaign ${workflow}`);
+  const label = portfolioOverviewNodeLabel(node.label);
+  expect(label).toBe(`Campaign ${workflow}`);
+  expect(portfolioOverviewLabel(label, text => text.length * 6.2, 64)).toEqual([
+    "Campaign", workflow,
+  ]);
+  expect(node.label).toBe(`Music Promo Campaign ${workflow}`);
+});
+
 it("bounds long overview labels to two lines without crossing into the adjacent labels", () => {
   const lines = portfolioOverviewLabel("Music Promotions Agency", value => value.length * 6, 70);
   expect(lines.length).toBeLessThanOrEqual(2);

@@ -2035,9 +2035,9 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-reading-room-avatar-toggle {
   background: var(--reader-paper);
-  border: 0;
+  border: 1px solid var(--map-line-strong);
   border-radius: 6px;
-  color: var(--reader-muted);
+  color: var(--ink);
   cursor: pointer;
   flex: 0 0 auto;
   font: var(--reader-type-caption) var(--font-reader);
@@ -2058,12 +2058,13 @@ body:has(.portfolio-reading-room-mobile) {
   border: 1px solid var(--map-line-strong);
   border-radius: 6px;
   color: var(--ink);
+  cursor: pointer;
   display: flex;
   font: var(--reader-type-secondary) var(--font-reader);
-  gap: 8px;
-  height: 32px;
+  gap: var(--reader-space-1);
+  height: 40px;
   min-width: 0;
-  padding: 0 10px 0 8px;
+  padding: 0 var(--reader-space-1);
 }
 
 .portfolio-reading-room-read-label {
@@ -2071,14 +2072,6 @@ body:has(.portfolio-reading-room-mobile) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.portfolio-reading-room-read-action {
-  align-items: center;
-  color: var(--reader-muted);
-  display: flex;
-  flex: 0 0 auto;
-  gap: 4px;
 }
 
 .portfolio-reading-room-read-chip .portfolio-node-mark {
@@ -3254,8 +3247,11 @@ body:has(.portfolio-reading-room-mobile) {
   color: var(--ink, var(--reader-ink-light));
   font: var(--reader-type-body) var(--font-reader);
   margin: 0;
-  max-width: 280px;
+  max-width: min(280px, 100%);
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: var(--reader-space-1) 12px;
+  white-space: pre-wrap;
 }
 
 .portfolio-guide-answer {
@@ -3267,6 +3263,7 @@ body:has(.portfolio-reading-room-mobile) {
   color: var(--reader-body, var(--reader-body-light));
   font: var(--reader-type-body) var(--font-reader);
   margin: 0;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
@@ -3347,6 +3344,7 @@ body:has(.portfolio-reading-room-mobile) {
   margin: 12px 0 0;
 }
 
+.portfolio-guide-error a,
 .portfolio-guide-error button {
   appearance: none;
   background: transparent;
@@ -3396,8 +3394,9 @@ body:has(.portfolio-reading-room-mobile) {
   border: 1px solid var(--map-line, var(--map-line-light));
   border-radius: 6px;
   display: block;
-  height: 78px;
+  flex: 0 0 auto;
   margin: 12px var(--reader-space-3) var(--reader-space-3);
+  min-height: 78px;
   padding: 0;
   position: relative;
 }
@@ -3429,11 +3428,13 @@ body:has(.portfolio-reading-room-mobile) {
   background: transparent;
   border: 0;
   color: var(--ink, var(--reader-ink-light));
+  display: block;
   font: var(--reader-type-body) var(--font-reader);
   height: 76px;
   max-height: 192px;
   min-width: 0;
   outline: 0;
+  overflow-wrap: anywhere;
   overflow-y: auto;
   padding: 12px 48px 40px 14px;
   resize: none;
@@ -3476,6 +3477,7 @@ body:has(.portfolio-reading-room-mobile) {
   background: var(--map-paper);
   height: 44px;
   margin: var(--reader-space-1) var(--reader-space-3) var(--reader-space-2);
+  min-height: 44px;
 }
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-composer textarea {
@@ -4809,6 +4811,7 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   visibility: hidden;
 }
 
+.portfolio-guide-error a:focus-visible,
 .portfolio-guide-suggestion:focus-visible,
 .portfolio-guide-citation:focus-visible,
 .portfolio-guide-avatar-toggle:focus-visible,

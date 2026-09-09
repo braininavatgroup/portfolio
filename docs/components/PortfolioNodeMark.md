@@ -6,7 +6,7 @@ Shared artwork for controls, nodes, identity, and contacts. Nodes use an 18px su
 
 Paths are authored directly; `portfolio-control-geometry.ts` is test/authoring only. Toolbar cells remain 32px in 40px rows. Explicit grid tracks prevent artwork overflow from shifting centers; `scripts/check-toolbar-geometry.mjs` checks browser alignment.
 
-Map, Guide, and connected-bust avatar use independent 1.65× brain crops. Reader and identity share the enlarged circular crop. Hidden avatar is a solid muted silhouette. Panel controls share a square frame.
+Map, Guide, and connected-bust avatar use independent 1.65× brain crops. Reader and identity share the approved circular crop: `translate(1.15 3.17) rotate(-37) scale(1.6)`. Hidden avatar is a solid muted silhouette. Panel controls share a square frame.
 
 `PortfolioControlGlyph` is bare artwork; `PortfolioControlMark` wraps it in a button. `PortfolioContactMark` shares contact/social artwork with carousel links. `/design#marks` shows all families and named sizes.
 

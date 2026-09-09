@@ -80,6 +80,9 @@ export type PortfolioVisualBlock = {
 export type PortfolioVisualAsset = {
   src: string;
   alt: string;
+  /** Intrinsic image dimensions reserve its ratio before lazy loading. */
+  width?: number;
+  height?: number;
   label?: string;
   /** Live chrome rendered around the image, such as a macOS menu bar. */
   chrome?: PortfolioVisualAssetChrome;
@@ -213,6 +216,7 @@ function mergeBody(
           return {
             src: asset.src,
             alt: assetText?.alt ?? "",
+            ...(asset.width && asset.height ? { width: asset.width, height: asset.height } : {}),
             ...(assetText?.label ? { label: assetText.label } : {}),
             ...(asset.chrome ? { chrome: asset.chrome } : {}),
             ...(asset.links ? { links: asset.links } : {}),

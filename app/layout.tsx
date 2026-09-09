@@ -5,7 +5,7 @@ import { portfolioInterfaceText } from "../lib/portfolio-world";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bradley Berkman | Work should be playable. I build the systems that make it so",
+  title: `Bradley Berkman | ${portfolioInterfaceText["index.throughline"].replace(/\.$/, "")}`,
   description: "The systems, operations, and products Bradley Berkman builds and runs.",
   icons: { icon: "/biv-brain-symbol.png" },
 };

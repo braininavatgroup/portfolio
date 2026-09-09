@@ -61,7 +61,7 @@ describe("portfolio chat grounding", () => {
     );
 
     expect(pitching).toMatchObject({
-      title: "Music promo campaign pitching",
+      title: "Music Promo Campaign Pitching",
       href: "/?view=graph#pitching",
     });
     const node = portfolioWorldNodes.find(({ id }) => id === "pitching")!;

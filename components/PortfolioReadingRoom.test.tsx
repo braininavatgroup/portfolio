@@ -660,7 +660,7 @@ describe("PortfolioReadingRoom mobile", () => {
     expect(onToggleAvatar).toHaveBeenCalledOnce();
     expect(readChip.querySelector(`[data-family="${dubs.family}"]`)).not.toBeNull();
     expect(within(readChip).getByText("Dubs")).toBeTruthy();
-    expect(within(readChip).getByText("Read")).toBeTruthy();
+    expect(within(readChip).queryByText("Read")).toBeNull();
     expect(readChip.querySelector('[data-control-glyph="readArrow"]')).toBeNull();
     expect(container.querySelector(".portfolio-reading-room-mobile-map .portfolio-reading-room-mobile-avatar")).not.toBeNull();
 
@@ -801,8 +801,8 @@ describe("Reading Room stylesheet", () => {
     expect(avatar).toContain("right: 16px");
     expect(chip).toContain("border-radius: 6px");
     expect(chip).not.toContain("position: absolute");
-    expect(chip).toContain("height: 32px");
-    expect(chip).toContain("padding: 0 10px 0 8px");
+    expect(chip).toContain("height: 40px");
+    expect(chip).toContain("padding: 0 var(--reader-space-1)");
     expect(stylesheet).toMatch(/\.portfolio-reading-room-map-canvas\s*\{[^}]*min-height: 0/);
     expect(mainSlotSurface).toContain("background: var(--map-paper-near)");
     expect(viewSurfaces).toContain("background: transparent");

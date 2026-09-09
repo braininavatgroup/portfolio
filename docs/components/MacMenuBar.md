@@ -19,7 +19,8 @@ uses it for any gallery asset whose structure declares `chrome: "mac-menu-bar"`.
 ## Props
 
 `MacMenuBar` takes an optional `spec`, defaulting to `WRIT_MENU_BAR`.
-`MacPanelFrame` takes `src`, `alt`, and an optional `loading`.
+`MacPanelFrame` takes `src`, `alt`, and optional `loading`, `width`, and `height`.
+Supply intrinsic dimensions so lazy captures reserve their ratio before loading.
 
 ## Requires
 

@@ -6,35 +6,26 @@ import {
 } from "./portfolio-guide-prompts";
 
 describe("Guide initial prompts", () => {
-  it("rotates deterministic starter sets with a permanent game entry from the visit seed", () => {
+  it("rotates a shorter set of work questions with one game entry", () => {
     // Catches every visit returning the same handoff starter set.
     expect(getGuideInitialPrompts(0).map(({ text }) => text)).toEqual([
       "What kind of work does Bradley do?",
-      "Which project best shows how Bradley thinks?",
-      "Wave hello",
-      "Can you dance?",
-      "Go for a swim",
+      "What could Bradley help my team with?",
       "Play Brain Food",
     ]);
     expect(getGuideInitialPrompts(1).map(({ text }) => text)).toEqual([
       "Which projects can I try today?",
-      "What could Bradley help my team with?",
-      "Wave hello",
-      "Can you dance?",
-      "Go for a swim",
+      "How does Bradley decide what to automate?",
       "Play Brain Food",
     ]);
-    expect(getGuideInitialPrompts(4)).toEqual(getGuideInitialPrompts(1));
+    expect(getGuideInitialPrompts(3)).toEqual(getGuideInitialPrompts(1));
   });
 
-  it.each([0, 1, 2, 11])("returns two serious prompts and all avatar/game actions for seed %i", (seed) => {
+  it.each([0, 1, 2, 11])("returns two work prompts and one game action for seed %i", (seed) => {
     // Catches a rotation that loses the intended work prompts and always-available actions.
     expect(getGuideInitialPrompts(seed).map(({ tone }) => tone)).toEqual([
       "serious",
       "serious",
-      "playful",
-      "playful",
-      "playful",
       "playful",
     ]);
   });
@@ -47,21 +38,47 @@ describe("Guide initial prompts", () => {
         title: "INFAMOUS PR",
       }).map(({ text, evidenceId }) => ({ text, evidenceId })),
     ).toEqual([
-      { text: "What problem does INFAMOUS PR solve?", evidenceId: "node:infamous" },
+      { text: "Tell me about INFAMOUS PR.", evidenceId: "node:infamous" },
       { text: "How does this connect to Bradley's other work?", evidenceId: "node:infamous" },
-      { text: "Wave hello", evidenceId: undefined },
-      { text: "Can you dance?", evidenceId: undefined },
-      { text: "Go for a swim", evidenceId: undefined },
       { text: "Play Brain Food", evidenceId: undefined },
     ]);
+  });
+
+  it.each(["node:bradley", "entity:portfolio:brain"])("asks about Bradley as a person for %s", (id) => {
+    const subject = { id, title: "Bradley Berkman" };
+    for (const prompts of [
+      getGuideInitialPrompts(0, subject),
+      getGuideFollowUpPrompts([{ ...subject, excerpt: "", href: "/" }]),
+    ]) {
+      expect(prompts.map(prompt => prompt.text)).toEqual([
+        "What kind of work does Bradley do?",
+        "What could Bradley help my team with?",
+        "Play Brain Food",
+      ]);
+      expect(prompts.some(prompt => prompt.text.includes("Berkman"))).toBe(false);
+    }
   });
 });
 
 describe("Guide follow-up prompts", () => {
   it("does not suggest a question already asked in this conversation", () => {
-    const prompts = getGuideFollowUpPrompts([{ id: "node:dubs", title: "Dubs", excerpt: "", href: "/?view=graph#dubs" }], ["What problem does Dubs solve?", "How does this connect to Bradley's other work?", "What problem does Dubs solve?", "What changed because of Dubs?"]);
+    const asked = ["Tell me about Dubs.", "How does this connect to Bradley's other work?"];
+    const prompts = getGuideFollowUpPrompts([
+      { id: "node:dubs", title: "Dubs", excerpt: "", href: "/?view=graph#dubs" },
+    ], asked);
     expect(prompts.filter(prompt => prompt.tone === "serious")).toHaveLength(2);
-    expect(prompts.some(prompt => ["What problem does Dubs solve?", "How does this connect to Bradley's other work?", "What problem does Dubs solve?", "What changed because of Dubs?"].includes(prompt.text))).toBe(false);
+    expect(prompts.some(prompt => asked.includes(prompt.text))).toBe(false);
+  });
+
+  it("does not repeat a person-specific question when filling the next suggestion", () => {
+    const prompts = getGuideFollowUpPrompts([
+      { id: "node:bradley", title: "Bradley Berkman", excerpt: "", href: "/" },
+    ], [" What could Bradley help my team with? "]);
+    expect(prompts.map(prompt => prompt.text)).toEqual([
+      "What kind of work does Bradley do?",
+      "Which projects can I try today?",
+      "Play Brain Food",
+    ]);
   });
 
   it("keys follow-ups to the first cited evidence and has a stable fallback", () => {
@@ -74,19 +91,13 @@ describe("Guide follow-up prompts", () => {
     }];
 
     expect(getGuideFollowUpPrompts(cited).map(({ text }) => text)).toEqual([
-      "What problem does Dubs solve?",
-      "What changed because of Dubs?",
-      "Wave hello",
-      "Can you dance?",
-      "Go for a swim",
+      "Tell me about Dubs.",
+      "How does this connect to Bradley's other work?",
       "Play Brain Food",
     ]);
     expect(getGuideFollowUpPrompts([]).map(({ text }) => text)).toEqual([
       "What kind of work does Bradley do?",
       "Which projects can I try today?",
-      "Wave hello",
-      "Can you dance?",
-      "Go for a swim",
       "Play Brain Food",
     ]);
     expect(getGuideFollowUpPrompts([])).toEqual(getGuideFollowUpPrompts([]));

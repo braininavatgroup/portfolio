@@ -17,7 +17,7 @@ use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
 `viewRequest` reveals a view (reopens its column or slot; switches tab below
 1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
 Escape before Guide reset/Home. `storage` is an in-memory test seam; never inject browser storage.
-`avatarHidden` and `onToggleAvatar` place the avatar toggle in the Guide bar on desktop and beside Read in the mobile toolbar. The toggle follows the Guide when panes swap. It is absent while its desktop pane is minimized and returns with the same avatar state when reopened. The canvas occupies the remaining height below that row; Read has no arrow. `gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
+`avatarHidden` and `onToggleAvatar` place the avatar toggle in the Guide bar on desktop and beside the selected record in the mobile toolbar. Both mobile controls are 40px high with matching borders. The record label opens Reader without an extra Read suffix. The toggle follows the Guide when panes swap and is absent while its desktop pane is minimized. The canvas fills the height below the toolbar. `gameMode` temporarily makes Map full-window; stored layout resumes on exit.
 
 ## Requires
 

@@ -98,7 +98,7 @@ describe("portfolio chat route handler", () => {
     }
     expect(events[0].evidence).toContainEqual(expect.objectContaining({
       id: "node:pitching",
-      title: "Music promo campaign pitching",
+      title: "Music Promo Campaign Pitching",
       href: "/?view=graph#pitching",
     }));
     expect(events.slice(1)).toEqual([

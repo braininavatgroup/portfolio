@@ -87,6 +87,8 @@ export type PortfolioVisualAssetLinks = {
 export type PortfolioVisualSlideSkeleton = {
   assets: readonly {
     src: string;
+    width?: number;
+    height?: number;
     chrome?: PortfolioVisualAssetChrome;
     links?: PortfolioVisualAssetLinks;
   }[];
@@ -632,22 +634,22 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       readyGallery("dubs-loop", [
         {
           assets: [
-            { src: "/visuals/dubs/lock-screen.png" },
-            { src: "/visuals/dubs/read-and-listen.png" },
-            { src: "/visuals/dubs/inline-note.png" },
-            { src: "/visuals/dubs/markup-in-context.png" },
+            { src: "/visuals/dubs/lock-screen.png", width: 794, height: 1600 },
+            { src: "/visuals/dubs/read-and-listen.png", width: 794, height: 1600 },
+            { src: "/visuals/dubs/inline-note.png", width: 794, height: 1600 },
+            { src: "/visuals/dubs/markup-in-context.png", width: 794, height: 1600 },
           ],
         },
         {
           assets: [
-            { src: "/visuals/dubs/library.png" },
-            { src: "/visuals/dubs/tags.png" },
-            { src: "/visuals/dubs/perspective.png" },
+            { src: "/visuals/dubs/library.png", width: 794, height: 1600 },
+            { src: "/visuals/dubs/tags.png", width: 794, height: 1600 },
+            { src: "/visuals/dubs/perspective.png", width: 794, height: 1600 },
           ],
         },
         {
           assets: [
-            { src: "/visuals/dubs/mcp.png" },
+            { src: "/visuals/dubs/mcp.png", width: 794, height: 1600 },
           ],
         },
       ]),
@@ -668,18 +670,18 @@ export const portfolioRecordStructures: readonly PortfolioRecordStructure[] = [
       readyGallery("writ-priority-behavior", [
         {
           assets: [
-            { src: "/visuals/writ/output-priority.png", chrome: "mac-menu-bar" },
-            { src: "/visuals/writ/input-priority.png", chrome: "mac-menu-bar" },
+            { src: "/visuals/writ/output-priority.png", width: 600, height: 506, chrome: "mac-menu-bar" },
+            { src: "/visuals/writ/input-priority.png", width: 600, height: 478, chrome: "mac-menu-bar" },
           ],
         },
         {
           assets: [
-            { src: "/visuals/writ/device-rules.png", chrome: "mac-menu-bar" },
+            { src: "/visuals/writ/device-rules.png", width: 600, height: 498, chrome: "mac-menu-bar" },
           ],
         },
         {
           assets: [
-            { src: "/visuals/writ/keyboard-shortcuts.png" },
+            { src: "/visuals/writ/keyboard-shortcuts.png", width: 600, height: 501 },
           ],
         },
       ]),

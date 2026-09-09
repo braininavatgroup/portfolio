@@ -542,16 +542,20 @@ function VisualBlock({
                         asset.chrome === "mac-menu-bar" ? (
                           <MacPanelFrame
                             alt={asset.alt}
+                            height={asset.height}
                             key={asset.src}
                             loading="lazy"
                             src={asset.src}
+                            width={asset.width}
                           />
                         ) : (
                           <img
                             alt={asset.alt}
+                            height={asset.height}
                             key={asset.src}
                             loading="lazy"
                             src={asset.src}
+                            width={asset.width}
                           />
                         ),
                       )}
@@ -987,7 +991,7 @@ function ThreadRecord({
         onSelectThread={onSelectThread}
         videoPreviewsPaused={videoPreviewsPaused}
       />
-      <section className="reader-record-section">
+      <section className="reader-record-section reader-related-section">
         <h2>{portfolioInterfaceText["reader.exploreThread"]}</h2>
         <ul className="reader-rows">
           {thread.members.map((nodeId) => {
