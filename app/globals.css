@@ -1437,12 +1437,10 @@ body:has(.portfolio-reading-room-desktop) {
   z-index: 7;
 }
 
-/* The top slot's own controls sit left of the global side-panes toggle that
-   occupies the viewport's top-right 32px at right 17 (prototype: new chat at
-   right 57 in a side slot, 17 in main). */
+/* Leave room for Reset layout and the side-panes toggle in the top bar. */
 .portfolio-reading-room-pane[data-reading-room-slot="top"] .portfolio-reading-room-view-controls,
 .portfolio-reading-room-desktop[data-right-collapsed="true"] .portfolio-reading-room-pane[data-reading-room-slot="main"] .portfolio-reading-room-view-controls {
-  right: 57px;
+  right: 157px;
 }
 
 .portfolio-reading-room-view-controls .portfolio-control-mark,
@@ -1523,13 +1521,34 @@ body:has(.portfolio-reading-room-desktop) {
 }
 
 .portfolio-reading-room-global-controls {
-  display: block;
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
   height: 32px;
   position: absolute;
   right: 17px;
   top: 4px;
-  width: 32px;
+  width: auto;
   z-index: 20;
+}
+
+.portfolio-reading-room-reset {
+  background: var(--reader-paper);
+  border: 0;
+  border-radius: 4px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  min-height: 32px;
+  padding-inline: var(--reader-space-1);
+}
+
+.portfolio-reading-room-reset:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.portfolio-reading-room-reset:disabled {
+  opacity: 0.5;
 }
 
 .portfolio-reading-room-home,

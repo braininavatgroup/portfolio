@@ -14,6 +14,7 @@ import {
   Separator,
   useDefaultLayout,
   usePanelRef,
+  useGroupRef,
   type PanelSize,
 } from "react-resizable-panels";
 import {
@@ -112,6 +113,7 @@ export type PortfolioReadingRoomProps = {
   reader: ReactNode;
   selectedId: string | null;
   selectedSubject: PortfolioWorldNode | null;
+  /** Optional in-memory storage injection for tests. Never pass browser storage. */
   storage?: Pick<Storage, "getItem" | "setItem">;
   viewRequest?: ReadingRoomViewRequest;
 };
@@ -146,16 +148,13 @@ function getViewportWidthServerSnapshot() {
   return 1020;
 }
 
-function getBrowserStorage() {
-  if (typeof window === "undefined") return fallbackStorage;
-  try {
-    const candidate = window.localStorage;
-    return typeof candidate?.getItem === "function" && typeof candidate?.setItem === "function"
-      ? candidate
-      : fallbackStorage;
-  } catch {
-    return fallbackStorage;
-  }
+/** Layout preferences live only for this mounted visit, never in browser storage. */
+function createVisitStorage(): Pick<Storage, "getItem" | "setItem"> {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => { values.set(key, value); },
+  };
 }
 
 function viewLabel(view: ReadingRoomView) {
@@ -428,7 +427,7 @@ export function PortfolioReadingRoom({
   // sideways (tablet portrait reads as a fixed window, like a laptop).
   const minimums = readingRoomMinimums(viewportWidth);
   const layoutStorage = useMemo(
-    () => storage ?? getBrowserStorage(),
+    () => storage ?? createVisitStorage(),
     [storage],
   );
   const [storedLayout, setLayout] = useState<ReadingRoomLayoutState>(DEFAULT_READING_ROOM_LAYOUT);
@@ -444,6 +443,9 @@ export function PortfolioReadingRoom({
   const contentsPanelRef = usePanelRef();
   const rightPanelRef = usePanelRef();
   const bottomPanelRef = usePanelRef();
+  const outerGroupRef = useGroupRef();
+  const primaryGroupRef = useGroupRef();
+  const rightGroupRef = useGroupRef();
   const [viewHosts] = useState(() => ({
     guide: createRef<HTMLDivElement>(),
     map: createRef<HTMLDivElement>(),
@@ -495,6 +497,21 @@ export function PortfolioReadingRoom({
       return next;
     });
   }, [gameMode, layoutStorage]);
+
+  const resetLayout = useCallback(() => {
+    if (gameMode) return;
+    updateLayout(() => parseReadingRoomLayout(null));
+    setContentsCollapsed(false);
+    setRightCollapsed(false);
+    setMobileTab("reader");
+    const width = document.getElementById("reading-room-outer")?.clientWidth || viewportWidth;
+    const contents = 320 / Math.max(1, width - 1) * 100;
+    outerGroupRef.current?.setLayout({contents, workspace: 100 - contents});
+    const main = DEFAULT_READING_ROOM_LAYOUT.split * 100;
+    primaryGroupRef.current?.setLayout({main, right: 100 - main});
+    rightGroupRef.current?.setLayout({top: 40, bottom: 60});
+    notifyLayout();
+  }, [gameMode, notifyLayout, outerGroupRef, primaryGroupRef, rightGroupRef, updateLayout, viewportWidth]);
 
   const setViewHidden = useCallback((view: ReadingRoomView, hidden: boolean) => {
     updateLayout((current) => setReadingRoomViewHidden(current, view, hidden));
@@ -781,6 +798,14 @@ export function PortfolioReadingRoom({
         data-right-collapsed={rightCollapsed ? "true" : "false"}
       >
         <span className="portfolio-reading-room-global-controls">
+          <button
+            className="portfolio-reading-room-reset"
+            disabled={gameMode}
+            onClick={resetLayout}
+            type="button"
+          >
+            Reset layout
+          </button>
           <PortfolioControlMark
             aria-label={rightCollapsed ? "Show side panes" : "Hide side panes"}
             kind="sidebarRight"
@@ -790,6 +815,7 @@ export function PortfolioReadingRoom({
         <Group
           defaultLayout={outerPersistence.defaultLayout}
           id="reading-room-outer"
+          groupRef={outerGroupRef}
           onLayoutChanged={persistAndNotify(outerPersistence.onLayoutChanged)}
           orientation="horizontal"
         >
@@ -828,6 +854,7 @@ export function PortfolioReadingRoom({
             <Group
               defaultLayout={primaryPersistence.defaultLayout}
               id="reading-room-primary"
+              groupRef={primaryGroupRef}
               onLayoutChanged={persistAndNotify(primaryPersistence.onLayoutChanged)}
               orientation="horizontal"
             >
@@ -866,6 +893,7 @@ export function PortfolioReadingRoom({
                 <Group
                   defaultLayout={rightPersistence.defaultLayout}
                   id="reading-room-right"
+                  groupRef={rightGroupRef}
                   onLayoutChanged={persistAndNotify(rightPersistence.onLayoutChanged)}
                   orientation="vertical"
                 >

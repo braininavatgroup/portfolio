@@ -141,7 +141,7 @@ beforeEach(() => {
   dndHarness.providerProps = null;
 });
 
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("PortfolioReadingRoom drag operation adapter", () => {
   it.each([
@@ -245,4 +245,51 @@ describe("PortfolioReadingRoom drag operation adapter", () => {
     expect(slot(container, "bottom").getAttribute("data-collapsed")).toBe("false");
     expect(parseReadingRoomLayout(storage.getItem("reading-room-slots")).hidden).toEqual([]);
   });
+});
+
+
+it("ignores old browser layouts and discards adjustments on a fresh mount", () => {
+  vi.stubGlobal("localStorage", new MemoryStorage());
+  const legacy = JSON.stringify({slots: {main: "map", top: "reader", bottom: "guide"}, hidden: ["guide"]});
+  window.localStorage.setItem("reading-room-slots", legacy);
+  window.localStorage.setItem("react-resizable-panels:reading-room-primary", JSON.stringify({"main,right": {layout: [90, 10]}}));
+  const props = {...roomProps(new MemoryStorage()), storage: undefined};
+  const first = render(<PortfolioReadingRoom {...props} />);
+  expect(slot(first.container, "main").dataset.view).toBe("reader");
+  expect(slot(first.container, "bottom").dataset.collapsed).toBe("false");
+  swap("main", "top");
+  fireEvent.click(screen.getByRole("button", {name: "Hide lower view"}));
+  expect(slot(first.container, "main").dataset.view).toBe("map");
+  first.unmount();
+  const second = render(<PortfolioReadingRoom {...props} />);
+  expect(slot(second.container, "main").dataset.view).toBe("reader");
+  expect(slot(second.container, "top").dataset.view).toBe("map");
+  expect(slot(second.container, "bottom").dataset.collapsed).toBe("false");
+  expect(window.localStorage.getItem("reading-room-slots")).toBe(legacy);
+
+});
+
+it("resets swapped and collapsed panels without remounting their contents", () => {
+  const props = {...roomProps(new MemoryStorage()), storage: undefined, guide: <StatefulGuideProbe />, map: <StatefulMapProbe />};
+  const {container} = render(<PortfolioReadingRoom {...props} />);
+  const guide = screen.getByTestId("stateful-guide");
+  const map = screen.getByTestId("stateful-map");
+  fireEvent.click(guide);
+  fireEvent.click(map);
+  swap("main", "bottom");
+  fireEvent.click(screen.getByRole("button", {name: "Hide Contents"}));
+  fireEvent.click(screen.getByRole("button", {name: "Hide side panes"}));
+  fireEvent.click(screen.getByRole("button", {name: "Reset layout"}));
+  expect(slot(container, "main").dataset.view).toBe("reader");
+  expect(slot(container, "top").dataset.view).toBe("map");
+  expect(slot(container, "bottom").dataset.view).toBe("guide");
+  expect(slot(container, "bottom").dataset.collapsed).toBe("false");
+  expect(container.querySelector(".portfolio-reading-room-main-mast")).toBeNull();
+  expect(container.querySelector('#right')?.getAttribute("data-collapsed")).toBe("false");
+  expect(screen.getByTestId("stateful-guide")).toBe(guide);
+  expect(guide.textContent).toBe("Guide turns: 2");
+  expect(screen.getByTestId("stateful-map")).toBe(map);
+  expect(map.textContent).toBe("Map visits: 2");
+  expect(props.onHome).not.toHaveBeenCalled();
+  expect(props.onGuideReset).not.toHaveBeenCalled();
 });
