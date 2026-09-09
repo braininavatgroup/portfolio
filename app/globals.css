@@ -3057,11 +3057,35 @@ body:has(.portfolio-reading-room-mobile) {
 
 .reader-carousel-card a {
   align-items: center;
+  border-radius: 4px;
   color: inherit;
   display: flex;
   height: 24px;
   justify-content: center;
   width: 24px;
+}
+
+.reader-carousel-card a .portfolio-node-mark {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.reader-carousel-card a:focus-visible {
+  background: color-mix(in srgb, var(--reader-paper) 20%, transparent);
+}
+
+.reader-carousel-card a:focus-visible .portfolio-node-mark {
+  opacity: 1;
+}
+
+@media (pointer: fine) {
+  .reader-carousel-card a:hover {
+    background: color-mix(in srgb, var(--reader-paper) 20%, transparent);
+  }
+
+  .reader-carousel-card a:hover .portfolio-node-mark {
+    opacity: 1;
+  }
 }
 
 .reader-carousel-card svg {

@@ -46,6 +46,7 @@ export function ReaderCarouselExample() {
 ## Pitfalls
 
 - Reduced motion keeps the strip still. Fine-pointer hover and keyboard focus pause scrolling; leaving resumes it.
+- Platform marks inherit the card contrast and brighten over a subtle background on hover or keyboard focus; the focus ring remains visible.
 - Touch focuses the image button. Tab continues into the card's accessible platform links, each with a tooltip and a new-tab target.
 - Images use precompressed local WebP files with explicit 128px dimensions, lazy loading, and asynchronous decoding; the native image element deliberately avoids runtime transformation. Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
 - `.reader-visual-block img` stretches images; the carousel overrides that to 128px square. Keep this override when changing shared media styles.
@@ -53,7 +54,6 @@ export function ReaderCarouselExample() {
 - Cards show Instagram and Spotify when present. Beatport appears only when Spotify is absent, regardless of client type. There is no Artist/Label row.
 
 ## Shared carousels and sources
-
 BiV (`music-practice`) and INFAMOUS (`infamous`) use the same `readyCarousel` helper, this component, and `.reader-carousel-*` styles. Keep motion, sizing, focus, touch, and icons here; only client data differs. Both records run through shared integration tests.
 
 BiV's 45 clients come from https://braininavat.dance/, checked 8 September 2026. Port London's Instagram source was `n`; keep only Spotify. INFAMOUS has Bradley's trimmed 20-client list and images in `public/visuals/clients/infamous/`; provenance is in [`docs/content/infamous-client-assets.json`](../content/infamous-client-assets.json). Names live in the content document; URLs in `lib/portfolio-structure.ts`.

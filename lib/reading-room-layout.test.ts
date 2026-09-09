@@ -8,7 +8,7 @@ import {
   visibleReadingRoomSlots,
 } from "./reading-room-layout";
 import type { ReadingRoomLayoutState } from "./reading-room-layout";
-import { FULL_DESKTOP_WIDTH, readingRoomMinimums } from "./reading-room-layout";
+import { readingRoomInitialSizes, readingRoomMinimums } from "./reading-room-layout";
 
 describe("Reading Room layout state", () => {
   it("round-trips a complete stored layout", () => {
@@ -161,22 +161,18 @@ describe("Reading Room layout state", () => {
 });
 
 describe("readingRoomMinimums", () => {
-  it("keeps the handoff minimums from 1382px up", () => {
-    expect(readingRoomMinimums(FULL_DESKTOP_WIDTH)).toEqual({ contents: 300, main: 720, right: 360, workspace: 1081 });
-    expect(readingRoomMinimums(1440)).toEqual({ contents: 300, main: 720, right: 360, workspace: 1081 });
-  });
-
-  it("fits a compact desktop to any narrower viewport without sideways scroll", () => {
-    for (const width of [1020, 1024, 1180, 1200, 1381]) {
-      const minimums = readingRoomMinimums(width);
-      expect(minimums.contents).toBe(240);
-      expect(minimums.right).toBe(320);
-      expect(minimums.contents + 1 + minimums.workspace).toBe(width);
+  it("leaves drag room instead of consuming the entire desktop width", () => {
+    for (const width of [1020, 1024, 1180, 1280, 1381, 1440, 1920]) {
+      const minimums = readingRoomMinimums();
+      expect(minimums.contents + 1 + minimums.workspace).toBeLessThanOrEqual(width - 150);
       expect(minimums.workspace).toBe(minimums.main + 1 + minimums.right);
+      expect(minimums.main).toBeGreaterThanOrEqual(420);
     }
   });
+});
 
-  it("never lets main fall below 420px", () => {
-    expect(readingRoomMinimums(900).main).toBe(420);
-  });
+it("preserves the initial composition independently of drag minimums", () => {
+  expect(readingRoomInitialSizes(1020)).toEqual({contents: 240, main: 458, right: 320});
+  expect(readingRoomInitialSizes(1280)).toEqual({contents: 240, main: 718, right: 320});
+  expect(readingRoomInitialSizes(1440)).toEqual({contents: 320, main: 720, right: 398});
 });

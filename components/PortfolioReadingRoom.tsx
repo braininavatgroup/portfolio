@@ -35,6 +35,7 @@ import {
 import {
   DEFAULT_READING_ROOM_LAYOUT,
   readingRoomMinimums,
+  readingRoomInitialSizes,
   parseReadingRoomLayout,
   serializeReadingRoomLayout,
   setReadingRoomViewHidden,
@@ -433,9 +434,9 @@ export function PortfolioReadingRoom({
     getViewportWidth,
     getViewportWidthServerSnapshot,
   );
-  // Below 1382px the three regions shrink together so the page never scrolls
-  // sideways (tablet portrait reads as a fixed window, like a laptop).
-  const minimums = readingRoomMinimums(viewportWidth);
+  // Opening proportions and drag limits are separate so compact desktops remain resizable.
+  const minimums = readingRoomMinimums();
+  const initialSizes = readingRoomInitialSizes(viewportWidth);
   const layoutStorage = useMemo(
     () => storage ?? createVisitStorage(),
     [storage],
@@ -466,6 +467,29 @@ export function PortfolioReadingRoom({
     main: createRef<HTMLDivElement>(),
     top: createRef<HTMLDivElement>(),
   }));
+
+  // The server guesses a desktop width. Resolve that guess once after hydration;
+  // subsequent user resizing owns the layout for the rest of this visit.
+  const initialCompositionApplied = useRef(false);
+  useLayoutEffect(() => {
+    if (!isDesktop || storage || initialCompositionApplied.current) return;
+    let innerFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      const sizes = readingRoomInitialSizes(window.innerWidth);
+      const width = window.innerWidth - 1;
+      outerGroupRef.current?.setLayout({
+        contents: sizes.contents / width * 100,
+        workspace: (1 - sizes.contents / width) * 100,
+      });
+      // The nested group needs its final width before converting its constraints.
+      innerFrame = requestAnimationFrame(() => {
+        const total = sizes.main + sizes.right;
+        primaryGroupRef.current?.setLayout({main: sizes.main / total * 100, right: sizes.right / total * 100});
+        initialCompositionApplied.current = true;
+      });
+    });
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(innerFrame); };
+  }, [isDesktop, outerGroupRef, primaryGroupRef, storage]);
 
   const outerPersistence = useDefaultLayout({
     id: "reading-room-outer",
@@ -806,7 +830,10 @@ export function PortfolioReadingRoom({
           />
         </span>
         <Group
-          defaultLayout={outerPersistence.defaultLayout}
+          defaultLayout={outerPersistence.defaultLayout ?? {
+            contents: initialSizes.contents / (viewportWidth - 1) * 100,
+            workspace: (1 - initialSizes.contents / (viewportWidth - 1)) * 100,
+          }}
           id="reading-room-outer"
           groupRef={outerGroupRef}
           onLayoutChanged={persistAndNotify(outerPersistence.onLayoutChanged)}
@@ -815,7 +842,7 @@ export function PortfolioReadingRoom({
           <Panel
             collapsedSize={0}
             collapsible
-            defaultSize={320}
+            defaultSize={initialSizes.contents}
             groupResizeBehavior="preserve-pixel-size"
             id="contents"
             minSize={minimums.contents}
@@ -845,13 +872,16 @@ export function PortfolioReadingRoom({
           />
           <Panel id="workspace" minSize={minimums.workspace}>
             <Group
-              defaultLayout={primaryPersistence.defaultLayout}
+              defaultLayout={primaryPersistence.defaultLayout ?? {
+                main: initialSizes.main / (initialSizes.main + initialSizes.right) * 100,
+                right: initialSizes.right / (initialSizes.main + initialSizes.right) * 100,
+              }}
               id="reading-room-primary"
               groupRef={primaryGroupRef}
               onLayoutChanged={persistAndNotify(primaryPersistence.onLayoutChanged)}
               orientation="horizontal"
             >
-              <Panel defaultSize={`${DEFAULT_READING_ROOM_LAYOUT.split * 100}%`} id="main" minSize={minimums.main}>
+              <Panel defaultSize={initialSizes.main} id="main" minSize={minimums.main}>
                 <DesktopSlot
                   activeDragView={activeDragView}
                   bodyRef={slotBodies.main}
@@ -877,7 +907,7 @@ export function PortfolioReadingRoom({
                 collapsedSize={0}
                 collapsible
                 data-collapsed={rightCollapsed ? "true" : "false"}
-                defaultSize={`${(1 - DEFAULT_READING_ROOM_LAYOUT.split) * 100}%`}
+                defaultSize={initialSizes.right}
                 id="right"
                 minSize={minimums.right}
                 onResize={(size: PanelSize) => setRightCollapsed(size.inPixels === 0)}
