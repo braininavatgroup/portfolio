@@ -11,12 +11,12 @@
  * page and piped straight to ffmpeg, so nothing depends on real-time playback.
  */
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
-import { createRequire } from "node:module";
+import { rmSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startServer, specNames } from "./server.mjs";
+import { assertRenderTools, cachedBrowser, loadPlaywright } from "./tools.mjs";
 import { filmPath } from "./films.mjs";
 import { resolveSpec } from "./public/spec.mjs";
 
@@ -42,71 +42,6 @@ function parseArguments(argv) {
     else throw new Error(`Unknown option ${flag}`);
   }
   return options;
-}
-
-function loadPlaywright() {
-  const require = createRequire(import.meta.url),
-    home = process.env.HOME ?? "",
-    candidates = [
-      process.env.PLAYWRIGHT_MODULE,
-      "playwright",
-      path.join(home, ".npm-global/lib/node_modules/playwright"),
-      ...npxPlaywrightModules(home),
-    ].filter(Boolean);
-  for (const candidate of candidates) {
-    try {
-      return require(candidate);
-    } catch {
-      // Try the next resolution path.
-    }
-  }
-  throw new Error(
-    "Playwright is not installed. Run `npx playwright install chromium`, or set " +
-      "PLAYWRIGHT_MODULE to an installed copy.",
-  );
-}
-
-/** Copies npx has already unpacked, newest first. Often the only ones with browsers. */
-function npxPlaywrightModules(home) {
-  const root = path.join(home, ".npm/_npx");
-  try {
-    return readdirSync(root)
-      .map((entry) => path.join(root, entry, "node_modules/playwright"))
-      .filter((module) => existsSync(module))
-      .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * A Playwright package pins one browser build, and the shared cache may hold a
- * different one — installed by another tool on this machine. Rather than fail,
- * the runner points the launch at the newest cached headless shell.
- */
-function cachedChromium() {
-  const root = path.join(
-    process.env.HOME ?? "",
-    "Library/Caches/ms-playwright",
-  );
-  const shells = [
-    ["chromium_headless_shell-", "chrome-headless-shell-mac-arm64/chrome-headless-shell"],
-    ["chromium-", "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"],
-  ];
-  try {
-    const builds = readdirSync(root);
-    for (const [prefix, suffix] of shells) {
-      const match = builds
-        .filter((entry) => entry.startsWith(prefix))
-        .sort((a, b) => Number(b.slice(prefix.length)) - Number(a.slice(prefix.length)))[0];
-      if (!match) continue;
-      const executable = path.join(root, match, suffix);
-      if (existsSync(executable)) return executable;
-    }
-  } catch {
-    // Fall through to Playwright's own resolution.
-  }
-  return null;
 }
 
 function stamp() {
@@ -146,7 +81,7 @@ async function launchBrowser() {
   try {
     return await chromium.launch(options);
   } catch (error) {
-    const executablePath = /Executable doesn't exist/.test(error.message) && cachedChromium();
+    const executablePath = /Executable doesn't exist/.test(error.message) && cachedBrowser();
     if (!executablePath) throw error;
     return chromium.launch({ ...options, executablePath });
   }
@@ -212,8 +147,10 @@ function write(stream, chunk) {
 }
 
 async function main() {
-  const options = parseArguments(process.argv.slice(2)),
-    available = await specNames();
+  const options = parseArguments(process.argv.slice(2));
+  // Say what the machine is missing before spending twenty seconds finding out.
+  await assertRenderTools();
+  const available = await specNames();
   const specName = options.spec ?? available[0];
   if (!specName) throw new Error("No specs found under scripts/clip-studio/specs");
   if (!available.includes(specName))

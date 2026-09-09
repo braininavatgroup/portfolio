@@ -6,6 +6,7 @@
  */
 import { spawn } from "node:child_process";
 import { mkdir, rename, stat } from "node:fs/promises";
+import { ffmpegAdvice, hasFfmpeg } from "./tools.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,6 +79,7 @@ export async function filmPath(name, { width = 1080, height = 1920 } = {}) {
         "set PORTFOLIO_CLIP_NMF_STORY to its path.",
     );
   }
+  if (!(await hasFfmpeg())) throw new Error(ffmpegAdvice);
   await mkdir(dir, { recursive: true });
   await transcode(source, target, width, height);
   return target;

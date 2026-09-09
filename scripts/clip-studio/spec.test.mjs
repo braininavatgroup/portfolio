@@ -455,3 +455,29 @@ test("the server lists specs, serves them, and refuses paths that escape", async
     server.close();
   }
 });
+
+test("the machine's tools are named rather than failing part-way", async () => {
+  const { assertRenderTools, cachedBrowser, ffmpegAdvice, hasFfmpeg, loadPlaywright, playwrightAdvice } =
+    await import("./tools.mjs");
+
+  // ffmpeg is a prerequisite of this repository's own checks, so it is here.
+  assert.equal(await hasFfmpeg(), true);
+  assert.match(ffmpegAdvice, /brew install ffmpeg/);
+  assert.match(playwrightAdvice, /npm run clip:setup/);
+
+  // A machine with no Playwright at all is told what to run, not shown a
+  // resolution error from deep inside the renderer.
+  assert.throws(
+    () =>
+      loadPlaywright(() => {
+        throw new Error("Cannot find module");
+      }),
+    /clip:setup/,
+  );
+
+  // The cached-browser fallback answers with a path or nothing, never a throw.
+  const cached = cachedBrowser("/nowhere-on-this-machine");
+  assert.equal(cached, null);
+
+  await assertRenderTools();
+});

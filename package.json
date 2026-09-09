@@ -37,6 +37,7 @@
     "predev": "npm run build:sharing",
     "clip:studio": "node scripts/clip-studio/server.mjs",
     "clip:render": "node scripts/clip-studio/render.mjs",
+    "clip:setup": "npx --yes playwright@1.58.2 install chromium",
     "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs",
     "insights": "node scripts/portfolio-insights.mjs"
   },
