@@ -65,14 +65,14 @@ describe("design gallery route", () => {
       const pattern = mark.querySelector<HTMLElement>('.portfolio-control-pattern[data-pattern="brain"]')!;
 
       expect(pattern).not.toBeNull();
-      expect(pattern.style.getPropertyValue("--control-shape")).toContain("data:image/svg+xml");
+      expect(pattern.style.getPropertyValue("--control-shape")).toContain(`/glyph-textures/${kind}.svg`);
     }
 
     expect(
       document
         .querySelector('#marks .portfolio-control-mark[data-control="chat"] svg > path')
         ?.getAttribute("stroke-width"),
-    ).toBe("1.15");
+    ).toBe("1.25");
   });
 
   /**

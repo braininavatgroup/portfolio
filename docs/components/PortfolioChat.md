@@ -62,3 +62,5 @@ export function PortfolioChatExample() {
 - The first server and client render both assume online. Actual `navigator.onLine` state is synchronized after mount to keep hydration stable.
 - `useLocalRuntime` owns thread detach and request cancellation on unmount; the
   Guide only clears its local timer and request reference in component cleanup.
+
+Guide actions use `PortfolioControlGlyph` directly: compact copy (16px), inline latest/send (18px). Suggestions use the evidence-linked node marks from main. There is no Guide-specific SVG renderer. The latest-reply wrapper rotates the shared chevron downward.

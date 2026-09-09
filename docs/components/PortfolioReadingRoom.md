@@ -5,8 +5,8 @@ Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadin
 At 1020px and above, Contents sits beside three slots; dragging a 40px bar swaps
 Reader, Map, or Guide. Below 1020px, Contents, Reader, and Map become tabs;
 Map holds Guide at 52/48. Sizes, slots, and collapse state last only for the visit.
-Fresh loads and Reset layout restore Reader main, Map upper right, Guide lower right,
-default sizes, and open panels. Reset preserves article/chat state; Brain Food disables it.
+Fresh loads restore Reader main, Map upper right, Guide lower right,
+default sizes, and open panels. There is no manual reset control.
 
 ## Props
 
@@ -18,7 +18,7 @@ use `onHome`, `onGuideReset`, `guideHasThread`, and `onGuideVisibilityChange`;
 `viewRequest` reveals a view (reopens its column or slot; switches tab below
 1020px); `mobileTabRequest` picks a mobile tab; `onEscapeBeforeRoom` can consume
 Escape before Guide reset/Home. `storage` is an in-memory test seam; never inject browser storage.
-`avatarHidden` and `onToggleAvatar` place Hide/Show beside Read in the mobile toolbar. The canvas occupies the remaining height below that row; Read has no arrow. `gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
+`avatarHidden` and `onToggleAvatar` place the avatar toggle in the Guide bar on desktop and beside Read in the mobile toolbar. The toggle follows the Guide when panes swap. It is absent while its desktop pane is minimized and returns with the same avatar state when reopened. The canvas occupies the remaining height below that row; Read has no arrow. `gameMode` temporarily makes Map full-window; stored slots, tabs, sizes, and collapsed states resume on exit.
 
 ## Requires
 

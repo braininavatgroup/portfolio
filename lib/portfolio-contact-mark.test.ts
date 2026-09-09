@@ -1,3 +1,4 @@
+import { svgPathBbox } from "svg-path-bbox";
 import { describe, expect, it } from "vitest";
 import {
   portfolioContactMarkKinds,
@@ -21,8 +22,8 @@ describe("contact marks", () => {
             expect(Math.abs(y)).toBeLessThanOrEqual(HALF_ENVELOPE);
           }
         } else if (primitive.kind === "path") {
-          for (const value of primitive.d.match(/-?\d+(\.\d+)?/g) ?? []) {
-            expect(Math.abs(Number(value))).toBeLessThanOrEqual(HALF_ENVELOPE);
+          for (const value of svgPathBbox(primitive.d)) {
+            expect(Math.abs(value)).toBeLessThanOrEqual(HALF_ENVELOPE + 0.00001);
           }
         }
       }

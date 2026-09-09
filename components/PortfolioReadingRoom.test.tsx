@@ -121,6 +121,37 @@ afterEach(() => {
 });
 
 describe("PortfolioReadingRoom desktop", () => {
+  it("hides the avatar action while Guide is minimized and restores its state on reopen", () => {
+    const onToggleAvatar = vi.fn();
+    render(<PortfolioReadingRoom {...roomProps()} avatarHidden onToggleAvatar={onToggleAvatar} />);
+    expect(screen.getByRole("button", { name: "Show avatar" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Hide lower view" }));
+    expect(screen.queryByRole("button", { name: "Show avatar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hide avatar" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show lower view" }));
+    expect(screen.getByRole("button", { name: "Show avatar" }).getAttribute("aria-pressed")).toBe("false");
+    expect(onToggleAvatar).not.toHaveBeenCalled();
+  });
+
+  it("keeps the avatar toggle in the Guide bar before a conversation starts", () => {
+    const onToggleAvatar = vi.fn();
+    const props = { ...roomProps(), onToggleAvatar, avatarHidden: false };
+    const { container, rerender } = render(<PortfolioReadingRoom {...props} />);
+    const toggle = screen.getByRole("button", { name: "Hide avatar" });
+    expect(toggle.closest(".portfolio-reading-room-view-controls")).not.toBeNull();
+    expect(toggle.closest('[data-view="guide"]')).not.toBeNull();
+    expect(toggle.closest(".portfolio-reading-room-pane-body")).toBeNull();
+    fireEvent.click(toggle);
+    expect(onToggleAvatar).toHaveBeenCalledOnce();
+    rerender(<PortfolioReadingRoom {...props} avatarHidden />);
+    expect(screen.getByRole("button", { name: "Show avatar" }).getAttribute("aria-pressed")).toBe("false");
+    expect(container.querySelectorAll('[data-control="avatarHidden"]')).toHaveLength(1);
+    rerender(<PortfolioReadingRoom {...props} guideHasThread />);
+    const guideControls = container.querySelector('[data-view="guide"] > .portfolio-reading-room-view-controls');
+    expect(Array.from(guideControls!.querySelectorAll('button')).map(button => button.dataset.control))
+      .toEqual(["newChat", "avatarShown", "panelBottom"]);
+  });
+
   it("places one Reader, Map, and Guide in the default desktop slots", () => {
     const { container } = render(<PortfolioReadingRoom {...roomProps()} />);
 
@@ -802,7 +833,7 @@ describe("Reading Room stylesheet", () => {
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-tab\s*\{[^}]*gap:\s*4px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-tabs\s*\{[^}]*justify-content:\s*space-around/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-global-controls\s*\{[^}]*right:\s*17px/);
-    expect(stylesheet).toMatch(/\.portfolio-reading-room-pane\[data-reading-room-slot="top"\] \.portfolio-reading-room-view-controls,\s*\.portfolio-reading-room-desktop\[data-right-collapsed="true"\] \.portfolio-reading-room-pane\[data-reading-room-slot="main"\] \.portfolio-reading-room-view-controls\s*\{[^}]*right:\s*157px/);
+    expect(stylesheet).toMatch(/\.portfolio-reading-room-pane\[data-reading-room-slot="top"\] \.portfolio-reading-room-view-controls,\s*\.portfolio-reading-room-desktop\[data-right-collapsed="true"\] \.portfolio-reading-room-pane\[data-reading-room-slot="main"\] \.portfolio-reading-room-view-controls\s*\{[^}]*right:\s*57px/);
     expect(stylesheet).toMatch(/\.portfolio-reading-room-mobile-guide \.portfolio-guide-send\s*\{[^}]*height:\s*32px/);
     expect(stylesheet).toMatch(/\.portfolio-contents-scroll,\s*\.reader-scroll,\s*\.portfolio-chat-thread\s*\{[^}]*scrollbar-width:\s*none/);
     expect(stylesheet).toMatch(/\.reader-scroll::-webkit-scrollbar[^{]*\{[^}]*display:\s*none/);

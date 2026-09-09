@@ -1169,6 +1169,8 @@ input:focus-visible {
 .portfolio-node-mark {
   color: var(--world-identity);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   flex: 0 0 18px;
   height: 18px;
   place-items: center;
@@ -1187,17 +1189,16 @@ input:focus-visible {
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: miter;
-  stroke-width: 1.45;
+  stroke-linejoin: round;
   width: 18px;
 }
 
 .portfolio-node-brain {
-  -webkit-mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
+  -webkit-mask: url("/glyph-textures/circle.svg") center / 20px 20px no-repeat;
   background: currentColor;
-  height: 18px;
-  mask: url("/biv-brain-symbol.svg") center / contain no-repeat;
-  width: 18px;
+  height: 20px;
+  mask: url("/glyph-textures/circle.svg") center / 20px 20px no-repeat;
+  width: 20px;
 }
 
 /* A control is a node mark: the bare glyph in the node envelope, an
@@ -1228,6 +1229,8 @@ input:focus-visible {
 
 .portfolio-control-glyph {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   height: 40px;
   margin: -11px 0;
   place-items: center;
@@ -1236,42 +1239,47 @@ input:focus-visible {
 
 .portfolio-control-glyph svg {
   fill: none;
-  height: 18px;
+  height: 20px;
   overflow: visible;
   stroke: currentColor;
   stroke-linecap: round;
-  stroke-linejoin: miter;
-  stroke-width: 1.45;
-  width: 18px;
+  stroke-linejoin: round;
+  width: 20px;
 }
 
-/* Map and Guide interiors: the outline shape intersected with the brain at
-   the same scale as Reader, in currentColor. Pure CSS, so a cloned bar keeps its pattern. */
+/* Each silhouette clips a separately rotated, offset brain texture. */
 .portfolio-control-glyph > * {
   grid-area: 1 / 1;
 }
 
-.portfolio-control-pattern {
-  -webkit-mask-composite: source-in;
-  -webkit-mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain, 100% 100%;
-  background: currentColor;
-  height: 18px;
-  mask-composite: intersect;
-  mask-image: var(--control-shape), url("/biv-brain-symbol.svg");
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain, 100% 100%;
-  width: 18px;
+/* Compact patterned glyphs scale as one artwork surface, including the crop. */
+.portfolio-control-pattern-frame {
+  display: grid;
+  height: 20px;
+  place-items: center;
+  width: 20px;
 }
 
-.portfolio-control-mark[data-control="send"] .portfolio-control-glyph svg,
-.portfolio-control-mark[data-control="minimize"] .portfolio-control-glyph svg {
-  height: 14px;
-  width: 14px;
+.portfolio-control-pattern-frame > * {
+  grid-area: 1 / 1;
 }
+
+.portfolio-control-pattern {
+  -webkit-mask: var(--control-shape) center / contain no-repeat;
+  background: currentColor;
+  height: 20px;
+  mask: var(--control-shape) center / contain no-repeat;
+  width: 20px;
+}
+
+.portfolio-control-glyph[data-control-glyph="avatarHidden"] {
+  color: var(--reader-muted);
+}
+
+.portfolio-control-glyph[data-control-glyph="avatarShown"] {
+  color: var(--ink);
+}
+
 
 .portfolio-control-label {
   color: var(--ink);
@@ -1570,7 +1578,7 @@ body:has(.portfolio-reading-room-desktop) {
 .portfolio-reading-room-view-bar {
   align-items: center;
   background: var(--reader-paper);
-  border-bottom: 1px solid var(--map-line);
+  box-shadow: inset 0 -1px var(--map-line);
   color: var(--ink);
   cursor: grab !important;
   display: flex;
@@ -1578,7 +1586,7 @@ body:has(.portfolio-reading-room-desktop) {
   height: 40px;
   justify-content: space-between;
   min-width: 0;
-  padding: 0 17px 0 24px;
+  padding: 0 17px;
   position: relative;
   touch-action: none;
   user-select: none;
@@ -1616,17 +1624,17 @@ body:has(.portfolio-reading-room-desktop) {
 
 .portfolio-reading-room-view-mark {
   display: grid;
-  flex: 0 0 18px;
-  height: 18px;
+  flex: 0 0 32px;
+  height: 32px;
   place-items: center;
-  width: 18px;
+  width: 32px;
 }
 
 .portfolio-reading-room-view-mark .portfolio-node-mark,
 .portfolio-reading-room-view-mark .portfolio-control-glyph {
-  height: 18px;
+  height: 32px;
   margin: 0;
-  width: 18px;
+  width: 32px;
 }
 
 .portfolio-reading-room-view-label {
@@ -1649,10 +1657,10 @@ body:has(.portfolio-reading-room-desktop) {
   z-index: 7;
 }
 
-/* Leave room for Reset layout and the side-panes toggle in the top bar. */
+/* Leave room for the side-panes toggle in the top bar. */
 .portfolio-reading-room-pane[data-reading-room-slot="top"] .portfolio-reading-room-view-controls,
 .portfolio-reading-room-desktop[data-right-collapsed="true"] .portfolio-reading-room-pane[data-reading-room-slot="main"] .portfolio-reading-room-view-controls {
-  right: 157px;
+  right: 57px;
 }
 
 .portfolio-reading-room-view-controls .portfolio-control-mark,
@@ -1742,25 +1750,6 @@ body:has(.portfolio-reading-room-desktop) {
   top: 4px;
   width: auto;
   z-index: 20;
-}
-
-.portfolio-reading-room-reset {
-  background: var(--reader-paper);
-  border: 0;
-  border-radius: 4px;
-  color: var(--ink);
-  font: var(--reader-type-caption) var(--font-reader);
-  min-height: 32px;
-  padding-inline: var(--reader-space-1);
-}
-
-.portfolio-reading-room-reset:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.portfolio-reading-room-reset:disabled {
-  opacity: 0.5;
 }
 
 .portfolio-reading-room-home,
@@ -2156,10 +2145,6 @@ body:has(.portfolio-reading-room-mobile) {
   width: 18px;
 }
 
-.portfolio-reading-room-mobile-tab .portfolio-node-brain {
-  height: 18px;
-  width: 18px;
-}
 
 .portfolio-reading-room-mobile-tab .portfolio-control-label {
   color: inherit;
@@ -2196,7 +2181,7 @@ body:has(.portfolio-reading-room-mobile) {
 
 .portfolio-contents-mast {
   align-items: center;
-  border-bottom: 1px solid var(--map-line);
+  box-shadow: inset 0 -1px var(--map-line);
   display: flex;
   flex: 0 0 40px;
   gap: 3px;
@@ -3303,10 +3288,6 @@ body:has(.portfolio-reading-room-mobile) {
   width: 24px;
 }
 
-.portfolio-guide-copy .portfolio-control-glyph svg {
-  height: 16px;
-  width: 16px;
-}
 
 .portfolio-guide-slow {
   align-items: center;
@@ -3466,10 +3447,6 @@ body:has(.portfolio-reading-room-mobile) {
   width: 28px;
 }
 
-.portfolio-guide-send .portfolio-control-glyph svg {
-  height: 18px;
-  width: 18px;
-}
 
 .portfolio-reading-room-mobile-guide .portfolio-chat-composer {
   background: var(--map-paper);
@@ -5177,4 +5154,12 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
 
 .portfolio-reading-room-map-canvas .portfolio-world-mast {
   display: none;
+}
+
+.portfolio-guide-avatar-toggle.portfolio-control-mark,
+.portfolio-reading-room-avatar-toggle.portfolio-control-mark {
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  width: 40px;
 }

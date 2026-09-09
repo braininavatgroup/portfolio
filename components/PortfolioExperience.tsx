@@ -329,7 +329,6 @@ export function PortfolioExperience() {
     <PortfolioChat
       avatarIntegration={avatarIntegration}
       actionAvailability={{ status: avatarHidden ? "hidden" : avatarStatus, reducedMotion, gameSupported }}
-      onToggleAvatar={() => { brainFood.cancel(); setAvatarHidden(hidden => !hidden); }}
       onLayoutChange={refreshAvatarDock}
       onNavigateEvidence={navigateGuideEvidence}
       onThreadStateChange={setGuideHasThread}

@@ -700,7 +700,7 @@ describe("PortfolioWorld canvas paint", () => {
       />,
     );
 
-    expect(source).toBe("/biv-brain-symbol.svg");
+    expect(source).toBe("/glyph-textures/circle.svg");
   });
 
   it("fades label-clipped connectors in their resolved hue", async () => {
@@ -738,11 +738,11 @@ describe("PortfolioWorld canvas paint", () => {
     expect(record.strokeStyles).toContain("rgb(1, 2, 3)");
   });
 
-  it("paints the overview relationship web at readable opacity", async () => {
+  it("keeps overview connections present but quieter than selected-map connections", async () => {
     const connector = "rgb(12, 34, 56)";
     const record = paintWithConnector(connector);
     await new Promise(resolve => requestAnimationFrame(() => resolve(null)));
-    expect(record.strokes.filter(stroke => stroke.style === connector && stroke.alpha >= 0.35).length).toBeGreaterThan(12);
+    expect(record.strokes.filter(stroke => stroke.style === connector && stroke.alpha > 0.1 && stroke.alpha <= 0.4).length).toBeGreaterThan(12);
   });
 
   it("strokes the selected map trunk and strongest branch as one joined path", async () => {
@@ -807,7 +807,7 @@ describe("PortfolioWorld canvas paint", () => {
       '400 12.5px "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif',
     );
     expect(
-      record.drawImageWidths.some((width) => Math.abs(width - 20.58) < 0.001),
+      record.drawImageWidths.some((width) => Math.abs(width * 0.9 - 20.58) < 0.001),
     ).toBe(true);
   });
 

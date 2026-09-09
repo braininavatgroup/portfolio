@@ -70,7 +70,7 @@ describe("ReaderCarousel", () => {
     const items = container.querySelectorAll(".reader-carousel-item");
     const adriatique = items[0].querySelector(".reader-carousel-card")!;
     expect(adriatique.querySelector("strong")?.textContent).toBe("Adriatique");
-    expect(adriatique.querySelector("span")).toBeNull();
+    expect(adriatique.querySelector(":scope > span")).toBeNull();
     const links = [...adriatique.querySelectorAll("a")];
     expect(links.map((link) => link.getAttribute("aria-label"))).toEqual([
       "Adriatique on Instagram", "Adriatique on Spotify",

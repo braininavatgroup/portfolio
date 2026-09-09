@@ -1,5 +1,7 @@
+import { PORTFOLIO_GLYPH, PORTFOLIO_GLYPH_SIZES, type PortfolioGlyphSize } from "../lib/portfolio-glyph-metrics";
+const CONTROL_STROKE = PORTFOLIO_GLYPH.control.stroke;
+const CONTROL_SURFACE_SIZE = PORTFOLIO_GLYPH.control.surface;
 import {
-  PORTFOLIO_NODE_MARK_SIZE,
   portfolioNodeMarkPrimitives,
   type PortfolioNodeMarkPrimitive,
 } from "../lib/portfolio-node-mark";
@@ -9,6 +11,7 @@ import {
 } from "../lib/portfolio-contact-mark";
 import {
   portfolioControlMarkPrimitives,
+  portfolioControlCrops,
   type PortfolioControlMarkKind,
 } from "../lib/portfolio-control-mark";
 import type {
@@ -17,13 +20,15 @@ import type {
 } from "../lib/portfolio-world";
 import type { ComponentPropsWithRef, CSSProperties } from "react";
 
-function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimitive[] }) {
-  const halfViewBox = PORTFOLIO_NODE_MARK_SIZE * 0.6;
+function MarkGlyph({ primitives, control = false, size }: { primitives: readonly PortfolioNodeMarkPrimitive[]; control?: boolean; size?: number }) {
+  const halfViewBox = control ? CONTROL_SURFACE_SIZE / 2 : PORTFOLIO_GLYPH.node.surface / 2;
   return (
     <svg
+      style={size ? { width: size, height: size } : undefined}
       focusable="false"
       viewBox={`${-halfViewBox} ${-halfViewBox} ${halfViewBox * 2} ${halfViewBox * 2}`}
     >
+      <g strokeWidth={control ? CONTROL_STROKE : PORTFOLIO_GLYPH.node.stroke} strokeLinecap={PORTFOLIO_GLYPH.lineCap} strokeLinejoin={PORTFOLIO_GLYPH.lineJoin}>
       {primitives.map((primitive, index) => {
         if (primitive.kind === "circle") {
           return (
@@ -31,6 +36,7 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
               cx={primitive.x}
               cy={primitive.y}
               fill={primitive.fill ? "currentColor" : "none"}
+              vectorEffect={control ? "non-scaling-stroke" : undefined}
               key={index}
               r={primitive.radius}
             />
@@ -41,6 +47,7 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
           return (
             <Mark
               fill={primitive.fill ? "currentColor" : "none"}
+              vectorEffect={control ? "non-scaling-stroke" : undefined}
               key={index}
               points={primitive.points.map(({ x, y }) => `${x},${y}`).join(" ")}
             />
@@ -53,6 +60,7 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
             <path
               d={primitive.d}
               fill={primitive.fill ? "currentColor" : "none"}
+              vectorEffect={control ? "non-scaling-stroke" : undefined}
               key={index}
               stroke={primitive.fill ? "none" : undefined}
             />
@@ -60,36 +68,28 @@ function MarkGlyph({ primitives }: { primitives: readonly PortfolioNodeMarkPrimi
         }
         return null;
       })}
+      </g>
     </svg>
   );
 }
 
-function shapeMask(d: string) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='-9 -9 18 18'><path d='${d}' fill='#000'/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-}
-
-// The brain pattern is a CSS mask (the outline shape intersected with the
-// brain at its native scale), exactly as the prototype draws it. It references no SVG ids,
-// so a cloned bar — dnd-kit copies the bar while it drags — keeps its
-// pattern instead of resolving a duplicate id to a hidden element.
-function PatternedControlGlyph({ kind }: { kind: "map" | "chat" }) {
+// Each SVG image contains vector cropping and clipping in one rasterization.
+// Its internal IDs are isolated from the document and from drag clones.
+function PatternedControlGlyph({ kind }: { kind: keyof typeof portfolioControlCrops }) {
   const [outline] = portfolioControlMarkPrimitives(kind);
   if (outline.kind !== "path") return null;
-
+  if (kind === "avatarHidden") {
+    return <svg focusable="false" viewBox="-10 -10 20 20"><path d={outline.d} fill="currentColor" stroke="currentColor" strokeWidth={CONTROL_STROKE} vectorEffect="non-scaling-stroke" /></svg>;
+  }
   return (
     <>
       <span
         className="portfolio-control-pattern"
         data-pattern="brain"
-        style={{ "--control-shape": shapeMask(outline.d) } as CSSProperties}
+        style={{ "--control-shape": `url("/glyph-textures/${kind}.svg")` } as CSSProperties}
       />
-      <svg focusable="false" viewBox="-9 -9 18 18">
-        <path
-          d={outline.d}
-          fill="none"
-          strokeWidth={kind === "chat" ? 1.15 : undefined}
-        />
+      <svg focusable="false" viewBox="-10 -10 20 20">
+        <path d={outline.d} fill="none" strokeWidth={CONTROL_STROKE} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
       </svg>
     </>
   );
@@ -158,19 +158,23 @@ export function PortfolioControlMark({
       type={type}
       {...rest}
     >
-      <PortfolioControlGlyph kind={kind} />
+      <PortfolioControlGlyph kind={kind} size={kind === "send" || kind === "minimize" ? "small" : "standard"} />
       {label ? <span className="portfolio-control-label">{label}</span> : null}
     </button>
   );
 }
 
-export function PortfolioControlGlyph({ kind }: { kind: PortfolioControlMarkKind }) {
+export function PortfolioControlGlyph({ kind, size = "standard" }: { kind: PortfolioControlMarkKind; size?: PortfolioGlyphSize }) {
   return (
-    <span aria-hidden="true" className="portfolio-control-glyph" data-control-glyph={kind}>
-      {kind === "map" || kind === "chat" ? (
-        <PatternedControlGlyph kind={kind} />
+    <span aria-hidden="true" className="portfolio-control-glyph" data-control-glyph={kind} data-glyph-size={size}>
+      {kind === "map" || kind === "chat" || kind === "avatarShown" || kind === "avatarHidden" ? (
+        size === "standard" ? <PatternedControlGlyph kind={kind} /> : (
+          <span className="portfolio-control-pattern-frame" style={{ transform: `scale(${PORTFOLIO_GLYPH_SIZES[size] / CONTROL_SURFACE_SIZE})` }}>
+            <PatternedControlGlyph kind={kind} />
+          </span>
+        )
       ) : (
-        <MarkGlyph primitives={portfolioControlMarkPrimitives(kind)} />
+        <MarkGlyph control size={PORTFOLIO_GLYPH_SIZES[size]} primitives={portfolioControlMarkPrimitives(kind)} />
       )}
     </span>
   );

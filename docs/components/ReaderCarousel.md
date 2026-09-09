@@ -58,4 +58,4 @@ BiV (`music-practice`) and INFAMOUS (`infamous`) use the same `readyCarousel` he
 
 BiV's 45 clients come from https://braininavat.dance/, checked 8 September 2026. Port London's Instagram source was `n`; keep only Spotify. INFAMOUS has Bradley's trimmed 20-client list and images in `public/visuals/clients/infamous/`; provenance is in [`docs/content/infamous-client-assets.json`](../content/infamous-client-assets.json). Names live in the content document; URLs in `lib/portfolio-structure.ts`.
 
-Sita Abellán links to SITA; Totally Enormous Extinct Dinosaurs to TEED; KH / Four Tet uses Four Tet's profiles. Instagram uses the source site's outline glyph. Spotify and Beatport use Simple Icons in currentColor at 18px inside 24px targets.
+Sita Abellán links to SITA; Totally Enormous Extinct Dinosaurs to TEED; KH / Four Tet uses Four Tet's profiles. Social marks use `PortfolioContactMark`: Instagram shares Contact’s outline; Spotify and Beatport retain their original brand paths. The shared 18px mark renderer sits inside 24px targets.
