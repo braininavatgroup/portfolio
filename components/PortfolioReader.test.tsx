@@ -912,12 +912,11 @@ describe("PortfolioReader", () => {
     expect(container.querySelectorAll(".reader-visual-gallery img")).toHaveLength(2);
   });
 
-  it("keeps the real dashboard capture and live link available on other preview origins", () => {
+  it("keeps the real dashboard capture available on other preview origins", () => {
     vi.spyOn(reportEmbed, "isCampaignReportEmbedOrigin").mockReturnValue(false);
     const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
     expect(container.querySelector("iframe")).toBeNull();
     expect(screen.getByAltText(/Actual MAMA SAY campaign dashboard/).getAttribute("src")).toBe("/visuals/campaign/reporting-dashboard.png");
-    expect(screen.getByRole("link", { name: "Open live campaign report" })).toBeTruthy();
   });
 
   it("shows the reporting workflow directly, without a diagram or disclosure", () => {
@@ -958,13 +957,14 @@ describe("PortfolioReader", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it("links to the live campaign report separately from its gallery images", () => {
-    render(<PortfolioReader {...baseProps} selectedId="reporting" />);
-    const link = screen.getByRole("link", { name: "Open live campaign report" });
-    expect(link.getAttribute("href")).toBe("https://campaignreports.braininavat.dance/z8tfDu1OWgy9wN/");
-    expect(link.getAttribute("target")).toBe("_blank");
-    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(link.closest("button")).toBeNull();
+  // The report speaks for itself; the caption link that used to sit under it
+  // read as chrome and was removed.
+  it("shows the campaign report without a caption link out", () => {
+    const { container } = render(<PortfolioReader {...baseProps} selectedId="reporting" />);
+    const preview = container.querySelector(".reader-report-preview")!;
+    expect(preview).not.toBeNull();
+    expect(preview.querySelector("figcaption")).toBeNull();
+    expect(preview.querySelector("a")).toBeNull();
   });
 
   it("opens image and gallery blocks through the same reader overlay", () => {

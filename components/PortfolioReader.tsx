@@ -55,10 +55,7 @@ const homeNode = portfolioWorldNodeById.get(HOME_NODE_ID)!;
 const subscribeToReportOrigin = () => () => {};
 const canEmbedReport = () => isCampaignReportEmbedOrigin(window.location.origin);
 
-function CampaignReportPreview({ block, onOpen }: {
-  block: PortfolioVisualBlock;
-  onOpen: () => void;
-}) {
+function CampaignReportPreview({ block }: { block: PortfolioVisualBlock }) {
   const embedded = useSyncExternalStore(subscribeToReportOrigin, canEmbedReport, () => false);
   return (
     <figure className="reader-visual-block reader-report-preview" data-format="interactive">
@@ -74,18 +71,6 @@ function CampaignReportPreview({ block, onOpen }: {
       ) : (
         <img alt={block.alt ?? block.purpose} loading="lazy" src={block.src} />
       )}
-      <figcaption>
-        <a
-          className="reader-inline-link"
-          data-external="true"
-          href={block.href}
-          onClick={onOpen}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          {block.caption}
-        </a>
-      </figcaption>
     </figure>
   );
 }
@@ -451,14 +436,7 @@ function VisualBlock({
     if (block.preview === "touring") return <TouringDemo embedded />;
     if (block.preview === "quarterly-dashboard") return <QuarterlyDashboardPreview />;
     if (block.preview === "campaign-report" && block.href) {
-      return <CampaignReportPreview block={block} onOpen={() => {
-        trackPortfolioInsight("evidence_open", {
-          content_id: insightContent.contentId,
-          content_kind: insightContent.contentKind,
-          evidence_id: block.id,
-          evidence_kind: format,
-        });
-      }} />;
+      return <CampaignReportPreview block={block} />;
     }
     return null;
   }

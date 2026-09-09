@@ -419,6 +419,10 @@ body {
   border-radius: 0;
   min-height: 40px;
   padding: 8px 38px 8px 12px;
+  /* A select's automatic minimum size is its longest option, which pushes it
+     out of a narrow filter column. Let it take the column's width instead. */
+  min-width: 0;
+  width: 100%;
 }
 
 .quarterly-dashboard-filter:not(.quarterly-dashboard-filter-stage) {
@@ -3092,11 +3096,16 @@ body:has(.portfolio-reading-room-mobile) {
   outline-offset: 2px;
 }
 
-.reader-carousel-item:focus-within .reader-carousel-card {
+/* Focus reveals the card for keyboard users; data-open holds it open after a
+   tap, because touch browsers drop focus before the link's click lands
+   (components/ReaderCarousel.tsx). */
+.reader-carousel-item:focus-within .reader-carousel-card,
+.reader-carousel-item[data-open="true"] .reader-carousel-card {
   display: flex;
 }
 
-.reader-visual-block .reader-carousel-item:focus-within img {
+.reader-visual-block .reader-carousel-item:focus-within img,
+.reader-visual-block .reader-carousel-item[data-open="true"] img {
   filter: grayscale(0) drop-shadow(0 6px 9px var(--reader-media-shadow));
 }
 

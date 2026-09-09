@@ -34,6 +34,43 @@ describe("ReaderCarousel", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  // Touch browsers do not focus a link on tap, so a card kept open by focus
+  // alone vanishes before the platform link's click lands. A tapped card
+  // stays open on its own until another opens or the visitor presses away.
+  it("keeps a tapped card open without depending on focus", () => {
+    render(<ReaderCarousel assets={assets} label="Clients" />);
+    const trigger = screen.getByRole("button", { name: "Show details for Adriatique" });
+    fireEvent.pointerDown(trigger, { pointerType: "touch" });
+    const item = trigger.closest(".reader-carousel-item")!;
+    expect(item.getAttribute("data-open")).toBe("true");
+
+    fireEvent.blur(trigger);
+    expect(item.getAttribute("data-open")).toBe("true");
+
+    const link = screen.getByRole("link", { name: "Adriatique on Instagram" });
+    fireEvent.pointerDown(link, { bubbles: true, pointerType: "touch" });
+    expect(item.getAttribute("data-open")).toBe("true");
+
+    const other = screen.getByRole("button", { name: "Show details for Armada Music" });
+    fireEvent.pointerDown(other, { pointerType: "touch" });
+    expect(item.getAttribute("data-open")).toBeNull();
+    expect(other.closest(".reader-carousel-item")!.getAttribute("data-open")).toBe("true");
+
+    fireEvent.pointerDown(document.body, { bubbles: true, pointerType: "touch" });
+    expect(document.querySelector("[data-open='true']")).toBeNull();
+  });
+
+  // A mouse already reveals the card on hover; pinning it open on click would
+  // leave cards up and the strip paused behind the visitor.
+  it("leaves the mouse its hover-only card", () => {
+    render(<ReaderCarousel assets={assets} label="Clients" />);
+    const trigger = screen.getByRole("button", { name: "Show details for Adriatique" });
+    fireEvent.pointerDown(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+    expect(document.activeElement).toBe(trigger);
+    expect(document.querySelector("[data-open='true']")).toBeNull();
+  });
+
   it("publishes only absolute web addresses for client links", () => {
     const record = portfolioWorldNodes.find((node) => node.id === "music-practice")!;
     for (const block of record.body) {
