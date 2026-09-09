@@ -97,6 +97,65 @@ describe("quarterly dashboard", () => {
     expect(screen.getByRole("heading", { name: "Trend over time" })).not.toBeNull();
   });
 
+  it("keeps the headline figures whole when a competitor is selected", async () => {
+    const user = userEvent.setup();
+    render(<QuarterlyDashboard />);
+
+    const headline = () =>
+      screen.getByRole("button", { name: /Conversion rate/ }).textContent;
+    const before = headline();
+
+    await user.click(
+      screen.getByRole("button", { name: "Show pitches lost to Compass" }),
+    );
+
+    // Filtering the whole population to one competitor's losses would report
+    // 0 signed exclusives and 0% conversion. The selection scopes the detail.
+    expect(headline()).toBe(before);
+    expect(screen.getByRole("button", { name: /Signed exclusives/ }).textContent).toMatch(
+      /16/,
+    );
+    expect(screen.queryByText("Lost to Compass")).toBeNull();
+  });
+
+  it("clears a competitor by choosing it again", async () => {
+    const user = userEvent.setup();
+    render(<QuarterlyDashboard />);
+    const compass = () =>
+      screen.getByRole("button", { name: "Show pitches lost to Compass" });
+
+    await user.click(compass());
+    expect(compass().getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(compass());
+    expect(compass().getAttribute("aria-pressed")).toBe("false");
+    expect(getSelect("combobox", "Lost to").value).toBe("all");
+  });
+
+  it("scales both trend axes to readable whole steps", () => {
+    render(<QuarterlyDashboard />);
+
+    const counts = document.querySelector('[data-axis="count"]');
+    const rates = document.querySelector('[data-axis="rate"]');
+
+    expect([...counts!.children].map((tick) => tick.textContent)).toEqual([
+      "0",
+      "10",
+      "20",
+      "30",
+      "40",
+      "50",
+    ]);
+    expect([...rates!.children].map((tick) => tick.textContent)).toEqual([
+      "0%",
+      "10%",
+      "20%",
+      "30%",
+      "40%",
+      "50%",
+    ]);
+  });
+
   it("keeps filters when moving between summary and detail", async () => {
     const user = userEvent.setup();
     render(<QuarterlyDashboard />);

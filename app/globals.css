@@ -539,6 +539,12 @@ body {
   margin: 0;
 }
 
+.quarterly-dashboard-panel-note {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  margin: 5px 0 0;
+}
+
 .quarterly-dashboard-trend-panel {
   margin-top: 16px;
 }
@@ -549,14 +555,51 @@ body {
    size never depends on how wide the column is. */
 .quarterly-dashboard-chart {
   display: grid;
-  gap: 8px;
+  gap: 8px 10px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   grid-template-rows: 1fr auto;
-  margin: 16px 24px 0;
+  margin: 16px 12px 0;
 }
 
 .quarterly-dashboard-chart-plot {
+  grid-column: 2;
+  grid-row: 1;
   height: 232px;
   position: relative;
+}
+
+/* Counts on the left, conversion rate on the right, each coloured like the
+   series it governs so the two scales cannot be confused for one. */
+.quarterly-dashboard-chart-axis {
+  font-size: 11px;
+  grid-row: 1;
+  position: relative;
+}
+
+.quarterly-dashboard-chart-axis span {
+  position: absolute;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] {
+  color: var(--dashboard-teal-deep);
+  grid-column: 1;
+  width: 26px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] span {
+  right: 0;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] {
+  color: var(--dashboard-terracotta);
+  grid-column: 3;
+  width: 30px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] span {
+  left: 0;
 }
 
 .quarterly-dashboard-chart-lines {
@@ -618,6 +661,8 @@ body {
 .quarterly-dashboard-chart-labels {
   color: var(--dashboard-charcoal-muted);
   font-size: 11px;
+  grid-column: 2;
+  grid-row: 2;
   height: 15px;
   position: relative;
 }
@@ -685,7 +730,7 @@ body {
 .quarterly-dashboard-loss-list {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .quarterly-dashboard-loss-row {
@@ -700,6 +745,15 @@ body {
   grid-template-columns: 112px 1fr 22px;
   padding: 2px 0;
   text-align: left;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > span:first-child {
+  color: var(--dashboard-teal-deep);
+  font-weight: 600;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > strong {
+  color: var(--dashboard-teal-deep);
 }
 
 .quarterly-dashboard-loss-row > strong {
@@ -943,7 +997,8 @@ body {
   }
 
   .quarterly-dashboard-chart {
-    margin-inline: 20px;
+    gap: 8px 6px;
+    margin-inline: 0;
   }
 
   .quarterly-dashboard-chart-plot {

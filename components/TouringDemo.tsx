@@ -194,7 +194,7 @@ export function TouringDemo({ embedded = false }: Props) {
             <section aria-label="Artist calendar" className="portfolio-touring-calendar">
               <div className="portfolio-touring-section-head"><div><h3>Artist calendar</h3><p>Confirmed times, carried through from the show record.</p></div></div>
               <nav aria-label="Calendar events" className="portfolio-touring-event-nav">{evidence.events.map(event => <button aria-current={event.key === eventKey ? "true" : undefined} key={event.key} onClick={() => setEventKey(event.key)} type="button">{event.key === "set" ? "Set" : event.key === "arrival" ? "Arrival" : "Departure"}</button>)}</nav>
-              {activeEvent && <article className="portfolio-touring-event"><h4>{activeEvent.summary}</h4><p>{touringTime(activeEvent.start, activeEvent.timezone)}<br />to {touringTime(activeEvent.end, activeEvent.timezone)}</p><dl><div><dt>Venue</dt><dd>{show.venue_name}<br />{show.venue_address}</dd></div><div><dt>Contact</dt><dd>{show.dos_name}<br />{show.dos_number}</dd></div></dl><a href={`#${sheetId}`} onClick={openDaySheet}>Open day sheet ↗</a></article>}
+              {activeEvent && <article className="portfolio-touring-event"><h4>{activeEvent.summary}</h4><p>{touringTime(activeEvent.start, activeEvent.timezone)}<br />to {touringTime(activeEvent.end, activeEvent.timezone)}</p><dl><div><dt>Venue</dt><dd>{show.venue_name}<br />{show.venue_address}</dd></div><div><dt>Contact</dt><dd>{show.dos_name}<br />{show.dos_number}</dd></div></dl><a href={`#${sheetId}`} onClick={openDaySheet}>Open day sheet ↗︎</a></article>}
             </section>}
           </>}
         </div>

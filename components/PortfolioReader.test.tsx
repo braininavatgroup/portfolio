@@ -858,7 +858,7 @@ describe("PortfolioReader", () => {
   it("embeds the working Touring demo after the field-registry explanation", () => {
     const { container } = render(<PortfolioReader {...baseProps} selectedId="touring" />);
     expect(screen.getByRole("region", {name:"Tour advancing demo"})).not.toBeNull();
-    expect(screen.queryByRole("link", {name:"Open full demo ↗"})).toBeNull();
+    expect(screen.queryByRole("link", {name:"Open full demo ↗︎"})).toBeNull();
     const flow = [...container.querySelectorAll(".reader-composed-body > *")];
     expect(flow[2].querySelector(".portfolio-touring")).not.toBeNull();
     expect(container.querySelector(".reader-visual-gallery")).toBeNull();
