@@ -244,6 +244,9 @@ function GuideSuggestion({
   disabled: boolean;
   prompt: string;
 }) {
+  const metadata = useAuiState((state) => state.thread.messages.at(-1)?.metadata.custom.guide);
+  const citedEvidence = guideEvidenceFromMetadata(metadata, "citedEvidence");
+  const guidePrompt = getGuideFollowUpPrompts(citedEvidence).find(candidate => candidate.text === prompt);
   return (
     <SuggestionPrimitive.Trigger
       className="portfolio-guide-suggestion"
@@ -252,7 +255,7 @@ function GuideSuggestion({
       disabled={disabled}
       send
     >
-      <GuideControlGlyph kind="chevron" />
+      <GuideSuggestionMark prompt={guidePrompt} />
       <span>{prompt}</span>
     </SuggestionPrimitive.Trigger>
   );
@@ -272,6 +275,16 @@ function guidePromptNode(prompt: GuidePrompt) {
   return undefined;
 }
 
+function GuideSuggestionMark({ prompt }: { prompt?: GuidePrompt }) {
+  const node = prompt ? guidePromptNode(prompt) : undefined;
+  return (
+    <PortfolioNodeMark
+      family={node?.family ?? "identity"}
+      register={node?.register ?? "identity"}
+    />
+  );
+}
+
 function GuideInitialSuggestion({
   disabled,
   prompt,
@@ -279,7 +292,6 @@ function GuideInitialSuggestion({
   disabled: boolean;
   prompt: GuidePrompt;
 }) {
-  const node = guidePromptNode(prompt);
   return (
     <ThreadPrimitive.Suggestion
       className="portfolio-guide-suggestion"
@@ -289,11 +301,7 @@ function GuideInitialSuggestion({
       prompt={prompt.text}
       send
     >
-      {node ? (
-        <PortfolioNodeMark family={node.family} register={node.register} />
-      ) : (
-        <span aria-hidden="true" className="portfolio-guide-suggestion-mark" />
-      )}
+      <GuideSuggestionMark prompt={prompt} />
       <span>{prompt.text}</span>
     </ThreadPrimitive.Suggestion>
   );
