@@ -56,7 +56,7 @@ test("the quarterly dashboard demo renders as a complete public route", async ()
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /Listing Pitch Conversion/i);
+  assert.match(html, /Brokerage Pitch Conversion/i);
   assert.match(html, /Trend over time/i);
   assert.match(html, /Quarterly Summary/i);
   assert.match(html, /Pitch Detail/i);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   buildQuarterTrend,
   filterPitches,
@@ -61,6 +61,18 @@ function downloadCsv(pitches: readonly Pitch[]) {
   URL.revokeObjectURL(href);
 }
 
+// Round an axis up to a whole number of readable steps, so every gridline
+// lands on a value worth printing.
+function niceAxisMax(value: number, divisions: number) {
+  if (value <= 0) return divisions;
+  const magnitude = 10 ** Math.floor(Math.log10(value / divisions));
+  const step =
+    [1, 2, 2.5, 5, 10]
+      .map((multiple) => multiple * magnitude)
+      .find((candidate) => candidate * divisions >= value) ?? 10 * magnitude;
+  return step * divisions;
+}
+
 function TrendChart({
   activeLabel,
   onSelect,
@@ -70,16 +82,21 @@ function TrendChart({
   onSelect: (period: QuarterTrend) => void;
   trend: readonly QuarterTrend[];
 }) {
-  const width = 1160;
-  const height = 268;
-  const inset = { bottom: 44, left: 58, right: 58, top: 26 };
-  const plotWidth = width - inset.left - inset.right;
-  const plotHeight = height - inset.top - inset.bottom;
-  const maxPitches = Math.max(50, ...trend.map((period) => period.pitches));
+  // The plot is drawn in a stretched 0-100 space so it fills whatever box CSS
+  // gives it. Nothing that has to keep its shape lives in that space: strokes
+  // opt out of scaling, and the points, axes, and labels are HTML positioned by
+  // the same percentages, so text stays at its real size at every width.
+  const divisions = 5;
+  const countMax = niceAxisMax(Math.max(...trend.map((period) => period.pitches), 0), divisions);
+  const rateMax = niceAxisMax(
+    Math.max(...trend.map((period) => period.conversionRate), 0),
+    divisions,
+  );
+  const ticks = Array.from({ length: divisions + 1 }, (_, index) => index / divisions);
   const x = (index: number) =>
-    inset.left + (trend.length === 1 ? plotWidth / 2 : (index / (trend.length - 1)) * plotWidth);
-  const countY = (value: number) => inset.top + plotHeight - (value / maxPitches) * plotHeight;
-  const rateY = (value: number) => inset.top + plotHeight - (value / 50) * plotHeight;
+    trend.length === 1 ? 50 : (index / (trend.length - 1)) * 100;
+  const countY = (value: number) => 100 - (value / countMax) * 100;
+  const rateY = (value: number) => 100 - (value / rateMax) * 100;
   const points = (field: "pitches" | "signedExclusives" | "conversionRate") =>
     trend
       .map((period, index) => {
@@ -88,73 +105,81 @@ function TrendChart({
       })
       .join(" ");
 
-  const activate = (event: KeyboardEvent<SVGGElement>, period: QuarterTrend) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect(period);
-    }
-  };
-
   return (
-    <div className="quarterly-dashboard-chart-scroll">
-      <svg
-        aria-label="Quarterly pitch, exclusive, and conversion trends"
-        className="quarterly-dashboard-chart"
-        role="img"
-        viewBox={`0 0 ${width} ${height}`}
-      >
-        <g className="quarterly-dashboard-chart-grid">
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const y = inset.top + plotHeight * ratio;
-            return <line key={ratio} x1={inset.left} x2={width - inset.right} y1={y} y2={y} />;
-          })}
-        </g>
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="pitches"
-          points={points("pitches")}
-        />
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="exclusives"
-          points={points("signedExclusives")}
-        />
-        <polyline
-          className="quarterly-dashboard-chart-line"
-          data-series="conversion"
-          points={points("conversionRate")}
-        />
-        {trend.map((period, index) => {
-          const cx = x(index);
-          const cy = countY(period.pitches);
-          const selected = period.label === activeLabel;
-          return (
-            <g
-              aria-label={`Show ${period.label}`}
-              className="quarterly-dashboard-chart-target"
-              data-selected={selected}
-              key={period.label}
-              onClick={() => onSelect(period)}
-              onKeyDown={(event) => activate(event, period)}
-              role="button"
-              tabIndex={0}
-            >
-              <circle className="quarterly-dashboard-chart-hit" cx={cx} cy={cy} r="18" />
-              <circle className="quarterly-dashboard-chart-point" cx={cx} cy={cy} r={selected ? 6 : 4} />
-              <title>
-                {`${period.label}: ${period.pitches} pitches, ${period.signedExclusives} exclusives, ${formatPercent(period.conversionRate)} conversion`}
-              </title>
-            </g>
-          );
-        })}
-        <g className="quarterly-dashboard-chart-labels">
-          {trend.map((period, index) => (
-            <text key={period.label} textAnchor="middle" x={x(index)} y={height - 12}>
-              {period.label}
-            </text>
+    <div className="quarterly-dashboard-chart">
+      <div aria-hidden="true" className="quarterly-dashboard-chart-axis" data-axis="count">
+        {ticks.map((ratio) => (
+          <span key={ratio} style={{ top: `${(1 - ratio) * 100}%` }}>
+            {Math.round(ratio * countMax)}
+          </span>
+        ))}
+      </div>
+      <div className="quarterly-dashboard-chart-plot">
+        <svg
+          aria-label={`Quarterly trends. Pitches and signed exclusives are counts up to ${countMax} on the left; conversion rate is a percentage up to ${rateMax} on the right.`}
+          className="quarterly-dashboard-chart-lines"
+          preserveAspectRatio="none"
+          role="img"
+          viewBox="0 0 100 100"
+        >
+          <g className="quarterly-dashboard-chart-grid">
+            {ticks.map((ratio) => (
+              <line
+                key={ratio}
+                vectorEffect="non-scaling-stroke"
+                x1="0"
+                x2="100"
+                y1={(1 - ratio) * 100}
+                y2={(1 - ratio) * 100}
+              />
+            ))}
+          </g>
+          {(
+            [
+              ["pitches", "pitches"],
+              ["exclusives", "signedExclusives"],
+              ["conversion", "conversionRate"],
+            ] as const
+          ).map(([series, field]) => (
+            <polyline
+              className="quarterly-dashboard-chart-line"
+              data-series={series}
+              key={series}
+              points={points(field)}
+              vectorEffect="non-scaling-stroke"
+            />
           ))}
-        </g>
-      </svg>
+        </svg>
+        {trend.map((period, index) => (
+          <button
+            aria-label={`Show ${period.label}`}
+            className="quarterly-dashboard-chart-point"
+            data-selected={period.label === activeLabel}
+            key={period.label}
+            onClick={() => onSelect(period)}
+            style={{
+              left: `${x(index)}%`,
+              top: `${countY(period.pitches)}%`,
+            }}
+            title={`${period.label}: ${period.pitches} pitches, ${period.signedExclusives} exclusives, ${formatPercent(period.conversionRate)} conversion`}
+            type="button"
+          />
+        ))}
+      </div>
+      <div aria-hidden="true" className="quarterly-dashboard-chart-axis" data-axis="rate">
+        {ticks.map((ratio) => (
+          <span key={ratio} style={{ top: `${(1 - ratio) * 100}%` }}>
+            {`${Math.round(ratio * rateMax)}%`}
+          </span>
+        ))}
+      </div>
+      <div className="quarterly-dashboard-chart-labels">
+        {trend.map((period, index) => (
+          <span key={period.label} style={{ left: `${x(index)}%` }}>
+            {period.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -267,7 +292,7 @@ function SummaryCard({
     <button className="quarterly-dashboard-scorecard" onClick={onClick} type="button">
       <span>{label}</span>
       <strong>{value}</strong>
-      <small>View pitch detail ↗</small>
+      <small>View pitch detail ↗︎</small>
     </button>
   );
 }
@@ -287,13 +312,9 @@ function DashboardSummaryView({
   onOpenDetail: (stages: readonly PitchStage[]) => void;
   trend: readonly QuarterTrend[];
 }) {
-  const visible = filterPitches(allPitches, filters);
-  const summary = summarizePitches(visible);
-  const losses = filterPitches(allPitches, {
-    ...filters,
-    lostTo: "all",
-    stages: ["Lost"],
-  });
+  const periodFilters = { ...filters, lostTo: "all" };
+  const summary = summarizePitches(filterPitches(allPitches, periodFilters));
+  const losses = filterPitches(allPitches, { ...periodFilters, stages: ["Lost"] });
   const competitorCounts = pitchCompetitors.map((competitor) => ({
     competitor,
     count: losses.filter((pitch) => pitch.lostTo === competitor).length,
@@ -360,13 +381,22 @@ function DashboardSummaryView({
         </div>
         <section className="quarterly-dashboard-panel quarterly-dashboard-losses">
           <h2>Where deals went</h2>
+          <p className="quarterly-dashboard-panel-note">
+            Every loss in the period. Choosing one scopes the pitch detail.
+          </p>
           <div className="quarterly-dashboard-loss-list">
             {competitorCounts.map(({ competitor, count }) => (
               <button
                 aria-label={`Show pitches lost to ${competitor}`}
+                aria-pressed={filters.lostTo === competitor}
                 className="quarterly-dashboard-loss-row"
                 key={competitor}
-                onClick={() => onFiltersChange({ ...filters, lostTo: competitor })}
+                onClick={() =>
+                  onFiltersChange({
+                    ...filters,
+                    lostTo: filters.lostTo === competitor ? "all" : competitor,
+                  })
+                }
                 style={{ "--bar-width": `${(count / maxLosses) * 100}%` } as CSSProperties}
                 type="button"
               >
@@ -508,6 +538,7 @@ export function QuarterlyDashboard({
     () =>
       filterPitches(allPitches, {
         ...filters,
+        lostTo: "all",
         quarter: "all",
         year: "all",
       }),
@@ -567,7 +598,7 @@ export function QuarterlyDashboard({
         <header className="quarterly-dashboard-header">
           <div>
             <p>Quarterly review</p>
-            <DashboardHeading>Listing Pitch Conversion</DashboardHeading>
+            <DashboardHeading>Brokerage Pitch Conversion</DashboardHeading>
           </div>
           <div className="quarterly-dashboard-actions">
             <button onClick={() => window.print()} type="button">
@@ -580,7 +611,9 @@ export function QuarterlyDashboard({
 
         <div className="quarterly-dashboard-period">
           <span>{periodLabel}</span>
-          {filters.lostTo !== "all" ? <span>Lost to {filters.lostTo}</span> : null}
+          {view === "detail" && filters.lostTo !== "all" ? (
+            <span>Lost to {filters.lostTo}</span>
+          ) : null}
         </div>
 
         {view === "summary" ? (

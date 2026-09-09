@@ -539,19 +539,73 @@ body {
   margin: 0;
 }
 
+.quarterly-dashboard-panel-note {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  margin: 5px 0 0;
+}
+
 .quarterly-dashboard-trend-panel {
   margin-top: 16px;
 }
 
-.quarterly-dashboard-chart-scroll {
-  overflow: auto hidden;
-  padding-top: 10px;
+/* The chart fills its column at any width. Its box is sized in real pixels;
+   only the lines are drawn in the stretched 0-100 space, and they opt out of
+   scaling so they stay the same weight. Points and labels are HTML, so their
+   size never depends on how wide the column is. */
+.quarterly-dashboard-chart {
+  display: grid;
+  gap: 8px 10px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-rows: 1fr auto;
+  margin: 16px 12px 0;
 }
 
-.quarterly-dashboard-chart {
+.quarterly-dashboard-chart-plot {
+  grid-column: 2;
+  grid-row: 1;
+  height: 232px;
+  position: relative;
+}
+
+/* Counts on the left, conversion rate on the right, each coloured like the
+   series it governs so the two scales cannot be confused for one. */
+.quarterly-dashboard-chart-axis {
+  font-size: 11px;
+  grid-row: 1;
+  position: relative;
+}
+
+.quarterly-dashboard-chart-axis span {
+  position: absolute;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] {
+  color: var(--dashboard-teal-deep);
+  grid-column: 1;
+  width: 26px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] span {
+  right: 0;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] {
+  color: var(--dashboard-terracotta);
+  grid-column: 3;
+  width: 30px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] span {
+  left: 0;
+}
+
+.quarterly-dashboard-chart-lines {
   display: block;
-  height: auto;
-  min-width: 820px;
+  height: 100%;
+  overflow: visible;
   width: 100%;
 }
 
@@ -579,35 +633,50 @@ body {
   stroke-dasharray: 8 5;
 }
 
-.quarterly-dashboard-chart-hit {
-  fill: transparent;
-  stroke: transparent;
-}
-
 .quarterly-dashboard-chart-point {
-  fill: var(--dashboard-teal-deep);
-  stroke: var(--dashboard-cream);
-  stroke-width: 2;
+  appearance: none;
+  background: var(--dashboard-teal-deep);
+  border: 2px solid var(--dashboard-cream);
+  border-radius: 50%;
+  height: 10px;
+  padding: 0;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 10px;
 }
 
-.quarterly-dashboard-chart-target[data-selected="true"] .quarterly-dashboard-chart-point {
-  stroke: var(--dashboard-charcoal);
+/* The hit area is bigger than the dot without moving it. */
+.quarterly-dashboard-chart-point::after {
+  content: "";
+  inset: -12px;
+  position: absolute;
 }
 
-.quarterly-dashboard-chart-target:focus-visible .quarterly-dashboard-chart-hit {
-  fill: color-mix(in srgb, var(--focus-ring, var(--world-acid)) 20%, transparent);
-  stroke: var(--focus-ring, var(--world-acid));
-  stroke-width: 2;
+.quarterly-dashboard-chart-point[data-selected="true"] {
+  border-color: var(--dashboard-charcoal);
+  height: 14px;
+  width: 14px;
 }
 
 .quarterly-dashboard-chart-labels {
-  fill: var(--dashboard-charcoal-muted);
-  font-family: var(--font-reader);
+  color: var(--dashboard-charcoal-muted);
   font-size: 11px;
+  grid-column: 2;
+  grid-row: 2;
+  height: 15px;
+  position: relative;
+}
+
+.quarterly-dashboard-chart-labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .quarterly-dashboard-legend {
   display: flex;
+  margin-top: 14px;
   flex-wrap: wrap;
   font-size: 12px;
   gap: 18px;
@@ -661,7 +730,7 @@ body {
 .quarterly-dashboard-loss-list {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .quarterly-dashboard-loss-row {
@@ -676,6 +745,15 @@ body {
   grid-template-columns: 112px 1fr 22px;
   padding: 2px 0;
   text-align: left;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > span:first-child {
+  color: var(--dashboard-teal-deep);
+  font-weight: 600;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > strong {
+  color: var(--dashboard-teal-deep);
 }
 
 .quarterly-dashboard-loss-row > strong {
@@ -919,7 +997,18 @@ body {
   }
 
   .quarterly-dashboard-chart {
-    min-width: 620px;
+    gap: 8px 6px;
+    margin-inline: 0;
+  }
+
+  .quarterly-dashboard-chart-plot {
+    height: 188px;
+  }
+
+  /* Counting back from the end keeps the most recent quarter labelled
+     whatever the period count is. */
+  .quarterly-dashboard-chart-labels span:nth-last-child(even) {
+    display: none;
   }
 
   .quarterly-dashboard-table-scroll {
@@ -1002,7 +1091,6 @@ body {
     max-width: none;
   }
 
-  .quarterly-dashboard-chart-scroll,
   .quarterly-dashboard-table-scroll {
     overflow: visible;
   }
