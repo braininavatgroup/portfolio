@@ -2,8 +2,7 @@
 
 Source: [`components/PortfolioReadingRoom.tsx`](../../components/PortfolioReadingRoom.tsx) · Gallery: `/design#reading-room` · Tests: `components/PortfolioReadingRoom.test.tsx`, `components/PortfolioReadingRoom.drag.test.tsx`
 
-At 1020px and above, Contents sits beside three slots; dragging a 40px bar swaps
-Reader, Map, or Guide. Below 1020px, Contents, Reader, and Map become tabs;
+At 1020px and above, Contents sits beside three slots; dragging a 40px bar swaps Reader, Map, or Guide. Below 1020px, Contents, Reader, and Map become tabs;
 Map holds Guide at 52/48. Sizes, slots, and collapse state last only for the visit.
 Fresh loads restore Reader main, Map upper right, Guide lower right,
 default sizes, and open panels. There is no manual reset control.
@@ -85,6 +84,7 @@ export function PortfolioReadingRoomExample() {
 
 ## Pitfalls
 
+- **Initial sizes are not resize limits.** `readingRoomInitialSizes` preserves the opening composition; `readingRoomMinimums` permits Contents down to 180px, main to 420px, and side panes to 240px.
 - **The owner keeps navigation state**: URLs, visuals, citations, avatar, Brain Food.
 - **Mobile does not read or write desktop panel layout.** A tab change must not
   corrupt the three desktop slots or any visit-scoped panel group.

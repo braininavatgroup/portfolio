@@ -151,7 +151,7 @@ export function visibleReadingRoomSlots(state: ReadingRoomLayoutState): ReadingR
   return READING_ROOM_SLOTS.filter((slot) => !state.hidden.includes(state.slots[slot]));
 }
 
-/** The viewport width at which the handoff's full minimums (300 + 720 + 360) fit. */
+/** Breakpoint for the accepted full-width opening composition. */
 export const FULL_DESKTOP_WIDTH = 1382;
 
 export type ReadingRoomMinimums = {
@@ -162,18 +162,20 @@ export type ReadingRoomMinimums = {
   workspace: number;
 };
 
-/**
- * Panel minimums for a desktop viewport. At and above 1382px the handoff's
- * minimums apply. Below it (tablet portrait, small laptops) the three regions
- * shrink to a compact desktop whose minimums always sum to the viewport, so
- * the page never scrolls sideways: Contents 240, right 320, main the rest.
- */
-export function readingRoomMinimums(viewportWidth: number): ReadingRoomMinimums {
-  if (viewportWidth >= FULL_DESKTOP_WIDTH) {
-    return { contents: 300, main: 720, right: 360, workspace: 1081 };
-  }
-  const contents = 240;
-  const right = 320;
-  const main = Math.max(420, Math.floor(viewportWidth) - contents - right - 2);
+/** Initial composition is separate from resize limits: defaults must not lock the handles. */
+export function readingRoomInitialSizes(viewportWidth: number) {
+  const contents = viewportWidth >= FULL_DESKTOP_WIDTH ? Math.min(320, viewportWidth - 1082) : 240;
+  const workspace = viewportWidth - contents - 1;
+  const initialMainFloor = viewportWidth >= FULL_DESKTOP_WIDTH ? 720 : Math.max(420, viewportWidth - 562);
+  const initialRightFloor = viewportWidth >= FULL_DESKTOP_WIDTH ? 360 : 320;
+  const main = Math.min(workspace - 1 - initialRightFloor, Math.max(initialMainFloor, (workspace - 1) * DEFAULT_READING_ROOM_LAYOUT.split));
+  return { contents, main, right: workspace - 1 - main };
+}
+
+/** Readable lower limits leave at least 178px of drag room at the desktop breakpoint. */
+export function readingRoomMinimums(): ReadingRoomMinimums {
+  const contents = 180;
+  const main = 420;
+  const right = 240;
   return { contents, main, right, workspace: main + 1 + right };
 }

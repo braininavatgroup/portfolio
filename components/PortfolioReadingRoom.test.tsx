@@ -205,12 +205,12 @@ describe("PortfolioReadingRoom desktop", () => {
   it("pins the authoritative desktop defaults, minimums, splits, and collapsed bars", async () => {
     const source = await readFile(resolve(process.cwd(), "components/PortfolioReadingRoom.tsx"), "utf8");
 
-    expect(source).toContain('defaultSize={320}');
+    expect(source).toContain('defaultSize={initialSizes.contents}');
     expect(source).toContain('groupResizeBehavior="preserve-pixel-size"');
     expect(source).toContain('id="contents"\n            minSize={minimums.contents}');
     expect(source).toContain('<Panel id="workspace" minSize={minimums.workspace}>');
-    expect(source).toContain("const minimums = readingRoomMinimums(viewportWidth);");
-    expect(source).toContain('DEFAULT_READING_ROOM_LAYOUT.split * 100');
+    expect(source).toContain("const minimums = readingRoomMinimums();");
+    expect(source).toContain('defaultSize={initialSizes.main}');
     expect(source).toContain('id="main" minSize={minimums.main}');
     expect(source).toContain('id="right"\n                minSize={minimums.right}');
     expect(source).toContain("const SIDE_SLOT_MIN_HEIGHT = 240;");
@@ -490,10 +490,10 @@ describe("PortfolioReadingRoom desktop", () => {
     });
 
     const contentsSash = screen.getByRole("separator", { name: "Resize Contents" });
-    fireEvent.pointerDown(contentsSash, { clientX: 300, pointerId: 1 });
-    fireEvent.pointerMove(window, { clientX: 253, pointerId: 1 });
+    fireEvent.pointerDown(contentsSash, { clientX: 180, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 133, pointerId: 1 });
     expect(container.querySelector(".portfolio-reading-room-main-mast")).toBeNull();
-    fireEvent.pointerMove(window, { clientX: 252, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 132, pointerId: 1 });
     expect(container.querySelector(".portfolio-reading-room-main-mast")).toBeNull();
     fireEvent.pointerUp(window, { pointerId: 1 });
     await waitFor(() => {
@@ -501,10 +501,10 @@ describe("PortfolioReadingRoom desktop", () => {
     });
 
     const rightSash = screen.getByRole("separator", { name: "Resize side panes" });
-    fireEvent.pointerDown(rightSash, { clientX: 1080, pointerId: 2 });
-    fireEvent.pointerMove(window, { clientX: 1127, pointerId: 2 });
+    fireEvent.pointerDown(rightSash, { clientX: 1200, pointerId: 2 });
+    fireEvent.pointerMove(window, { clientX: 1247, pointerId: 2 });
     expect(container.querySelector<HTMLElement>("#right")?.dataset.collapsed).toBe("false");
-    fireEvent.pointerMove(window, { clientX: 1128, pointerId: 2 });
+    fireEvent.pointerMove(window, { clientX: 1248, pointerId: 2 });
     expect(container.querySelector<HTMLElement>("#right")?.dataset.collapsed).toBe("false");
     fireEvent.pointerUp(window, { pointerId: 2 });
     await waitFor(() => {
