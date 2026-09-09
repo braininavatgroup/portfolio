@@ -5,15 +5,28 @@ import { createPortfolioChatRuntime } from "./portfolio-chat-runtime";
 function chatRequest(
   body: object = { question: "How does pitching preserve approval?" },
   ip?: string,
+  cookie?: string,
 ) {
   return new Request("https://portfolio.test/api/portfolio-chat", {
     method: "POST",
     headers: {
       "content-type": "application/json",
       ...(ip ? { "cf-connecting-ip": ip } : {}),
+      ...(cookie ? { cookie } : {}),
     },
     body: JSON.stringify(body),
   });
+}
+
+function sessionRequest(ip = "203.0.113.10") {
+  return new Request("https://portfolio.test/api/portfolio-chat/session", {
+    headers: { "cf-connecting-ip": ip },
+  });
+}
+
+/** Reduces a `Set-Cookie` to what a browser would replay. */
+function replayable(setCookie: string | null) {
+  return setCookie?.split(";")[0] ?? "";
 }
 
 function budgetNamespace(
@@ -51,7 +64,7 @@ describe("portfolio chat runtime", () => {
 
     const response = await runtime.handleChat(chatRequest());
 
-    expect(Object.keys(runtime)).toEqual(["handleChat"]);
+    expect(Object.keys(runtime)).toEqual(["handleSession", "handleChat"]);
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "misconfigured" });
     expect(getProvider).not.toHaveBeenCalled();
@@ -107,37 +120,30 @@ describe("portfolio chat runtime", () => {
     const { namespace, stub } = budgetNamespace(consume);
     const limit = vi.fn(async () => ({ success: true }));
     const getProvider = vi.fn(() => provider);
-    const verify = vi.fn(async () =>
-      Response.json({
-        success: true,
-        action: "portfolio_chat",
-        hostname: "portfolio.test",
-      }),
-    );
     const runtime = createPortfolioChatRuntime({
       env: {
-        PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "true",
+        PORTFOLIO_CHAT_SESSION_REQUIRED: "true",
         PORTFOLIO_CHAT_IDENTIFIER_SECRET:
           "privacy-safe-identifier-secret-32-chars",
-        TURNSTILE_SECRET_KEY: "turnstile-server-secret",
         PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "5",
         OPENAI_API_KEY: "sk-server-only",
         OPENAI_PORTFOLIO_MODEL: "portfolio-model",
         PORTFOLIO_CHAT_RATE_LIMITER: { limit },
         PORTFOLIO_CHAT_BUDGET: namespace,
       },
-      fetchImplementation: verify,
       getProvider,
       randomId: () => "public-request",
       record,
     });
-    const requestBody = {
-      question: "How does pitching preserve approval?",
-      challengeToken: "single-use-token",
-    };
+    const requestBody = { question: "How does pitching preserve approval?" };
+
+    const opened = await runtime.handleSession(sessionRequest());
+    expect(opened.status).toBe(200);
+    const cookie = replayable(opened.headers.get("set-cookie"));
+    expect(cookie).toContain("pc_session=");
 
     const response = await runtime.handleChat(
-      chatRequest(requestBody, "203.0.113.10"),
+      chatRequest(requestBody, "203.0.113.10", cookie),
     );
     const body = await response.text();
 
@@ -162,11 +168,10 @@ describe("portfolio chat runtime", () => {
         providerModel: "portfolio-model",
       }),
     );
-    expect(JSON.stringify(record.mock.calls)).not.toContain("single-use-token");
     expect(JSON.stringify(record.mock.calls)).not.toContain("sk-server-only");
 
     const exhausted = await runtime.handleChat(
-      chatRequest(requestBody, "203.0.113.10"),
+      chatRequest(requestBody, "203.0.113.10", cookie),
     );
     expect(exhausted.status).toBe(503);
     expect(await exhausted.json()).toMatchObject({ code: "budget_exhausted" });

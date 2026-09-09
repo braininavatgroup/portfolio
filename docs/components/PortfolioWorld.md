@@ -54,7 +54,7 @@ export function PortfolioWorldExample() {
   compact labels sit right of nodes in the left 30 percent, else left.
 - **Brain Food disables node buttons and hides connectors.** Outside that
   mode, every map node remains available; portfolio media never mounts here.
-- **Default overview is the connected spatial graph.** Authored positions fill the measured canvas and use the selected-map overlap solver. Every factual and Theme-membership relationship is visible at rest. Labels sit beneath their marks, bounded to two lines; narrow slots abbreviate long labels while their buttons retain full names. `lib/portfolio-overview-layout.ts` clips straight overview connectors eight pixels clear of intervening labels.
+- **Default overview is the connected spatial graph.** Authored positions fill the measured canvas and use the selected-map overlap solver. Every factual and Theme-membership relationship is visible at rest. Labels sit beneath their marks, bounded to two lines; narrow slots abbreviate long labels while their buttons retain full names. `lib/portfolio-overview-layout.ts` clips straight overview connectors two pixels clear of each label line, with a seven-pixel fade at clipped ends.
 - **A dragged node springs back.** Nothing persists, and a drag never selects.
 - **Poses are seeded per page load** (`setWorldSeed`; `?seed=<n>` pins it);
   tests assert rules, not coordinates. The overview derives its seats from the measured slot; selected poses retain their seeded spatial layout.

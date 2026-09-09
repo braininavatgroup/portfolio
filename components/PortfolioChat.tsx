@@ -21,10 +21,12 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ComponentProps,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import {
+  openPortfolioChatSession,
   streamPortfolioAnswer,
   PortfolioChatClientError,
   type AskPortfolio,
@@ -47,11 +49,6 @@ import {
   getGuideInitialPrompts,
   type GuidePrompt,
 } from "../lib/portfolio-guide-prompts";
-import {
-  renderTurnstile,
-  type TurnstileController,
-  type TurnstileRenderer,
-} from "../lib/portfolio-chat-turnstile";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
 import type {
   PortfolioChatTurnMode,
@@ -90,8 +87,7 @@ export type PortfolioChatProps = {
   registerAvatarDock?: (element: HTMLElement | null) => void;
   resetSignal?: number;
   askPortfolio?: AskPortfolio;
-  renderTurnstile?: TurnstileRenderer;
-  turnstileSiteKey?: string;
+  openSession?: () => Promise<boolean>;
 };
 
 type GuideMessageMetadata = {
@@ -303,16 +299,12 @@ function GuideInitialSuggestion({
   );
 }
 
-function isGuideSubmissionEligible({
-  challengeRequired,
-  challengeToken,
-  online,
-}: {
-  challengeRequired: boolean;
-  challengeToken: string | null;
-  online: boolean;
-}) {
-  return online && (!challengeRequired || Boolean(challengeToken));
+/** How long a quiet run waits before it reassures, and before it gives up. */
+const slowNoticeMs = 10_000;
+const stallTimeoutMs = 20_000;
+
+function isGuideSubmissionEligible({ online }: { online: boolean }) {
+  return online;
 }
 
 function runSafely(work: (() => void | Promise<void>) | undefined) {
@@ -322,6 +314,45 @@ function runSafely(work: (() => void | Promise<void>) | undefined) {
   } catch {
     return Promise.resolve();
   }
+}
+
+/**
+ * "Ask a follow-up" is a lie on an empty thread — there is nothing to follow.
+ * The placeholder has to read the thread, which only works inside the runtime
+ * provider, so the input carries its own component.
+ */
+function GuideComposerInput({
+  emptyPlaceholder,
+  followUpPlaceholder,
+  offlinePlaceholder,
+  offline,
+  ...props
+}: Omit<
+  Extract<
+    ComponentProps<typeof ComposerPrimitive.Input>,
+    { submitOnEnter?: never }
+  >,
+  "placeholder" | "submitMode"
+> & {
+  emptyPlaceholder: string;
+  followUpPlaceholder: string;
+  offlinePlaceholder: string;
+  offline: boolean;
+}) {
+  const hasMessages = useAuiState((state) => state.thread.messages.length > 0);
+  return (
+    <ComposerPrimitive.Input
+      {...props}
+      submitMode="enter"
+      placeholder={
+        offline
+          ? offlinePlaceholder
+          : hasMessages
+            ? followUpPlaceholder
+            : emptyPlaceholder
+      }
+    />
+  );
 }
 
 function GuideFollowUps({ children }: { children: ReactNode }) {
@@ -365,13 +396,11 @@ export function PortfolioChat({
   registerAvatarDock,
   resetSignal = 0,
   askPortfolio = streamPortfolioAnswer,
-  renderTurnstile: renderTurnstileWidget = renderTurnstile,
-  turnstileSiteKey,
+  openSession = openPortfolioChatSession,
 }: PortfolioChatProps) {
   const composerPlaceholder = portfolioInterfaceText["chat.composerPlaceholder"];
-  const [challengeToken, setChallengeToken] = useState<string | null>(null);
-  const [challengeMessage, setChallengeMessage] = useState("");
-  const [challengeAttempt, setChallengeAttempt] = useState(0);
+  const openingPlaceholder =
+    portfolioInterfaceText["chat.composerPlaceholderOpening"];
   const [failedQuestion, setFailedQuestion] = useState<{
     question: string;
     canRetry: boolean;
@@ -389,7 +418,6 @@ export function PortfolioChat({
   const avatarIntegrationRef = useRef(avatarIntegration);
   const availabilityRef = useRef(actionAvailability);
   const [composerText, setComposerText] = useState("");
-  const challengeTokenRef = useRef(challengeToken);
   const conversation = useRef<PortfolioChatMessage[]>([]);
   const visitSeed = useSyncExternalStore(
     subscribeGuideVisitSeed,
@@ -409,21 +437,13 @@ export function PortfolioChat({
     resolve: () => void;
     run: symbol;
   } | null>(null);
-  const turnstileContainer = useRef<HTMLDivElement | null>(null);
-  const turnstileController = useRef<TurnstileController | null>(null);
   const previousResetSignal = useRef(resetSignal);
 
   useEffect(() => {
     askPortfolioRef.current = askPortfolio;
     avatarIntegrationRef.current = avatarIntegration;
     availabilityRef.current = actionAvailability;
-    challengeTokenRef.current = challengeToken;
-  }, [askPortfolio, avatarIntegration, challengeToken, actionAvailability]);
-
-  const updateChallengeToken = useCallback((token: string | null) => {
-    challengeTokenRef.current = token;
-    setChallengeToken(token);
-  }, []);
+  }, [askPortfolio, avatarIntegration, actionAvailability]);
 
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
@@ -435,17 +455,12 @@ export function PortfolioChat({
         if (!question) return;
         const directAction = directAvatarRequest(question);
         if (!directAction && !isGuideSubmissionEligible({
-          challengeRequired: Boolean(turnstileSiteKey),
-          challengeToken: challengeTokenRef.current,
           online: typeof navigator === "undefined" || navigator.onLine,
         })) {
           // Eligibility lapsed between the UI check and the send. assistant-ui
           // has already committed the user message, so mark the turn failed
           // (with its retry intact) rather than leave an unanswered bubble.
           retryAttempt.current = false;
-          if (turnstileSiteKey && !challengeTokenRef.current) {
-            setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
-          }
           setFailedQuestion({ question, canRetry: true });
           yield {
             content: [],
@@ -458,7 +473,6 @@ export function PortfolioChat({
         activeRun.current = run;
         const isRetry = retryAttempt.current;
         retryAttempt.current = false;
-        const challenge = challengeTokenRef.current ?? undefined;
         const conversationAtStart = conversation.current;
         const visitStateAtStart = { ...visitState.current };
         const integration = avatarIntegrationRef.current;
@@ -483,18 +497,17 @@ export function PortfolioChat({
         setSlow(false);
         const slowTimer = window.setTimeout(() => {
           if (isCurrent()) setSlow(true);
-        }, 10_000);
+        }, slowNoticeMs);
+        const stallController = new AbortController();
+        let stallTimer = 0;
         const finishRun = async () => {
           window.clearTimeout(slowTimer);
+          window.clearTimeout(stallTimer);
           await avatarWork;
           if (!isCurrent()) return;
           activeRun.current = null;
           setPending(false);
           setSlow(false);
-          if (turnstileSiteKey && !directAction) {
-            updateChallengeToken(null);
-            turnstileController.current?.reset();
-          }
         };
 
         let failureCode = "request_failed";
@@ -502,11 +515,28 @@ export function PortfolioChat({
         let revision = 0;
         let wake: (() => void) | undefined;
         const notify = () => { revision += 1; wake?.(); };
+        // A stream that stops producing without ever closing would otherwise
+        // leave the composer disabled under a spinner forever. The worker has
+        // its own, shorter deadline; this only catches a wedged connection.
+        const resetStallTimer = () => {
+          window.clearTimeout(stallTimer);
+          stallTimer = window.setTimeout(() => {
+            if (!isCurrent()) return;
+            failed = true;
+            failureCode = "stalled";
+            stallController.abort();
+            notify();
+          }, stallTimeoutMs);
+        };
+        resetStallTimer();
         const receive: Parameters<AskPortfolio>[1]["onEvent"] = (event) => {
-          if (!isCurrent()) return;
+          if (!isCurrent() || failed) return;
           if (event.type === "evidence") evidence = [...event.evidence];
           else if (event.type === "turn_mode") turnMode = event.mode;
-          else if (event.type === "answer_delta") answer += event.delta;
+          else if (event.type === "answer_delta") {
+            answer += event.delta;
+            if (event.delta) resetStallTimer();
+          }
           else if (event.type === "effects") effects.push(event.effects);
           else if (event.type === "notice") setNotice(event.message);
           else if (event.type === "error") { failed = true; failureCode = event.code; }
@@ -523,10 +553,9 @@ export function PortfolioChat({
             return;
           }
           await askPortfolioRef.current(question, {
-            signal: abortSignal,
+            signal: AbortSignal.any([abortSignal, stallController.signal]),
             ...(conversationAtStart.length ? { conversation: conversationAtStart } : {}),
             visitState: visitStateAtStart,
-            ...(challenge ? { challengeToken: challenge } : {}),
             onEvent: receive,
           });
         };
@@ -576,6 +605,7 @@ export function PortfolioChat({
         } finally {
           abortSignal.removeEventListener("abort", notify);
           window.clearTimeout(slowTimer);
+          window.clearTimeout(stallTimer);
         }
         if (!isCurrent()) return;
         if (failed || !completed || !answer.trim()) {
@@ -584,7 +614,8 @@ export function PortfolioChat({
               budget_exhausted: { message: "The Guide has reached its daily allowance. Please come back tomorrow. You can still explore and use the play controls.", retry: false },
               rate_limited: { message: "Please wait a minute before asking again. You can still use the play controls.", retry: true },
               misconfigured: { message: "The Guide is temporarily unavailable. You can still explore the portfolio and use the play controls.", retry: false },
-              challenge_failed: { message: "Please complete the security check, then try again.", retry: true },
+              session_required: { message: "The Guide could not finish that reply.", retry: true },
+              stalled: { message: "That reply took too long to arrive.", retry: true },
             };
             const error = errors[failureCode] ?? { message: "The Guide could not finish that reply.", retry: true };
             setFailedQuestion({ question, canRetry: !isRetry && error.retry, message: error.message });
@@ -619,7 +650,7 @@ export function PortfolioChat({
         await finishRun();
       },
     }),
-    [turnstileSiteKey, updateChallengeToken],
+    [],
   );
 
   const suggestionAdapter = useMemo(
@@ -650,9 +681,6 @@ export function PortfolioChat({
     return finish;
   }, []);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- resetSignal is an imperative
-     new-conversation boundary; the effect must clear assistant-ui and local UI
-     state in the same commit after the parent advances it. */
   useEffect(() => {
     if (previousResetSignal.current === resetSignal) return;
     previousResetSignal.current = resetSignal;
@@ -667,13 +695,8 @@ export function PortfolioChat({
     setNotice("");
     setPending(false);
     setSlow(false);
-    if (turnstileSiteKey) {
-      updateChallengeToken(null);
-      turnstileController.current?.reset();
-    }
     onThreadStateChange?.(false);
-  }, [onThreadStateChange, resetSignal, runtime, turnstileSiteKey, updateChallengeToken]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [onThreadStateChange, resetSignal, runtime]);
 
   useEffect(() => {
     if (!onLayoutChange || !avatarElement.current) return;
@@ -682,45 +705,12 @@ export function PortfolioChat({
     return () => observer.disconnect();
   }, [onLayoutChange]);
 
+  // The endpoint asks for a session token. Establishing it on mount means the
+  // cookie is already in place before anyone types, so the first question is no
+  // slower than the rest. A failure is not fatal: the send re-establishes it.
   useEffect(() => {
-    if (!turnstileSiteKey || !turnstileContainer.current) return;
-    let active = true;
-    setChallengeMessage(portfolioInterfaceText["chat.verificationPreparing"]);
-    void renderTurnstileWidget(turnstileContainer.current, turnstileSiteKey, {
-      onToken(token) {
-        if (!active) return;
-        updateChallengeToken(token);
-        setChallengeMessage("");
-      },
-      onError() {
-        if (!active) return;
-        updateChallengeToken(null);
-        setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
-      },
-      onExpired() {
-        if (!active) return;
-        updateChallengeToken(null);
-        setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
-      },
-    })
-      .then((controller) => {
-        if (!active) {
-          controller.remove();
-          return;
-        }
-        turnstileController.current = controller;
-      })
-      .catch(() => {
-        if (active) {
-          setChallengeMessage(portfolioInterfaceText["chat.verificationUnavailable"]);
-        }
-      });
-    return () => {
-      active = false;
-      turnstileController.current?.remove();
-      turnstileController.current = null;
-    };
-  }, [challengeAttempt, renderTurnstileWidget, turnstileSiteKey, updateChallengeToken]);
+    void openSession();
+  }, [openSession]);
 
   const setAvatarElement = useCallback(
     (element: HTMLDivElement | null) => {
@@ -734,11 +724,7 @@ export function PortfolioChat({
     firstTextWaiter.current?.resolve();
   }, []);
 
-  const remoteSubmissionEligible = isGuideSubmissionEligible({
-    challengeRequired: Boolean(turnstileSiteKey),
-    challengeToken,
-    online: !offline,
-  });
+  const remoteSubmissionEligible = isGuideSubmissionEligible({ online: !offline });
 
   const submissionEligible = Boolean(directAvatarRequest(composerText)) || remoteSubmissionEligible;
   const promptAvailable = (text: string) => {
@@ -756,9 +742,6 @@ export function PortfolioChat({
       !submissionEligible
     ) {
       event.preventDefault();
-      if (turnstileSiteKey && !challengeToken) {
-        setChallengeMessage(portfolioInterfaceText["chat.verificationRequired"]);
-      }
     }
   }
 
@@ -862,21 +845,6 @@ export function PortfolioChat({
             </GuideViewport>
             <div className="portfolio-guide-scroll-controls" ref={setScrollControls} />
           </ThreadPrimitive.Root>
-          {turnstileSiteKey ? (
-            <div
-              aria-label="Security verification"
-              className="chat-turnstile"
-              role="group"
-            >
-              <div ref={turnstileContainer} />
-              {challengeMessage ? <p className="chat-note">{challengeMessage}</p> : null}
-              {challengeMessage === portfolioInterfaceText["chat.verificationUnavailable"] ? (
-                <button className="chat-verification-retry" onClick={() => setChallengeAttempt((attempt) => attempt + 1)} type="button">
-                  Retry verification
-                </button>
-              ) : null}
-            </div>
-          ) : null}
           <ComposerPrimitive.Root
             className="portfolio-chat-composer"
             data-guide-primitive="composer"
@@ -884,7 +852,7 @@ export function PortfolioChat({
             <label className="sr-only" htmlFor="portfolio-question">
               Ask a question about the portfolio
             </label>
-            <ComposerPrimitive.Input
+            <GuideComposerInput
               aria-label="Ask a question about the portfolio"
               disabled={composerDisabled}
               id="portfolio-question"
@@ -905,9 +873,11 @@ export function PortfolioChat({
               }}
               onHeightChange={onLayoutChange}
               onKeyDown={guardComposerKey}
-              placeholder={offline ? "The Guide is offline" : composerPlaceholder}
+              emptyPlaceholder={openingPlaceholder}
+              followUpPlaceholder={composerPlaceholder}
+              offlinePlaceholder="The Guide is offline"
+              offline={offline}
               rows={1}
-              submitMode="enter"
             />
             <ComposerPrimitive.Send
               aria-label={pending ? "Asking…" : "Ask"}

@@ -19,7 +19,6 @@ import {
   galleryFamilies,
   galleryFamilyRegister,
   galleryAskPortfolio,
-  galleryRenderTurnstile,
 } from "./fixtures";
 import { Section, Specimen, Stage, StateStrip } from "./gallery-ui";
 
@@ -191,7 +190,6 @@ function ChatStates() {
           <section className="scene-shell">
             <PortfolioChat
               askPortfolio={galleryAskPortfolio}
-              renderTurnstile={galleryRenderTurnstile}
             />
           </section>
         </Composition>

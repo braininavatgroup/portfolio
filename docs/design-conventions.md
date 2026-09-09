@@ -498,7 +498,7 @@ spacing token.
 ## 9. Mobile review pass
 
 - Reader inline navigation uses real anchors with controlled primary-click navigation. This lets links wrap with surrounding punctuation and preserves modified-click behavior.
-- The default map spreads the authored spatial graph across its measured canvas. Its upper tree connects Bradley to Themes, and factual and membership relationships remain visible throughout the overview. All overview records have labels beneath their marks, bounded to two lines. Straight connectors leave eight pixels around intervening overview labels. Full names remain on their accessible buttons.
+- The default map spreads the authored spatial graph across its measured canvas. Its upper tree connects Bradley to Themes, and factual and membership relationships remain visible throughout the overview. All overview records have labels beneath their marks, bounded to two lines. Straight connectors leave two pixels around each intervening label line and fade over seven pixels at clipped ends. Full names remain on their accessible buttons.
 - The mobile map toolbar occupies a real row. The canvas measures the remaining area, including during selection and resizing. Read has no arrow; Hide/Show avatar shares the row.
 - Reader, Map, and Guide use the brain asset at its native pattern scale in an 18px control envelope. Inactive tabs use muted ink without separately fading the pattern.
 - Guide follows growing answers only while at the bottom. Scrolling up preserves position. The downward chevron occupies a separate 32px row, so visibility changes do not change the message viewport or cover prose.

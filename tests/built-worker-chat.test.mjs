@@ -29,7 +29,6 @@ async function startBuiltWorker(port) {
     "OPENAI_API_KEY",
     "OPENAI_PORTFOLIO_MODEL",
     "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
-    "TURNSTILE_SECRET_KEY",
   ]) {
     delete childEnvironment[name];
   }

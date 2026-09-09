@@ -7,12 +7,33 @@ import { parsePortfolioResponseEffects } from "./avatar/validation";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
-  challengeToken?: string;
   conversation?: readonly PortfolioChatMessage[];
   visitState?: PortfolioChatVisitState;
   onEvent(event: PortfolioChatEvent): void;
   fetchImplementation?: typeof fetch;
 };
+
+export const portfolioChatSessionPath = "/api/portfolio-chat/session";
+
+/**
+ * Establishes the token the chat endpoint asks for. Safe to call more than
+ * once: a failure only means the next question has to re-establish it.
+ */
+export async function openPortfolioChatSession(
+  fetchImplementation: typeof fetch = fetch,
+) {
+  try {
+    const response = await fetchImplementation(portfolioChatSessionPath, {
+      method: "GET",
+      credentials: "same-origin",
+      signal: AbortSignal.timeout(10_000),
+    });
+    void response.body?.cancel().catch(() => {});
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 export type AskPortfolio = (
   question: string,
@@ -100,28 +121,34 @@ async function responseError(response: Response) {
 
 export const streamPortfolioAnswer: AskPortfolio = async (
   question,
-  {
-    signal,
-    challengeToken,
-    conversation,
-    visitState,
-    onEvent,
-    fetchImplementation = fetch,
-  },
+  { signal, conversation, visitState, onEvent, fetchImplementation = fetch },
 ) => {
   const body = {
     question,
     ...(conversation?.length ? { conversation } : {}),
     ...(visitState ? { visitState } : {}),
-    ...(challengeToken ? { challengeToken } : {}),
   };
-  const response = await fetchImplementation("/api/portfolio-chat", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "same-origin",
-    signal,
-  });
+  const send = () =>
+    fetchImplementation("/api/portfolio-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "same-origin",
+      signal,
+    });
+
+  let response = await send();
+  // A session that lapsed between questions is the endpoint's business, not the
+  // visitor's: re-establish it once and send the same question again.
+  if (response.status === 403) {
+    const failure = await responseError(response);
+    if (failure.code === "session_required") {
+      if (!(await openPortfolioChatSession(fetchImplementation))) throw failure;
+      response = await send();
+    } else {
+      throw failure;
+    }
+  }
   if (!response.ok) throw await responseError(response);
   if (!response.body) {
     throw new PortfolioChatClientError(

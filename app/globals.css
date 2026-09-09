@@ -3110,8 +3110,7 @@ body:has(.portfolio-reading-room-mobile) {
   margin: 12px 0 0;
 }
 
-.portfolio-guide-error button,
-.chat-verification-retry {
+.portfolio-guide-error button {
   appearance: none;
   background: transparent;
   border: 0;
@@ -3174,17 +3173,6 @@ body:has(.portfolio-reading-room-mobile) {
 .portfolio-guide-suggestion .portfolio-control-glyph svg {
   height: 18px;
   width: 18px;
-}
-
-.chat-turnstile {
-  margin: 0 var(--reader-space-3) 12px;
-  min-height: 0;
-}
-
-.chat-note {
-  color: var(--reader-muted, var(--reader-muted-light));
-  font: var(--reader-type-secondary) var(--font-reader);
-  margin: var(--reader-space-1) 0 0;
 }
 
 .portfolio-chat-composer {

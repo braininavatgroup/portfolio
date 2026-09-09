@@ -4,7 +4,6 @@
 import type { AvatarSnapshot } from "../../lib/avatar/runtime";
 import type { AskPortfolio } from "../../lib/portfolio-chat-client";
 import type { PortfolioGroundingEvidence } from "../../lib/portfolio-grounding";
-import type { TurnstileRenderer } from "../../lib/portfolio-chat-turnstile";
 import type {
   PortfolioWorldFamily,
   PortfolioWorldRegister,
@@ -78,11 +77,6 @@ export const galleryAskPortfolio: AskPortfolio = async (question, options) => {
   onEvent({ type: "done" });
 };
 
-/** Never renders a widget; the gallery does not run a Turnstile challenge. */
-export const galleryRenderTurnstile: TurnstileRenderer = async () => ({
-  reset() {},
-  remove() {},
-});
 
 /** Keeps the analytics preference fixture out of real browser storage. */
 export function createMemoryStorage(initial?: string) {

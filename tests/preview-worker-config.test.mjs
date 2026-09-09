@@ -22,10 +22,11 @@ test("the site-preview config cannot attach production routes or chat-specific p
   assert.equal(config.routes, undefined);
   assert.equal(config.domains, undefined);
   assert.deepEqual(config.vars, {
-    PORTFOLIO_CHAT_TURNSTILE_REQUIRED: "false",
-    PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "200",
-    OPENAI_PORTFOLIO_MODEL: "gpt-5.6-terra",
-    OPENAI_PORTFOLIO_REASONING_EFFORT: "medium",
+    PORTFOLIO_CHAT_SESSION_REQUIRED: "false",
+    PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "1000",
+    OPENAI_PORTFOLIO_MODEL: "gpt-5.6-sol",
+    OPENAI_PORTFOLIO_REASONING_EFFORT: "low",
+    OPENAI_PORTFOLIO_VERBOSITY: "low",
     PORTFOLIO_FEEDBACK_ENABLED: "false",
   });
   assert.deepEqual(config.durable_objects, {
@@ -57,7 +58,6 @@ test("the site-preview config cannot attach production routes or chat-specific p
   for (const secretName of [
     "OPENAI_API_KEY",
     "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
-    "TURNSTILE_SECRET_KEY",
   ]) {
     assert.equal(serializedVars.includes(secretName), false, secretName);
   }

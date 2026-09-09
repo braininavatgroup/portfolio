@@ -23,6 +23,19 @@ function chunkedResponse(chunks: string[]) {
 }
 
 describe("portfolio chat client", () => {
+  it("preserves the session error when reopening fails", async () => {
+    const fetchImplementation = vi.fn(async (url: RequestInfo | URL) =>
+      url === "/api/portfolio-chat/session"
+        ? new Response(null, { status: 503 })
+        : Response.json({ code: "session_required", message: "Session needed" }, { status: 403 }),
+    );
+    await expect(streamPortfolioAnswer("Question", {
+      fetchImplementation,
+      onEvent: () => {},
+    })).rejects.toMatchObject({ code: "session_required" });
+    expect(fetchImplementation).toHaveBeenCalledTimes(2);
+  });
+
   it("sends per-visit routing state and accepts the hidden turn mode event", async () => {
     const events: PortfolioChatEvent[] = [];
     const fetchImplementation = vi.fn(async () =>
@@ -173,26 +186,35 @@ describe("portfolio chat client", () => {
     });
   });
 
-  it("adds an optional challenge token without changing ordinary chat requests", async () => {
-    const fetchImplementation = vi.fn(async () =>
-      chunkedResponse(['{"type":"done"}\n']),
-    );
+  it("re-opens a lapsed session once and resends the same question", async () => {
+    // The endpoint refuses a request whose session expired. Recovering here
+    // keeps a lapse invisible instead of surfacing it as a failed answer.
+    const calls: string[] = [];
+    const fetchImplementation = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      if (url === "/api/portfolio-chat/session") {
+        return Response.json({ required: true, expiresAt: 1 });
+      }
+      if (calls.filter((call) => call === "/api/portfolio-chat").length === 1) {
+        return Response.json(
+          { code: "session_required", message: "Reload the page to ask again." },
+          { status: 403 },
+        );
+      }
+      return chunkedResponse(['{"type":"done"}\n']);
+    });
 
     await streamPortfolioAnswer("Question", {
-      challengeToken: "challenge-token",
-      fetchImplementation,
+      fetchImplementation: fetchImplementation as unknown as typeof fetch,
       onEvent: () => {},
     });
 
-    expect(fetchImplementation).toHaveBeenCalledWith(
+    expect(calls).toEqual([
       "/api/portfolio-chat",
-      expect.objectContaining({
-        body: JSON.stringify({
-          question: "Question",
-          challengeToken: "challenge-token",
-        }),
-      }),
-    );
+      "/api/portfolio-chat/session",
+      "/api/portfolio-chat",
+    ]);
   });
 
   it("sends bounded conversation context only when a follow-up has history", async () => {

@@ -41,7 +41,6 @@ import {
   createMemoryStorage,
   galleryAskPortfolio,
   galleryAvatarSnapshot,
-  galleryRenderTurnstile,
 } from "./fixtures";
 
 // #example:QuarterlyDashboard
@@ -184,7 +183,6 @@ export function PortfolioReadingRoomExample() {
           <PortfolioChat
             askPortfolio={galleryAskPortfolio}
             onThreadStateChange={setGuideHasThread}
-            renderTurnstile={galleryRenderTurnstile}
           />
         )}
         guideHasThread={guideHasThread}
@@ -292,9 +290,8 @@ export function PortfolioChatExample() {
       <section style={{ height: "100%" }}>
         <PortfolioChat
           // Omit both stubs in production: the defaults are
-          // `streamPortfolioAnswer` and the real Turnstile renderer.
+          // `streamPortfolioAnswer` and the real session opener.
           askPortfolio={galleryAskPortfolio}
-          renderTurnstile={galleryRenderTurnstile}
         />
       </section>
     </div>

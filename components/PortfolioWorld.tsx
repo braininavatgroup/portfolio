@@ -96,6 +96,10 @@ type RuntimeNode = PortfolioWorldNode & {
   screen: ProjectedPoint | null;
   /** The widest label line, measured once per wrap, not per frame. */
   labelWidth: number;
+  /** Each line's own width, so a connector can clip to the text, not the block. */
+  labelLineWidths: number[];
+  /** One box per painted line, hugging the text rather than its bounding block. */
+  labelLineBoxes: LayoutBox[];
 };
 
 export type PortfolioWorldProps = {
@@ -146,6 +150,33 @@ type ConnectorAnchor = Point & {
  * mark, and the clearance keeps it from touching either.
  */
 const CONNECTOR_CLEARANCE = 2;
+
+/** How far a label-clipped end ramps from nothing to full ink, in pixels. */
+const CONNECTOR_FADE = 7;
+
+/**
+ * Splits a token colour into an `rgba()` builder so a connector can fade to
+ * transparent in its own hue. Returns null for anything unparseable, which
+ * leaves the line drawn flat rather than guessing at a colour.
+ */
+function alphaColor(color: string) {
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (hex) {
+    const digits = hex[1];
+    const pairs =
+      digits.length === 3
+        ? [...digits].map((digit) => digit + digit)
+        : [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6)];
+    const [r, g, b] = pairs.map((pair) => Number.parseInt(pair, 16));
+    return (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(color.trim());
+  if (rgb) {
+    const [r, g, b] = rgb[1].split(/[\s,/]+/).filter(Boolean).slice(0, 3);
+    if (r && g && b) return (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return null;
+}
 
 function markRadius(family: PortfolioWorldFamily) {
   return portfolioNodeMarkRadius(family, family === "identity" ? BRADLEY_MARK_SIZE : MARK_SIZE);
@@ -252,6 +283,38 @@ function labelBoxFor(
     width,
     height,
   };
+}
+
+/**
+ * The same geometry as `labelBoxFor`, split per painted line. A two-line label
+ * whose lines differ in width leaves a wide dead margin beside the short one;
+ * clipping connectors against the block made the clearance look far larger
+ * than the text it was protecting.
+ */
+function labelLineBoxesFor(
+  node: RuntimeNode,
+  palette: Parameters<typeof labelBoxFor>[1],
+): LayoutBox[] {
+  const block = labelBoxFor(node, palette);
+  if (!block || node.labelLineWidths.length !== node.labelLines.length) {
+    return block ? [block] : [];
+  }
+  const scale = palette.compact
+    ? COMPACT_LABEL_SCALE
+    : node.id === "bradley"
+      ? BRADLEY_LABEL_SCALE
+      : 1;
+  const lineHeight = palette.compact ? COMPACT_LINE_HEIGHT : LABEL_LINE_HEIGHT;
+  const centre = block.x + block.width / 2;
+  return node.labelLineWidths.map((lineWidth, index) => {
+    const width = lineWidth * scale;
+    return {
+      x: centre - width / 2,
+      y: block.y + index * lineHeight,
+      width,
+      height: lineHeight,
+    };
+  });
 }
 
 const overview = {
@@ -460,6 +523,8 @@ function createRuntimeNodes(): RuntimeNode[] {
       rawBase: clone(point),
       screen: null,
       labelWidth: 0,
+      labelLineWidths: [],
+      labelLineBoxes: [],
     };
   });
 }
@@ -857,9 +922,11 @@ export function PortfolioWorld({
           node.labelLines = palette.resting && node.id !== "bradley"
             ? portfolioOverviewLabel(label, measure, labelWidth)
             : wrapLabel(label, measure, node.id === "bradley" ? 160 : labelWidth);
-          node.labelWidth = Math.max(...node.labelLines.map(measure));
+          node.labelLineWidths = node.labelLines.map(measure);
+          node.labelWidth = Math.max(...node.labelLineWidths);
         }
         node.labelBox = labelBoxFor(node, palette);
+        node.labelLineBoxes = labelLineBoxesFor(node, palette);
         const button = buttonRefs.current.get(node.id);
         if (button && node.screen) {
           button.style.left = `${(node.screen.x / width) * 100}%`;
@@ -1607,28 +1674,69 @@ function drawLinks(
 ) {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const color = palette.connector;
+  const tint = alphaColor(color);
   const stroke = (points: readonly Point[], alpha: number, active: boolean) => {
     if (points.length < 2) return;
     context.save();
-    context.globalAlpha = alpha;
     context.lineCap = "round";
     context.lineJoin = "round";
-    context.strokeStyle = color;
     context.lineWidth = active ? 1.1 : 0.54;
+
+    // A label-clipped end used to stop dead, so a line appeared to begin in
+    // midair beside the text. Those ends ramp out instead; ends that are where
+    // the relationship really stops still land flat.
+    const fadeSegment = (segment: {
+      start: Point;
+      end: Point;
+      fadeStart: boolean;
+      fadeEnd: boolean;
+    }) => {
+      const length = Math.hypot(
+        segment.end.x - segment.start.x,
+        segment.end.y - segment.start.y,
+      );
+      if (length < 1e-3) return;
+      const ramp = Math.min(CONNECTOR_FADE / length, 0.5);
+      const gradient = context.createLinearGradient(
+        segment.start.x,
+        segment.start.y,
+        segment.end.x,
+        segment.end.y,
+      );
+      gradient.addColorStop(0, tint!(segment.fadeStart ? 0 : alpha));
+      if (segment.fadeStart) gradient.addColorStop(ramp, tint!(alpha));
+      if (segment.fadeEnd) gradient.addColorStop(1 - ramp, tint!(alpha));
+      gradient.addColorStop(1, tint!(segment.fadeEnd ? 0 : alpha));
+      context.globalAlpha = 1;
+      context.strokeStyle = gradient;
+      context.beginPath();
+      context.moveTo(segment.start.x, segment.start.y);
+      context.lineTo(segment.end.x, segment.end.y);
+      context.stroke();
+    };
+
+    context.globalAlpha = alpha;
+    context.strokeStyle = color;
     context.beginPath();
     context.moveTo(points[0].x, points[0].y);
     let pen = points[0];
+    const faded: Parameters<typeof fadeSegment>[0][] = [];
     for (let index = 1; index < points.length; index++) {
       const segments = palette.resting
-        ? overviewConnectorSegments(points[index - 1], points[index], nodes.flatMap(node => node.labelBox ? [node.labelBox] : []))
-        : [{ start: points[index - 1], end: points[index] }];
+        ? overviewConnectorSegments(points[index - 1], points[index], nodes.flatMap(node => node.labelLineBoxes))
+        : [{ start: points[index - 1], end: points[index], fadeStart: false, fadeEnd: false }];
       for (const segment of segments) {
+        if (tint && (segment.fadeStart || segment.fadeEnd)) {
+          faded.push(segment);
+          continue;
+        }
         if (segment.start.x !== pen.x || segment.start.y !== pen.y) context.moveTo(segment.start.x, segment.start.y);
         context.lineTo(segment.end.x, segment.end.y);
         pen = segment.end;
       }
     }
     context.stroke();
+    for (const segment of faded) fadeSegment(segment);
     context.restore();
   };
   // There is always a spotlight — rest reads as Bradley — so a line is either
@@ -1638,7 +1746,8 @@ function drawLinks(
     x: screen.x,
     y: screen.y,
     family: node.family,
-    labelBox: node.labelBox,
+    // Overview label clipping happens per line in stroke(), including endpoints.
+    labelBox: palette.resting ? null : node.labelBox,
   });
 
   const isRoot = (layer: (typeof links)[number]["layer"]) =>

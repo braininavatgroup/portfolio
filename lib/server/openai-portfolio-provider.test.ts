@@ -390,6 +390,7 @@ describe("OpenAI portfolio provider", () => {
       apiKey,
       model: "portfolio-model-test",
       reasoningEffort: "medium",
+      verbosity: "low",
       fetchImplementation,
     });
 
@@ -419,7 +420,7 @@ describe("OpenAI portfolio provider", () => {
       max_output_tokens: 3_000,
       reasoning: { effort: "medium" },
       safety_identifier: "pc_anonymous-session-hash",
-      text: { format: { type: "json_schema", strict: true } },
+      text: { verbosity: "low", format: { type: "json_schema", strict: true } },
     });
     expect(JSON.stringify(body)).toContain("node:pitching");
     expect(JSON.stringify(body)).toContain(
@@ -464,7 +465,15 @@ describe("OpenAI portfolio provider", () => {
     }
 
     const body = JSON.parse(requestBody);
-    expect(body.input).toEqual([
+    expect(body.input[0]).toMatchObject({
+      role: "user",
+      content: [{
+        type: "input_text",
+        text: expect.stringContaining("Portfolio evidence:\n[E1] id=node:pitching"),
+        prompt_cache_breakpoint: { mode: "explicit" },
+      }],
+    });
+    expect(body.input.slice(1)).toEqual([
       {
         role: "user",
         content: [{ type: "input_text", text: "Tell me about pitching." }],
@@ -483,16 +492,10 @@ describe("OpenAI portfolio provider", () => {
       },
       {
         role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: expect.stringContaining(
-              "Current question: What changed?\n\nPortfolio evidence:\n[E1] id=node:pitching",
-            ),
-          },
-        ],
+        content: [{ type: "input_text", text: "Current question: What changed?" }],
       },
     ]);
+    expect(body.prompt_cache_options).toEqual({ mode: "explicit", ttl: "30m" });
   });
 
   // Protects against restoring a model-selectable refusal branch.

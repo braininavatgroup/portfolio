@@ -124,7 +124,7 @@ over cellular rather than home Wi-Fi:
 | Correct password | Redirects to the requested same-origin path and sets the seven-day secure cookie |
 | Protected asset | Loads only after authentication and retains the `noindex, nofollow, noarchive` response header |
 | iPhone over cellular | Password form, map, HTML index, and a record in the map reader load outside the home network |
-| Chat | One grounded question reaches `/api/portfolio-chat` after login and remains within the 200/day budget |
+| Chat | One grounded question reaches `/api/portfolio-chat` after login and remains within the 1,000/day budget |
 | Session | Reload works; a different unsigned browser remains locked out |
 | Secret isolation | No password, signing secret, provider key, question, answer, or IP address appears in client assets or telemetry |
 

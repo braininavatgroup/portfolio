@@ -12,7 +12,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { PortfolioResponseEffects } from "../lib/avatar/contracts";
-import { getPortfolioChatTurnstileSiteKey } from "../lib/portfolio-chat-config";
 import { trackPortfolioInsight } from "../lib/portfolio-analytics";
 import type { GuideEvidenceTarget } from "../lib/portfolio-guide-citations";
 import {
@@ -336,7 +335,6 @@ export function PortfolioExperience() {
       onThreadStateChange={setGuideHasThread}
       registerAvatarDock={registerAvatarDock}
       resetSignal={guideResetSignal}
-      turnstileSiteKey={getPortfolioChatTurnstileSiteKey()}
     />
   );
 
