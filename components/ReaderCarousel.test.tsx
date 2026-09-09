@@ -61,6 +61,8 @@ describe("ReaderCarousel", () => {
     );
     expect([...images].every((image) => image.getAttribute("loading") === "lazy")).toBe(true);
     expect([...images].every((image) => image.getAttribute("draggable") === "false")).toBe(true);
+    expect([...images].every(image => image.width === 128 && image.height === 128)).toBe(true);
+    expect([...images].every(image => image.getAttribute("decoding") === "async")).toBe(true);
     expect(strip.querySelector(".reader-carousel-viewport")).toBeTruthy();
   });
 

@@ -171,11 +171,16 @@ export function ReaderCarousel({
                 onClick={(event) => event.currentTarget.focus()}
                 type="button"
               >
+                {/* Precompressed local WebP thumbnails; runtime optimization adds an unnecessary request path. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt={asset.alt}
+                  decoding="async"
                   draggable={false}
+                  height={128}
                   loading="lazy"
                   src={asset.src}
+                  width={128}
                 />
               </button>
               <ReaderCarouselCard asset={asset} />

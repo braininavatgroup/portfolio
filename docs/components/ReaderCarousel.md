@@ -47,7 +47,7 @@ export function ReaderCarouselExample() {
 
 - Reduced motion keeps the strip still. Fine-pointer hover and keyboard focus pause scrolling; leaving resumes it.
 - Touch focuses the image button. Tab continues into the card's accessible platform links, each with a tooltip and a new-tab target.
-- Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
+- Images use precompressed local WebP files with explicit 128px dimensions, lazy loading, and asynchronous decoding; the native image element deliberately avoids runtime transformation. Images are center-cropped. Supply square sources or pad wide logos to preserve their edges.
 - `.reader-visual-block img` stretches images; the carousel overrides that to 128px square. Keep this override when changing shared media styles.
 - Every asset needs corresponding alt text in the content document; content/structure parity tests guard their alignment.
 - Cards show Instagram and Spotify when present. Beatport appears only when Spotify is absent, regardless of client type. There is no Artist/Label row.
