@@ -1,3 +1,4 @@
+import { shareMetadata } from "../../lib/portfolio-sharing";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { COPY_DECK_FOLDER, renderCopyDeckPages } from "../../lib/portfolio-copy-deck";
@@ -7,7 +8,7 @@ import { CopyDeckActions } from "./CopyDeckActions";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Copy deck | Bradley Berkman",
+  ...shareMetadata("copy-deck"),
   robots: { index: false, follow: false },
 };
 

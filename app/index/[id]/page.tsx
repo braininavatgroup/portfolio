@@ -1,15 +1,18 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { PortfolioExperience } from "../../../components/PortfolioExperience";
 import { portfolioWorldNodeById } from "../../../lib/portfolio-world";
+import { shareMetadata } from "../../../lib/portfolio-sharing";
 
-// The map reader is the only reading surface. Canonical record URLs land on
-// the map with that record open.
-type NodePageProps = {
-  params: Promise<{ id: string }>;
-};
+type NodePageProps = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: NodePageProps) {
+  const { id } = await params;
+  if (!portfolioWorldNodeById.has(id)) notFound();
+  return shareMetadata(id);
+}
 
 export default async function NodePage({ params }: NodePageProps) {
   const { id } = await params;
-  const node = portfolioWorldNodeById.get(id);
-  if (!node || node.outlineType === "why") notFound();
-  redirect(`/?view=graph#${id}`);
+  if (!portfolioWorldNodeById.has(id)) notFound();
+  return <PortfolioExperience initialNodeId={id} />;
 }

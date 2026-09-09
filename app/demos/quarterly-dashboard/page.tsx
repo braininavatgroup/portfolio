@@ -1,10 +1,9 @@
+import { shareMetadata } from "../../../lib/portfolio-sharing";
 import type { Metadata } from "next";
 import { QuarterlyDashboard } from "../../../components/QuarterlyDashboard";
 
 export const metadata: Metadata = {
-  description:
-    "An interactive quarterly pitch-conversion dashboard for a real-estate operations workflow.",
-  title: "Quarterly pitch conversion | Bradley Berkman",
+  ...shareMetadata("demo-quarterly-dashboard"),
 };
 
 export default function DashboardPage() {

@@ -10,8 +10,8 @@ owner of selection, URL/history, citation routing, the avatar lifecycle, and
 live-map Brain Food. Chat’s `brain_food` effect enters temporary game layout;
 completion or exit restores it without changing selection or URL.
 The Guide receives live avatar readiness, motion preference, game support, and Hide/Show state. Hiding cancels the game and pauses the avatar. The Reader owns its image and gallery viewer.
-Selection is mirrored into the URL (`?view=graph#thread/<id>/<node>`) with
-`pushState`; `popstate` reads it back. Only a selection or thread is in the
+Selection is mirrored into the canonical URL (`/index/<node>?view=graph`) with
+`pushState`; `popstate` reads it back. Legacy hash links still resolve. Only a selection or thread is in the
 URL, so returning home pushes one entry only when one was set; opening or
 closing Reader media never pushes or changes the active Reading Room view.
 The same callbacks report a generic selection source with the current record
@@ -20,7 +20,8 @@ targets remain no-ops.
 
 ## Props
 
-None. Everything is internal state. See
+`initialNodeId?: string | null` selects a record during server rendering of its
+canonical route. The home route omits it. Subsequent selection is internal state. See
 [`PortfolioReader`](./PortfolioReader.md),
 [`PortfolioWorld`](./PortfolioWorld.md), [`PortfolioChat`](./PortfolioChat.md)
 and [`AvatarOverlay`](./avatar/AvatarOverlay.md). The Reading Room is controlled;

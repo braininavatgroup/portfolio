@@ -801,7 +801,7 @@ function InlineRecordLink({
         className="reader-inline-link"
         data-register={targetNode?.register}
         onBlur={() => setPreviewing(false)}
-        href={node ? `/?view=graph#${node.id}` : `/?view=graph#thread/${thread!.id}`}
+        href={`/index/${node?.id ?? thread!.nodeId}`}
         onClick={(event) => {
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
           event.preventDefault();

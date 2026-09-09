@@ -1,6 +1,9 @@
+import { shareMetadata } from "../../lib/portfolio-sharing";
 import Link from "next/link";
 import { PortfolioAnalyticsPreference } from "../../components/PortfolioAnalytics";
 import { portfolioContact, portfolioInterfaceText } from "../../lib/portfolio-world";
+
+export const metadata = shareMetadata("privacy");
 
 export default function PrivacyPage() {
   return (
