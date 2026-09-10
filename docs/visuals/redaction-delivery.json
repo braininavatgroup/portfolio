@@ -1,0 +1,75 @@
+{
+  "selectionRevision": 109,
+  "assets": [
+    {
+      "sourceHash": "e227cb73ba79a57112a98224f40fc3cdca5b00cb9e3339be3dbe6c79898fd15f",
+      "src": "/visuals/campaign/campaign-kickoff-redacted.mp4",
+      "sha256": "1cf28833cb7f11df0c80d21e45a4381d0be66c554af3dfee629e7d9efe24f143"
+    },
+    {
+      "sourceHash": "27ee85bcee2d6162d40f233fee28b3d792d680785c2bfc34785189b05c674047",
+      "src": "/visuals/campaign/pitch-pipeline-preview.mp4",
+      "sha256": "66d5937d4d402a567ccac1cb2be2cbd7b494cd8bf8ea89704f4cc38e4a1acf21"
+    },
+    {
+      "sourceHash": "1511ac31abcf7d24ad163f0b22af674641fb5a3e6ddc2f377242e8e593318266",
+      "src": "/visuals/campaign/campaign-kickoff-poster.png",
+      "sha256": "da0a18b0cef6541c227d2fc9c33226e851fa82536236f92ed4629c0dea2308f6"
+    },
+    {
+      "sourceHash": "52499a3d126e2b93fa003832a070db69e738f4ba612a8fb41bb5300a437aa0c1",
+      "src": "/visuals/campaign/pitch-pipeline-poster.png",
+      "sha256": "7d0632358c3215c96d00a641314b4fa5bdb42a38abcc6ec76a00cbc879e024b8"
+    },
+    {
+      "sourceHash": "2f8155800f805ef74b6a1942ee6303e44bf73dcf97ac8ea77628714297082a00",
+      "src": "/visuals/campaign/reporting-drafts-2x.png",
+      "sha256": "4990d29d48f636af4683dc946a8ced2a7b37e3fa5c4245e57cd7e0a9619ba0ce"
+    }
+  ],
+  "kickoffDurationSeconds": 157,
+  "pitchingDurationSeconds": 160,
+  "kickoffDropdown": {
+    "sourceTimeSeconds": 11.933,
+    "style": "blur",
+    "strength": 6,
+    "sourceDimensions": [
+      1470,
+      956
+    ],
+    "frames": [
+      {
+        "startInclusive": 342,
+        "endExclusive": 364,
+        "box": [
+          540,
+          343,
+          230,
+          590
+        ]
+      },
+      {
+        "startInclusive": 364,
+        "endExclusive": 402,
+        "box": [
+          540,
+          56,
+          230,
+          876
+        ]
+      }
+    ],
+    "selectedValueTransition": {
+      "startSeconds": 13.4,
+      "endSeconds": 13.766667,
+      "style": "pixelate",
+      "strength": 2,
+      "box": [
+        544,
+        292,
+        60,
+        24
+      ]
+    }
+  }
+}

@@ -1,0 +1,82 @@
+name: deploy main preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful ci.yml push run ID for the approved main commit
+        required: true
+        type: string
+      source_sha:
+        description: Exact 40-character main commit SHA approved for deployment
+        required: true
+        type: string
+      expected_dist_digest:
+        description: Approved sorted dist SHA-256 digest
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  deploy_main_preview:
+    if: vars.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED == 'true'
+    environment: portfolio-main-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate approved artifact identity
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          EXPECTED_DIST_DIGEST: ${{ inputs.expected_dist_digest }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_DIST_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Verify exact source checkout
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - name: Install pinned deployment tooling
+        run: npm ci --ignore-scripts
+      - name: Download approved main-preview artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-main-preview-${{ inputs.source_sha }}
+          path: dist
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+      - name: Verify approved main-preview artifact digest
+        env:
+          EXPECTED_DIST_DIGEST: ${{ inputs.expected_dist_digest }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$(find dist -type f -print -quit)" ]]; then
+            printf 'Downloaded dist artifact is empty.\n' >&2
+            exit 1
+          fi
+          ACTUAL_DIST_DIGEST=$(find dist -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')
+          if [[ "$ACTUAL_DIST_DIGEST" != "$EXPECTED_DIST_DIGEST" ]]; then
+            printf 'Downloaded dist digest did not match the approved digest.\n' >&2
+            exit 1
+          fi
+          printf 'Verified approved dist digest: %s\n' "$ACTUAL_DIST_DIGEST"
+      - name: Deploy approved main-preview artifact
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.main-preview.jsonc --strict --message "main ${{ inputs.source_sha }}"

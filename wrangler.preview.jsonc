@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bradley-portfolio-preview",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PORTFOLIO_CHAT_SESSION_REQUIRED": "false",
+    "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT": "1000",
+    "OPENAI_PORTFOLIO_MODEL": "gpt-5.6-sol",
+    "OPENAI_PORTFOLIO_REASONING_EFFORT": "low",
+    "OPENAI_PORTFOLIO_VERBOSITY": "low",
+    "PORTFOLIO_FEEDBACK_ENABLED": "false"
+  },
+  "secrets": {
+    "required": ["OPENAI_API_KEY"]
+  },
+  "ratelimits": [
+    {
+      "name": "PORTFOLIO_CHAT_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 25, "period": 60 }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PORTFOLIO_CHAT_BUDGET",
+        "class_name": "PortfolioChatBudgetObject"
+      },
+      {
+        "name": "PORTFOLIO_FEEDBACK",
+        "class_name": "PortfolioFeedbackObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PortfolioChatBudgetObject"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["PortfolioFeedbackObject"]
+    }
+  ],
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.js", "**/*.mjs"]
+    }
+  ],
+  "no_bundle": true,
+  "assets": {
+    "directory": "dist/client"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

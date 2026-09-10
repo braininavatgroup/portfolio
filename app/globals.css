@@ -1,0 +1,5179 @@
+:root {
+  /* Set inline per patterned control (Map, Guide): the outline shape mask. */
+  --control-shape: none;
+  /* Legacy prototype aliases. These remain live outside the accepted portfolio composition. */
+  --background: #f4f1e8;
+  --foreground: #17211e;
+
+  /* Accepted portfolio palette. Names follow the design-system checkpoint. */
+  --map-silver: #c5cbd0;
+  --map-paper-dark: #19140f;
+  --map-paper-near-light: #d2d7db;
+  --map-paper-near-dark: #211c18;
+  --map-muted-light: #62676b;
+  --map-muted-dark: #a69c92;
+  --map-connector-light: #4f585d;
+  --map-connector-dark: #a5afb5;
+  --map-line-light: rgb(32 23 17 / 18%);
+  --map-line-dark: rgb(240 230 220 / 17%);
+  --map-line-strong-light: rgb(32 23 17 / 38%);
+  --map-line-strong-dark: rgb(240 230 220 / 34%);
+  --map-grid-light: rgb(32 23 17 / 3.5%);
+  --map-grid-dark: rgb(240 230 220 / 3.5%);
+  --reader-paper-light: #eff1f1;
+  --reader-paper-dark: #292625;
+  --reader-report-paper: #ffffff;
+  --reader-ink-light: #201711;
+  --reader-ink-dark: #f0e6dc;
+  --reader-body-light: #514a45;
+  --reader-body-dark: #c1b7ae;
+  --reader-drop-fill-light: rgb(32 23 17 / 8%);
+  --reader-drop-fill-dark: rgb(240 230 220 / 10%);
+  --reader-muted-light: #6b6d6d;
+  --reader-muted-dark: #aaa098;
+  --reader-media-shadow: rgb(32 23 17 / 15%);
+  --reader-gallery-shadow: rgb(32 23 17 / 10%);
+  --reader-assistant-shadow: rgb(32 23 17 / 20%);
+  --world-lichen: #466700;
+  --world-acid: #b6df5b;
+  --world-hard-red: #d7191c;
+  --world-signal-red: #ff554a;
+  --world-electric-pink: #d0007e;
+  --world-hot-pink: #ff84d0;
+  --world-violet: #4d1fc5;
+  --world-violet-dark: #aaa0ff;
+  --world-production-cyan: #006e91;
+  --world-production-cyan-dark: #62c6df;
+
+  /* Legacy prototype color vocabulary. Values stay separate when the live CSS differs. */
+  --prototype-white: #ffffff;
+  --prototype-highlight: #d7ff6f;
+  --prototype-night-ink: #07100f;
+  --prototype-night-shadow-panel: #07100f3d;
+  --prototype-chat-surface: #091310b8;
+  --prototype-input-surface: #101f1b;
+  --prototype-rule-dark: #28433c;
+  --prototype-chat-rule: #29443d;
+  --prototype-tool-rule: #496a61;
+  --prototype-focus-outline-light: #688500;
+  --prototype-label-ink: #8ab5a9;
+  --prototype-muted-ink: #91a49d;
+  --prototype-input-ink: #f0f5f2;
+
+  /* Listing pitch dashboard demo. Fixed client-facing palette, not mode-switched. */
+  --dashboard-teal: #6fb1b8;
+  --dashboard-teal-deep: #4a8c92;
+  --dashboard-sage: #7a9b5e;
+  --dashboard-terracotta: #b8553a;
+  --dashboard-mustard: #c9a435;
+  --dashboard-peach: #e59a6e;
+  --dashboard-cream: #f5ebd5;
+  --dashboard-cream-soft: #fbf6e8;
+  --dashboard-charcoal: #2c2a26;
+  --dashboard-charcoal-muted: #6b6661;
+
+  /* Active type and recurring composition dimensions. */
+  --font-reader: "NHG portfolio", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --cursor-size: 34px;
+  --world-hit-area: 34px;
+
+  /* The dossier's 8-pt spacing scale. Every gap and line-height on the
+     dossier is a multiple of 8; these are the multiples it uses. */
+  --reader-space-1: 8px;
+  --reader-space-2: 16px;
+  --reader-space-3: 24px;
+  --reader-space-4: 32px;
+  --reader-space-6: 48px;
+  --reader-space-8: 64px;
+
+  /* The dossier's type scale as font shorthands (weight size/line-height);
+     a rule reads one as `font: <token> var(--font-reader)`. Tracking, case
+     and colour travel with the rule that reads the voice. */
+  --reader-type-display: 500 36px/40px;
+  --reader-type-summary: 400 18px/24px;
+  --reader-type-row: 400 15px/24px;
+  --reader-type-body: 400 15px/24px;
+  --reader-type-mast: 500 15px/20px;
+  --reader-type-secondary: 400 13px/18px;
+  --reader-type-caption: 400 12px/16px;
+  --reader-type-label: 500 11px/16px;
+  --reader-type-tab: 400 10px/12px;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  --font-prototype-mono: ui-monospace, SFMono-Regular, Menlo, "Liberation Mono", monospace;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-reader);
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.experience {
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.scene-shell {
+  min-height: 100vh;
+  perspective: 1000px;
+  position: relative;
+}
+
+.avatar-overlay {
+  height: 100dvh;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  width: 100vw;
+  z-index: 6;
+}
+
+.avatar-overlay,
+.avatar-overlay-canvas {
+  pointer-events: none;
+}
+
+/* A hidden avatar keeps its canvas mounted (see AvatarOverlay); the overlay
+   simply leaves the page so react-three-fiber never reconnects into a
+   removed wrapper. */
+.avatar-overlay[hidden] {
+  display: none;
+}
+
+.avatar-overlay-canvas {
+  animation: assistant-avatar-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  inset: 0;
+  pointer-events: none !important;
+  position: absolute !important;
+}
+
+/* The dossier's last line: Privacy, right-aligned in the caption voice,
+   32 below the content and reached only by scrolling to the end. */
+.reader-privacy {
+  color: var(--reader-muted);
+  display: block;
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: auto 0 0;
+  padding: var(--reader-space-4) var(--reader-space-3) max(var(--reader-space-3), env(safe-area-inset-bottom));
+  text-align: right;
+  text-decoration: none;
+}
+
+.reader-privacy:focus-visible {
+  color: var(--ink);
+}
+
+.privacy-page {
+  margin: 0 auto;
+  max-width: 720px;
+  min-height: 100dvh;
+  padding: clamp(32px, 7vw, 88px) 24px;
+}
+
+.privacy-page h1 {
+  font-size: clamp(36px, 7vw, 72px);
+  letter-spacing: -0.05em;
+  margin: 48px 0 24px;
+}
+
+.privacy-page p {
+  font-size: 16px;
+  line-height: 1.65;
+  margin: 0 0 18px;
+}
+
+.privacy-analytics-preference {
+  margin: 26px 0;
+}
+
+.privacy-analytics-preference button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: 500 13px/1.3 var(--font-reader);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Copy deck export page: the privacy page's frame with a row of actions. */
+.copy-deck-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 26px 0;
+}
+
+.copy-deck-actions button,
+.copy-deck-actions a {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: 500 13px/1.3 var(--font-reader);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.copy-deck-status {
+  flex-basis: 100%;
+  min-height: 1.65em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Quarterly dashboard demo */
+.quarterly-dashboard {
+  background: var(--dashboard-teal-deep);
+  container-name: quarterly-dashboard;
+  container-type: inline-size;
+  color: var(--dashboard-charcoal);
+  min-height: 100dvh;
+  padding: 24px;
+}
+
+.quarterly-dashboard button,
+.quarterly-dashboard select {
+  color: inherit;
+  font: inherit;
+}
+
+.quarterly-dashboard button:focus-visible,
+.quarterly-dashboard select:focus-visible,
+.quarterly-dashboard a:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring, var(--world-acid));
+  outline-offset: 2px;
+}
+
+.quarterly-dashboard-shell {
+  background: var(--dashboard-teal);
+  box-shadow: 0 16px 50px color-mix(in srgb, var(--dashboard-charcoal) 28%, transparent);
+  margin: 24px auto;
+  max-width: 1280px;
+  padding: 24px;
+}
+
+.quarterly-dashboard[data-embedded="true"] {
+  min-height: 0;
+}
+
+.quarterly-dashboard[data-embedded="true"] .quarterly-dashboard-shell {
+  box-shadow: none;
+  margin: 0;
+  max-width: none;
+  padding: 16px;
+}
+
+.quarterly-dashboard-return {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--dashboard-cream) 28%, transparent);
+  color: var(--dashboard-cream);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+
+.quarterly-dashboard-return a {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.quarterly-dashboard-return > span {
+  color: color-mix(in srgb, var(--dashboard-cream) 76%, transparent);
+}
+
+.quarterly-dashboard-tabs {
+  display: flex;
+}
+
+.quarterly-dashboard-tabs button {
+  appearance: none;
+  background: color-mix(in srgb, var(--dashboard-cream) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dashboard-cream) 32%, transparent);
+  color: var(--dashboard-cream);
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 36px;
+  padding: 8px 16px;
+}
+
+.quarterly-dashboard-tabs button + button {
+  border-left: 0;
+}
+
+.quarterly-dashboard-tabs button[data-selected="true"] {
+  background: var(--dashboard-cream);
+  color: var(--dashboard-charcoal);
+}
+
+.quarterly-dashboard-header {
+  align-items: flex-end;
+  border-bottom: 1px solid color-mix(in srgb, var(--dashboard-cream) 28%, transparent);
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 24px 0;
+}
+
+.quarterly-dashboard-header :is(h1, h2) {
+  color: var(--dashboard-cream);
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  margin: 4px 0 0;
+  text-wrap: balance;
+}
+
+.quarterly-dashboard-header p,
+.quarterly-dashboard-detail-heading p {
+  color: var(--dashboard-cream);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.quarterly-dashboard-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.quarterly-dashboard-actions button,
+.quarterly-dashboard-detail-heading button {
+  appearance: none;
+  background: color-mix(in srgb, var(--dashboard-cream) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dashboard-cream) 48%, transparent);
+  color: var(--dashboard-cream);
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.quarterly-dashboard-filters {
+  align-items: flex-end;
+  background: var(--dashboard-cream);
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.quarterly-dashboard-filter {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.quarterly-dashboard-filter > span {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quarterly-dashboard-filter select {
+  appearance: none;
+  background: var(--prototype-white);
+  border: 1px solid color-mix(in srgb, var(--dashboard-charcoal) 24%, transparent);
+  border-radius: 0;
+  min-height: 40px;
+  padding: 8px 38px 8px 12px;
+  /* A select's automatic minimum size is its longest option, which pushes it
+     out of a narrow filter column. Let it take the column's width instead. */
+  min-width: 0;
+  width: 100%;
+}
+
+.quarterly-dashboard-filter:not(.quarterly-dashboard-filter-stage) {
+  position: relative;
+}
+
+.quarterly-dashboard-filter:not(.quarterly-dashboard-filter-stage)::after {
+  color: var(--dashboard-charcoal-muted);
+  content: "↓";
+  font-size: 13px;
+  pointer-events: none;
+  position: absolute;
+  right: 13px;
+  top: 31px;
+}
+
+.quarterly-dashboard-filter-competitor {
+  min-width: 220px;
+}
+
+.quarterly-dashboard-filter-stage {
+  min-width: 0;
+}
+
+.quarterly-dashboard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.quarterly-dashboard-chips button {
+  appearance: none;
+  background: var(--prototype-white);
+  border: 1px solid color-mix(in srgb, var(--dashboard-charcoal) 24%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 40px;
+  padding: 6px 12px;
+}
+
+.quarterly-dashboard-chips button[aria-pressed="true"] {
+  background: var(--dashboard-teal-deep);
+  border-color: var(--dashboard-teal-deep);
+  color: var(--dashboard-cream);
+}
+
+.quarterly-dashboard-period {
+  color: var(--dashboard-cream);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: flex-end;
+  min-height: 32px;
+  padding-top: 12px;
+}
+
+.quarterly-dashboard-period span {
+  border: 1px solid color-mix(in srgb, var(--dashboard-cream) 36%, transparent);
+  padding: 4px 8px;
+}
+
+.quarterly-dashboard-scorecards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.quarterly-dashboard-scorecard,
+.quarterly-dashboard-support-card {
+  appearance: none;
+  background: var(--dashboard-cream);
+  border: 0;
+  min-height: 176px;
+  padding: 20px;
+  text-align: left;
+}
+
+.quarterly-dashboard-scorecard {
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto 1fr auto;
+}
+
+.quarterly-dashboard-scorecard > span,
+.quarterly-dashboard-support-card > span {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.quarterly-dashboard-scorecard strong,
+.quarterly-dashboard-support-card strong {
+  align-self: center;
+  color: var(--dashboard-teal-deep);
+  font-size: 48px;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.quarterly-dashboard-scorecard small,
+.quarterly-dashboard-support-card small {
+  color: var(--dashboard-teal-deep);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.quarterly-dashboard-panel {
+  background: var(--dashboard-cream);
+  padding: 20px;
+}
+
+.quarterly-dashboard-panel h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.quarterly-dashboard-panel-note {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  margin: 5px 0 0;
+}
+
+.quarterly-dashboard-trend-panel {
+  margin-top: 16px;
+}
+
+/* The chart fills its column at any width. Its box is sized in real pixels;
+   only the lines are drawn in the stretched 0-100 space, and they opt out of
+   scaling so they stay the same weight. Points and labels are HTML, so their
+   size never depends on how wide the column is. */
+.quarterly-dashboard-chart {
+  display: grid;
+  gap: 8px 10px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-rows: 1fr auto;
+  margin: 16px 12px 0;
+}
+
+.quarterly-dashboard-chart-plot {
+  grid-column: 2;
+  grid-row: 1;
+  height: 232px;
+  position: relative;
+}
+
+/* Counts on the left, conversion rate on the right, each coloured like the
+   series it governs so the two scales cannot be confused for one. */
+.quarterly-dashboard-chart-axis {
+  font-size: 11px;
+  grid-row: 1;
+  position: relative;
+}
+
+.quarterly-dashboard-chart-axis span {
+  position: absolute;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] {
+  color: var(--dashboard-teal-deep);
+  grid-column: 1;
+  width: 26px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="count"] span {
+  right: 0;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] {
+  color: var(--dashboard-terracotta);
+  grid-column: 3;
+  width: 30px;
+}
+
+.quarterly-dashboard-chart-axis[data-axis="rate"] span {
+  left: 0;
+}
+
+.quarterly-dashboard-chart-lines {
+  display: block;
+  height: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.quarterly-dashboard-chart-grid line {
+  stroke: color-mix(in srgb, var(--dashboard-charcoal) 14%, transparent);
+  stroke-dasharray: 2 5;
+  stroke-width: 1;
+}
+
+.quarterly-dashboard-chart-line {
+  fill: none;
+  stroke-width: 3;
+}
+
+.quarterly-dashboard-chart-line[data-series="pitches"] {
+  stroke: var(--dashboard-teal-deep);
+}
+
+.quarterly-dashboard-chart-line[data-series="exclusives"] {
+  stroke: var(--dashboard-mustard);
+}
+
+.quarterly-dashboard-chart-line[data-series="conversion"] {
+  stroke: var(--dashboard-peach);
+  stroke-dasharray: 8 5;
+}
+
+.quarterly-dashboard-chart-point {
+  appearance: none;
+  background: var(--dashboard-teal-deep);
+  border: 2px solid var(--dashboard-cream);
+  border-radius: 50%;
+  height: 10px;
+  padding: 0;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 10px;
+}
+
+/* The hit area is bigger than the dot without moving it. */
+.quarterly-dashboard-chart-point::after {
+  content: "";
+  inset: -12px;
+  position: absolute;
+}
+
+.quarterly-dashboard-chart-point[data-selected="true"] {
+  border-color: var(--dashboard-charcoal);
+  height: 14px;
+  width: 14px;
+}
+
+.quarterly-dashboard-chart-labels {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  grid-column: 2;
+  grid-row: 2;
+  height: 15px;
+  position: relative;
+}
+
+.quarterly-dashboard-chart-labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.quarterly-dashboard-legend {
+  display: flex;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 18px;
+  justify-content: center;
+}
+
+.quarterly-dashboard-legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.quarterly-dashboard-legend span::before {
+  background: var(--dashboard-teal-deep);
+  content: "";
+  height: 3px;
+  width: 16px;
+}
+
+.quarterly-dashboard-legend span[data-series="exclusives"]::before {
+  background: var(--dashboard-mustard);
+}
+
+.quarterly-dashboard-legend span[data-series="conversion"]::before {
+  background: var(--dashboard-peach);
+}
+
+.quarterly-dashboard-support-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 2fr 1fr;
+  margin-top: 16px;
+}
+
+.quarterly-dashboard-support-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quarterly-dashboard-support-card {
+  display: grid;
+  gap: 8px;
+  grid-template-rows: auto 1fr auto;
+}
+
+.quarterly-dashboard-losses {
+  border-top: 3px solid var(--dashboard-terracotta);
+}
+
+.quarterly-dashboard-loss-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.quarterly-dashboard-loss-row {
+  --bar-width: 0%;
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  display: grid;
+  font-size: 12px;
+  gap: 8px;
+  grid-template-columns: 112px 1fr 22px;
+  padding: 2px 0;
+  text-align: left;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > span:first-child {
+  color: var(--dashboard-teal-deep);
+  font-weight: 600;
+}
+
+.quarterly-dashboard-loss-row[aria-pressed="true"] > strong {
+  color: var(--dashboard-teal-deep);
+}
+
+.quarterly-dashboard-loss-row > strong {
+  color: var(--dashboard-charcoal-muted);
+  text-align: right;
+}
+
+.quarterly-dashboard-loss-track {
+  background: color-mix(in srgb, var(--dashboard-terracotta) 14%, transparent);
+  height: 14px;
+}
+
+.quarterly-dashboard-loss-fill {
+  background: var(--dashboard-terracotta);
+  display: block;
+  height: 100%;
+  width: var(--bar-width);
+}
+
+.quarterly-dashboard-detail {
+  background: var(--dashboard-cream);
+  margin-top: 8px;
+  padding: 20px;
+}
+
+.quarterly-dashboard-detail-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.quarterly-dashboard-detail-heading h2 {
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  margin: 4px 0 0;
+}
+
+.quarterly-dashboard-detail-heading p {
+  color: var(--dashboard-charcoal-muted);
+}
+
+.quarterly-dashboard-detail-scope {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin: 6px 0 0;
+  text-transform: none;
+}
+
+.quarterly-dashboard-detail-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.quarterly-dashboard-detail-stats {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0 0;
+}
+
+.quarterly-dashboard-detail-stats > div {
+  background: var(--dashboard-cream-soft);
+  padding: 12px 14px;
+}
+
+.quarterly-dashboard-detail-stats dt {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quarterly-dashboard-detail-stats dd {
+  color: var(--dashboard-teal-deep);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  margin: 4px 0 0;
+}
+
+.quarterly-dashboard-detail-heading button {
+  border-color: color-mix(in srgb, var(--dashboard-charcoal) 32%, transparent);
+  color: var(--dashboard-charcoal);
+}
+
+.quarterly-dashboard-table-scroll {
+  margin-top: 20px;
+  overflow: auto hidden;
+}
+
+.quarterly-dashboard table {
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 980px;
+  width: 100%;
+}
+
+.quarterly-dashboard th {
+  background: var(--dashboard-cream-soft);
+  color: var(--dashboard-charcoal-muted);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.quarterly-dashboard td {
+  border-bottom: 1px solid color-mix(in srgb, var(--dashboard-charcoal) 14%, transparent);
+  padding: 11px 12px;
+  vertical-align: middle;
+}
+
+.quarterly-dashboard td:first-child {
+  font-weight: 500;
+  min-width: 245px;
+}
+
+.quarterly-dashboard-stage {
+  background: color-mix(in srgb, var(--dashboard-charcoal-muted) 14%, transparent);
+  color: var(--dashboard-charcoal-muted);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+.quarterly-dashboard-stage[data-stage="Signed exclusive"] {
+  background: color-mix(in srgb, var(--dashboard-sage) 18%, transparent);
+  color: var(--dashboard-sage);
+}
+
+.quarterly-dashboard-stage[data-stage="Lost"] {
+  background: color-mix(in srgb, var(--dashboard-terracotta) 16%, transparent);
+  color: var(--dashboard-terracotta);
+}
+
+.quarterly-dashboard-stage[data-stage="Open"] {
+  background: color-mix(in srgb, var(--dashboard-peach) 22%, transparent);
+  color: var(--dashboard-charcoal);
+}
+
+.quarterly-dashboard-empty {
+  color: var(--dashboard-charcoal-muted);
+  margin: 0;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.quarterly-dashboard-row-count {
+  color: var(--dashboard-charcoal-muted);
+  font-size: 12px;
+  margin: 12px 0 0;
+  text-align: right;
+}
+
+.quarterly-dashboard-footer {
+  border-top: 1px solid color-mix(in srgb, var(--dashboard-cream) 28%, transparent);
+  color: var(--dashboard-cream);
+  font-size: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  text-align: center;
+}
+
+@media (pointer: fine) {
+  .quarterly-dashboard-actions button:hover,
+  .quarterly-dashboard-detail-heading button:hover,
+  .quarterly-dashboard-tabs button:hover {
+    background: color-mix(in srgb, var(--dashboard-cream) 24%, transparent);
+  }
+
+  .quarterly-dashboard-scorecard:hover,
+  .quarterly-dashboard-support-card:hover {
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--dashboard-charcoal) 18%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .quarterly-dashboard-loss-row:hover > span:first-child {
+    color: var(--dashboard-teal-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+@container quarterly-dashboard (max-width: 760px) {
+  .quarterly-dashboard-shell {
+    box-shadow: none;
+    margin: 0;
+    padding: 16px;
+  }
+
+  .quarterly-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quarterly-dashboard-header :is(h1, h2) {
+    font-size: 26px;
+  }
+
+  .quarterly-dashboard-filters {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quarterly-dashboard-filter,
+  .quarterly-dashboard-filter-competitor,
+  .quarterly-dashboard-filter-stage {
+    min-width: 0;
+  }
+
+  .quarterly-dashboard-filter-competitor,
+  .quarterly-dashboard-filter-stage {
+    grid-column: 1 / -1;
+  }
+
+  .quarterly-dashboard-scorecards,
+  .quarterly-dashboard-support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quarterly-dashboard-scorecard {
+    min-height: 148px;
+  }
+
+  .quarterly-dashboard-support-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .quarterly-dashboard-detail-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quarterly-dashboard-chart {
+    gap: 8px 6px;
+    margin-inline: 0;
+  }
+
+  .quarterly-dashboard-chart-plot {
+    height: 188px;
+  }
+
+  /* Counting back from the end keeps the most recent quarter labelled
+     whatever the period count is. */
+  .quarterly-dashboard-chart-labels span:nth-last-child(even) {
+    display: none;
+  }
+
+  .quarterly-dashboard-table-scroll {
+    overflow: visible;
+  }
+
+  .quarterly-dashboard table,
+  .quarterly-dashboard tbody,
+  .quarterly-dashboard tr,
+  .quarterly-dashboard td {
+    display: block;
+    min-width: 0;
+    width: auto;
+  }
+
+  .quarterly-dashboard thead {
+    display: none;
+  }
+
+  .quarterly-dashboard tr {
+    border: 1px solid color-mix(in srgb, var(--dashboard-charcoal) 14%, transparent);
+    margin-bottom: 10px;
+    padding: 4px 12px;
+  }
+
+  .quarterly-dashboard td {
+    border-bottom: 0;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 88px 1fr;
+    padding: 6px 0;
+  }
+
+  .quarterly-dashboard td[data-empty="true"] {
+    display: none;
+  }
+
+  .quarterly-dashboard td .quarterly-dashboard-stage {
+    justify-self: start;
+  }
+
+  .quarterly-dashboard td::before {
+    color: var(--dashboard-charcoal-muted);
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .quarterly-dashboard td:first-child {
+    border-bottom: 1px solid color-mix(in srgb, var(--dashboard-charcoal) 14%, transparent);
+    display: block;
+    font-size: 14px;
+    min-width: 0;
+    padding-bottom: 10px;
+  }
+
+  .quarterly-dashboard td:first-child::before {
+    display: none;
+  }
+}
+
+@media print {
+  .cursor-instrument,
+  .quarterly-dashboard-actions,
+  .quarterly-dashboard-detail-actions,
+  .quarterly-dashboard-return,
+  .quarterly-dashboard-tabs {
+    display: none !important;
+  }
+
+  .quarterly-dashboard {
+    background: var(--prototype-white);
+  }
+
+  .quarterly-dashboard-shell {
+    box-shadow: none;
+    margin: 0;
+    max-width: none;
+  }
+
+  .quarterly-dashboard-table-scroll {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .avatar-director-console {
+    border-bottom: 0;
+    bottom: 0;
+    left: 0;
+    max-width: 100vw;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: none;
+    width: 100%;
+  }
+  .avatar-director-console-status {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .avatar-director-console-status > div {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+  .avatar-director-console-status > div button {
+    min-height: 2.75rem;
+    min-width: 0;
+  }
+  .avatar-director-console-panel {
+    max-height: min(54dvh, calc(100dvh - 7rem - env(safe-area-inset-top)));
+    padding: 0.55rem 0.75rem 0.75rem;
+  }
+  .avatar-director-console-panel > [role="tablist"] button,
+  .avatar-director-console-panel > [role="tabpanel"] > button,
+  .avatar-director-console-panel > [role="tabpanel"] > span > button {
+    min-height: 2.75rem;
+  }
+}
+
+a {
+  color: inherit;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--prototype-highlight);
+  outline-offset: 4px;
+}
+
+.skip-link {
+  background: var(--prototype-highlight);
+  color: var(--prototype-night-ink);
+  font-weight: 700;
+  left: 1rem;
+  padding: 0.75rem 1rem;
+  position: fixed;
+  top: 0;
+  transform: translateY(-140%);
+  transition: transform 150ms ease;
+  z-index: 100;
+}
+
+.skip-link:focus { transform: translateY(1rem); }
+
+.eyebrow {
+  color: var(--prototype-label-ink);
+  font-family: var(--font-reader);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.portfolio-node-mark {
+  color: var(--world-identity);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  flex: 0 0 18px;
+  height: 18px;
+  place-items: center;
+  width: 18px;
+}
+
+.portfolio-node-mark[data-register="story"] { color: var(--world-story); }
+.portfolio-node-mark[data-register="arc"] { color: var(--world-arc); }
+.portfolio-node-mark[data-register="warm"] { color: var(--world-warm); }
+.portfolio-node-mark[data-register="bridge"] { color: var(--world-bridge); }
+.portfolio-node-mark[data-register="cool"] { color: var(--world-cool); }
+
+.portfolio-node-mark svg {
+  fill: none;
+  height: 18px;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 18px;
+}
+
+.portfolio-node-brain {
+  -webkit-mask: url("/glyph-textures/circle.svg") center / 20px 20px no-repeat;
+  background: currentColor;
+  height: 20px;
+  mask: url("/glyph-textures/circle.svg") center / 20px 20px no-repeat;
+  width: 20px;
+}
+
+/* A control is a node mark: the bare glyph in the node envelope, an
+   invisible 40px hit box, a caption 6 below the glyph's visual edge. No ring,
+   fill, shadow, or pictogram; disabled is opacity alone. */
+.portfolio-control-mark {
+  align-content: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: grid;
+  font: inherit;
+  gap: 6px;
+  justify-items: center;
+  margin: 0;
+  min-width: 40px;
+  padding: 0;
+}
+
+.portfolio-control-mark[hidden] {
+  display: none;
+}
+
+.portfolio-control-mark:disabled {
+  opacity: 0.28;
+}
+
+.portfolio-control-glyph {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: 40px;
+  margin: -11px 0;
+  place-items: center;
+  width: 40px;
+}
+
+.portfolio-control-glyph svg {
+  fill: none;
+  height: 20px;
+  overflow: visible;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 20px;
+}
+
+/* Each silhouette clips a separately rotated, offset brain texture. */
+.portfolio-control-glyph > * {
+  grid-area: 1 / 1;
+}
+
+/* Compact patterned glyphs scale as one artwork surface, including the crop. */
+.portfolio-control-pattern-frame {
+  display: grid;
+  height: 20px;
+  place-items: center;
+  width: 20px;
+}
+
+.portfolio-control-pattern-frame > * {
+  grid-area: 1 / 1;
+}
+
+.portfolio-control-pattern {
+  -webkit-mask: var(--control-shape) center / contain no-repeat;
+  background: currentColor;
+  height: 20px;
+  mask: var(--control-shape) center / contain no-repeat;
+  width: 20px;
+}
+
+.portfolio-control-glyph[data-control-glyph="avatarHidden"] {
+  color: var(--reader-muted);
+}
+
+.portfolio-control-glyph[data-control-glyph="avatarShown"] {
+  color: var(--ink);
+}
+
+
+.portfolio-control-label {
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+
+@media (max-width: 760px) {
+}
+
+/* Light portfolio system */
+[data-theme="light"] {
+  color: var(--foreground);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline-color: var(--prototype-focus-outline-light);
+}
+
+/* Accepted portfolio composition: one Reading Room, one instance of each view. */
+@font-face {
+  font-display: swap;
+  font-family: "NHG portfolio";
+  font-style: normal;
+  font-weight: 400;
+  src: url("https://braininavat.systems/assets/brand-review/fonts/NeueHaasDisplayRoman.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "NHG portfolio";
+  font-style: normal;
+  font-weight: 500 700;
+  src: url("https://braininavat.systems/assets/brand-review/fonts/NeueHaasDisplayMediu.ttf") format("truetype");
+}
+
+.portfolio-composition {
+  --focus-ring: var(--world-acid);
+  --ink: var(--reader-ink-light);
+  --map-muted: var(--map-muted-light);
+  --map-paper: var(--map-silver);
+  --map-paper-near: var(--map-paper-near-light);
+  --reader-paper: var(--reader-paper-light);
+  --reader-body: var(--reader-body-light);
+  --reader-drop-fill: var(--reader-drop-fill-light);
+  --reader-muted: var(--reader-muted-light);
+  --map-connector: var(--map-connector-light);
+  --map-line: var(--map-line-light);
+  --map-line-strong: var(--map-line-strong-light);
+  --map-grid: var(--map-grid-light);
+  --world-identity: var(--reader-ink-light);
+  --world-story: var(--world-hard-red);
+  --world-arc: var(--world-hard-red);
+  --world-warm: var(--world-electric-pink);
+  --world-bridge: var(--world-violet);
+  --world-cool: var(--world-production-cyan);
+  --world-chem: var(--world-lichen);
+  background: var(--map-paper);
+  color: var(--ink);
+  font-family: var(--font-reader);
+  font-kerning: normal;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  .portfolio-composition {
+    --mac-menu-bar-glyph-invert: 1;
+    --focus-ring: var(--world-acid);
+    --ink: var(--reader-ink-dark);
+    --map-muted: var(--map-muted-dark);
+    --map-paper: var(--map-paper-dark);
+    --map-paper-near: var(--map-paper-near-dark);
+    --reader-paper: var(--reader-paper-dark);
+    --reader-body: var(--reader-body-dark);
+    --reader-drop-fill: var(--reader-drop-fill-dark);
+    --reader-muted: var(--reader-muted-dark);
+    --map-connector: var(--map-connector-dark);
+    --map-line: var(--map-line-dark);
+    --map-line-strong: var(--map-line-strong-dark);
+    --map-grid: var(--map-grid-dark);
+    --world-identity: var(--reader-ink-dark);
+    --world-story: var(--world-signal-red);
+    --world-arc: var(--world-signal-red);
+    --world-warm: var(--world-hot-pink);
+    --world-bridge: var(--world-violet-dark);
+    --world-cool: var(--world-production-cyan-dark);
+    --world-chem: var(--world-acid);
+    color-scheme: dark;
+  }
+}
+
+/* The error and not-found routes. They borrow the composition's tokens but
+   claim no viewport, so they can render before anything else has mounted. */
+.recovery-page {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-height: 60vh;
+  padding: 12vh var(--reader-space-3) 0;
+}
+
+.recovery-page h1 {
+  font: var(--reader-type-summary) var(--font-reader);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.recovery-page p {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.recovery-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.recovery-actions a,
+.recovery-actions button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  color: var(--ink);
+  font-family: var(--font-reader);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  padding: 8px 12px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+/* The composition's default focus ring (design conventions, Rule 5.8). Without
+   this, any composition control lacking its own :focus-visible rule fell
+   through to the unscoped `a, button, input:focus-visible` legacy rules above
+   and drew a 3px --prototype-focus-outline-light ring — an olive that is not
+   in the checkpoint palette — on reader and Guide controls among others,
+   which also broke Rule 6.1 ("selection introduces no new
+   color"). Scoped with :where() so it carries no specificity: it beats those
+   unscoped rules on source order alone. The Reading Room uses the same Acid
+   ring for every composition control. */
+:where(.portfolio-composition) a:focus-visible,
+:where(.portfolio-composition) button:focus-visible,
+:where(.portfolio-composition) input:focus-visible,
+:where(.portfolio-composition) textarea:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The document behind the composition must match its paper, or iOS Safari
+   paints the default light body color in toolbar-resize gaps and overscroll. */
+body:has(.portfolio-composition) {
+  background: var(--map-silver);
+}
+
+@media (prefers-color-scheme: dark) {
+  body:has(.portfolio-composition) {
+    background: var(--map-paper-dark);
+  }
+}
+
+@media (max-width: 1019px) {
+  body:has(.portfolio-composition) {
+    background: var(--reader-paper-light);
+  }
+}
+
+@media (max-width: 1019px) and (prefers-color-scheme: dark) {
+  body:has(.portfolio-composition) {
+    background: var(--reader-paper-dark);
+  }
+}
+
+.portfolio-composition .scene-shell {
+  min-height: 100dvh;
+  perspective: none;
+}
+
+.portfolio-world {
+  --world-hud-top: calc(var(--reader-space-3) + 48px);
+  background: var(--map-paper);
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  touch-action: none;
+  user-select: none;
+  z-index: 1;
+}
+
+.portfolio-world-mast {
+  color: var(--ink);
+  font: var(--reader-type-display) var(--font-reader);
+  left: var(--reader-space-3);
+  letter-spacing: -0.055em;
+  position: absolute;
+  top: var(--reader-space-3);
+}
+
+.portfolio-world-brain-food-status {
+  color: var(--world-chem);
+  font: var(--reader-type-caption) var(--font-reader);
+  left: var(--reader-space-3);
+  letter-spacing: 0.01em;
+  margin: 0;
+  position: absolute;
+  top: var(--world-hud-top);
+  z-index: 3;
+}
+
+.portfolio-world > canvas {
+  inset: 0;
+  position: absolute;
+}
+
+.portfolio-world-node {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  height: var(--world-hit-area);
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: var(--world-hit-area);
+  z-index: 2;
+}
+
+.portfolio-world-node:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Reading Room shell ----------------------------------------------------- */
+
+.portfolio-reading-room {
+  height: 100dvh;
+  min-height: 640px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* The desktop canvas is the window: below 1382px the panel minimums shrink
+   with the viewport (see readingRoomMinimums), so the page never scrolls
+   sideways and tablet portrait reads as a fixed window. */
+.portfolio-reading-room-desktop {
+  min-width: 1020px;
+}
+
+body:has(.portfolio-reading-room-desktop) {
+  overflow: hidden;
+}
+
+.experience:has(> .portfolio-reading-room-desktop) {
+  overflow: hidden;
+}
+
+.portfolio-reading-room > [data-group],
+.portfolio-reading-room [data-panel] > div {
+  min-height: 0;
+  min-width: 0;
+}
+
+.portfolio-reading-room-pane {
+  background: var(--reader-paper);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Desktop surfaces belong to the slot, not the view (Bradley's mockup
+   captures, 3 September): the main slot and its bar are the darker centre;
+   Contents, both side slots, and their bars are paper. A swapped view takes
+   its slot's colour, so Reader, Map, and Guide paint nothing of their own
+   here. Map silver is a mobile-only surface. */
+.portfolio-reading-room-pane[data-reading-room-slot="main"],
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar {
+  background: var(--map-paper-near);
+}
+
+.portfolio-reading-room-pane-body .portfolio-reader,
+.portfolio-reading-room-pane-body .portfolio-world,
+.portfolio-reading-room-pane-body .portfolio-chat {
+  background: transparent;
+}
+
+.portfolio-reading-room-view-bar {
+  align-items: center;
+  background: var(--reader-paper);
+  box-shadow: inset 0 -1px var(--map-line);
+  color: var(--ink);
+  cursor: grab !important;
+  display: flex;
+  flex: 0 0 40px;
+  height: 40px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 17px;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  z-index: 5;
+}
+
+.portfolio-reading-room-view-bar[data-mast="true"] {
+  padding-left: 17px;
+}
+
+.portfolio-reading-room-view-bar[data-mast="true"] .portfolio-reading-room-view-mark {
+  visibility: hidden;
+}
+
+.portfolio-reading-room-view-bar[data-dragging="true"] {
+  cursor: grabbing !important;
+}
+
+/* dnd-kit moves the bar itself with the pointer and leaves a clone in place.
+   Hide the moving bar so nothing follows the pointer; the clone and the
+   React-marked source both darken. */
+.portfolio-reading-room-view-bar[data-dnd-dragging] {
+  visibility: hidden;
+}
+
+.portfolio-reading-room-view-bar[data-dnd-placeholder],
+.portfolio-reading-room-view-bar[data-dragging="true"] {
+  background: color-mix(in srgb, var(--reader-paper) 92%, var(--ink));
+}
+
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar[data-dnd-placeholder],
+.portfolio-reading-room-pane[data-reading-room-slot="main"] > .portfolio-reading-room-view-bar[data-dragging="true"] {
+  background: color-mix(in srgb, var(--map-paper-near) 92%, var(--ink));
+}
+
+.portfolio-reading-room-view-mark {
+  display: grid;
+  flex: 0 0 32px;
+  height: 32px;
+  place-items: center;
+  width: 32px;
+}
+
+.portfolio-reading-room-view-mark .portfolio-node-mark,
+.portfolio-reading-room-view-mark .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+.portfolio-reading-room-view-label {
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.portfolio-reading-room-view-controls {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  right: 17px;
+  top: 4px;
+  z-index: 7;
+}
+
+/* Leave room for the side-panes toggle in the top bar. */
+.portfolio-reading-room-pane[data-reading-room-slot="top"] .portfolio-reading-room-view-controls,
+.portfolio-reading-room-desktop[data-right-collapsed="true"] .portfolio-reading-room-pane[data-reading-room-slot="main"] .portfolio-reading-room-view-controls {
+  right: 57px;
+}
+
+.portfolio-reading-room-view-controls .portfolio-control-mark,
+.portfolio-reading-room-global-controls .portfolio-control-mark,
+.portfolio-reading-room-main-mast > .portfolio-control-mark {
+  border-radius: 6px;
+  height: 32px;
+  min-width: 32px;
+  width: 32px;
+}
+
+.portfolio-reading-room-view-controls .portfolio-control-glyph,
+.portfolio-reading-room-global-controls .portfolio-control-glyph,
+.portfolio-reading-room-main-mast > .portfolio-control-mark .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+/* Reading Room scroll regions show no scrollbar: a gutter down the middle of
+   a slot is chrome the mockup never draws. Wheel, trackpad, and keyboard
+   scrolling are unchanged. */
+.portfolio-contents-scroll,
+.reader-scroll,
+.portfolio-chat-thread {
+  scrollbar-width: none;
+}
+
+.portfolio-contents-scroll::-webkit-scrollbar,
+.reader-scroll::-webkit-scrollbar,
+.portfolio-chat-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.portfolio-reading-room-pane-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-pane-body > .portfolio-world,
+.portfolio-reading-room-mobile-map > .portfolio-world {
+  inset: 0;
+}
+
+.portfolio-reading-room-pane-body > .portfolio-world > .portfolio-world-mast,
+.portfolio-reading-room-mobile-map > .portfolio-world > .portfolio-world-mast {
+  display: none;
+}
+
+/* With no mast to clear, the Brain Food status line sits flush in the inset. */
+.portfolio-reading-room-pane-body > .portfolio-world,
+.portfolio-reading-room-mobile-map > .portfolio-world,
+.portfolio-reading-room-view-host > .portfolio-world,
+.portfolio-reading-room-map-canvas .portfolio-world {
+  --world-hud-top: var(--reader-space-3);
+}
+
+/* Each desktop view sits in one host that the shell reparents between slot
+   bodies on a bar swap, so the swap moves DOM rather than remounting React.
+   The host draws no box: the view lays out against the slot body exactly as
+   if it were the body's own child. */
+.portfolio-reading-room-view-host {
+  display: contents;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world {
+  inset: 0;
+}
+
+.portfolio-reading-room-view-host > .portfolio-world > .portfolio-world-mast {
+  display: none;
+}
+
+.portfolio-reading-room-main-mast {
+  align-items: center;
+  display: flex;
+  gap: 3px;
+  height: 32px;
+  left: 17px;
+  position: absolute;
+  top: 4px;
+  z-index: 7;
+}
+
+.portfolio-reading-room-global-controls {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+  height: 32px;
+  position: absolute;
+  right: 17px;
+  top: 4px;
+  width: auto;
+  z-index: 20;
+}
+
+.portfolio-reading-room-home,
+.portfolio-reading-room-mobile-home {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: flex;
+  font: var(--reader-type-mast) var(--font-reader);
+  gap: 6px;
+  justify-self: start;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.portfolio-reading-room-home .portfolio-node-mark,
+.portfolio-reading-room-mobile-home .portfolio-node-mark {
+  height: 15px;
+  width: 15px;
+}
+
+.portfolio-reading-room-home > span,
+.portfolio-reading-room-mobile-home > span {
+  white-space: nowrap;
+}
+
+@media (pointer: fine) {
+  .portfolio-reading-room-view-controls .portfolio-control-mark:hover,
+  .portfolio-reading-room-global-controls .portfolio-control-mark:hover,
+  .portfolio-reading-room-main-mast > .portfolio-control-mark:hover,
+  .portfolio-contents-mast > .portfolio-control-mark:hover,
+  .portfolio-guide-copy:hover {
+    background: var(--reader-drop-fill);
+    color: var(--ink);
+  }
+}
+
+.portfolio-reading-room-separator {
+  background: var(--map-line);
+  overflow: visible;
+  position: relative;
+  z-index: 8;
+}
+
+.portfolio-reading-room-separator::before,
+.portfolio-reading-room-separator::after {
+  content: "";
+  position: absolute;
+}
+
+.portfolio-reading-room-separator::after {
+  background: transparent;
+  transition: background-color 100ms linear 150ms;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"] {
+  width: 1px !important;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"]::before {
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  top: 0;
+}
+
+.portfolio-reading-room-separator[aria-orientation="vertical"]::after {
+  bottom: 0;
+  left: -1px;
+  top: 0;
+  width: 3px;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"] {
+  height: 1px !important;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"]::before {
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  top: -4px;
+}
+
+.portfolio-reading-room-separator[aria-orientation="horizontal"]::after {
+  height: 3px;
+  left: 0;
+  right: 0;
+  top: -1px;
+}
+
+.portfolio-reading-room-separator[data-separator="active"]::after {
+  background: var(--ink);
+  transition-delay: 0s;
+}
+
+@media (pointer: fine) {
+  .portfolio-reading-room-separator:hover::after {
+    background: var(--ink);
+  }
+}
+
+/* The drop target is the approved tile's overlay: fill and a 1px ink border,
+   no text. Nothing follows the pointer. */
+.portfolio-reading-room-drop-target {
+  background: var(--reader-drop-fill);
+  border: 1px solid var(--ink);
+  box-sizing: border-box;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 12;
+}
+
+/* The mobile shell is exactly the dynamic viewport and the document never
+   scrolls: only Contents, Reader, Map, and the Guide thread do. That keeps
+   the top mast and the tab bar glued to the screen edges whatever the
+   toolbar or keyboard does, and never exposes the body behind the bar. The
+   tab bar extends into the home-indicator safe area. */
+.portfolio-reading-room-mobile {
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr) calc(56px + env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
+  min-height: 0;
+}
+
+.experience:has(> .portfolio-reading-room-mobile) {
+  height: 100dvh;
+  min-height: 0;
+}
+
+body:has(.portfolio-reading-room-mobile) {
+  background: var(--reader-paper);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* While the composer has focus (the keyboard is up and the viewport has
+   shrunk), the Guide takes the whole page so the thread and composer stay in
+   view; the Map returns on blur. Instant, like every other mobile change. */
+.portfolio-reading-room-mobile-map-page:has(.portfolio-chat-composer textarea:focus) {
+  grid-template-rows: 0 minmax(0, 1fr);
+}
+
+.portfolio-reading-room-mobile-top {
+  align-items: center;
+  background: var(--reader-paper);
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  height: 44px;
+  padding: 0 20px;
+}
+
+.portfolio-reading-room-mobile-home {
+  padding: 0;
+}
+
+.portfolio-reading-room-mobile-page {
+  background: var(--map-paper-near);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-view {
+  background: var(--map-paper-near);
+  height: 100%;
+  inset: 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: absolute;
+}
+
+.portfolio-reading-room-mobile-view[hidden] {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-view > .portfolio-reader,
+.portfolio-reading-room-mobile-view > .portfolio-contents {
+  background: var(--map-paper-near);
+  height: 100%;
+}
+
+.portfolio-reading-room-mobile-view[data-mobile-view="contents"] .portfolio-contents-mast {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-map-page {
+  display: grid;
+  grid-template-rows: 52% 48%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-map,
+.portfolio-reading-room-mobile-guide {
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-map {
+  background: var(--map-paper);
+  border-bottom: 1px solid var(--map-line);
+}
+
+.portfolio-reading-room-mobile-guide {
+  background: var(--map-paper-near);
+  overflow: visible;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat {
+  background: var(--map-paper-near);
+  justify-content: flex-end;
+}
+
+.portfolio-reading-room-mobile-avatar {
+  border: 1px dashed var(--map-line-strong);
+  bottom: 12px;
+  height: 96px;
+  pointer-events: none;
+  position: absolute;
+  right: 16px;
+  width: 96px;
+  z-index: 4;
+}
+
+.portfolio-composition:has(> .avatar-overlay) .portfolio-reading-room-mobile-avatar {
+  display: none;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-avatar {
+  bottom: calc(100% + 12px);
+  flex: none;
+  height: 96px;
+  min-height: 0;
+  position: absolute;
+  right: 16px;
+  width: 96px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-thread {
+  flex: 0 1 auto;
+  margin-top: var(--reader-space-1);
+  max-height: none;
+}
+
+.portfolio-reading-room-map-controls {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+  min-width: 0;
+  padding: var(--reader-space-1) var(--reader-space-2);
+  position: relative;
+  z-index: 7;
+}
+
+.portfolio-reading-room-mobile-map {
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-reading-room-map-controls {
+  flex: 0 0 auto;
+  order: -1;
+}
+
+.portfolio-reading-room-map-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-avatar-toggle {
+  display: none;
+}
+
+.portfolio-reading-room-avatar-toggle {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin-left: auto;
+  min-height: 32px;
+  padding: var(--reader-space-1);
+}
+
+.portfolio-reading-room-avatar-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.portfolio-reading-room-read-chip {
+  align-items: center;
+  appearance: none;
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font: var(--reader-type-secondary) var(--font-reader);
+  gap: var(--reader-space-1);
+  height: 40px;
+  min-width: 0;
+  padding: 0 var(--reader-space-1);
+}
+
+.portfolio-reading-room-read-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-reading-room-read-chip .portfolio-node-mark {
+  flex: 0 0 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-node-mark svg,
+.portfolio-reading-room-read-chip .portfolio-control-glyph,
+.portfolio-reading-room-read-chip .portfolio-control-glyph svg {
+  height: 16px;
+  width: 16px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-control-glyph {
+  height: 12px;
+  margin: 0;
+  pointer-events: none;
+  width: 12px;
+}
+
+.portfolio-reading-room-read-chip .portfolio-control-glyph svg {
+  height: 12px;
+  width: 12px;
+}
+
+.portfolio-reading-room-mobile-tabs {
+  align-items: center;
+  background: var(--reader-paper);
+  border-top: 1px solid var(--map-line);
+  box-sizing: content-box;
+  display: flex;
+  height: 56px;
+  justify-content: space-around;
+  padding: 0 max(12px, env(safe-area-inset-right)) env(safe-area-inset-bottom, 0px) max(12px, env(safe-area-inset-left));
+}
+
+.portfolio-reading-room-mobile-tab {
+  align-items: center;
+  border-radius: 6px;
+  color: var(--reader-muted);
+  display: flex;
+  flex-direction: column;
+  font: var(--reader-type-tab) var(--font-reader);
+  gap: 4px;
+  height: 48px;
+  justify-content: center;
+  width: 88px;
+}
+
+.portfolio-reading-room-mobile-tab[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-control-glyph {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.portfolio-reading-room-mobile-tab .portfolio-node-mark {
+  height: 18px;
+  width: 18px;
+}
+
+
+.portfolio-reading-room-mobile-tab .portfolio-control-label {
+  color: inherit;
+  font: var(--reader-type-tab) var(--font-reader);
+}
+
+.portfolio-reading-room-mobile-new-chat {
+  bottom: 22px;
+  color: var(--reader-muted);
+  height: 32px;
+  min-width: 32px;
+  position: absolute;
+  right: 66px;
+  width: 32px;
+  z-index: 8;
+}
+
+.portfolio-reading-room-mobile-new-chat .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+.portfolio-contents {
+  background: var(--reader-paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.portfolio-contents-mast {
+  align-items: center;
+  box-shadow: inset 0 -1px var(--map-line);
+  display: flex;
+  flex: 0 0 40px;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 17px;
+}
+
+.portfolio-contents-mast > .portfolio-control-mark {
+  border-radius: 6px;
+  min-width: 32px;
+  width: 32px;
+}
+
+.portfolio-contents-mast > .portfolio-control-mark .portfolio-control-glyph {
+  height: 32px;
+  margin: 0;
+  width: 32px;
+}
+
+.portfolio-contents-home {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  display: flex;
+  font: var(--reader-type-mast) var(--font-reader);
+  gap: 6px;
+  letter-spacing: -0.02em;
+  margin: 0;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* The mast never wraps: one line at every panel width, clipped before it
+   breaks. The Reader bar's brain is the only brain in the top row. */
+.portfolio-contents-home > span {
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.portfolio-contents-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--reader-space-3);
+}
+
+.portfolio-contents-groups {
+  display: grid;
+  gap: var(--reader-space-4);
+}
+
+.portfolio-contents-group h2 {
+  color: var(--ink);
+  font: var(--reader-type-mast) var(--font-reader);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--reader-space-1);
+}
+
+.portfolio-contents-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portfolio-contents-row,
+.reader-index-row {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  display: grid;
+  font: var(--reader-type-row) var(--font-reader);
+  gap: var(--reader-space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  /* 28px for one line; a label that wraps in a narrow Contents column (the
+     compact desktop's 240px) grows the row instead of overlapping the next. */
+  min-height: 28px;
+  margin: 0 calc(var(--reader-space-1) * -1);
+  padding: 2px var(--reader-space-1);
+  text-align: left;
+  width: calc(100% + var(--reader-space-2));
+}
+
+.portfolio-contents-row[data-register="identity"] { --register: var(--world-identity); }
+.portfolio-contents-row[data-register="story"] { --register: var(--world-story); }
+.portfolio-contents-row[data-register="arc"] { --register: var(--world-arc); }
+.portfolio-contents-row[data-register="warm"] { --register: var(--world-warm); }
+.portfolio-contents-row[data-register="bridge"] { --register: var(--world-bridge); }
+.portfolio-contents-row[data-register="cool"] { --register: var(--world-cool); }
+
+.portfolio-contents-row[data-selected="true"] {
+  color: var(--register, var(--world-identity));
+  font-weight: 500;
+}
+
+.portfolio-reader {
+  background: var(--reader-paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* The centered column is at most 680px; its 24px gutters leave a 632px
+   content line. A narrower slot (a side slot, or a collapsed layout) reflows
+   the column to its own width instead of clipping it, as the mockup does. */
+.reader-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin: 0 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  width: min(680px, 100%);
+}
+
+.reader-scroll > .reader-content {
+  flex: 0 0 auto;
+}
+
+/* About: Contact is page body, not a footer, but on a tall slot it reads
+   better at the bottom of the column, just above Privacy. The content fills
+   the scroll height and Contact takes the free space above it; on a short
+   slot it keeps its ordinary 64px gap and scrolls like any section. */
+.portfolio-reader[data-reader-mode="about"] .reader-scroll > .reader-content {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.portfolio-reader[data-reader-mode="about"] .reader-contact {
+  margin-top: auto;
+  padding-top: var(--reader-space-8);
+}
+
+.portfolio-reader[data-reader-mode="about"] .reader-privacy {
+  padding-top: var(--reader-space-2);
+}
+
+.reader-content {
+  padding: var(--reader-space-3) var(--reader-space-3) 0;
+}
+
+/* Head stack: title → 16 → summary → 32 → body. About has no summary line,
+   so its title carries the 32 itself. */
+.reader-content h1 {
+  color: var(--ink);
+  font: var(--reader-type-display) var(--font-reader);
+  letter-spacing: -0.055em;
+  margin: 0 0 var(--reader-space-4);
+  text-wrap: balance;
+}
+
+.reader-content h1:has(+ .reader-summary) {
+  margin-bottom: var(--reader-space-2);
+}
+
+.reader-summary {
+  color: var(--ink);
+  font: var(--reader-type-summary) var(--font-reader);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--reader-space-4);
+  text-wrap: pretty;
+}
+
+.reader-summary-placeholder {
+  color: var(--reader-muted);
+  font-style: italic;
+  text-decoration: underline dotted var(--map-line-strong);
+  text-underline-offset: 4px;
+}
+
+/* Inside a section: paragraphs 16 apart; a figure adds 8 either side. */
+.reader-composed-body {
+  display: grid;
+  gap: var(--reader-space-2);
+}
+
+.reader-composed-body > p,
+.reader-paragraph-group > p,
+.reader-list {
+  color: var(--reader-body);
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* A paragraph that carries a bulleted list: its prose runs and lists sit 8
+   apart, and the list keeps the body voice with a plain marker. */
+.reader-paragraph-group {
+  display: grid;
+  gap: var(--reader-space-1);
+}
+
+.reader-list {
+  padding-left: var(--reader-space-3);
+}
+
+.reader-list > li {
+  padding-left: var(--reader-space-1);
+}
+
+/* Sections are separated by space alone: 64 above a label, 8 below it. */
+.reader-record-section {
+  margin: var(--reader-space-8) 0 0;
+}
+
+.reader-record-section h2 {
+  color: var(--reader-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--reader-space-1);
+  text-transform: uppercase;
+}
+
+.reader-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Reader navigation uses the same row rhythm and hit area as Contents. */
+.reader-index-row {
+  text-decoration: none;
+}
+
+.reader-related-section h2 {
+  color: var(--ink);
+  font: var(--reader-type-mast) var(--font-reader);
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.reader-index-row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Inline record links inside body copy: the paragraph's voice in the target
+   node's register colour, so the phrase matches the dot it opens. */
+.reader-inline-link {
+  background: none;
+  border: 0;
+  color: var(--register, var(--world-identity));
+  display: inline;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.reader-inline-link-anchor[data-register="identity"],
+.reader-inline-link[data-register="identity"] { --register: var(--world-identity); }
+.reader-inline-link-anchor[data-register="story"],
+.reader-inline-link[data-register="story"] { --register: var(--world-story); }
+.reader-inline-link-anchor[data-register="arc"],
+.reader-inline-link[data-register="arc"] { --register: var(--world-arc); }
+.reader-inline-link-anchor[data-register="warm"],
+.reader-inline-link[data-register="warm"] { --register: var(--world-warm); }
+.reader-inline-link-anchor[data-register="bridge"],
+.reader-inline-link[data-register="bridge"] { --register: var(--world-bridge); }
+.reader-inline-link-anchor[data-register="cool"],
+.reader-inline-link[data-register="cool"] { --register: var(--world-cool); }
+
+.reader-inline-link[data-external="true"] { --register: var(--ink); }
+
+.reader-inline-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* While a fine pointer rests on an inline link, or keyboard focus reaches
+   it, a still of the target's lead visual floats beside the phrase. Its
+   measured position stays within the visible Reader pane. */
+.reader-inline-link-anchor {
+  display: inline;
+  position: relative;
+}
+
+.reader-inline-link-preview {
+  display: block;
+  height: auto;
+  left: 0;
+  max-height: 280px;
+  max-width: 400px;
+  object-fit: contain;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: auto;
+  z-index: 5;
+}
+
+.reader-inline-link-preview > img {
+  display: block;
+  height: auto;
+  max-height: inherit;
+  max-width: 100%;
+  object-fit: contain;
+  width: inherit;
+}
+
+/* Invert the resolved register RGB, matching the cursor’s inverse color.
+   Alpha stays transparent; the link itself retains its register color. */
+.reader-inline-link-preview[data-treatment] {
+  background: var(--register, var(--ink));
+  filter: invert(1);
+  mask-mode: alpha;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.reader-inline-link-preview[data-treatment] > img {
+  opacity: 0;
+}
+
+.reader-inline-link-preview[data-treatment="logo"] {
+  width: 320px;
+}
+
+.reader-inline-link-preview[data-treatment="glyph"] {
+  width: 112px;
+}
+
+@media (pointer: coarse) {
+  .reader-inline-link-preview {
+    display: none;
+  }
+}
+
+.reader-placeholder-label {
+  color: var(--reader-muted);
+  display: block;
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reader-copy-placeholder {
+  border-left: 1px dotted var(--map-line-strong);
+  display: grid;
+  gap: var(--reader-space-1);
+  padding-left: var(--reader-space-2);
+}
+
+.reader-copy-placeholder strong {
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  font-weight: 500;
+}
+
+.reader-copy-placeholder ul {
+  color: var(--reader-body);
+  display: grid;
+  font: var(--reader-type-body) var(--font-reader);
+  gap: calc(var(--reader-space-1) / 2);
+  margin: 0;
+  padding-left: var(--reader-space-2);
+}
+
+/* Figures use the full text-column width, with the caption 8 below. */
+.reader-visual-trigger {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: block;
+  font: inherit;
+  margin: var(--reader-space-1) 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.reader-visual-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.reader-report-preview {
+  margin: var(--reader-space-1) 0;
+}
+
+.reader-report-frame {
+  background: var(--reader-report-paper);
+  border: 1px solid var(--map-line-strong);
+  color-scheme: light;
+  display: block;
+  height: 1280px;
+  width: 100%;
+}
+
+.reader-report-frame:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Authentic workflow capture, with only the empty surrounding canvas trimmed. */
+.reader-visual-trigger[data-evidence-id="reporting-workflow"] .reader-visual-slide-row {
+  aspect-ratio: 1640 / 640;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-workflow"] .reader-visual-slide-row img {
+  filter: none;
+  height: auto;
+  left: -10.243902%;
+  max-height: none;
+  max-width: none;
+  position: absolute;
+  top: -20.3125%;
+  width: 124.878049%;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-email"] .reader-visual-slide-row {
+  aspect-ratio: 1040 / 120;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.reader-visual-trigger[data-evidence-id="reporting-email"] .reader-visual-slide-row img {
+  aspect-ratio: 1400 / 840;
+  filter: none;
+  height: auto;
+  left: -30.192308%;
+  max-height: none;
+  max-width: none;
+  position: absolute;
+  top: -140%;
+  width: 134.615385%;
+}
+
+.quarterly-dashboard-preview {
+  border: 1px solid var(--map-line-strong);
+  margin: var(--reader-space-1) 0;
+  overflow: hidden;
+}
+
+
+/* A captured macOS panel hanging from a live menu bar. The bar fills the
+   column; the panel image is centred so its own centre sits under the active
+   icon. Glyphs are dark templates and invert with the reader theme. */
+.mac-panel-frame {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
+/* The capture renders at its native scale and only shrinks with the column,
+   so every panel is the same size on screen; the reader's image height cap
+   does not apply to it. */
+.mac-panel-frame > img,
+.reader-visual-block .reader-visual-slide-row .mac-panel-frame > img {
+  filter: drop-shadow(0 6px 9px var(--reader-media-shadow));
+  height: auto;
+  max-height: none;
+  max-width: 100%;
+  width: min(100%, 600px);
+}
+
+.mac-menu-bar {
+  --mac-menu-bar-gap-left: 16px;
+  --mac-menu-bar-gap-right: 16px;
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  height: 30px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.mac-menu-bar-side {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.mac-menu-bar-side[data-side="left"] {
+  gap: var(--mac-menu-bar-gap-left);
+  justify-content: flex-end;
+  padding-right: calc(var(--mac-menu-bar-gap-left) / 2);
+}
+
+.mac-menu-bar-side[data-side="right"] {
+  gap: var(--mac-menu-bar-gap-right);
+  justify-content: flex-start;
+  padding-left: calc(var(--mac-menu-bar-gap-right) / 2);
+}
+
+.mac-menu-bar-center {
+  border-radius: 5px;
+  display: grid;
+  padding: 3px 5px;
+  place-items: center;
+}
+
+.mac-menu-bar-center[data-active="true"] {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+/* Reader visual blocks stretch images to the column; bar glyphs keep their
+   intrinsic size from the width and height attributes instead. */
+.mac-menu-bar img,
+.reader-visual-block .mac-menu-bar img {
+  display: block;
+  filter: invert(var(--mac-menu-bar-glyph-invert, 0));
+  flex: none;
+  height: auto;
+  max-height: none;
+  max-width: none;
+  width: auto;
+}
+
+.mac-menu-bar img[data-color="true"] {
+  filter: none;
+}
+
+.reader-visual-gallery {
+  display: grid;
+  gap: var(--reader-space-4);
+  margin: var(--reader-space-1) 0;
+}
+
+.reader-visual-gallery .reader-visual-trigger {
+  margin: 0;
+}
+
+.reader-visual-placeholder,
+.reader-visual-block {
+  display: grid;
+  gap: var(--reader-space-1);
+  margin: 0;
+}
+
+.reader-placeholder-frame {
+  border: 1px solid var(--map-line-strong);
+  box-sizing: border-box;
+  padding: 12px;
+  width: 100%;
+}
+
+.reader-placeholder-frame {
+  align-items: flex-start;
+  aspect-ratio: 16 / 9;
+  color: var(--reader-muted);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.reader-placeholder-frame[data-format="image"] {
+  aspect-ratio: 4 / 3;
+}
+
+.reader-placeholder-source {
+  font: var(--reader-type-caption) var(--font-reader);
+}
+
+.reader-placeholder-count {
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  position: absolute;
+  right: 12px;
+  text-transform: uppercase;
+  top: 12px;
+}
+
+.reader-placeholder-play {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 50%;
+  height: 40px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+}
+
+.reader-placeholder-play::after {
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid var(--reader-muted);
+  border-top: 6px solid transparent;
+  content: "";
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-35%, -50%);
+}
+
+.reader-visual-block img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.reader-device-video {
+  aspect-ratio: 3205 / 1942;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.reader-device-screen {
+  height: 85.684861%;
+  left: 10.078003%;
+  overflow: hidden;
+  position: absolute;
+  top: 3.141092%;
+  width: 79.875195%;
+  z-index: 1;
+}
+
+.reader-device-screen > video {
+  display: block;
+  height: 100%;
+  object-fit: fill;
+  width: 100%;
+}
+
+.reader-device-screen > video:fullscreen {
+  cursor: auto !important;
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  position: fixed;
+  transform: none;
+  width: 100%;
+}
+
+.reader-device-screen > video:-webkit-full-screen {
+  cursor: auto !important;
+  object-fit: contain;
+  transform: none;
+}
+
+.reader-inline-video {
+  margin: var(--reader-space-1) 0;
+}
+
+.reader-video-fullscreen-trigger {
+  inset: 0;
+  margin: 0;
+  position: absolute;
+  z-index: 3;
+}
+
+.reader-visual-block .reader-device-poster,
+.reader-visual-block .reader-device-frame {
+  height: 115.345005%;
+  left: -3.026521%;
+  position: absolute;
+  top: -11.68898%;
+  width: 106.084243%;
+}
+
+.reader-visual-block .reader-device-poster {
+  z-index: 0;
+}
+
+.reader-visual-block .reader-device-frame {
+  pointer-events: none;
+  z-index: 2;
+}
+
+.reader-visual-overlay {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--reader-paper) 62%, transparent);
+  display: grid;
+  gap: var(--reader-space-2);
+  grid-template-rows: minmax(0, 1fr) auto;
+  inset: 0;
+  padding: var(--reader-space-1);
+  position: absolute;
+  z-index: 6;
+}
+
+.reader-visual-overlay-media {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--reader-space-3) 0 0;
+}
+
+.reader-visual-overlay-media > img,
+.reader-visual-overlay-media > video {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.reader-visual-overlay-media > img {
+  filter: drop-shadow(0 6px 9px var(--reader-media-shadow));
+  max-height: 100%;
+}
+
+.reader-visual-overlay-media > video {
+  height: auto;
+  max-height: 100%;
+  width: 100%;
+}
+
+.reader-visual-overlay-media > .reader-placeholder-frame {
+  max-width: 100%;
+}
+
+.reader-visual-overlay-caption {
+  color: var(--ink);
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin: 0;
+  max-width: 480px;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.reader-visual-overlay-footer {
+  align-items: center;
+  display: grid;
+  gap: var(--reader-space-1);
+  justify-items: center;
+}
+
+.reader-visual-overlay-navigation {
+  align-items: center;
+  color: var(--reader-muted);
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  font-variant-numeric: tabular-nums;
+  gap: var(--reader-space-2);
+  justify-content: center;
+}
+
+.reader-visual-overlay-close {
+  position: absolute;
+  right: var(--reader-space-1);
+  top: var(--reader-space-1);
+}
+
+.reader-visual-slide {
+  display: grid;
+  gap: var(--reader-space-1);
+}
+
+.reader-visual-slide-row {
+  align-items: center;
+  display: grid;
+  gap: var(--reader-space-1);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reader-visual-slide-row img {
+  filter: drop-shadow(0 6px 9px var(--reader-media-shadow));
+  max-height: 320px;
+  object-fit: contain;
+}
+
+.reader-visual-slide-row[data-asset-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.reader-visual-slide-row[data-asset-count="1"] img {
+  max-height: 480px;
+}
+
+/* Client carousel: one auto-scrolling strip of square marks per gallery group. Embla
+   moves the track with a transform, so the dossier's no-transition rule holds;
+   the strip pauses under a fine pointer or keyboard focus, and never starts
+   when the visitor prefers reduced motion (components/ReaderCarousel.tsx). */
+.reader-visual-carousel .reader-carousel {
+  overflow: hidden;
+}
+
+.reader-carousel-viewport {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--ink) var(--reader-space-3),
+    var(--ink) calc(100% - var(--reader-space-3)),
+    transparent
+  );
+  overflow: hidden;
+  padding: var(--reader-space-1) 0;
+}
+
+.reader-carousel-track {
+  backface-visibility: hidden;
+  display: flex;
+  list-style: none;
+  margin: 0 0 0 calc(-1 * var(--reader-space-2));
+  padding: 0;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Embla's loop moves slides one at a time and cannot see a flex gap, so the
+   gap lives inside each slide as padding and the track pulls the first one back. */
+.reader-carousel-item {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding-left: var(--reader-space-2);
+  position: relative;
+}
+
+.reader-carousel-trigger {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  display: block;
+  padding: 0;
+}
+
+.reader-carousel-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The hover card: an ink scrim over the square with the mark's name
+   and its off-site links, shown under a fine pointer or keyboard focus. */
+.reader-carousel-card {
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  border-radius: 6px;
+  bottom: 0;
+  box-sizing: border-box;
+  color: var(--reader-paper);
+  display: none;
+  flex-direction: column;
+  font: var(--reader-type-caption) var(--font-reader);
+  justify-content: center;
+  left: var(--reader-space-2);
+  padding: var(--reader-space-1);
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+}
+
+.reader-carousel-card strong {
+  font-weight: 500;
+}
+
+.reader-carousel-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--reader-space-1);
+  justify-content: center;
+  list-style: none;
+  margin: var(--reader-space-1) 0 0;
+  padding: 0;
+}
+
+.reader-carousel-card a {
+  align-items: center;
+  border-radius: 4px;
+  color: inherit;
+  display: flex;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.reader-carousel-card a .portfolio-node-mark {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.reader-carousel-card a:focus-visible {
+  background: color-mix(in srgb, var(--reader-paper) 20%, transparent);
+}
+
+.reader-carousel-card a:focus-visible .portfolio-node-mark {
+  opacity: 1;
+}
+
+@media (pointer: fine) {
+  .reader-carousel-card a:hover {
+    background: color-mix(in srgb, var(--reader-paper) 20%, transparent);
+  }
+
+  .reader-carousel-card a:hover .portfolio-node-mark {
+    opacity: 1;
+  }
+}
+
+.reader-carousel-card svg {
+  height: 18px;
+  width: 18px;
+}
+
+.reader-carousel-card a:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Focus reveals the card for keyboard users; data-open holds it open after a
+   tap, because touch browsers drop focus before the link's click lands
+   (components/ReaderCarousel.tsx). */
+.reader-carousel-item:focus-within .reader-carousel-card,
+.reader-carousel-item[data-open="true"] .reader-carousel-card {
+  display: flex;
+}
+
+.reader-visual-block .reader-carousel-item:focus-within img,
+.reader-visual-block .reader-carousel-item[data-open="true"] img {
+  filter: grayscale(0) drop-shadow(0 6px 9px var(--reader-media-shadow));
+}
+
+/* Marks rest in black and white, as on braininavat.dance, and take their
+   colour back under a fine pointer. */
+.reader-visual-block .reader-carousel-item img {
+  border-radius: 6px;
+  filter: grayscale(1) drop-shadow(0 6px 9px var(--reader-media-shadow));
+  height: 128px;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  width: 128px;
+}
+
+@media (pointer: fine) {
+  .reader-visual-block .reader-carousel-item:hover img {
+    filter: grayscale(0) drop-shadow(0 6px 9px var(--reader-media-shadow));
+  }
+
+  .reader-carousel-item:hover .reader-carousel-card {
+    display: flex;
+  }
+}
+
+.reader-visual-placeholder figcaption,
+.reader-visual-block figcaption {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  text-wrap: pretty;
+}
+
+.reader-visual-block figcaption strong,
+.reader-visual-block figcaption span {
+  display: block;
+}
+
+.reader-visual-block figcaption strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.portfolio-reader-clean-review .reader-text-placeholder,
+.portfolio-reader-clean-review .reader-visual-draft {
+  display: none;
+}
+
+/* Hover is fine-pointer only, and instant: figures take a darker frame,
+   links a full-strength underline, and the Privacy control ink. Rows
+   have no hover state. */
+@media (pointer: fine) {
+  .reader-inline-link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .reader-visual-trigger:hover .reader-placeholder-frame,
+  .reader-visual-trigger:hover img {
+    border-color: var(--ink);
+  }
+
+
+  .reader-privacy:hover {
+    color: var(--ink);
+  }
+
+  .portfolio-contents-row:hover,
+  .reader-index-row:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+  }
+}
+
+@media (max-width: 1019px) {
+  .portfolio-contents-row,
+  .reader-index-row {
+    min-height: 36px;
+    padding-bottom: 6px;
+    padding-top: 6px;
+  }
+
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+    display: none;
+  }
+
+  .reader-scroll {
+    width: 100%;
+  }
+}
+
+.portfolio-chat {
+  background: var(--reader-paper, var(--reader-paper-light));
+  border: 0;
+  box-shadow: none;
+  color: var(--ink, var(--reader-ink-light));
+  container-name: portfolio-guide;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-reader);
+  height: 100%;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  position: relative;
+  transform: none;
+  width: 100%;
+}
+
+.portfolio-guide-avatar {
+  flex: 1 1 auto;
+  min-height: var(--reader-space-4);
+}
+
+/* The thread sizes to what it holds, so an empty Guide leaves the avatar
+   standing directly above the suggestion chips instead of on an invisible
+   45% shelf. A long conversation still stops at 45% and scrolls. */
+.portfolio-chat-thread {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  max-height: 45%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.portfolio-chat-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--reader-space-3);
+  scrollbar-width: none;
+}
+
+.portfolio-chat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-question {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.chat-question p {
+  background: color-mix(in srgb, var(--ink, var(--reader-ink-light)) 8%, transparent);
+  border-radius: 12px 12px 2px 12px;
+  color: var(--ink, var(--reader-ink-light));
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  max-width: min(280px, 100%);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--reader-space-1) 12px;
+  white-space: pre-wrap;
+}
+
+.portfolio-guide-answer {
+  margin-top: 12px;
+  position: relative;
+}
+
+.portfolio-chat .chat-answer {
+  color: var(--reader-body, var(--reader-body-light));
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.portfolio-guide-citation {
+  --register: var(--world-identity);
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--register);
+  cursor: pointer;
+  font: inherit;
+  margin: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.portfolio-guide-citation[data-register="story"] { --register: var(--world-story); }
+.portfolio-guide-citation[data-register="arc"] { --register: var(--world-arc); }
+.portfolio-guide-citation[data-register="warm"] { --register: var(--world-warm); }
+.portfolio-guide-citation[data-register="bridge"] { --register: var(--world-bridge); }
+.portfolio-guide-citation[data-register="cool"] { --register: var(--world-cool); }
+
+.portfolio-guide-copy {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--reader-muted, var(--reader-muted-light));
+  cursor: pointer;
+  display: grid;
+  height: 24px;
+  margin: 2px 0 0 -4px;
+  padding: 0;
+  place-items: center;
+  width: 24px;
+}
+
+.portfolio-guide-copy .portfolio-control-glyph {
+  height: 24px;
+  margin: 0;
+  width: 24px;
+}
+
+
+.portfolio-guide-slow {
+  align-items: center;
+  color: var(--reader-muted, var(--reader-muted-light));
+  display: flex;
+  font: var(--reader-type-secondary) var(--font-reader);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.portfolio-guide-twirl {
+  -webkit-mask: url("/biv-twirl-sprite.png") 0 0 / 2268px 18px no-repeat;
+  animation: portfolio-guide-twirl 3s steps(126, end) infinite;
+  background: currentColor;
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  mask: url("/biv-twirl-sprite.png") 0 0 / 2268px 18px no-repeat;
+  width: 18px;
+}
+
+@keyframes portfolio-guide-twirl {
+  to {
+    -webkit-mask-position: -2268px 0;
+    mask-position: -2268px 0;
+  }
+}
+
+.portfolio-guide-error,
+.portfolio-guide-notice {
+  color: var(--reader-body, var(--reader-body-light));
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 12px 0 0;
+}
+
+.portfolio-guide-error a,
+.portfolio-guide-error button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink, var(--reader-ink-light));
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.portfolio-guide-suggestions {
+  display: grid;
+  margin-top: 12px;
+}
+
+.portfolio-guide-suggestion {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--reader-muted, var(--reader-muted-light));
+  cursor: pointer;
+  display: flex;
+  font: var(--reader-type-row) var(--font-reader);
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 0;
+  text-align: left;
+  width: 100%;
+}
+
+.portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 4) {
+  display: none;
+}
+
+@container portfolio-guide (max-width: 600px) {
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+.portfolio-chat-composer {
+  background: var(--map-paper-near, var(--map-paper-near-light));
+  border: 1px solid var(--map-line, var(--map-line-light));
+  border-radius: 6px;
+  display: block;
+  flex: 0 0 auto;
+  margin: 12px var(--reader-space-3) var(--reader-space-3);
+  min-height: 78px;
+  padding: 0;
+  position: relative;
+}
+
+.portfolio-chat[data-offline="true"] .portfolio-chat-composer {
+  opacity: 0.6;
+}
+
+.portfolio-chat-suggestion {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--map-line, var(--map-line-light));
+  border-radius: 999px;
+  color: var(--map-muted, var(--map-muted-light));
+  cursor: pointer;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 8px 8px 0;
+  padding: 6px 9px;
+  text-align: left;
+}
+
+.portfolio-chat-suggestion:hover,
+.portfolio-chat-suggestion:focus-visible {
+  border-color: var(--map-line-strong, var(--map-line-strong-light));
+  color: var(--ink, var(--reader-ink-light));
+}
+
+.portfolio-chat .portfolio-chat-composer textarea {
+  background: transparent;
+  border: 0;
+  color: var(--ink, var(--reader-ink-light));
+  display: block;
+  font: var(--reader-type-body) var(--font-reader);
+  height: 76px;
+  max-height: 192px;
+  min-width: 0;
+  outline: 0;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  padding: 12px 48px 40px 14px;
+  resize: none;
+  width: 100%;
+}
+
+.portfolio-guide-send {
+  align-items: center;
+  appearance: none;
+  background: var(--ink, var(--reader-ink-light));
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper, var(--reader-paper-light));
+  cursor: pointer;
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  width: 28px;
+}
+
+.portfolio-guide-send:disabled {
+  background: transparent;
+  color: var(--reader-muted, var(--reader-muted-light));
+  cursor: default;
+}
+
+.portfolio-guide-send .portfolio-control-glyph {
+  height: 28px;
+  margin: 0;
+  width: 28px;
+}
+
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-composer {
+  background: var(--map-paper);
+  height: 44px;
+  margin: var(--reader-space-1) var(--reader-space-3) var(--reader-space-2);
+  min-height: 44px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-chat-composer textarea {
+  height: 42px;
+  max-height: 42px;
+  padding: 9px 44px 9px 12px;
+}
+
+.portfolio-reading-room-mobile-guide[data-has-thread="true"] .portfolio-chat-composer textarea {
+  padding-right: 80px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send {
+  bottom: auto;
+  color: var(--map-paper-near);
+  height: 32px;
+  right: 6px;
+  top: 6px;
+  width: 32px;
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send:disabled {
+  color: var(--reader-muted);
+}
+
+.portfolio-reading-room-mobile-guide .portfolio-guide-send .portfolio-control-glyph {
+  height: 32px;
+  width: 32px;
+}
+
+/* Reviewer feedback -------------------------------------------------------
+   Mounted inside the composition only when a reviewer link has set the
+   `portfolio_reviewer` cookie (worker/portfolio-feedback.ts). Sits at the
+   page inset in the bottom-left corner, under the Contents column where the
+   Guide composer never reaches, above the avatar and below the cursor. It borrows the dossier's paper, hairline, and caption voice; Send
+   is the filled control, as in the Guide composer. The picking highlight is
+   the Acid focus ring, so selection introduces no new colour (Rule 6.1). */
+.portfolio-feedback {
+  bottom: var(--reader-space-3);
+  left: var(--reader-space-3);
+  position: fixed;
+  z-index: 900;
+}
+
+.portfolio-feedback-trigger,
+.portfolio-feedback-point {
+  appearance: none;
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0 12px;
+  text-align: left;
+}
+
+/* The trigger is the one filled control at rest, like Send: ink on paper so
+   it reads against the dossier in both modes without introducing a colour. */
+.portfolio-feedback-trigger {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--reader-paper);
+  filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
+  height: 40px;
+}
+
+.portfolio-feedback-point {
+  border-color: var(--map-line);
+  height: 32px;
+}
+
+.portfolio-feedback-point[data-picking="true"] { border-color: var(--focus-ring); }
+
+/* One column pinned to the panel width: without minmax(0, 1fr) a long
+   single-line note row would widen the track and push every control out. */
+.portfolio-feedback-panel {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: grid;
+  filter: drop-shadow(0 6px 9px var(--reader-assistant-shadow));
+  gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: var(--reader-space-2);
+  width: min(320px, calc(100vw - 2 * var(--reader-space-3)));
+}
+
+.portfolio-feedback-panel > * { min-width: 0; }
+
+.portfolio-feedback-head,
+.portfolio-feedback-foot,
+.portfolio-feedback-sent-row {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+  justify-content: space-between;
+}
+
+.portfolio-feedback-eyebrow {
+  color: var(--reader-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.portfolio-feedback textarea {
+  background: transparent;
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  height: 96px;
+  padding: var(--reader-space-1) 12px;
+  resize: none;
+  width: 100%;
+}
+
+.portfolio-feedback textarea::placeholder { color: var(--reader-muted); }
+
+.portfolio-feedback-target,
+.portfolio-feedback-status,
+.portfolio-feedback-sent-row {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+}
+
+.portfolio-feedback-target-name { color: var(--ink); }
+
+.portfolio-feedback-status[data-kind="error"] { color: var(--ink); }
+
+.portfolio-feedback-text-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  flex: 0 0 auto;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.portfolio-feedback-send {
+  appearance: none;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper);
+  flex: 0 0 auto;
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  padding: 0 12px;
+}
+
+.portfolio-feedback-send:disabled { opacity: 0.4; }
+
+.portfolio-feedback-sent {
+  display: grid;
+  gap: var(--reader-space-1);
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portfolio-feedback-sent-row { min-width: 0; }
+
+.portfolio-feedback-sent-note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-feedback-highlight {
+  border: 2px solid var(--focus-ring);
+  border-radius: 6px;
+  box-sizing: border-box;
+  pointer-events: none;
+  position: fixed;
+  z-index: 899;
+}
+
+/* Quoting: the selected run, then which region holds it, then the mode. */
+.portfolio-feedback-quote {
+  border-left: 1px solid var(--map-line-strong);
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+  max-height: 64px;
+  overflow: hidden;
+  padding: 0 0 0 12px;
+}
+
+.portfolio-feedback-modes {
+  display: flex;
+  gap: 12px;
+}
+
+.portfolio-feedback-mode {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0;
+}
+
+.portfolio-feedback-mode[aria-pressed="true"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portfolio-feedback-why {
+  background: transparent;
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 32px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.portfolio-feedback-why::placeholder { color: var(--reader-muted); }
+
+/* The control that appears under a text selection. */
+.portfolio-feedback-select {
+  appearance: none;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-paper);
+  font: var(--reader-type-caption) var(--font-reader);
+  height: 28px;
+  padding: 0 12px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 901;
+}
+
+/* Pins mark where this visit's notes point. They live only in memory. */
+.portfolio-feedback-pin {
+  appearance: none;
+  background: var(--ink);
+  border: 1px solid var(--reader-paper);
+  border-radius: 50%;
+  color: var(--reader-paper);
+  display: grid;
+  font: var(--reader-type-label) var(--font-reader);
+  height: 18px;
+  padding: 0;
+  place-items: center;
+  position: fixed;
+  width: 18px;
+  z-index: 898;
+}
+
+.portfolio-feedback-pin[data-focused="true"] { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.portfolio-feedback-sent-index {
+  color: var(--ink);
+  flex: 0 0 auto;
+}
+
+.portfolio-feedback-sent-row[data-focused="true"] .portfolio-feedback-sent-note { color: var(--ink); }
+
+@media (pointer: fine) {
+  .portfolio-feedback-trigger:hover {
+    background: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+    border-color: color-mix(in srgb, var(--ink) 84%, var(--reader-paper));
+  }
+
+  .portfolio-feedback-point:hover {
+    background: color-mix(in srgb, var(--ink) 8%, var(--reader-paper));
+  }
+}
+
+/* Below the Reading Room breakpoint the mobile tab bar owns the bottom 56px. */
+@media (max-width: 1019px) {
+  .portfolio-feedback {
+    bottom: calc(56px + var(--reader-space-3) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.cursor-instrument {
+  height: var(--cursor-size);
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-17px, -17px);
+  transition: opacity 90ms ease;
+  width: var(--cursor-size);
+  z-index: 1200;
+}
+
+.cursor-instrument[data-visible="true"] { opacity: 1; }
+
+.cursor-arm {
+  background: var(--cursor-a);
+  position: absolute;
+}
+
+.cursor-arm-n,
+.cursor-arm-s {
+  height: 7px;
+  left: 16px;
+  width: 2px;
+}
+
+.cursor-arm-e,
+.cursor-arm-w {
+  height: 2px;
+  top: 16px;
+  width: 7px;
+}
+
+.cursor-arm-n { top: 8px; }
+.cursor-arm-s { bottom: 8px; }
+.cursor-arm-w { left: 8px; }
+.cursor-arm-e { right: 8px; }
+
+.cursor-pin {
+  background: var(--cursor-b);
+  border-radius: 50%;
+  height: 4px;
+  left: 15px;
+  position: absolute;
+  top: 15px;
+  width: 4px;
+}
+
+.cursor-instrument[data-action="true"]:not([data-held="true"]) .cursor-arm {
+  background: var(--cursor-b);
+}
+
+.cursor-instrument[data-action="true"]:not([data-held="true"]) .cursor-pin {
+  background: var(--cursor-a);
+}
+
+.cursor-instrument[data-held="true"] .cursor-arm-n { transform: translateY(7px); }
+.cursor-instrument[data-held="true"] .cursor-arm-s { transform: translateY(-7px); }
+.cursor-instrument[data-held="true"] .cursor-arm-w { transform: translateX(7px); }
+.cursor-instrument[data-held="true"] .cursor-arm-e { transform: translateX(-7px); }
+
+@media (pointer: fine) {
+  html,
+  body,
+  body * {
+    cursor: none !important;
+  }
+}
+
+@media (pointer: coarse) {
+  .cursor-instrument { display: none; }
+}
+
+@media (max-width: 1019px) {
+  /* Page inset and gutter become the same number; nothing shrinks. */
+  .portfolio-composition .reader-content {
+    padding: var(--reader-space-3) var(--reader-space-3) 0;
+  }
+  .portfolio-composition .reader-privacy {
+    padding: var(--reader-space-4) var(--reader-space-3) max(var(--reader-space-2), env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 600px) {
+  .portfolio-composition {
+    --mobile-controls-inline-end: max(14px, env(safe-area-inset-right));
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-overlay-canvas,
+  .portfolio-guide-twirl {
+    animation-duration: 1ms;
+  }
+
+  .cursor-instrument,
+  .design-section-summary::after {
+    transition-duration: 1ms;
+  }
+}
+
+/* Design gallery (work package 3): the public /design showroom. The gallery
+   drives the accepted composition tokens from [data-theme] so one page can
+   show both modes. The descendant selectors are wrapped in :where() so a
+   fixture that carries its own [data-theme] still wins over the gallery root. */
+.design-gallery,
+:where([data-theme="light"]) .portfolio-composition,
+.portfolio-composition[data-theme="light"],
+.design-gallery[data-theme="light"] {
+  --mac-menu-bar-glyph-invert: 0;
+  --focus-ring: var(--world-acid);
+  --ink: var(--reader-ink-light);
+  --map-muted: var(--map-muted-light);
+  --map-paper: var(--map-silver);
+  --map-paper-near: var(--map-paper-near-light);
+  --reader-paper: var(--reader-paper-light);
+  --reader-body: var(--reader-body-light);
+  --reader-drop-fill: var(--reader-drop-fill-light);
+  --reader-muted: var(--reader-muted-light);
+  --map-connector: var(--map-connector-light);
+  --map-line: var(--map-line-light);
+  --map-line-strong: var(--map-line-strong-light);
+  --map-grid: var(--map-grid-light);
+  --world-identity: var(--reader-ink-light);
+  --world-story: var(--world-hard-red);
+  --world-arc: var(--world-hard-red);
+  --world-warm: var(--world-electric-pink);
+  --world-bridge: var(--world-violet);
+  --world-cool: var(--world-production-cyan);
+  color-scheme: light;
+}
+
+:where([data-theme="dark"]) .portfolio-composition,
+.portfolio-composition[data-theme="dark"],
+.design-gallery[data-theme="dark"] {
+  --mac-menu-bar-glyph-invert: 1;
+  --focus-ring: var(--world-acid);
+  --ink: var(--reader-ink-dark);
+  --map-muted: var(--map-muted-dark);
+  --map-paper: var(--map-paper-dark);
+  --map-paper-near: var(--map-paper-near-dark);
+  --reader-paper: var(--reader-paper-dark);
+  --reader-body: var(--reader-body-dark);
+  --reader-drop-fill: var(--reader-drop-fill-dark);
+  --reader-muted: var(--reader-muted-dark);
+  --map-connector: var(--map-connector-dark);
+  --map-line: var(--map-line-dark);
+  --map-line-strong: var(--map-line-strong-dark);
+  --map-grid: var(--map-grid-dark);
+  --world-identity: var(--reader-ink-dark);
+  --world-story: var(--world-signal-red);
+  --world-arc: var(--world-signal-red);
+  --world-warm: var(--world-hot-pink);
+  --world-bridge: var(--world-violet-dark);
+  --world-cool: var(--world-production-cyan-dark);
+  color-scheme: dark;
+}
+
+body:has(.design-gallery[data-theme="light"]) { background: var(--map-silver); }
+body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark); }
+
+.design-gallery {
+  background: var(--map-paper);
+  color: var(--ink);
+  font-family: var(--font-reader);
+  min-height: 100vh;
+  padding-bottom: 6rem;
+}
+
+.design-gallery-bar {
+  align-items: baseline;
+  background: var(--map-paper);
+  border-bottom: 1px solid var(--map-line-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 18px var(--reader-space-3);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.design-gallery-bar h1 {
+  font: var(--reader-type-display) var(--font-reader);
+  letter-spacing: -0.055em;
+  margin: 0;
+}
+
+.design-gallery-bar p {
+  color: var(--map-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.design-gallery-modes {
+  display: flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+/* Scoped to an explicit class: a descendant `button` rule here would restyle
+   the buttons inside every fixture component on the page. */
+.design-gallery-control {
+  background: transparent;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  color: var(--ink);
+  font-family: var(--font-reader);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+/* Rule 5.8. The composition's default focus ring is scoped to
+   .portfolio-composition, and .design-gallery is not that — so without this
+   every nav link, mode button and Mount button fell through to the unscoped
+   legacy rules and drew the 3px olive prototype ring. */
+.design-gallery-control:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.design-gallery-control[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--map-paper);
+}
+
+.design-state-strip {
+  align-items: center;
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px var(--reader-space-3);
+}
+
+.design-state-strip-label {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.07em;
+  margin-inline-end: 4px;
+  text-transform: uppercase;
+}
+
+.design-gallery-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 14px var(--reader-space-3);
+}
+
+/* The nav states the grouping, so a reviewer sees the page's shape before
+   scrolling it. Each group keeps its links on one line with its heading. */
+.design-gallery-nav-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.design-gallery-nav-heading {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.07em;
+  margin-right: 2px;
+  text-transform: uppercase;
+}
+
+.design-group-heading {
+  border-top: 1px solid var(--map-line-strong);
+  padding: 34px var(--reader-space-3) 0;
+}
+
+.design-group-heading h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.design-group-heading p {
+  color: var(--map-muted);
+  margin: 4px 0 0;
+  max-width: 46ch;
+}
+
+/* A group heading already draws the heavier rule, so the first section under
+   it must not draw a second one immediately below. */
+.design-group-heading + .design-section {
+  border-top: 0;
+}
+
+.design-section {
+  border-top: 1px solid var(--map-line);
+  padding: 28px var(--reader-space-3);
+  scroll-margin-top: 96px;
+}
+
+.design-section-summary {
+  cursor: default;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr auto;
+  list-style: none;
+}
+
+.design-section-summary::-webkit-details-marker { display: none; }
+
+.design-section-summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+/* The disclosure mark: a plus that loses its vertical stroke when open, drawn
+   from the rule token so it stays the one neutral line treatment (Rule 6.3). */
+.design-section-summary::after {
+  align-self: center;
+  background:
+    linear-gradient(var(--map-line-strong), var(--map-line-strong)) center/100% 1px no-repeat,
+    linear-gradient(var(--map-line-strong), var(--map-line-strong)) center/1px 100% no-repeat;
+  content: "";
+  grid-column: 2;
+  grid-row: 1 / -1;
+  height: 11px;
+  transition: transform 140ms ease;
+  width: 11px;
+}
+
+.design-section[open] > .design-section-summary::after {
+  background-image: linear-gradient(var(--map-line-strong), var(--map-line-strong));
+  transform: rotate(180deg);
+}
+
+.design-section-summary > h2 {
+  font: var(--reader-type-summary) var(--font-reader);
+  grid-column: 1;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.design-section-summary > .design-note {
+  grid-column: 1;
+  margin: 0;
+}
+
+.design-section-body {
+  padding-top: 18px;
+}
+
+.design-note {
+  color: var(--map-muted);
+  display: block;
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0 0 18px;
+  max-width: 72ch;
+}
+
+.design-specimen {
+  border: 1px solid var(--map-line);
+  border-radius: 6px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.design-specimen-head {
+  align-items: baseline;
+  background: var(--map-paper-near);
+  border-bottom: 1px solid var(--map-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 10px 14px;
+}
+
+.design-specimen-head h3 {
+  font: var(--reader-type-row) var(--font-reader);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.design-specimen-head p {
+  color: var(--map-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  margin: 0;
+}
+
+.design-section-source {
+  color: var(--map-muted);
+  font: var(--reader-type-caption) var(--font-prototype-mono);
+  grid-column: 1;
+}
+
+.design-specimen-body {
+  padding: 14px;
+}
+
+.design-specimen-body[data-flush="true"] {
+  padding: 0;
+}
+
+/* A transform makes each stage the containing block for the fixed-position
+   composition surfaces, so a full-viewport component stays inside its box. */
+.design-stage {
+  background: var(--map-paper);
+  contain: layout paint;
+  overflow: hidden;
+  position: relative;
+  transform: translateZ(0);
+}
+
+.design-stage[data-size="tall"] { height: 640px; }
+.design-stage[data-size="medium"] { height: 420px; }
+.design-stage[data-size="short"] { height: 260px; }
+.design-stage[data-size="viewport"] { height: 100dvh; }
+
+/* A flow-layout specimen is as tall as its content. The composition surfaces
+   size themselves in viewport units, so that claim has to be released here or
+   a 60px header reserves a whole screen. */
+.design-stage[data-size="auto"] { height: auto; }
+.design-stage[data-size="auto"] .experience,
+.design-stage[data-size="auto"] .scene-shell {
+  min-height: 0;
+}
+
+.design-stage-narrow {
+  margin: 0 auto;
+  max-width: 420px;
+}
+
+/* Full Reading Room specimens bleed to the viewport so all panel constraints
+   are evaluated against the same width as the shipped route. */
+.design-stage[data-bleed="true"] {
+  margin-inline: calc(50% - 50vw);
+  width: 100vw;
+}
+
+.design-lazy {
+  align-items: center;
+  color: var(--map-muted);
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: 12px;
+  justify-content: center;
+  padding: 24px 14px;
+  text-align: center;
+}
+
+.design-token-row code {
+  color: var(--map-muted);
+  font: var(--reader-type-caption) var(--font-prototype-mono);
+  word-break: break-all;
+}
+
+.design-token-table {
+  border-collapse: collapse;
+  font: var(--reader-type-caption) var(--font-reader);
+  width: 100%;
+}
+
+.design-token-table th,
+.design-token-table td {
+  border-bottom: 1px solid var(--map-line);
+  padding: 6px 10px 6px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.design-token-table th {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.design-token-swatch {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 3px;
+  display: inline-block;
+  height: 14px;
+  vertical-align: -2px;
+  width: 14px;
+}
+
+.design-type-specimen {
+  border-bottom: 1px solid var(--map-line);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.design-type-specimen:last-child { border-bottom: 0; }
+
+.design-type-specimen-label {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.07em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Seven poses share one canvas, so the labels are a matching seven-column row
+   underneath rather than a caption per cell. */
+.design-pose-labels {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(7, 1fr);
+  padding-top: 8px;
+  text-align: center;
+}
+
+.design-pose-labels small {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  line-height: 1.3;
+}
+
+.design-type-specimen p { margin: 0; }
+
+/* Light and dark beside each other, so a type specimen is read rather than
+   looked up. Each pane carries its own [data-theme] and its own paper, because
+   the point of the pair is the ink-on-paper relationship, not the glyphs. */
+.design-mode-pair {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 1fr 1fr;
+  background: var(--map-line);
+  border: 1px solid var(--map-line);
+}
+
+.design-mode-pane {
+  background: var(--reader-paper);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.design-mode-pane::before {
+  color: var(--map-muted);
+  content: attr(data-mode);
+  display: block;
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .design-mode-pair { grid-template-columns: 1fr; }
+}
+
+.design-mark-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* Pose cells hold a figure rather than a mark, so they need width to frame it. */
+
+.design-mark-cell {
+  align-items: center;
+  border: 1px solid var(--map-line);
+  border-radius: 4px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px 8px;
+}
+
+.design-mark-cell small {
+  color: var(--map-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  text-align: center;
+}
+
+.design-token-probe {
+  block-size: 0;
+  inline-size: 0;
+  overflow: hidden;
+  position: absolute;
+  visibility: hidden;
+}
+
+@media (max-width: 900px) {
+  .design-stage[data-size="tall"] { height: 560px; }
+}
+
+/* Gallery stages are shorter than a viewport. The composition surfaces size
+   themselves in viewport units, so inside a stage they take the stage box. */
+.design-stage .experience,
+.design-stage .scene-shell {
+  min-height: 100%;
+}
+
+.design-stage .portfolio-reader {
+  height: 100%;
+}
+
+.design-stage .avatar-overlay {
+  height: 100%;
+  width: 100%;
+}
+
+/* Local pose editor, served as a standalone Vite development tool. */
+.portfolio-pose-editor {
+  background: var(--reader-paper);
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  margin: 0;
+  min-width: 320px;
+}
+
+.portfolio-pose-editor,
+.portfolio-pose-editor * {
+  cursor: auto !important;
+}
+
+.portfolio-pose-editor button {
+  background: transparent;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+  min-height: 40px;
+  padding: var(--reader-space-1) var(--reader-space-2);
+}
+
+.portfolio-pose-editor button:disabled {
+  opacity: 0.4;
+}
+
+.portfolio-pose-editor select {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  min-height: 40px;
+  padding: var(--reader-space-1);
+  width: 100%;
+}
+
+.portfolio-pose-editor button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--world-identity) 12%, transparent);
+  border-color: var(--world-identity);
+}
+
+.portfolio-pose-editor :focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.portfolio-pose-editor-header {
+  align-items: end;
+  display: flex;
+  gap: var(--reader-space-4);
+  justify-content: space-between;
+  padding: var(--reader-space-4);
+}
+
+.portfolio-pose-editor h1 {
+  font: var(--reader-type-display) var(--font-reader);
+  letter-spacing: -0.055em;
+  margin: var(--reader-space-1) 0 0;
+}
+
+.portfolio-pose-editor p {
+  color: var(--reader-muted);
+  margin: 0;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-eyebrow {
+  color: var(--world-identity);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.portfolio-pose-editor-layout {
+  display: grid;
+  gap: var(--reader-space-3);
+  grid-template-columns: minmax(0, 1fr) 328px;
+  padding: 0 var(--reader-space-4) var(--reader-space-4);
+}
+
+.portfolio-pose-editor-view {
+  align-self: start;
+  background: var(--map-paper-near);
+  border: 1px solid var(--map-line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  position: sticky;
+  top: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1);
+  padding: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-stage {
+  flex: 1;
+  height: calc(100dvh - 300px);
+  min-height: 500px;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.portfolio-pose-editor-stage canvas {
+  display: block;
+  inset: 0;
+  position: absolute;
+}
+
+.portfolio-pose-editor-loading {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--reader-space-3);
+  position: absolute;
+}
+
+.portfolio-pose-editor-handles {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-handle {
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+  width: 44px;
+}
+
+.portfolio-pose-editor-handle::before {
+  background: var(--reader-paper);
+  border: 2px solid var(--world-cool);
+  border-radius: 50%;
+  content: "";
+  inset: 12px;
+  position: absolute;
+}
+
+.portfolio-pose-editor-handle[data-bend="true"]::before {
+  border-color: var(--reader-muted);
+  border-style: dashed;
+  inset: 15px;
+}
+
+.portfolio-pose-editor-handle[data-selected="true"]::before {
+  background: var(--world-cool);
+}
+
+.portfolio-pose-editor-handle[data-dragging="true"]::before {
+  outline: 3px solid var(--reader-paper);
+}
+
+.portfolio-pose-editor-handle span {
+  background: var(--reader-paper);
+  border-radius: 4px;
+  font: var(--reader-type-caption) var(--font-reader);
+  left: 38px;
+  opacity: 0;
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+  white-space: nowrap;
+}
+
+.portfolio-pose-editor-handle[data-selected="true"][data-bend="false"] span,
+.portfolio-pose-editor-handle:focus-visible span {
+  opacity: 1;
+}
+
+.portfolio-pose-editor [hidden] {
+  display: none !important;
+}
+
+.portfolio-pose-editor-playbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: var(--reader-space-2);
+  padding: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-playbar label {
+  align-items: center;
+  display: flex;
+  gap: var(--reader-space-1);
+}
+
+.portfolio-pose-editor-playbar input {
+  accent-color: var(--world-identity);
+}
+
+.portfolio-pose-editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-4);
+  padding: var(--reader-space-1) 0;
+}
+
+.portfolio-pose-editor-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-2);
+}
+
+.portfolio-pose-editor h2 {
+  font: var(--reader-type-summary) var(--font-reader);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.portfolio-pose-editor-panel p {
+  font: var(--reader-type-secondary) var(--font-reader);
+}
+
+.portfolio-pose-editor-parts {
+  display: grid;
+  gap: var(--reader-space-1);
+  grid-template-columns: 1fr 1fr;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-selection {
+  color: var(--ink);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+
+.portfolio-pose-editor-nudges {
+  align-items: center;
+  display: grid;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: var(--reader-space-1);
+  grid-template-columns: 64px 1fr 1fr;
+}
+
+.portfolio-pose-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1);
+}
+
+.portfolio-pose-editor-wrist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-1);
+  margin-top: var(--reader-space-2);
+}
+
+.portfolio-pose-editor-wrist h3 {
+  font: var(--reader-type-row) var(--font-reader);
+  margin: 0;
+}
+
+.portfolio-pose-editor-wrist label {
+  display: flex;
+  font: var(--reader-type-caption) var(--font-reader);
+  justify-content: space-between;
+}
+
+.portfolio-pose-editor-wrist input {
+  accent-color: var(--world-cool);
+  min-height: 28px;
+  width: 100%;
+}
+
+.portfolio-pose-editor-wrist input:disabled {
+  opacity: 0.4;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-status {
+  color: var(--world-identity);
+  min-height: 36px;
+}
+
+.portfolio-pose-editor .portfolio-pose-editor-status[data-error="true"] {
+  color: var(--world-arc);
+}
+
+@media (pointer: fine) {
+  .portfolio-pose-editor button:not(:disabled):hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+  }
+
+  .portfolio-pose-editor .portfolio-pose-editor-handle:hover {
+    background: transparent;
+  }
+
+  .portfolio-pose-editor-handle:hover span {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 850px) {
+  .portfolio-pose-editor-view {
+    position: static;
+  }
+  .portfolio-pose-editor-header {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--reader-space-2);
+    padding: var(--reader-space-3);
+  }
+
+  .portfolio-pose-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 var(--reader-space-3) var(--reader-space-3);
+  }
+
+  .portfolio-pose-editor-stage {
+    height: 520px;
+    min-height: 520px;
+  }
+}
+
+/* Brain Food borrows the main Map surface; underlying panel dimensions and
+   stored preferences remain untouched and return when the session ends. */
+.portfolio-reading-room[data-game-mode="true"] {
+  visibility: hidden;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"],
+.portfolio-reading-room[data-game-mode="true"] .portfolio-reading-room-mobile-map {
+  background: var(--map-paper);
+  height: auto;
+  inset: 0;
+  position: fixed;
+  visibility: visible;
+  width: auto;
+  z-index: 5;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"] > :not(.portfolio-reading-room-pane-body),
+.portfolio-reading-room[data-game-mode="true"] .portfolio-reading-room-read-chip {
+  display: none;
+}
+
+.portfolio-reading-room[data-game-mode="true"] [data-reading-room-slot="main"] > .portfolio-reading-room-pane-body {
+  height: 100%;
+}
+
+.portfolio-composition[data-game-mode="true"] > .portfolio-feedback {
+  visibility: hidden;
+}
+
+.portfolio-game-notice {
+  background: var(--reader-paper);
+  bottom: var(--reader-space-2);
+  color: var(--reader-body);
+  font: var(--reader-type-caption) var(--font-reader);
+  left: var(--reader-space-2);
+  padding: var(--reader-space-2);
+  position: fixed;
+  z-index: 7;
+}
+
+
+.portfolio-brain-food-exit {
+  position: fixed;
+  right: var(--reader-space-3);
+  top: var(--reader-space-3);
+  z-index: 7;
+}
+
+/* Brain Food currently uses desktop keyboard controls. */
+@media (max-width: 1019px), (pointer: coarse) {
+  .portfolio-guide-suggestion[data-game-suggestion="true"] {
+    display: none;
+  }
+}
+
+.portfolio-guide-avatar-toggle {
+  align-self: flex-end;
+  background: var(--reader-paper);
+  border: 0;
+  border-radius: 6px;
+  color: var(--reader-muted);
+  cursor: pointer;
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: var(--reader-space-1);
+}
+
+.portfolio-guide-avatar-toggle {
+  position: absolute;
+  right: var(--reader-space-2);
+  top: var(--reader-space-1);
+}
+
+.portfolio-guide-error a:focus-visible,
+.portfolio-guide-suggestion:focus-visible,
+.portfolio-guide-citation:focus-visible,
+.portfolio-guide-avatar-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Touring work sample: the tool's restrained form and record vocabulary. */
+.portfolio-touring-page {
+  background: var(--reader-paper);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: var(--reader-space-4) var(--reader-space-3);
+}
+.portfolio-touring-page > .portfolio-touring,
+.portfolio-touring-return {
+  margin-inline: auto;
+  max-width: 760px;
+}
+.portfolio-touring-return {
+  color: var(--reader-muted);
+  display: block;
+  font: var(--reader-type-body) var(--font-reader);
+  margin-bottom: var(--reader-space-4);
+}
+.portfolio-touring {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  font: var(--reader-type-body) var(--font-reader);
+  overflow: hidden;
+  text-align: left;
+}
+.portfolio-touring :is(h1, h2, h3, h4, p, ul, dl, dd) {
+  margin: 0;
+}
+.portfolio-touring :is(button, input, textarea) {
+  font: inherit;
+}
+.portfolio-touring :is(button, a, input, textarea, summary):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.portfolio-touring :is(button, summary) {
+  cursor: pointer;
+}
+.portfolio-touring button {
+  color: inherit;
+}
+.portfolio-touring-topline {
+  align-items: center;
+  background: var(--map-paper-near);
+  color: var(--reader-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font: var(--reader-type-caption) var(--font-reader);
+  gap: var(--reader-space-1) var(--reader-space-2);
+  justify-content: space-between;
+  padding: var(--reader-space-1) var(--reader-space-3);
+}
+.portfolio-touring-topline button {
+  background: none;
+  border: 0;
+  min-height: 32px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.portfolio-touring-header {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-2);
+  justify-content: space-between;
+  padding: var(--reader-space-3);
+}
+.portfolio-touring-header :is(h1, h2) {
+  color: var(--ink);
+  font: var(--reader-type-summary) var(--font-reader);
+  font-weight: 600;
+}
+.portfolio-touring-header p {
+  color: var(--reader-muted);
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin-top: var(--reader-space-1);
+}
+.portfolio-touring-status {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: var(--reader-space-1);
+}
+.portfolio-touring-status[data-complete="true"] {
+  background: var(--ink);
+  color: var(--reader-paper);
+}
+.portfolio-touring-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-inline: var(--reader-space-3);
+}
+.portfolio-touring-nav button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid var(--map-line-strong);
+  color: var(--reader-muted);
+  min-height: 44px;
+  padding: var(--reader-space-1);
+}
+.portfolio-touring-nav button[aria-current="page"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+.portfolio-touring .portfolio-touring-notice {
+  color: var(--reader-body);
+  font: var(--reader-type-secondary) var(--font-reader);
+  padding: var(--reader-space-2) var(--reader-space-3) 0;
+}
+.portfolio-touring .portfolio-touring-notice:empty {
+  display: none;
+}
+.portfolio-touring-panel {
+  outline: none;
+  padding: var(--reader-space-3);
+}
+.portfolio-touring-section-head {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-2);
+  justify-content: space-between;
+  margin-bottom: var(--reader-space-2);
+}
+.portfolio-touring h3 {
+  font: var(--reader-type-mast) var(--font-reader);
+  font-weight: 600;
+}
+.portfolio-touring-section-head p {
+  color: var(--reader-muted);
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin-top: var(--reader-space-1);
+}
+.portfolio-touring h4,
+.portfolio-touring legend {
+  color: var(--reader-muted);
+  font: var(--reader-type-label) var(--font-reader);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.portfolio-touring .portfolio-touring-outstanding {
+  background: var(--map-paper-near);
+  border-radius: 4px;
+  display: grid;
+  gap: var(--reader-space-2);
+  list-style: none;
+  padding: var(--reader-space-2);
+}
+.portfolio-touring-outstanding li {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1) var(--reader-space-2);
+  justify-content: space-between;
+}
+.portfolio-touring-outstanding li > span:last-child {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+.portfolio-touring-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-2);
+  margin-top: var(--reader-space-2);
+}
+.portfolio-touring .portfolio-touring-primary {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  color: var(--reader-paper);
+  min-height: 44px;
+  padding: var(--reader-space-1) var(--reader-space-2);
+  text-align: center;
+}
+.portfolio-touring .portfolio-touring-text-action {
+  background: none;
+  border: 0;
+  font: var(--reader-type-secondary) var(--font-reader);
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.portfolio-touring-record,
+.portfolio-touring-calendar,
+.portfolio-touring-disclosure {
+  margin-top: var(--reader-space-4);
+}
+.portfolio-touring-record dl,
+.portfolio-touring-saved,
+.portfolio-touring-event dl {
+  display: grid;
+  gap: var(--reader-space-1);
+  margin-top: var(--reader-space-2);
+}
+.portfolio-touring-record dl > div,
+.portfolio-touring-saved > div,
+.portfolio-touring-event dl > div,
+.portfolio-touring-day-section dl > div {
+  align-items: baseline;
+  display: grid;
+  gap: var(--reader-space-1) var(--reader-space-2);
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr);
+}
+.portfolio-touring dt {
+  color: var(--reader-muted);
+}
+.portfolio-touring dd {
+  overflow-wrap: anywhere;
+}
+.portfolio-touring-disclosure summary {
+  font-weight: 500;
+  min-height: 44px;
+  padding-block: var(--reader-space-1);
+}
+.portfolio-touring-message {
+  background: var(--map-paper-near);
+  border-radius: 4px;
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin-top: var(--reader-space-1);
+  padding: var(--reader-space-2);
+}
+.portfolio-touring-message > p {
+  color: var(--reader-muted);
+  margin-bottom: var(--reader-space-2);
+}
+.portfolio-touring-message > div {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.portfolio-touring .portfolio-touring-empty {
+  color: var(--reader-muted);
+  padding-block: var(--reader-space-1);
+}
+.portfolio-touring-form fieldset {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  margin: 0;
+  min-width: 0;
+  padding: var(--reader-space-2);
+}
+.portfolio-touring-form legend {
+  padding-inline: var(--reader-space-1);
+}
+.portfolio-touring-field {
+  display: block;
+  margin-bottom: var(--reader-space-2);
+}
+.portfolio-touring-field:last-child {
+  margin-bottom: 0;
+}
+.portfolio-touring-field > span {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--reader-space-1);
+  justify-content: space-between;
+  margin-bottom: var(--reader-space-1);
+}
+.portfolio-touring-field small {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+}
+.portfolio-touring-field :is(input, textarea) {
+  background: var(--reader-paper);
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  color: var(--ink);
+  display: block;
+  min-height: 44px;
+  padding: var(--reader-space-1);
+  width: 100%;
+}
+.portfolio-touring-field textarea {
+  resize: vertical;
+}
+.portfolio-touring-form-extra {
+  padding-top: var(--reader-space-2);
+}
+.portfolio-touring .portfolio-touring-feedback {
+  color: var(--reader-muted);
+  font: var(--reader-type-secondary) var(--font-reader);
+  margin-block: var(--reader-space-2);
+}
+.portfolio-touring-daysheet {
+  outline: none;
+  scroll-margin-top: var(--reader-space-3);
+}
+.portfolio-touring-day-sections {
+  display: grid;
+  gap: var(--reader-space-2);
+}
+.portfolio-touring-day-section {
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  padding: var(--reader-space-2);
+}
+.portfolio-touring-day-section dl {
+  display: grid;
+  font: var(--reader-type-secondary) var(--font-reader);
+  gap: var(--reader-space-2);
+  margin-top: var(--reader-space-2);
+}
+.portfolio-touring-day-section [data-missing="true"] dd {
+  color: var(--reader-muted);
+}
+.portfolio-touring-event-nav {
+  display: flex;
+  gap: var(--reader-space-1);
+  margin-bottom: var(--reader-space-2);
+}
+.portfolio-touring-event-nav button {
+  background: none;
+  border: 1px solid var(--map-line-strong);
+  border-radius: 4px;
+  min-height: 44px;
+  padding: var(--reader-space-1) var(--reader-space-2);
+}
+.portfolio-touring-event-nav button:is([aria-current="true"], [aria-current="page"]) {
+  background: var(--ink);
+  color: var(--reader-paper);
+}
+.portfolio-touring-event {
+  background: var(--map-paper-near);
+  border-radius: 4px;
+  padding: var(--reader-space-2);
+}
+.portfolio-touring-event h4 {
+  color: var(--ink);
+  font: var(--reader-type-mast) var(--font-reader);
+  letter-spacing: normal;
+  margin-bottom: var(--reader-space-1);
+  text-transform: none;
+}
+.portfolio-touring-event > p,
+.portfolio-touring-event dl {
+  font: var(--reader-type-secondary) var(--font-reader);
+}
+.portfolio-touring-event a {
+  color: var(--ink);
+  display: inline-block;
+  margin-top: var(--reader-space-2);
+  text-underline-offset: 3px;
+}
+.portfolio-touring-footer {
+  color: var(--reader-muted);
+  font: var(--reader-type-caption) var(--font-reader);
+  padding: 0 var(--reader-space-3) var(--reader-space-3);
+}
+
+.portfolio-reading-room-mobile[data-game-mode="true"] .portfolio-reading-room-map-controls {
+  display: none;
+}
+
+.portfolio-reading-room-map-canvas .portfolio-world-mast {
+  display: none;
+}
+
+.portfolio-guide-avatar-toggle.portfolio-control-mark,
+.portfolio-reading-room-avatar-toggle.portfolio-control-mark {
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  width: 40px;
+}

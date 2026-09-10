@@ -1,0 +1,88 @@
+{
+  "repository": "braininavatgroup/consulting",
+  "commit": "bd1eb8637a60008548a173bff6c5e190de427c4c",
+  "sourceRoot": "apps/advancing-tool",
+  "adaptation": "Local .js import and JSDoc paths changed to .mjs. Removed unused catch bindings and one unused import; preserved an unused API parameter explicitly for source compatibility. No behavior changes. No Google adapters or credentials included.",
+  "registrySha256": "610132253d4cd81838b98e5b1da77e0d67bc27f17bf455bcfa6744637b16ee19",
+  "files": [
+    {
+      "source": "src/core/calendar-plan.js",
+      "sourceSha256": "037145de05df3bbe5d62397b00b0a9616d7ce8b3b90650734c63d78f2f1c7188",
+      "file": "calendar-plan.mjs",
+      "sha256": "1e2ee8419883f6e0c0e7f49d794aecf5e9a4cd5da30f2aa84ef816ecc48a109d"
+    },
+    {
+      "source": "src/core/conditionals.js",
+      "sourceSha256": "019a90027de92918d6942d291c1651f142ca53c726c1380cb802767672c0751b",
+      "file": "conditionals.mjs",
+      "sha256": "6432a489ed8eb7f7296f8bd2aa915044f98a16c3765ba518ec0b6ad96439fa04"
+    },
+    {
+      "source": "src/core/datetime-format.js",
+      "sourceSha256": "cd26944a2affce260f58c2e6f6217c95de9b6207107274b33e84647fa4516a63",
+      "file": "datetime-format.mjs",
+      "sha256": "d7a066989ebc1083983d6e38147d813f3c4df7ee20b5c907b552ae235088a021"
+    },
+    {
+      "source": "src/core/daysheet.js",
+      "sourceSha256": "f06e11180b6ff134f06b1b38ec924569de9405cb46e37b950de7f156aef7f6bd",
+      "file": "daysheet.mjs",
+      "sha256": "ef7505f03c1283235ed7356de6641ae968b59801e64a4819f5775ea135fa2875"
+    },
+    {
+      "source": "src/core/due-dates.js",
+      "sourceSha256": "07eabc8b6727286008f9486212102088eadf451753d5b73a58a5d045f69bb4eb",
+      "file": "due-dates.mjs",
+      "sha256": "53f68fd476bb3d1ea97287b76dc0244366a8143fe61ec8eb3bdf457c0c509443"
+    },
+    {
+      "source": "src/core/outstanding.js",
+      "sourceSha256": "292a63e0df8498c5ba8e0a784b1f45fcf71708cb5d4fde35bae6670423e65801",
+      "file": "outstanding.mjs",
+      "sha256": "e065ba157e17cce37a16d7bde27e9bd609652060f87f1b5122d81d45fe0a2467"
+    },
+    {
+      "source": "src/core/registry.js",
+      "sourceSha256": "2e3646d4f40838c49158f1dad359c5aac0a45690fa8166ce8af2fc5128304cf0",
+      "file": "registry.mjs",
+      "sha256": "deca3468ccaa23c2f5603eb07390e57baaa059cc1617094378350d22c6e9886a"
+    },
+    {
+      "source": "src/core/show-status.js",
+      "sourceSha256": "6ea0d7feae9442e826406ba14715fb2b6f2af5a23200add1c3c9125b9dd22f6e",
+      "file": "show-status.mjs",
+      "sha256": "5d333338a8a61385b9d782c095e45555b0bba1aafe75ff76d6f899fdeea1788f"
+    },
+    {
+      "source": "src/core/signatures.js",
+      "sourceSha256": "d97e9355df588ed0d5841f07f4b93b60cadc0a180fa0f79e36cbb736c0330bc1",
+      "file": "signatures.mjs",
+      "sha256": "d97e9355df588ed0d5841f07f4b93b60cadc0a180fa0f79e36cbb736c0330bc1"
+    },
+    {
+      "source": "src/core/template-merge.js",
+      "sourceSha256": "1780c44b156f0fb89577776ea98e8fdfd893157c1f8bc1acf3b265bb33ebd4cb",
+      "file": "template-merge.mjs",
+      "sha256": "8ba0542c84024b6f52084c83a3e73adcb02e1201b3d253dbd02b6c51528e902e"
+    },
+    {
+      "source": "src/core/tokens.js",
+      "sourceSha256": "15180cc2b6b3b4f5a56027904ee19ed186f441e79dad5c581d37a9c2ed2d3405",
+      "file": "tokens.mjs",
+      "sha256": "bbaddd4ade0a7912a7179b213a1e6f08c4a97fd3aab12d5addeef8737676abb6"
+    },
+    {
+      "source": "src/core/types.js",
+      "sourceSha256": "e05bf2af99159c24c607f4e5be4a35352f2d9acc4d5617644257043444257dcb",
+      "file": "types.mjs",
+      "sha256": "c473720397a164d0a867be8477fd52823fd028bc332e92ca3d64856136c5bef0"
+    }
+  ],
+  "fixture": {
+    "source": "scripts/demo/fixture.mjs",
+    "sourceSha256": "db64f32adff5041c22b863d5b23393cdbdbacae5d71c059886c6867bdbdc3a33",
+    "snapshot": "demo-source.json",
+    "sha256": "bf0c8ac4c89f8b27d8ec9dc06dae2e91fbcaa35222c6ff4842cd7b9c310a5a0b",
+    "generation": "makeDemoStore() read locally; no network or credentials."
+  }
+}

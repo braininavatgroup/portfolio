@@ -1,0 +1,135 @@
+{
+  "avatarShown": [
+    {
+      "kind": "path",
+      "d": "M3.4 -4.25a3.4 3.4 0 1 1-6.8 0a3.4 3.4 0 1 1 6.8 0Z M5.95 7.65v-1.7a3.4 3.4 0 0 0-3.4-3.4h-5.1a3.4 3.4 0 0 0-3.4 3.4v1.7Z",
+      "fill": false
+    }
+  ],
+  "avatarHidden": [
+    {
+      "kind": "path",
+      "d": "M3.4 -4.25a3.4 3.4 0 1 1-6.8 0a3.4 3.4 0 1 1 6.8 0Z M5.95 7.65v-1.7a3.4 3.4 0 0 0-3.4-3.4h-5.1a3.4 3.4 0 0 0-3.4 3.4v1.7Z",
+      "fill": false
+    }
+  ],
+  "map": [
+    {
+      "kind": "path",
+      "d": "M-1 -7.1Q0 -7.7 1 -7.1L5.7 -4.4Q6.7 -3.8 6.7 -2.7V2.7Q6.7 3.8 5.7 4.4L1 7.1Q0 7.7 -1 7.1L-5.7 4.4Q-6.7 3.8 -6.7 2.7V-2.7Q-6.7 -3.8 -5.7 -4.4Z",
+      "fill": false
+    }
+  ],
+  "index": [
+    {
+      "kind": "path",
+      "d": "M-7 -5H7 M-7 0H7 M-7 5H7",
+      "fill": false
+    }
+  ],
+  "chat": [
+    {
+      "kind": "path",
+      "d": "M0 -7.2C4.5 -7.2 7.3 -4.5 7.3 -0.7C7.3 3.1 4.3 5.7 0 5.7H-2L-5.8 7.5L-5.2 3.8C-6.6 2.6 -7.3 1.1 -7.3 -0.7C-7.3 -4.5 -4.5 -7.2 0 -7.2Z",
+      "fill": false
+    }
+  ],
+  "close": [
+    {
+      "kind": "path",
+      "d": "M-5.5 -5.5L5.5 5.5 M-5.5 5.5L5.5 -5.5",
+      "fill": false
+    }
+  ],
+  "previous": [
+    {
+      "kind": "path",
+      "d": "M3 -6.5L-3.5 0L3 6.5",
+      "fill": false
+    }
+  ],
+  "next": [
+    {
+      "kind": "path",
+      "d": "M-3 -6.5L3.5 0L-3 6.5",
+      "fill": false
+    }
+  ],
+  "send": [
+    {
+      "kind": "path",
+      "d": "M6 -5V1H-5 M-2 -2L-5 1L-2 4",
+      "fill": false
+    }
+  ],
+  "minimize": [
+    {
+      "kind": "path",
+      "d": "M-7 0H7",
+      "fill": false
+    }
+  ],
+  "sidebarLeft": [
+    {
+      "kind": "path",
+      "d": "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M-2.5 -5.5V5.5",
+      "fill": false
+    }
+  ],
+  "mobileSidebar": [
+    {
+      "kind": "path",
+      "d": "M-6.5 -6H6.5A1 1 0 0 1 7.5 -5V5A1 1 0 0 1 6.5 6H-6.5A1 1 0 0 1 -7.5 5V-5A1 1 0 0 1 -6.5 -6Z M-2.5 -6V6",
+      "fill": false
+    }
+  ],
+  "sidebarRight": [
+    {
+      "kind": "path",
+      "d": "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M2.5 -5.5V5.5",
+      "fill": false
+    }
+  ],
+  "panelBottom": [
+    {
+      "kind": "path",
+      "d": "M-6 -5.5H6A1 1 0 0 1 7 -4.5V4.5A1 1 0 0 1 6 5.5H-6A1 1 0 0 1 -7 4.5V-4.5A1 1 0 0 1 -6 -5.5Z M-7 1H7",
+      "fill": false
+    }
+  ],
+  "reader": [
+    {
+      "kind": "path",
+      "d": "M-7 -5H7 M-7 0H7 M-7 5H1",
+      "fill": false
+    }
+  ],
+  "copy": [
+    {
+      "kind": "path",
+      "d": "M-2 -2H6V6H-2Z M2 -2V-6H-6V2H-2",
+      "fill": false
+    }
+  ],
+  "newChat": [
+    {
+      "kind": "path",
+      "d": "M-6 0H6 M0 -6V6",
+      "fill": false
+    }
+  ],
+  "chevron": [
+    {
+      "kind": "path",
+      "d": "M-3 -6.5L3.5 0L-3 6.5",
+      "fill": false
+    }
+  ],
+  "readArrow": [
+    {
+      "kind": "path",
+      "d": "M-5 0H5 M1 -4L5 0L1 4",
+      "fill": false
+    }
+  ]
+}

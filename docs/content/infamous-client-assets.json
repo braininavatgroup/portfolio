@@ -1,0 +1,257 @@
+[
+  {
+    "label": "All Day I Dream",
+    "src": "/visuals/clients/infamous/all-day-i-dream.webp",
+    "imageSource": "https://geo-media.beatport.com/image_size/500x500/cb6d5c37-c300-4640-a5a7-52836ae27014.jpg",
+    "imageSourcePage": "https://www.beatport.com/label/all-day-i-dream/23038",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "edde891aa093e7889ef0f3d70fe1f955a4b370dff13d0b0fbc89f355c067182e",
+    "reviewNotes": [
+      "Current indexed Instagram handle is @alldayidream; the official website still links to the older @alldayidreamintheclouds handle."
+    ]
+  },
+  {
+    "label": "Aluna",
+    "src": "/visuals/clients/infamous/aluna.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab6761610000517489f77a29b9aee62aacb0eb7e",
+    "imageSourcePage": "https://open.spotify.com/artist/5ITI6SEoUZMIXXkzCfr4oE",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "0b7a064ace8eef55d9d78b483c65fcf8bc0eee8aab8ea27b6e294ebb1c5c2ede",
+    "reviewNotes": []
+  },
+  {
+    "label": "BLOND:ISH",
+    "src": "/visuals/clients/infamous/blond-ish.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab6761610000517416b7cd752dbdfb9d18d5fc63",
+    "imageSourcePage": "https://open.spotify.com/artist/6zsJjoCtL1WByG0VsuFWzR",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "b21b0b6f803d54bd13db10f31322ed791fcfa7f79d7b4209a03d180c71e42abd",
+    "reviewNotes": []
+  },
+  {
+    "label": "Carl Craig",
+    "src": "/visuals/clients/infamous/carl-craig.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab676161000051741e972f7af091d87b2aec15af",
+    "imageSourcePage": "https://open.spotify.com/artist/17dbJyUCrxh4I7iyUrjaHU",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "a9f85aee34a4758843ee1b43a26679cf5c78cf47ce71ae7da1e4ab47523cb067",
+    "reviewNotes": []
+  },
+  {
+    "label": "Dirtybird",
+    "src": "/visuals/clients/infamous/dirtybird.webp",
+    "imageSource": "https://cdn.shopify.com/s/files/1/2667/5284/files/Dirtybird_-_Logo_Black_RGB_03-2019_2a393166-6585-4bd3-8668-eee40f6a6c1e.png?v=1623956422",
+    "imageSourcePage": "https://dirtybirdrecords.com/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "127e398578a7afc847565ce94124639f63a6665547ff88397dd281ebd3e6e3d1",
+    "reviewNotes": []
+  },
+  {
+    "label": "DJ Minx",
+    "src": "/visuals/clients/infamous/dj-minx.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616100005174cd74f08b60eab18bec6bd27d",
+    "imageSourcePage": "https://open.spotify.com/artist/4PTQtiKISN5iGNpbRVv02B",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "e4dcf2836fb15ec0650561e391463801aca5b4f11e2f71059881f6bf01fbf8e7",
+    "reviewNotes": []
+  },
+  {
+    "label": "Fool's Gold",
+    "src": "/visuals/clients/infamous/fool-s-gold.webp",
+    "imageSource": "https://f4.bcbits.com/img/0019697997_23.jpg",
+    "imageSourcePage": "https://foolsgoldrecs.bandcamp.com/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "15b78c05066994b28aa6580de0036db3c16424fb8dbede8998ba4d06c43922f6",
+    "reviewNotes": []
+  },
+  {
+    "label": "Hayden James",
+    "src": "/visuals/clients/infamous/hayden-james.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab6761610000517447d73442fa9591b103dde6d3",
+    "imageSourcePage": "https://open.spotify.com/artist/4csQIMQm6vI2A2SCVDuM2z",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "707ad7b13bf77836fc652d68eb60e2b2f83764cf4f70fa058b60e1e0c25d3726",
+    "reviewNotes": []
+  },
+  {
+    "label": "Insomniac",
+    "src": "/visuals/clients/infamous/insomniac.webp",
+    "imageSource": "https://microsites-content.s3.amazonaws.com/insomniac-records/wp-content/uploads/sites/2/2022/11/01220458/records.png",
+    "imageSourcePage": "https://www.insomniacmusicgroup.com/label/insomniac-records/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "90543e9ed32e71added317de9a683ad710275c3d27d54835ec5f26b0b2699e70",
+    "reviewNotes": [
+      "Resolved label entry to Insomniac Records, not the festival/promoter or umbrella Music Group."
+    ]
+  },
+  {
+    "label": "Jayda G",
+    "src": "/visuals/clients/infamous/jayda-g.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616100005174b1c7f85b0224e0a79e3fbec8",
+    "imageSourcePage": "https://open.spotify.com/artist/3NKVm2Jedcf6ibJr6pMUVx",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "e492c9ff7d65653128666f1a7c5e2d9526e189f23c013d7eabfec47202c4e0c1",
+    "reviewNotes": []
+  },
+  {
+    "label": "Kasbo",
+    "src": "/visuals/clients/infamous/kasbo.webp",
+    "imageSource": "https://image-cdn-ak.spotifycdn.com/image/ab67616100005174600688dea20a72f843af72aa",
+    "imageSourcePage": "https://open.spotify.com/artist/1ikID9RZZMvkuBGDWrqajq",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "bbb8e7036f21ea4bcc1e13d50d58c9e40e6cfac39e86cdf928a1bd7519c9b0a1",
+    "reviewNotes": []
+  },
+  {
+    "label": "KH / Four Tet",
+    "src": "/visuals/clients/infamous/kh-four-tet.webp",
+    "imageSource": "https://images.squarespace-cdn.com/content/v1/5837277ae3df28974ca7d91b/1496333691818-EQZFLBC2FH9CIY9F68KY/FourTet.jpg",
+    "imageSourcePage": "https://www.solarmanagement.co.uk/four-tet-artist",
+    "imageKind": "Management press portrait",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "84adf77603ca683a510e83f5d26396739d5f8d16ddbee69033ac014a2135930d",
+    "reviewNotes": [
+      "Four Tet management portrait replaces the abstract Spotify thumbnail. Four Tet is the primary profile; separate KH Spotify and Beatport profiles are recorded in alternateProfiles."
+    ]
+  },
+  {
+    "label": "NEZ",
+    "src": "/visuals/clients/infamous/nez.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616100005174172b461e0c7112a089c455bd",
+    "imageSourcePage": "https://open.spotify.com/artist/2Mwy2BwAUT3WU1cZa3pvEW",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "8f8d097e331b1baef7ac74d0d2f01a7f4aa1f4105928aeda029371dc30100162",
+    "reviewNotes": [
+      "Beatport NEZ (Chicago) selected for the CircoLoco / Radio Slave catalog. The NEZ profile 1699324 also contains this artist’s solo releases.",
+      "Non-square Spotify source centered and exported as a 320px square for the carousel."
+    ]
+  },
+  {
+    "label": "Rose Ave",
+    "src": "/visuals/clients/infamous/rose-ave.webp",
+    "imageSource": "https://f4.bcbits.com/img/0023507605_23.jpg",
+    "imageSourcePage": "https://roseavenuerecords.bandcamp.com/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "3ff98b53859ed95259563d918ded5461e09697907cfb5e2d11f50d3a25abe1e2",
+    "reviewNotes": []
+  },
+  {
+    "label": "RÜFÜS DU SOL",
+    "src": "/visuals/clients/infamous/rufus-du-sol.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab6761610000517414324c06b24ca79a0fea7aec",
+    "imageSourcePage": "https://open.spotify.com/artist/5Pb27ujIyYb33zBqVysBkj",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "ccc49367719198bc32e19b0305247ed02fc82ed81a8bcfdeca0229f74ea43bdd",
+    "reviewNotes": []
+  },
+  {
+    "label": "Sita Abellán",
+    "src": "/visuals/clients/infamous/sita-abellan.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab6761610000517430a72ec61d4c32f2b10e66f2",
+    "imageSourcePage": "https://open.spotify.com/artist/4Pi6eaHXMqift5xrs1vPMI",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "202cfcb042866dcaa375ab9eb189e677cd39359324a9553a2064c5f22b7d684e",
+    "reviewNotes": [
+      "Spotify profile name is SITA; supplied portfolio name retained."
+    ]
+  },
+  {
+    "label": "Totally Enormous Extinct Dinosaurs",
+    "src": "/visuals/clients/infamous/totally-enormous-extinct-dinosaurs.webp",
+    "imageSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616100005174413e3bbd7dccaf881d9a07c9",
+    "imageSourcePage": "https://open.spotify.com/artist/0g3NiCRhEv7M4SEDMrpItN",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "618643d3a87e1e35ce5c5296b89efd1cfb5b61fba7b2c7350ee5259411ae25bf",
+    "reviewNotes": [
+      "Current Spotify and Beatport name is TEED; supplied portfolio name retained."
+    ]
+  },
+  {
+    "label": "Ultra",
+    "src": "/visuals/clients/infamous/ultra.webp",
+    "imageSource": "https://www.ultrarecords.com/dist/img/logo.png",
+    "imageSourcePage": "https://www.ultrarecords.com/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "6a7a2d0ee27322faba4d65dc135ba110c3a6420d2af08e8001e8f06d9a646f05",
+    "reviewNotes": [
+      "Resolved label entry to Ultra Records, not Ultra Music Festival."
+    ]
+  },
+  {
+    "label": "Young Art",
+    "src": "/visuals/clients/infamous/young-art.webp",
+    "imageSource": "https://cdn.prod.website-files.com/583e80b7e11997722cc4759b/69a581610501fccf5bdfa741_Young%20Art%20Records%20Logo%20Asset%20White.png",
+    "imageSourcePage": "https://www.youngart.us/",
+    "imageKind": "Official label logo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "7d6ee19b0065efabaa480b3987dc8ad78d511f54d3a1ac9224b58373d1d0b065",
+    "reviewNotes": []
+  },
+  {
+    "label": "Zeds Dead",
+    "src": "/visuals/clients/infamous/zeds-dead.webp",
+    "imageSource": "https://image-cdn-ak.spotifycdn.com/image/ab67616100005174dfbefb11a6ceee765d4cd98f",
+    "imageSourcePage": "https://open.spotify.com/artist/67qogtRNI0GjUr8PlaG6Zh",
+    "imageKind": "Spotify artist profile photo",
+    "width": 320,
+    "height": 320,
+    "collectedAt": "2026-09-08",
+    "sha256": "15776fe3df4c98bc50559e757e0f44481fd1e6d270b0ca0f04d65a17f1cc7908",
+    "reviewNotes": []
+  }
+]

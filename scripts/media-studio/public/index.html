@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Redaction studio</title>
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <header class="mast">
+      <div>
+        <span class="eyebrow"
+          >Portfolio / local workspace <span id="base-commit"></span
+        ></span>
+        <h1>Redaction studio</h1>
+      </div>
+      <div class="mast-actions">
+        <span id="save-status" role="status">Loading…</span
+        ><button id="undo">Undo</button><button id="import">Import</button
+        ><button class="primary" id="export">Export selections</button
+        ><input hidden id="import-file" type="file" accept="application/json" />
+      </div>
+    </header>
+    <div class="layout">
+      <aside class="library">
+        <label class="eyebrow" for="filter">Media library</label
+        ><select id="filter">
+          <option value="focus">Screens & recordings</option>
+          <option value="all">All media</option>
+          <option value="marked">My selections</option>
+          <option value="deferred">Deferred</option></select
+        ><input
+          id="search"
+          type="search"
+          placeholder="Find media"
+          aria-label="Find media"
+        />
+        <div id="library"></div>
+        <p class="quiet">
+          Original files. No automatic masks.<br />Touring and Dubs are
+          deferred.
+        </p>
+      </aside>
+      <main>
+        <div class="asset-heading">
+          <div>
+            <span id="record" class="eyebrow"></span>
+            <h2 id="asset-name"></h2>
+          </div>
+          <label class="review-state"
+            >Decision<select id="asset-status">
+              <option value="unreviewed">Still reviewing</option>
+              <option value="marked">Apply my selections</option>
+              <option value="keep">Keep unchanged</option>
+              <option value="deferred">Defer</option>
+            </select></label
+          >
+        </div>
+        <div class="source-info">
+          <span id="source-info"></span
+          ><a id="open-source" target="_blank" rel="noopener noreferrer" hidden
+            >Open source file ↗</a
+          >
+        </div>
+        <div class="intro">
+          Draw a box over the exact content to hide. Choose a treatment, then
+          move to the next checkpoint. Mark a moving item again with “Same
+          target here”.
+        </div>
+        <div class="toolbar">
+          <div class="segmented">
+            <button id="draw" aria-pressed="true">Draw box</button
+            ><button id="select" aria-pressed="false">Select / move</button>
+          </div>
+          <label><input id="preview" type="checkbox" checked /> Treatment</label
+          ><label
+            ><input id="outlines" type="checkbox" checked /> Box outlines</label
+          ><label
+            >Zoom
+            <select id="zoom">
+              <option value="1">Fit</option>
+              <option value="native">1:1 source pixels</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+              <option value="3">300%</option>
+            </select></label
+          >
+        </div>
+        <div id="stage-scroll">
+          <div id="stage">
+            <canvas
+              id="canvas"
+              aria-label="Draw redaction boxes on this media"
+              tabindex="0"
+            ></canvas
+            ><svg
+              id="overlay"
+              aria-hidden="true"
+              viewBox="0 0 1000 1000"
+              preserveAspectRatio="none"
+            ></svg>
+          </div>
+          <div id="empty" hidden></div>
+        </div>
+        <div id="video-controls" hidden>
+          <div class="transport">
+            <button id="play" aria-label="Play video">Play</button
+            ><button id="back" aria-label="Previous frame">−1 frame</button
+            ><button id="forward" aria-label="Next frame">+1 frame</button
+            ><input
+              id="timeline"
+              type="range"
+              min="0"
+              max="1"
+              step="0.033333"
+              value="0"
+              aria-label="Video position"
+            /><input
+              id="time"
+              type="number"
+              min="0"
+              step="0.1"
+              value="0"
+              aria-label="Time in seconds"
+            /><span id="duration"></span
+            ><button id="checkpoint">Add checkpoint</button>
+          </div>
+          <div class="check-heading">
+            <span class="eyebrow">Checkpoints</span
+            ><span class="quiet"
+              >Suggested checkpoints. Add any other appearance you want
+              marked.</span
+            >
+          </div>
+          <div id="checkpoints"></div>
+          <div class="checkpoint-actions">
+            <button id="previous-checkpoint">Previous checkpoint</button
+            ><button id="review-checkpoint">Mark checkpoint reviewed</button
+            ><button id="next-checkpoint">Next checkpoint</button
+            ><span id="review-progress" class="quiet"></span>
+          </div>
+          <p class="quiet">
+            Preview shows your marked checkpoints. The final pass will track
+            those targets through the other frames.
+          </p>
+        </div>
+        <details>
+          <summary>Notes for the finishing pass</summary>
+          <textarea
+            id="asset-notes"
+            placeholder="What matters here? Anything to preserve or handle specially?"
+          ></textarea>
+          <p id="prior-note" class="quiet"></p>
+        </details>
+      </main>
+      <aside class="inspector">
+        <span class="eyebrow">Treatment</span>
+        <div class="treatments">
+          <button data-style="blur" aria-pressed="true">
+            <span aria-hidden="true" class="sample blur">Aa</span>Blur</button
+          ><button data-style="pixelate" aria-pressed="false">
+            <span aria-hidden="true" class="sample pixel">▦</span
+            >Pixelate</button
+          ><button data-style="solid" aria-pressed="false">
+            <span aria-hidden="true" class="sample solid">Aa</span>Solid
+          </button>
+        </div>
+        <label id="strength-label"
+          >Strength <output id="strength-value">6</output
+          ><input
+            id="strength"
+            type="range"
+            min="1"
+            max="30"
+            value="6" /></label
+        ><label id="color-label" hidden
+          >Cover color <input id="color" type="color" value="#242424"
+        /></label>
+        <p class="quiet">
+          Applied to the selected box, or the next one you draw.
+        </p>
+        <div id="target-controls" hidden>
+          <label
+            >Target name<input
+              id="target-name"
+              placeholder="e.g. Recipient email address" /></label
+          ><label
+            >Apply this to<select id="scope">
+              <option value="follow">This content wherever it appears</option>
+              <option value="fixed">This fixed screen area</option>
+            </select></label
+          >
+          <div id="range-controls" hidden>
+            <label
+              >From (seconds)<input
+                id="start"
+                type="number"
+                min="0"
+                step="0.1" /></label
+            ><label
+              >To (seconds)<input id="end" type="number" min="0" step="0.1"
+            /></label>
+          </div>
+          <button id="same-target">Same target here</button>
+          <p id="anchor-count" class="quiet"></p>
+          <div class="target-actions">
+            <button id="remove-anchor">Remove this checkpoint box</button
+            ><button id="delete-target">Delete target</button>
+          </div>
+        </div>
+        <div class="targets-heading">
+          <span class="eyebrow">Your targets</span
+          ><span id="target-count">0</span>
+        </div>
+        <div id="targets"></div>
+        <p id="target-help" class="quiet">
+          Nothing hidden yet. Draw your first box on the media.
+        </p>
+        <div class="handoff">
+          <strong>Your choices, my finishing pass.</strong>
+          <p>
+            The export includes target boxes, times, treatments, and source
+            fingerprints. I’ll map them across frames and return a rendered
+            review before changing site assets.
+          </p>
+        </div>
+      </aside>
+    </div>
+    <script type="module" src="/app.mjs"></script>
+  </body>
+</html>

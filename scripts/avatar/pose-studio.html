@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Avatar pose editor · Local</title>
+    <link rel="stylesheet" href="/app/globals.css" />
+  </head>
+  <body class="portfolio-composition portfolio-pose-editor">
+    <header class="portfolio-pose-editor-header">
+      <div><p class="portfolio-pose-editor-eyebrow">Local studio</p><h1>Make yourself comfortable.</h1></div>
+      <p>Drag a hand or foot to pose it.<br />Drag empty space to orbit. Scroll to zoom.</p>
+    </header>
+    <main class="portfolio-pose-editor-layout">
+      <section class="portfolio-pose-editor-view" aria-label="Avatar posing area">
+        <div class="portfolio-pose-editor-toolbar" role="group" aria-label="Camera views">
+          <button type="button" data-view="front">Front</button>
+          <button type="button" data-view="side">Side</button>
+          <button type="button" data-view="back">Back</button>
+          <button type="button" id="frame">Fit avatar</button>
+          <button type="button" id="portrait" data-requires-model disabled>Head &amp; shoulders</button>
+        </div>
+        <div id="stage" class="portfolio-pose-editor-stage">
+          <div id="loading" class="portfolio-pose-editor-loading" role="status">Loading your avatar…</div>
+          <div id="handles" class="portfolio-pose-editor-handles"></div>
+        </div>
+        <div class="portfolio-pose-editor-playbar">
+          <button type="button" id="preview" data-requires-model disabled>Preview idle</button>
+          <label><input type="checkbox" id="show-bends" checked /> Elbows &amp; knees</label>
+          <span id="mode">Edit pose · frame 0</span>
+        </div>
+      </section>
+      <aside class="portfolio-pose-editor-panel" aria-label="Pose controls">
+        <div class="portfolio-pose-editor-actions" role="group" aria-label="Editing mode">
+          <button type="button" id="mode-limbs" aria-pressed="true">Limbs</button>
+          <button type="button" id="mode-posture" aria-pressed="false">Posture</button>
+        </div>
+        <section id="limb-controls">
+          <h2>Move a limb</h2>
+          <p>The elbow or knee follows. Drag its smaller handle to change the bend direction.</p>
+          <div class="portfolio-pose-editor-parts" role="group" aria-label="Selected limb">
+            <button type="button" data-part="left-hand" aria-pressed="true" data-requires-model disabled>Left hand</button>
+            <button type="button" data-part="right-hand" aria-pressed="false" data-requires-model disabled>Right hand</button>
+            <button type="button" data-part="left-foot" aria-pressed="false" data-requires-model disabled>Left foot</button>
+            <button type="button" data-part="right-foot" aria-pressed="false" data-requires-model disabled>Right foot</button>
+          </div>
+          <p class="portfolio-pose-editor-selection" id="selection">Left hand · fine adjustment</p>
+          <div class="portfolio-pose-editor-nudges" role="group" aria-label="Move selected limb by one centimetre">
+            <span>Across</span><button type="button" data-axis="x" data-step="-1" data-requires-model disabled>Left</button><button type="button" data-axis="x" data-step="1" data-requires-model disabled>Right</button>
+            <span>Height</span><button type="button" data-axis="y" data-step="1" data-requires-model disabled>Up</button><button type="button" data-axis="y" data-step="-1" data-requires-model disabled>Down</button>
+            <span>Depth</span><button type="button" data-axis="z" data-step="1" data-requires-model disabled>Forward</button><button type="button" data-axis="z" data-step="-1" data-requires-model disabled>Back</button>
+          </div>
+          <p class="portfolio-pose-editor-hint">Each step is 1 cm. Focus a handle and use arrow keys to move it; Page Up/Down adjusts depth.</p>
+          <div id="wrist-controls" class="portfolio-pose-editor-wrist">
+            <h3 id="wrist-title">Left wrist</h3>
+            <p>Straighten the hand, then adjust its angle. It follows your forearm when you move the arm.</p>
+            <label for="wrist-bend">Bend <output id="wrist-bend-value" for="wrist-bend">0°</output></label>
+            <input id="wrist-bend" data-wrist="bend" type="range" min="-80" max="80" step="1" value="0" disabled />
+            <label for="wrist-side">Side to side <output id="wrist-side-value" for="wrist-side">0°</output></label>
+            <input id="wrist-side" data-wrist="side" type="range" min="-80" max="80" step="1" value="0" disabled />
+            <label for="wrist-twist">Palm twist <output id="wrist-twist-value" for="wrist-twist">0°</output></label>
+            <input id="wrist-twist" data-wrist="twist" type="range" min="-180" max="180" step="1" value="0" disabled />
+            <div class="portfolio-pose-editor-actions">
+              <button type="button" id="straighten-wrist" disabled>Straighten wrist</button>
+              <button type="button" id="reset-wrist" disabled>Reset wrist</button>
+            </div>
+          </div>
+        </section>
+        <section id="posture-controls" hidden>
+          <h2>Adjust posture</h2>
+          <p>Your arm and wrist settings stay as you posed them. They follow the shoulders and body as you adjust posture.</p>
+          <label for="posture-point">Posture point</label>
+          <select id="posture-point" disabled></select>
+          <div class="portfolio-pose-editor-wrist">
+            <label for="posture-0"><span id="posture-label-0">Chin up / down</span><output id="posture-value-0" for="posture-0">0°</output></label>
+            <input id="posture-0" data-posture="0" type="range" min="-45" max="45" step="1" value="0" disabled />
+            <label for="posture-1"><span id="posture-label-1">Turn left / right</span><output id="posture-value-1" for="posture-1">0°</output></label>
+            <input id="posture-1" data-posture="1" type="range" min="-45" max="45" step="1" value="0" disabled />
+            <label for="posture-2"><span id="posture-label-2">Tilt left / right</span><output id="posture-value-2" for="posture-2">0°</output></label>
+            <input id="posture-2" data-posture="2" type="range" min="-45" max="45" step="1" value="0" disabled />
+          </div>
+          <p>Move right for the first direction in each label. Zero is the original idle posture. Use Side to judge your profile.</p>
+          <div class="portfolio-pose-editor-actions">
+            <button type="button" id="reset-posture-point" disabled>Reset this point</button>
+            <button type="button" id="reset-posture" disabled>Reset posture only</button>
+          </div>
+        </section>
+        <section>
+          <h2>Try it freely</h2>
+          <div class="portfolio-pose-editor-actions">
+            <button type="button" id="undo" disabled>Undo</button>
+            <button type="button" id="redo" disabled>Redo</button>
+            <button type="button" id="reset" data-requires-model disabled>Reset pose</button>
+          </div>
+          <p>Preview plays your adjustments over the idle animation. Pause to keep editing.</p>
+        </section>
+        <section>
+          <h2>Keep your pose</h2>
+          <div class="portfolio-pose-editor-actions">
+            <button type="button" id="save" data-requires-model disabled>Save draft</button>
+            <button type="button" id="download" data-requires-model disabled>Download pose</button>
+            <button type="button" id="import" data-requires-model disabled>Import pose</button>
+            <input type="file" id="pose-file" accept="application/json,.json" hidden />
+          </div>
+          <p>Save keeps a draft in this browser. Download gives you a pose file to send back for the portfolio. Neither changes the site.</p>
+          <p id="status" class="portfolio-pose-editor-status" role="status" aria-live="polite">Waiting for avatar.</p>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/scripts/avatar/pose-editor.ts"></script>
+  </body>
+</html>

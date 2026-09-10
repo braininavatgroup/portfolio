@@ -1,0 +1,19 @@
+{
+  "name": "portfolio-swim",
+  "duration": 15,
+  "theme": "dark",
+  "background": { "kind": "video", "film": "nmf-story", "speed": 1, "intensity": 1, "glow": false },
+  "vignette": 0.2,
+  "grain": 0.02,
+  "shots": [
+    {
+      "clip": "Swim_Forward",
+      "duration": 15,
+      "framing": "swim",
+      "motion": "swim",
+      "swimSpeed": 1,
+      "seed": 7,
+      "rate": 0.8
+    }
+  ]
+}

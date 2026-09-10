@@ -1,0 +1,700 @@
+{
+  "version": 1,
+  "revision": 32,
+  "records": {
+    "bradley": {
+      "label": "Bradley Berkman",
+      "kind": "About",
+      "summary": "I build tools and systems that make space to think.",
+      "paragraphs": {
+        "p1": "Hey, I'm Bradley.",
+        "p2": "I founded and run Brain in a Vat Group, a company with three divisions: a [music promotions](record:music-practice) agency, a [systems and AI](record:systems-consulting) consultancy, and a [product studio](record:product-studio). I love untangling messy information and turning it into a playable instrument that anyone can see, run, and improve.",
+        "p3": "This passion was a long time in the making. In high school, I was a state champion debater, and in college, earned my degree in [Philosophy](thread:philosophy), Politics, and Law. I spent those years learning to deconstruct complex arguments and make them clear, persuasive, and actionable. After graduating from USC in 2021, I launched and led the Music Promotions division at the seminal electronic music agency [INFAMOUS PR](record:infamous). When demand grew beyond my ability to service it manually, I built systems to scale my output without compromising quality.",
+        "p4": "When I founded Brain in a Vat Music Promotions in 2024, building a strong systems infrastructure for the business was top of mind. I developed automated workflows for [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting), customizing the business's processes to suit my exact mental model, preferences, and innovations.",
+        "p5": "It didn’t take long to realize that the problems I’d been solving for myself were common across modern knowledge work. I wanted to make [work more playable](thread:making-work-playable) for other people, too, so I began consulting with other businesses. I’ve since built a [deal-tracking dashboard](record:real-estate) for a real-estate team and a [tour-advancing suite](record:touring) for an artist manager. In the product studio, I build software designed to make work feel more fluid: [Dubs](record:dubs) lets you listen to documents and dictate inline notes, while [Writ](record:writ) keeps your Mac on your preferred audio devices.",
+        "p6": "Beyond my work, I enjoy raving, trading sheep for brick over a Catan board, and searching for New York City's finest hamburger.",
+        "p7": "Thanks for stopping by."
+      },
+      "placeholders": {},
+      "visuals": {}
+    },
+    "infamous": {
+      "label": "INFAMOUS PR",
+      "kind": "Music promotion",
+      "summary": "Launching an experimental suite of new-media promotions services that grew into a department I ran within electronic music's premier PR agency.",
+      "paragraphs": {
+        "p1": "By the time I joined the agency in 2021, INFAMOUS PR had spent fifteen years at the top of electronic music PR.",
+        "p2": "INFAMOUS specialized in narrative-driven campaigns that ran over many months, which often narrowed the projects taken on to albums, tours, and larger activations. Meanwhile, the streaming economy was pushing dance music's release cycle toward singles and EPs with a short shelf life and not much of a story for journalists to pitch their editors. There was lots of inbound business from the agency's clients who wanted to promote these releases, but the agency was turning them away due to the difficulty landing placements for these sorts of campaigns through the confines of a traditional PR campaign. I was hired to solve that problem.",
+        "p3": "There was no playbook, so the early campaigns were experiments. The services I offer have always been heavily shaped by client feedback, and in the early days, there was a lot of evolution between campaigns. Pitching music to be supported by playlist curators across streaming platforms was the first service launched, but I went on to offer a suite of services including radio plugging, a modified PR service focused on individual releases, YouTube distribution, and social media post seeding and influencer campaigns.",
+        "p4": "When demand for the services outpaced what I could do manually, I started building the workflows that allowed me to handle the necessary volume. The first ones were small: browser macros, text snippets, and mail merge. But watching them do work I’d always done by hand felt like creating magic. I kept looking for the next thing I could automate. That feeling led me to realize that the shape and feel of the work was itself something I could iterate on and improve."
+      },
+      "placeholders": {},
+      "visuals": {
+        "infamous-clients": {
+          "purpose": "Clients",
+          "slides": [
+            {
+              "title": "Clients",
+              "caption": "Artists and labels I ran campaigns for at INFAMOUS.",
+              "assets": [
+                {
+                  "alt": "All Day I Dream — Record label",
+                  "label": "All Day I Dream"
+                },
+                {
+                  "alt": "Aluna — Artist",
+                  "label": "Aluna"
+                },
+                {
+                  "alt": "BLOND:ISH — Artist",
+                  "label": "BLOND:ISH"
+                },
+                {
+                  "alt": "Carl Craig — Artist",
+                  "label": "Carl Craig"
+                },
+                {
+                  "alt": "Dirtybird — Record label",
+                  "label": "Dirtybird"
+                },
+                {
+                  "alt": "DJ Minx — Artist",
+                  "label": "DJ Minx"
+                },
+                {
+                  "alt": "Fool's Gold — Record label",
+                  "label": "Fool's Gold"
+                },
+                {
+                  "alt": "Hayden James — Artist",
+                  "label": "Hayden James"
+                },
+                {
+                  "alt": "Insomniac Records — Record label",
+                  "label": "Insomniac"
+                },
+                {
+                  "alt": "Jayda G — Artist",
+                  "label": "Jayda G"
+                },
+                {
+                  "alt": "Kasbo — Artist",
+                  "label": "Kasbo"
+                },
+                {
+                  "alt": "Four Tet — Artist",
+                  "label": "KH / Four Tet"
+                },
+                {
+                  "alt": "NEZ — Artist",
+                  "label": "NEZ"
+                },
+                {
+                  "alt": "Rose Ave — Record label",
+                  "label": "Rose Ave"
+                },
+                {
+                  "alt": "RÜFÜS DU SOL — Artist",
+                  "label": "RÜFÜS DU SOL"
+                },
+                {
+                  "alt": "Sita Abellán — Artist",
+                  "label": "Sita Abellán"
+                },
+                {
+                  "alt": "Totally Enormous Extinct Dinosaurs — Artist",
+                  "label": "Totally Enormous Extinct Dinosaurs"
+                },
+                {
+                  "alt": "Ultra Records — Record label",
+                  "label": "Ultra"
+                },
+                {
+                  "alt": "Young Art — Record label",
+                  "label": "Young Art"
+                },
+                {
+                  "alt": "Zeds Dead — Artist",
+                  "label": "Zeds Dead"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "music-practice": {
+      "label": "Brain in a Vat Music Promotions Agency",
+      "kind": "Music promotion",
+      "summary": "The boutique promotions agency behind some of today's most influential electronic music releases.",
+      "paragraphs": {
+        "p1": "Brain in a Vat Music Promotions is the agency I founded in 2024. I specialize in promoting electronic music through playlist placements, radio airplay, social post seeding and influencer campaigns, and press features.",
+        "p2": "Every campaign starts the same way. I need to understand the surrounding context: what the music sounds like, and where the artist, the label, and the genre are right now. Then I talk to the client to understand what their goals are for the release and how my campaign may or may not be aligned with these goals. The campaign is only taken on once these two steps have taken place and I am confident I can create value for the client and for the curators I'll be pitching.",
+        "p3": "That bit about the curators matters because of how the agency is built. With the exception of social media seeding, Brain in a Vat only pitches for organic, earned placements, to curators who are happy to be sent music with no strings attached. The value I offer a curator is simple: I’m very careful to send them new music that is consistently suited to their taste and that they’ll be excited to include in their editorial curation. In return, I’ve built a network of influential curators who continue to open my emails because they’ve come to expect a thoughtful pitch, not spam or quid pro quo.",
+        "p4": "This extreme care for my pitch target lists was simple enough to manage while I was offering one service and had one, perhaps two, new campaigns kicking off each week. But as the business grew, it became very difficult to maintain these standards at scale. The same logic rules out casting a wide net with pitches. Some curators receive hundreds of pitches a day, others a handful a month, but either way, pitching a release that's a poor fit one time too many will ruin the relationship and land your emails in spam. So the model only works when the quality of the roster, and the quality of the network, remain high, and I only accept campaigns from clients that I am confident that I'll be able to secure impactful, earned placements aligned with their goals for the release.",
+        "p5": "I've experimented with narrowing the roster to a limited number of related genres and a limited number of service offerings to get more placements out of every pitch, and found the campaigns competing for the same finite openings each week. Intentionally broadening the genres and media I pitch was the alternative, which costs operational complexity and loses the advantage I have with the network I've built within my clients' most popular genre niches.",
+        "p6": "Brain in a Vat is where that realization got room to run. There were no approvals to wait on and no inherited systems to work around, so the operation could be built to my own judgment and taste. Building strong systems is the only way to keep the quality standard high and grow, and every promo campaign crosses three of them: [kickoff](record:kickoff), [pitching](record:pitching), and [reporting](record:reporting). Between them, campaign assets and metadata are collected from the client, bespoke targets for the release are researched and identified, pitches are drafted from dynamic templates, hundreds of personalized emails are sent, placements are tracked and coordinated with curators and clients, and the evidence of what happened is collected and turned into reports that update themselves. Yes, these automations have removed a lot of tedious labor. But the real value is the attention I've gained back for the creative and strategic calls on each campaign, for my relationships with clients and curators, and for improving the processes themselves.",
+        "p7": "More at [braininavat.dance](https://braininavat.dance/)."
+      },
+      "placeholders": {},
+      "visuals": {
+        "music-practice-clients": {
+          "purpose": "Clients",
+          "slides": [
+            {
+              "title": "Clients",
+              "caption": "Artists, labels, and distributors the agency has run campaigns for.",
+              "assets": [
+                {
+                  "alt": "Adriatique — Electronic music duo",
+                  "label": "Adriatique"
+                },
+                {
+                  "alt": "ALIGN — Electronic music artist",
+                  "label": "ALIGN"
+                },
+                {
+                  "alt": "ALLiZEN — Electronic music artist",
+                  "label": "ALLiZEN"
+                },
+                {
+                  "alt": "Amal Nemer — Electronic music artist",
+                  "label": "Amal Nemer"
+                },
+                {
+                  "alt": "Ampersounds — Electronic music artist",
+                  "label": "Ampersounds"
+                },
+                {
+                  "alt": "Arodes — Electronic music artist",
+                  "label": "Arodes"
+                },
+                {
+                  "alt": "Augusto Yepes — Electronic music artist",
+                  "label": "Augusto Yepes"
+                },
+                {
+                  "alt": "AWEN — Electronic music artist",
+                  "label": "AWEN"
+                },
+                {
+                  "alt": "Bondo — Electronic music artist",
+                  "label": "Bondo"
+                },
+                {
+                  "alt": "Bounce House — Electronic music artist",
+                  "label": "Bounce House"
+                },
+                {
+                  "alt": "Calussa — Electronic music artist",
+                  "label": "Calussa"
+                },
+                {
+                  "alt": "Chloé Caillet — Electronic music artist and DJ",
+                  "label": "Chloé Caillet"
+                },
+                {
+                  "alt": "D'Witches — Electronic music duo",
+                  "label": "D'Witches"
+                },
+                {
+                  "alt": "Galo — Electronic music artist",
+                  "label": "Galo"
+                },
+                {
+                  "alt": "KinAhau — Electronic music artist",
+                  "label": "KinAhau"
+                },
+                {
+                  "alt": "Kino Todo — Electronic music artist",
+                  "label": "Kino Todo"
+                },
+                {
+                  "alt": "Lumia — Electronic music artist",
+                  "label": "Lumia"
+                },
+                {
+                  "alt": "Malóne — Electronic music artist",
+                  "label": "Malóne"
+                },
+                {
+                  "alt": "Mia Moretti — Electronic music artist and DJ",
+                  "label": "Mia Moretti"
+                },
+                {
+                  "alt": "Notre Dame — Electronic music artist",
+                  "label": "Notre Dame"
+                },
+                {
+                  "alt": "Orsay — Electronic music artist",
+                  "label": "Orsay"
+                },
+                {
+                  "alt": "Port London — Electronic music artist",
+                  "label": "Port London"
+                },
+                {
+                  "alt": "Sainte Vie — Electronic music artist",
+                  "label": "Sainte Vie"
+                },
+                {
+                  "alt": "Saraga — Electronic music artist",
+                  "label": "Saraga"
+                },
+                {
+                  "alt": "Satori — Electronic music artist",
+                  "label": "Satori"
+                },
+                {
+                  "alt": "SIDEPIECE — Electronic music duo",
+                  "label": "SIDEPIECE"
+                },
+                {
+                  "alt": "Sosh & Mosh — Electronic music duo",
+                  "label": "Sosh & Mosh"
+                },
+                {
+                  "alt": "STRAWBRY — Electronic music artist and DJ",
+                  "label": "STRAWBRY"
+                },
+                {
+                  "alt": "WhoMadeWho — Electronic music band",
+                  "label": "WhoMadeWho"
+                },
+                {
+                  "alt": "Will Sass — Electronic music artist",
+                  "label": "Will Sass"
+                },
+                {
+                  "alt": "Yet More — Electronic music artist",
+                  "label": "Yet More"
+                },
+                {
+                  "alt": "20/20 Vision — Record label",
+                  "label": "20/20 Vision"
+                },
+                {
+                  "alt": "Armada Music — Record label",
+                  "label": "Armada Music"
+                },
+                {
+                  "alt": "Braslive — Record label",
+                  "label": "Braslive"
+                },
+                {
+                  "alt": "Breakaway Projects — Record label",
+                  "label": "Breakaway Projects"
+                },
+                {
+                  "alt": "Higher Ground — Record label",
+                  "label": "Higher Ground"
+                },
+                {
+                  "alt": "LE YORA — Record label",
+                  "label": "LE YORA"
+                },
+                {
+                  "alt": "Local Void Records — Record label",
+                  "label": "Local Void Records"
+                },
+                {
+                  "alt": "NUSONIDO — Record label",
+                  "label": "NUSONIDO"
+                },
+                {
+                  "alt": "POP TMRW — Record label",
+                  "label": "POP TMRW"
+                },
+                {
+                  "alt": "Shapeless Culture — Record label",
+                  "label": "Shapeless Culture"
+                },
+                {
+                  "alt": "Smiile — Record label",
+                  "label": "Smiile"
+                },
+                {
+                  "alt": "The Orchard — Music distribution",
+                  "label": "The Orchard"
+                },
+                {
+                  "alt": "WHYNOTUS — Record label",
+                  "label": "WHYNOTUS"
+                },
+                {
+                  "alt": "X — Record label",
+                  "label": "X"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "systems-consulting": {
+      "label": "Brain in a Vat Systems & AI Consulting",
+      "kind": "Systems & AI consulting",
+      "summary": "Systems optimization, custom software, and AI deployment, built around the operations a team already has.",
+      "paragraphs": {
+        "p1": "My consulting work spans three areas.\n- Systems optimization: data infrastructure that consolidates what's spread across a team's tools, workflow automation for the repetitive work a computer should be doing, and documentation systems that capture how the business runs so agents and new hires can act on it.\n- Custom software: internal tooling and client-facing surfaces, built for the exact audience they serve.\n- AI deployment: agent layers that work on top of structured knowledge and documented playbooks, grounded in the business's real context instead of generic training data.",
+        "p2": "Each engagement starts by mapping how your team actually operates: what tools are in place, what's getting in the way, where work is still manual that shouldn't be. That becomes a prioritized, costed plan, what to build, in what order, and why, shaped with you. Then the build: standing up the systems and getting them live in your operations. Once they're running, the work keeps going: monitoring, tuning, and scaling what's there, plus new capability as the business grows.",
+        "p3": "Two engagements are documented here as case studies: a [deal tracking dashboard](record:real-estate) for a real-estate team, and a [tour advancing system](record:touring) for an artist manager.",
+        "p4": "More at [braininavat.systems](https://braininavat.systems/consulting/)."
+      },
+      "placeholders": {},
+      "visuals": {}
+    },
+    "product-studio": {
+      "label": "Brain in a Vat Product Studio",
+      "kind": "Product studio",
+      "summary": "The studio where the tools I built for my own day become software other people can use.",
+      "paragraphs": {
+        "p1": "Every product in the Brain in a Vat Product Studio started as a fix for a part of my own day that was just a bit worse than it ought to be. [Dubs](record:dubs) exists because I was briefing agents from memory after walks. [Writ](record:writ) exists because my audio kept landing on the wrong device between calls. Neither began as a product. At some point I stopped treating these instances of scratching my own itch as a distraction from the work and made it another side of the work.",
+        "p2": "These products reflect the same idea behind everything I build: [work should be playable](thread:making-work-playable). I want tools familiar and dependable enough that I can concentrate on what I'm doing without thinking about how to operate them. Dubs lets me listen to a document and capture thoughts as they come, without returning to a keyboard. Writ keeps my audio on the devices I prefer, removing an interruption I used to deal with every day. Both give me more freedom to stay with an idea."
+      },
+      "placeholders": {},
+      "visuals": {}
+    },
+    "kickoff": {
+      "label": "Music Promo Campaign Kickoff",
+      "kind": "Solutions",
+      "summary": "The keyboard shortcut that turns a client's \"let's do it\" into the Airtable records, the Drive folder, the asset-request form, a live invoice, and a drafted kickoff email in about two minutes.",
+      "paragraphs": {
+        "p1": "A signed confirmation means the client is ready to pay. It is also the worst moment to disappear into administrative work, because the excitement fades while the invoice is being built, and the campaign starts late.",
+        "p2": "Kickoff turns that half hour into one keyboard shortcut. It creates the client and deal records, the invoice, and the campaign folder, then drafts a kickoff email that carries a payment link and one asset-request form per campaign. Roughly thirty minutes across four apps became about two.",
+        "p3": "Every step is a prefilled dialog I can cancel, and the email stays a draft until I send it. Assets already in the agency's records are attached on the way out, so a returning client never re-enters information I already have.",
+        "p4": "The asset workflow replaced email threads where files got lost and re-versioned across a dozen messages. I keep a copy of every asset in the agency's storage rather than relying on a link into the client's storage, because client-hosted files change and permissions vanish mid-campaign. Nothing gets lost, nothing goes stale, and the campaign starts while the client is still excited."
+      },
+      "placeholders": {},
+      "visuals": {
+        "kickoff-sequence": {
+          "purpose": "From receiving confirmation from the client to creating the invoice, campaign folder, and kickoff email draft."
+        }
+      }
+    },
+    "pitching": {
+      "label": "Music Promo Campaign Pitching",
+      "kind": "Solutions",
+      "summary": "Weekly curator targeting driven by recorded taste.",
+      "paragraphs": {
+        "p1": "The system is built on one idea: taste can be recorded, and recorded taste can drive targeting.",
+        "p2": "It started as a spreadsheet. Every curator's adds, passes, and feedback was entered by hand, and hundreds of pitch emails were personalized one at a time until mail merge made real segments possible. That spreadsheet is now two databases. Each curator has one record, with their playlists rolling up underneath it. Campaigns and playlists share one genre ontology. Every week the system matches live campaigns to curators, dedupes against every prior pitch and existing placement, holds each curator to at most one pitch a week no matter how many campaigns are live, and compiles a draft target list with its reasoning attached.",
+        "p3": "I still review that list, and the ontology is limited on purpose. The one read it leaves out is whether a track reads commercial or underground, the call that sends two same-genre tracks to different playlists. I could keep adding qualitative tags forever, and a trained ear is cheaper than that data architecture will ever be. So the human step sits where the judgment actually lives, and I can override any match.",
+        "p4": "Two backstops recover what the restraint gives up. Reporting feeds missing genre tags back into the database whenever a playlist turns out to play something it wasn't mapped for. And every pitch links a playlist of all current campaigns, so a curator can always find the track I didn't send.",
+        "p5": "Pitching people music they don't want is how they stop opening your emails. Staying valuable to curators is the whole business, and this system is how that restraint scales. What once took twelve hours per campaign now takes two."
+      },
+      "placeholders": {},
+      "visuals": {
+        "pitching-targeting-model": {
+          "purpose": "Using campaign and curator records to assemble a weekly pitch list for review."
+        }
+      }
+    },
+    "reporting": {
+      "label": "Music Promo Campaign Reporting",
+      "kind": "Solutions",
+      "summary": "A reporting system that brings playlist activity and feedback together, checks what can be claimed, and prepares the client update.",
+      "paragraphs": {
+        "p1": "My playlist promotion service entails sending my clients' music to people who may add it to a playlist, and may leave a comment or feedback that I'd want to share with the client, or keep for my internal records to sharpen future pitches to this curator. At its worst, simply tracking and recording what happened across my campaigns used to eat close to three days of every week. Curator replies, analytics platform activity, and submission results lived in different places. Every client update meant collecting them again and deciding which results I could honestly claim.",
+        "p2": "The breakthrough was teaching the process to an assistant with no music-industry background. Every judgment I made instinctively had to become a rule someone else could follow. No reply doesn't mean a rejection. Saying they'll add a song isn't proof they have. Once a result is confirmed, weaker evidence cannot erase it.",
+        "p3": "Every afternoon, the system gathers playlist activity from Songstats, email replies from Gmail, and responses to music submissions from SubmitHub. It matches the evidence to the right campaign and placement. If an email and a platform both report the same playlist add, they become two sources supporting one result, counted once.",
+        "p4": "A model reads the replies and identifies the music, the outcome, and the exact words supporting that interpretation. Code checks those interpretations against campaign and playlist records. Unclear matches or outcomes come to me for review before they become client claims. The results also update each music curator's history, informing who I [pitch next](record:pitching).",
+        "p5": "Those records feed each campaign's dashboard and, twice a week, a drafted client email with running totals and the report link. I review the results, adjust the framing for the relationship, and send. The system does the collecting and reconciliation; I remain responsible for what the client hears. For a four-week campaign, what once took roughly sixteen hours now takes about eighty minutes of my attention, or twenty minutes per week."
+      },
+      "placeholders": {},
+      "visuals": {
+        "reporting-dashboard": {
+          "purpose": "MAMA SAY campaign report",
+          "alt": "Actual MAMA SAY campaign dashboard showing 40 placements across seven platforms and 831.7K combined playlist followers."
+        },
+        "reporting-email": {
+          "purpose": "Client report drafts",
+          "slides": [
+            {
+              "title": "Campaign report drafts",
+              "caption": "Report drafts for three campaigns, ready for review before sending.",
+              "assets": [
+                {
+                  "alt": "Gmail showing three unsent campaign report drafts dated September 8, 2026, with campaign names and selected sidebar labels pixelated.",
+                  "label": "Campaign report drafts, September 8"
+                }
+              ]
+            }
+          ]
+        },
+        "reporting-workflow": {
+          "purpose": "The workflow behind campaign results",
+          "slides": [
+            {
+              "title": "The reporting workflow",
+              "caption": "Workflow for linking and updating campaign results, shown with its activation gate disabled.",
+              "assets": [
+                {
+                  "alt": "n8n workflow connecting Airtable placement and campaign result records, with branches for source updates and related outcomes. The activation gate is false.",
+                  "label": "Campaign result workflow, activation disabled"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "real-estate": {
+      "label": "Real-Estate Deal Tracker",
+      "kind": "Solutions",
+      "summary": "A brokerage team's deal operation mapped end to end, with explicit stages and named owners, and a real-time dashboard created inside the Google tools they already use.",
+      "paragraphs": {
+        "p1": "For one residential brokerage team, a single deal crossed six tools between pitch and close, and the only thing connecting them was the coordinator's attention. Agents tracked deals in notebooks and verbal updates, so the record ran a step behind reality. The rules existed and the data existed. A person was carrying information between them by hand.",
+        "p2": "The first deliverable was an operations map. The deal lifecycle became explicit stages, each with a named condition for advancing and a named owner for every hop between tools. Writing it down surfaced the engagement's hard constraint: the brokerage platform the team is required to use has no API, so anything automated has to work around it.",
+        "p3": "The build honored one more constraint. No new tools. The team keeps the software it already pays for and knows, so everything lives inside Google, where they already work. From the map I built a real-time dashboard derived from the team's own spreadsheets, starting with quarterly pitch conversion. Once the states were on paper, the machine's share of the work was obvious."
+      },
+      "placeholders": {},
+      "visuals": {
+        "real-estate-quarterly-dashboard": {
+          "purpose": "Explore the quarterly pitch conversion dashboard.",
+          "caption": "Quarterly pitch conversion dashboard"
+        }
+      }
+    },
+    "touring": {
+      "label": "Tour Advancing System",
+      "kind": "Solutions",
+      "summary": "A tour-advancing system that turns one show record into role-specific forms, a day sheet, an artist calendar, and email drafts the manager reviews before sending.",
+      "paragraphs": {
+        "p1": "Advancing a show means assembling venue details, set times, riders, ground transport, hotels, and guest lists from people who each hold a different part of the answer. Promoters reply in email, artists text screenshots of flights, and the manager has to remember what is still missing. The day sheet is only as reliable as that memory.",
+        "p2": "I started by making ownership explicit. A field registry names every piece of information, who supplies it, whether it is required, and where it should appear. The manager starts with a short intake: artist, date, artist email, and whether the routing includes hotel and transport. From there, the registry drives the manager view, promoter form, artist dashboard, day sheet, and missing-information logic. Each person sees the same show through the fields they own.",
+        "p3": "In the demo, ground transport is the last open item. Fill in the driver and airport pickup details as the promoter, then switch to the artist’s view. The day sheet reads those answers from the same record, alongside the venue, set time, travel, and contacts. Change a confirmed detail and the outputs follow it.",
+        "p4": "When something is missing, the system prepares a follow-up containing only the outstanding fields. In the manager’s workflow, that becomes a draft reply in the existing promoter thread, in their voice and addressed only to the promoter. They review it and decide when to send.",
+        "p5": "The artist receives a day-sheet PDF and Google Calendar events for confirmed arrival, departure, and set times. Each event carries the venue, contact, and current day-sheet link. The demo lets you inspect those details together; its email and calendar delivery are disconnected.",
+        "p6": "Running it again is safe. A second run creates no duplicate drafts, events, or PDFs. A run that fails partway resumes from the last durable step, and superseded files are removed. The whole system lives inside Gmail, Drive, Calendar, and Sheets, where the manager already works."
+      },
+      "placeholders": {},
+      "visuals": {
+        "touring-work-sample": {
+          "purpose": "Complete a show advance and see the same details reach the artist.",
+          "caption": "One show, shared by the manager, promoter, and artist."
+        }
+      }
+    },
+    "dubs": {
+      "label": "Dubs",
+      "kind": "Products",
+      "summary": "A tool for human thinking in the age of agents.",
+      "paragraphs": {
+        "p1": "Most knowledge work is forced to occur within a small set of tools: a Word document, an email thread, a chat window, or a paper notebook. Each is right for some part of thinking and wrong for the rest. Sitting over a keyboard and editing word by word is essential for refining an idea once it exists, but it's a poor way to innovate a new one. In the early stages of shaping an idea, I prefer to use an audible instrument to think — to be able to listen to information, and to leave my thoughts as contextualized notes directly on the document just by talking. Dubs is that instrument.",
+        "p2": "Send documents directly from their original sources to your Dubs inbox. Move between reading and listening, capture ideas inline by voice or text, and return to the same place across devices. Documents, annotations, and notes form a linked Markdown library for organizing and developing ideas. From there, send information into other tools and workflows or give agents exactly the context they need.",
+        "p3": "Dubs is in beta testing, with public release pending.",
+        "p4": "Join the waitlist at [dubs.md](https://dubs.md)."
+      },
+      "placeholders": {},
+      "visuals": {
+        "dubs-loop": {
+          "purpose": "Read, listen, and leave notes attached to their source.",
+          "caption": "Capture a thought in context, keep it in your library, and share that context with an agent.",
+          "slides": [
+            {
+              "title": "Catch the thought where it happens",
+              "caption": "Start from the Lock Screen, follow the document as it plays, and leave a note on the passage that prompted it.",
+              "assets": [
+                {
+                  "alt": "Dubs playback, Highlight, and Inline Note controls on the iPhone Lock Screen.",
+                  "label": "Lock Screen controls"
+                },
+                {
+                  "alt": "Reading and listening to a document in Dubs",
+                  "label": "Read and listen"
+                },
+                {
+                  "alt": "Writing an inline note while reading in Dubs",
+                  "label": "Leave an inline note"
+                },
+                {
+                  "alt": "A Dubs markup attached to its source passage",
+                  "label": "Keep the context"
+                }
+              ]
+            },
+            {
+              "title": "What accumulates",
+              "caption": "Documents and markups stay in one library. Tags and rule-based Perspectives help you return to what matters.",
+              "assets": [
+                {
+                  "alt": "Dubs library with documents, tags, threads, markups, and Perspectives.",
+                  "label": "A linked library"
+                },
+                {
+                  "alt": "A tagged view of documents in Dubs",
+                  "label": "Browse by tag"
+                },
+                {
+                  "alt": "Rules for a Perspective in Dubs",
+                  "label": "Define a Perspective"
+                }
+              ]
+            },
+            {
+              "title": "Connect your agent",
+              "caption": "Connect an agent to the library, review its authorization requests, and reset its access token.",
+              "assets": [
+                {
+                  "alt": "Dubs MCP setup with token and pending authorization controls",
+                  "label": "MCP connection"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "writ": {
+      "label": "Writ",
+      "kind": "Products",
+      "summary": "A macOS menu bar app that gives audio devices a priority order the system follows.",
+      "paragraphs": {
+        "p1": "macOS has no concept of audio device priority. It switches to whatever connected most recently, so taking your AirPods out of their case steals the output, a closed lid leaves the built-in microphone selected while it hears nothing, and every virtual meeting opens with the same silent panic: which mic is live, and where is the audio about to come out?",
+        "p2": "Writ fixes this with separate ranked lists for inputs and outputs. It keeps your Mac on the highest-ranked device that is currently available and returns to it whenever something else takes over. The lists are separate because the right answers differ: you almost always want your good microphone, but when you put on headphones you do want the output to follow. Each device carries its own rule, including Never, and a device you pick by hand is left alone.",
+        "p3": "On Apple silicon, the built-in microphone is disconnected in hardware when the lid closes, below anything software can observe, so it still appears in every menu while capturing silence. Writ polls the lid and skips it. AirPlay speakers all report their name as \"AirPlay\" and change identifier each time they reconnect, so a HomePod kept appearing as a new device until entries were keyed on the stable part of the identifier. Label a speaker once and it becomes permanent.",
+        "p4": "Global shortcuts reach it without looking: mute, push to talk, pausing enforcement, and stepping through devices. They're registered through the system hot key service, so Writ never asks for Accessibility permission and cannot read the keyboard, and the input meter measures level and discards the audio.",
+        "p5": "Writ is in beta testing, with public release pending."
+      },
+      "placeholders": {},
+      "visuals": {
+        "writ-priority-behavior": {
+          "purpose": "Audio priorities, device rules, and keyboard shortcuts in Writ.",
+          "caption": "Choose the order for your speakers and microphones, set exceptions, and assign shortcuts.",
+          "slides": [
+            {
+              "title": "Two lists, because the right answers differ",
+              "caption": "Input and output have separate priority lists. Each shows the current device, unavailable devices, and those set to Never.",
+              "assets": [
+                {
+                  "alt": "Writ output priority list with MacBook Air speakers in use and HomePod and AirPods ahead of it",
+                  "label": "Output order"
+                },
+                {
+                  "alt": "Writ input priority list with the MOVO GM-7 receiving audio, a live level meter, and Voice Isolation on",
+                  "label": "Input order"
+                }
+              ]
+            },
+            {
+              "title": "Where Writ leaves you alone",
+              "caption": "Set exceptions for individual devices and manage Writ from the menu bar.",
+              "assets": [
+                {
+                  "alt": "Per-device menu in Writ on the MacBook microphone with Never Use This Device, Use Regardless of Lid, Icon and Label, and Move to Top",
+                  "label": "Per-device rules"
+                }
+              ]
+            },
+            {
+              "title": "Reach it without looking",
+              "caption": "Mute, push to talk, pause automatic switching, or change devices from any app.",
+              "assets": [
+                {
+                  "alt": "Writ keyboard shortcuts window listing mute, push to talk, show or hide, pause enforcing, restore priority order, and next input or output",
+                  "label": "Shortcuts"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "thread-making-work-playable": {
+      "label": "Making Work Playable",
+      "kind": "Theme",
+      "summary": "A theme about responsive tools that become fluent enough to think and work through.",
+      "paragraphs": {
+        "p1": "Music Promo Campaign Kickoff, Music Promo Campaign Pitching, Music Promo Campaign Reporting, the real-estate deal tracker, the tour advancing system, Dubs, and Writ compose this reading."
+      },
+      "placeholders": {},
+      "visuals": {}
+    },
+    "thread-philosophy": {
+      "label": "Philosophy",
+      "kind": "Theme",
+      "summary": "Debate and philosophy taught me to make an argument clear. Building systems made that clarity practical.",
+      "paragraphs": {
+        "p1": "Years of competitive debate and then a Philosophy, Politics, and Law degree taught me how to take a position apart, find the premise everything rests on, and rebuild the case so that someone who disagrees can still follow every step.",
+        "p2": "This training combined with my educational background turned out to be the right preparation for working with AI. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited."
+      },
+      "placeholders": {},
+      "visuals": {}
+    }
+  },
+  "threads": {
+    "making-work-playable": {
+      "title": "Making Work Playable",
+      "lede": "I build tools and systems that make space to think.",
+      "paragraphs": {
+        "p1": "A good tool rewards repetition the way an instrument does. As you become fluent, you can give more of your attention to what you're trying to express. You know how it will respond, and that familiarity gives you room to improvise. I want that same relationship with the tools I work with. The actions I repeat most should take the least effort, and the tool should respond reliably enough that I can stay with the thought.",
+        "p2": "For a long time, much of running my agency demanded a different kind of attention. Starting a campaign meant carrying information across four apps. Pitching meant matching music to curators in spreadsheets. Reporting meant gathering evidence scattered across platforms and emails. All of it needed care, and all of it competed for the attention I wanted to give the music, the clients, and the business.",
+        "p3": "Building better systems changed where that attention went. [Kickoff](record:kickoff) now prepares the records, invoice, folder, and client email for me to review. [Pitching](record:pitching) assembles a target list with its reasoning attached, leaving me to judge whether the music actually fits. [Reporting](record:reporting) gathers campaign results and prepares the dashboards and email drafts. Each system takes on the preparation that used to occupy me before I could make the call. I can spend more time listening, considering a campaign's direction, or thinking about what a client needs to hear.",
+        "p4": "That's why I care about these improvements beyond the hours they save. When work feels like a treadmill stuck on high, it's difficult to see the bigger picture. Working *on* the systems gave me enough distance from the daily administration to reconsider the work itself. Campaigns received more deliberation where it mattered, client relationships got more attention, and I had room to think about where the agency should go.",
+        "p5": "My consulting work starts with the same question: what is consuming someone's attention before they can use their judgment? For a [real-estate team](record:real-estate), it was keeping track of deals across tools and people. For a [tour manager](record:touring), it was remembering which show details were missing and keeping the day sheet, calendar, and email threads consistent. The systems I built give that information somewhere dependable to live, inside tools the teams already use. Their usefulness depends on how much easier they make the next decision.",
+        "p6": "I've also learned that having room to think means being able to leave the desk. [Dubs](record:dubs) lets me listen to a document on a walk and dictate notes into it as ideas arrive. [Writ](record:writ) keeps my audio inputs and outputs where I want them, removing a recurring interruption. These products come from paying attention to the conditions in which I think well.",
+        "p7": "Making work playable means designing those conditions deliberately. With an instrument, fluency gives you more freedom in what you can play. I build systems because I want that freedom in my working day: enough familiarity to move easily, and enough room to follow an idea I hadn't planned on."
+      },
+      "placeholders": {},
+      "visuals": {}
+    },
+    "philosophy": {
+      "title": "Philosophy",
+      "lede": "Debate and philosophy taught me to make an argument clear. Building systems made that clarity practical.",
+      "paragraphs": {
+        "p1": "Although I’m not contemplating the big questions of epistemology, metaphysics, philosophy of mind, and ethics directly as often as I did as a student, these areas have remained very salient in my work and life.",
+        "p2": "Years of competitive debate and then a Philosophy, Politics, and Law degree taught me how to take a position apart, find the premise everything rests on, and rebuild the case so that someone who disagrees can still follow every step.",
+        "p3": "At INFAMOUS, inventing the services meant living their costs. A large percentage of every week went to compiling evidence of finished work, personalizing hundreds of pitches by hand, and manually deduplicating in/out-of network curators while researching pitch targets. The first instruments I developed were small automations: keyboard and browser macros, text snippets, and mail merge, but it was the first time I understood the shape and feel of the work was itself something I could iterate and improve on.",
+        "p4": "A defining moment was handing off the (at this point largely still manual) process to a new employee — a remote assistant with no music background and English as his second language. This exercise forced me to define the process better than I ever had for myself. Every step, edge case, and condition that felt obvious to me had to become a clear instruction for someone else to follow reliably.",
+        "p5": "Founding and running my own businesses has compounded this. The low-context executor became an AI agent as often as a person, and agent-driven automation matured into a real operating advantage, built to my own judgment and taste.",
+        "p6": "That advantage became a second practice. Consulting is doing for other teams what I did for my own operation: turning fuzzy workflows into explicit states and owners inside the tools people already use.",
+        "p7": "This training combined with my educational background turned out to be the right preparation for working with AI. The work has to be specified from first principles, with the goal stated, the constraints named, the edge cases enumerated, and a definition of done that someone with no context can check. I use deterministic rules and tests where possible, because an executor who has to guess produces work that has to be audited.",
+        "p8": "Debate and Philosophy also trained me to look for the second-order consequence, the thing hidden in the text that is often unnoticed, which could produce unwanted results. Writing instructions for agents, and editing the outputs produced by agents, is exactly that. The checklists I once wrote for a human assistant now go to agents."
+      },
+      "placeholders": {},
+      "visuals": {}
+    }
+  },
+  "contact": {
+    "email": "bradley@bradleyberkman.com",
+    "cvLabel": "Download CV",
+    "socialLabels": {
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "instagram": "Instagram"
+    }
+  },
+  "interface": {
+    "layout.skipLink": "Skip to portfolio content",
+    "index.throughline": "I build tools and systems that make space to think.",
+    "world.mast": "Bradley Berkman",
+    "visualStage.eyebrow": "Map visual",
+    "reader.indexTitle": "Index",
+    "reader.backButton": "Home",
+    "reader.exploreThread": "Explore this theme",
+    "reader.contactTitle": "Contact",
+    "reader.relatedTitle": "Related",
+    "reader.copyInProgress": "Copy in progress",
+    "reader.privacyLink": "Privacy",
+    "index.section.threads": "Themes",
+    "index.section.products": "Products",
+    "indexPage.threadsSubtitle": "Narrated paths through the work.",
+    "chat.title": "Chat about the portfolio",
+    "chat.backButton": "Home",
+    "chat.composerPlaceholder": "Ask a follow-up",
+    "chat.composerPlaceholderOpening": "Ask about the portfolio",
+    "chat.pendingStatus": "Reading the portfolio…",
+    "chat.unavailable": "The answer service is temporarily unavailable.",
+    "privacy.backLink": "← Portfolio",
+    "privacy.title": "Privacy",
+    "privacy.p1": "This site uses Cloudflare edge analytics for aggregate traffic. When enabled, Microsoft Clarity provides usage analytics, performance reporting, heatmaps, and session replay. These may include pages viewed, referral source, approximate geography, device and browser details, clicks, pointer movement, scrolling, and time spent reading. A code in a shared link may identify the campaign that brought you here.",
+    "privacy.p2": "Form inputs and the portfolio chat are masked from session replay. If you use the Guide, your message and recent conversation are sent to OpenAI with relevant portfolio content to generate an answer. Cloudflare provides hosting and abuse protection, including security verification for the chat when required. Masking the chat from replay does not prevent the chat service from processing your messages.",
+    "privacy.p3": "You can opt out or back in below. This controls Clarity analytics, and your preference is stored in this browser when browser storage is available. After changing it, reload the page. An opt-out prevents Clarity from loading on subsequent page loads. On a page where Clarity has already loaded, declining analytics storage can still allow cookieless measurement until you reload. Cloudflare traffic analytics, security processing, and messages you choose to send to the Guide continue independently.",
+    "privacy.questionsPrefix": "Questions? Email",
+    "privacy.enableAnalytics": "Enable Clarity analytics",
+    "privacy.optOutAnalytics": "Opt out of Clarity analytics",
+    "index.section.background": "Background",
+    "index.section.solutions": "Solutions"
+  }
+}

@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      # Cheapest gates first: typecheck and lint are seconds, the vitest run is
+      # ~40s, and test:rendered needs a full build. A type error used to wait
+      # for the whole suite.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run deadcode
+      - run: npm test
+      - run: npm run test:dev-start
+      - run: npm run test:worktree-bootstrap
+      # test:rendered runs the full build, and that build is the artifact the
+      # deploy workflow ships. The Turnstile site key is public and compiled
+      # into the client bundle, so it has to be present here. Empty until the
+      # variable exists, which leaves the challenge off exactly as today.
+      - run: npm run test:rendered
+        env:
+          VITE_PORTFOLIO_CHAT_TURNSTILE_SITE_KEY: ${{ vars.PORTFOLIO_CHAT_TURNSTILE_SITE_KEY }}
+      - name: Upload tested main-preview artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-main-preview-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy_main_preview:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED == 'true'
+    needs: ci
+    environment: portfolio-main-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - name: Download tested main-preview artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-main-preview-${{ github.sha }}
+          path: dist
+      - name: Record tested artifact digest
+        run: find dist -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256
+      - name: Deploy tested main-preview artifact
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.main-preview.jsonc --strict --message "main ${{ github.sha }}"

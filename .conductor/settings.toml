@@ -1,0 +1,15 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+setup = "bash scripts/bootstrap-worktree.sh"
+run_mode = "concurrent"
+
+[scripts.run.dev]
+available_in = [ "local" ]
+command = "npm run dev -- --host 127.0.0.1 --port $CONDUCTOR_PORT --strictPort"
+default = true
+icon = "play"
+
+[scripts.run.test]
+command = "npm test"
+icon = "test-tube"
