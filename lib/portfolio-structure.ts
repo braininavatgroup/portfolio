@@ -770,7 +770,7 @@ export const portfolioContactStructure = {
   cvHref: "/cv/bradley-berkman-cv.pdf",
   socials: [
     { key: "linkedin", href: "https://www.linkedin.com/in/bradleyberkman/" },
-    { key: "github", href: "https://github.com/bradleybiav" },
+    { key: "github", href: "https://github.com/bradleyberkman" },
     { key: "instagram", href: "https://www.instagram.com/bradley_berkman/" },
   ],
 } as const;
