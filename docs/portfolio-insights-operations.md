@@ -83,7 +83,21 @@ npm run setup:insights      # once, per machine: mint and store the two tokens
 npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
 npm run insights -- --history   # one row per past run, oldest first
 npm run schedule:insights   # once, per machine: run it daily at 07:10
+npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
 ```
+
+### The dashboard
+
+Every run that records a snapshot also rewrites `dashboard.html` beside the
+history: one self-contained page, no scripts or network, that shows the
+believable-humans tiles, the curve across runs, day-by-day columns, where
+sessions come from, what gets read, who is crawling, web vitals by device,
+and the frustration signals. Each chart has a table view and works in light
+and dark. `npm run insights -- --dashboard` opens it after a live run;
+`npm run insights:dashboard` opens it without spending any API budget. The
+scheduled run keeps the copy under
+`~/Library/Application Support/biv/portfolio-insights/dashboard.html`
+current every morning, so that file is the thing to bookmark.
 
 The report opens with **believable humans**: Clarity human sessions minus
 localhost referrals, and Cloudflare visits minus the preview login page,

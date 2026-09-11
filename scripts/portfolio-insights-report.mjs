@@ -34,11 +34,13 @@ export function parseArguments(argv) {
     cloudflare: true,
     snapshot: true,
     history: false,
+    dashboard: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--json") options.json = true;
     else if (argument === "--history") options.history = true;
+    else if (argument === "--dashboard") options.dashboard = true;
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
     else if (argument === "--no-snapshot") options.snapshot = false;

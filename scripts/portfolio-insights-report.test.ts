@@ -35,6 +35,7 @@ describe("parseArguments", () => {
       cloudflare: true,
       snapshot: true,
       history: false,
+      dashboard: false,
     });
   });
 

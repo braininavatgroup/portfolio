@@ -19,6 +19,7 @@
     "setup:feedback": "bash scripts/setup-portfolio-feedback.sh",
     "setup:insights": "bash scripts/setup-portfolio-insights.sh",
     "schedule:insights": "bash scripts/schedule-portfolio-insights.sh",
+    "insights:dashboard": "node scripts/portfolio-insights.mjs --dashboard --no-cloudflare --no-clarity",
     "test": "vitest run && npm run test:media-studio && npm run test:clip-studio",
     "typecheck": "tsc --noEmit",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",

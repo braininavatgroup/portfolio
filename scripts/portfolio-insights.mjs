@@ -6,6 +6,7 @@
 //   npm run insights -- --json        # the raw snapshot
 //   npm run insights -- --no-clarity  # skip Clarity's 10-requests-a-day budget
 //   npm run insights -- --history     # every past run, one row each
+//   npm run insights -- --dashboard   # also rewrite dashboard.html and open it
 //
 // Tokens come from CLOUDFLARE_API_TOKEN and CLARITY_API_TOKEN if set, otherwise
 // from the macOS login Keychain entries `scripts/setup-portfolio-insights.sh`
@@ -21,7 +22,10 @@
 // inside .context/.
 
 import { execFile } from "node:child_process";
-import { mkdir, appendFile, readFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, readdir, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { renderDashboard } from "./portfolio-insights-dashboard.mjs";
 import { promisify } from "node:util";
 
 import {
@@ -391,6 +395,13 @@ async function readHistory() {
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
+  if (options.dashboard && !options.cloudflare && !options.clarity) {
+    // --dashboard alone: rebuild from what is already on disk and open it.
+    const page = await writeDashboard();
+    await execFileAsync("open", [page]).catch(() => {});
+    process.stdout.write(`${page}\n`);
+    return;
+  }
   if (options.history) {
     const rows = await readHistory();
     process.stdout.write(
@@ -439,10 +450,36 @@ async function main() {
   });
 
   if (options.snapshot) await recordSnapshot(snapshot);
+  if (options.snapshot || options.dashboard) {
+    const page = await writeDashboard(snapshot);
+    if (options.dashboard) {
+      await execFileAsync("open", [page]).catch(() => {
+        process.stderr.write(`Dashboard written to ${page}\n`);
+      });
+    }
+  }
 
   process.stdout.write(
     options.json ? `${JSON.stringify(snapshot, null, 2)}\n` : formatReport(snapshot),
   );
+}
+
+/** Rewrites dashboard.html beside the history from this snapshot, or the newest one. */
+async function writeDashboard(snapshot = null) {
+  await mkdir(HISTORY_DIRECTORY, { recursive: true });
+  let latest = snapshot;
+  if (!latest) {
+    const names = (await readdir(HISTORY_DIRECTORY).catch(() => []))
+      .filter((name) => name.startsWith("snapshot-") && name.endsWith(".json"))
+      .sort();
+    const newest = names.at(-1);
+    if (newest) {
+      latest = JSON.parse(await readFile(new URL(newest, HISTORY_DIRECTORY), "utf8"));
+    }
+  }
+  const target = new URL("dashboard.html", HISTORY_DIRECTORY);
+  await writeFile(target, renderDashboard({ snapshot: latest, history: await readHistory() }));
+  return fileURLToPath(target);
 }
 
 async function recordSnapshot(snapshot) {
