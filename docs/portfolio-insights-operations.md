@@ -224,9 +224,8 @@ Clarity](#observe-in-clarity)).
 `com.biv.portfolio-insights`, that runs the report daily at 07:10 local time
 from the checkout it was installed for and appends to
 `~/Library/Application Support/biv/portfolio-insights/history.jsonl`, a
-location that outlives any single worktree (`PORTFOLIO_INSIGHTS_DIR` is what
-moves the history there; a manual run without it still writes to
-`.context/insights/`). It logs to `~/Library/Logs/biv/portfolio-insights.log`.
+location that outlives any single worktree. A manual run uses the same
+directory unless `PORTFOLIO_INSIGHTS_DIR` points elsewhere. It logs to `~/Library/Logs/biv/portfolio-insights.log`.
 `--now` also kicks off a run immediately; `--remove` unloads and deletes the
 job and keeps the history. The installer creates the history directory as
 mode `0700` and refuses to install the job if `stat` reports anything else.
@@ -355,15 +354,27 @@ months. Local raw copies follow the 180-day rule below.
 ### Local files and retention
 
 The scheduled job keeps everything in
-`~/Library/Application Support/biv/portfolio-insights/`. A manual run without
-`PORTFOLIO_INSIGHTS_DIR` uses `.context/insights/` instead. The directory is
-mode `0700`. Every file in it is mode `0600`, written to a temporary name and
-renamed into place.
+`~/Library/Application Support/biv/portfolio-insights/`. Manual runs use the
+same directory unless `PORTFOLIO_INSIGHTS_DIR` is set, so every run shares one
+history and one prune. The directory is mode `0700`. Every file in it is mode
+`0600`, written to a temporary name and renamed into place.
+
+Manual runs used to write to `<checkout>/.context/insights/`. Nothing writes
+there now, and nothing prunes it. Earlier runs left only aggregate history,
+`dashboard.html`, and `snapshot-*.json` there. If any `raw-events-*.json`
+exist in a checkout's `.context/insights/`, delete them once:
+
+```sh
+rm -f <checkout>/.context/insights/raw-events-*.json
+```
+
+The rest of that directory can be deleted by hand once any history you want
+has been copied.
 
 | File | Holds | Kept |
 | --- | --- | --- |
 | `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-airtable.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Airtable configuration error, `source-airtable.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
-| `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, and whether the read hit its row cap | 180 days, judged by the timestamp in the file name |
+| `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, the window they cover, and whether the read hit its row cap | Until the window it covers began 180 days ago (files without a recorded window: the file-name timestamp) |
 | `history.jsonl` | One aggregate rollup per run, with no names or event sequences | Indefinitely |
 | `dashboard.html` | The latest dashboard | Replaced by each run |
 
@@ -413,7 +424,8 @@ those files now, and they can be deleted by hand.
 
 Pruning runs last, after the history row and the dashboard are both written,
 so an aborted run never loses raw events it has not yet summarised. It deletes
-only `raw-events-*.json` files whose name timestamp is more than 180 days old.
+only `raw-events-*.json` files whose window began more than 180 days ago, and
+the stale fallback never reads such a file or any event older than 180 days.
 Source snapshots and aggregate history are never pruned.
 
 The launchd job runs as Bradley's user and reads its tokens from the login

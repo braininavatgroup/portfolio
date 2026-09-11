@@ -182,6 +182,6 @@ say "Read the launch signals with:"
 printf '\n    npm run insights\n\n'
 note "Clarity allows 10 requests per project per day and each run spends 4, so"
 note "two full runs a day is the sustainable rhythm. Add --no-clarity for more."
-note "Every run appends to .context/insights/history.jsonl, which is gitignored"
-note "and is what builds a record past each source's short retention window."
+note "Every run appends to history.jsonl in ~/Library/Application Support/biv/portfolio-insights,"
+note "which is what builds a record past each source's short retention window."
 printf '\n'

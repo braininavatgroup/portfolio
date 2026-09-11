@@ -9,8 +9,12 @@
 //   source-airtable.json     { capturedAt, value }   identity-bearing, 0600
 //                            or { capturedAt, value: null, configurationErrors }
 //                            after a configuration error, until a clean read
-//   raw-events-YYYY-MM-DDTHH-MM-SS-sssZ.json         deleted after 180 days
-//                            { capturedAt, truncated?, events }
+//   raw-events-YYYY-MM-DDTHH-MM-SS-sssZ.json         named by capture time
+//                            { capturedAt, windowStart?, truncated?, events }
+//                            deleted once windowStart (or, for files written
+//                            before it was stored, the capture time) is more
+//                            than 180 days old; no event older than that is
+//                            ever read back
 //   history.jsonl, dashboard.html                    never pruned here
 //
 // How the CLI (runInsights) is expected to call this, per source:
@@ -213,19 +217,26 @@ export function rawEventsFileName(capturedAt) {
 /**
  * Writes one run's event-level results as their own expiring file.
  * `truncated` records whether the read hit its row cap, which the rows alone
- * cannot say once decoding has dropped some.
+ * cannot say once decoding has dropped some. `windowStart` is the start of
+ * the window the rows cover; retention ages the file from it, because the
+ * oldest event is as old as the window, not as the capture.
  * @param {string | URL} directory
  * @param {unknown[]} events
  * @param {string | Date} capturedAt
- * @param {{ truncated?: boolean }} [meta]
+ * @param {{ truncated?: boolean, windowStart?: string | Date }} [meta]
  * @returns {Promise<string>} the written path
  */
-export async function writeRawEvents(directory, events, capturedAt, { truncated } = {}) {
+export async function writeRawEvents(directory, events, capturedAt, { truncated, windowStart } = {}) {
   if (!Array.isArray(events)) throw new Error("raw events must be an array");
   const at = isoTime(capturedAt);
   await ensurePrivateDirectory(directory);
   const path = join(toPath(directory), rawEventsFileName(at));
-  const body = typeof truncated === "boolean" ? { capturedAt: at, truncated, events } : { capturedAt: at, events };
+  const body = {
+    capturedAt: at,
+    ...(windowStart !== undefined ? { windowStart: isoTime(windowStart) } : {}),
+    ...(typeof truncated === "boolean" ? { truncated } : {}),
+    events,
+  };
   await writePrivateFile(path, `${JSON.stringify(body)}\n`);
   return path;
 }
@@ -251,8 +262,10 @@ export async function pruneRawSnapshots(directory, now, retentionDays = RAW_EVEN
   const deleted = [];
   for (const name of (await listNames(path)).sort()) {
     const capturedMs = rawEventsTime(name);
-    if (capturedMs === null || capturedMs >= cutoff) continue;
+    if (capturedMs === null) continue;
     const target = join(path, name);
+    // The window never starts after the capture, so an old capture needs no read.
+    if (capturedMs >= cutoff && retentionAnchor(await readRawFile(target), capturedMs) >= cutoff) continue;
     await unlink(target);
     deleted.push(target);
   }
@@ -260,9 +273,32 @@ export async function pruneRawSnapshots(directory, now, retentionDays = RAW_EVEN
 }
 
 /**
+ * When a raw file's retention clock started: its recorded window start, or
+ * its capture time for files written before the window was stored.
+ * @param {Record<string, unknown> | null} parsed
+ * @param {number} capturedMs
+ */
+function retentionAnchor(parsed, capturedMs) {
+  const start = typeof parsed?.windowStart === "string" ? Date.parse(parsed.windowStart) : Number.NaN;
+  return Number.isFinite(start) ? Math.min(start, capturedMs) : capturedMs;
+}
+
+/** @param {string} path @returns {Promise<Record<string, any> | null>} the parsed file, or null when torn */
+async function readRawFile(path) {
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The newest raw-events file still inside retention that parses, or null.
- * The run shows it as stale journeys when the event-level read fails, so a
- * file past retention never comes back as data even before pruning runs.
+ * The run shows it as stale journeys when the event-level read fails, so the
+ * same rule as pruning applies before pruning runs: a file whose window began
+ * more than `retentionDays` ago is never read, and any single event older than
+ * that is dropped from the answer.
  * @param {string | URL} directory
  * @param {string | number | Date} now
  * @param {number} [retentionDays]
@@ -277,19 +313,20 @@ export async function readLatestRawEvents(directory, now, retentionDays = RAW_EV
     .map((name) => ({ name, at: rawEventsTime(name) }))
     .filter((entry) => entry.at !== null && entry.at >= cutoff)
     .sort((left, right) => Number(right.at) - Number(left.at));
-  for (const { name } of newestFirst) {
-    try {
-      const parsed = JSON.parse(await readFile(join(path, name), "utf8"));
-      if (parsed && typeof parsed.capturedAt === "string" && Array.isArray(parsed.events)) {
-        return {
-          capturedAt: parsed.capturedAt,
-          events: parsed.events,
-          ...(typeof parsed.truncated === "boolean" ? { truncated: parsed.truncated } : {}),
-        };
-      }
-    } catch {
-      // A torn file is skipped; the next newest one may still be good.
-    }
+  for (const { name, at } of newestFirst) {
+    // A torn file is skipped; the next newest one may still be good.
+    const parsed = await readRawFile(join(path, name));
+    if (!parsed || typeof parsed.capturedAt !== "string" || !Array.isArray(parsed.events)) continue;
+    if (retentionAnchor(parsed, Number(at)) < cutoff) continue;
+    const events = parsed.events.filter((event) => {
+      const time = Date.parse(event?.timestamp);
+      return !Number.isFinite(time) || time >= cutoff;
+    });
+    return {
+      capturedAt: parsed.capturedAt,
+      events,
+      ...(typeof parsed.truncated === "boolean" ? { truncated: parsed.truncated } : {}),
+    };
   }
   return null;
 }

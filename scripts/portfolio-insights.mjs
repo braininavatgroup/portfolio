@@ -23,9 +23,11 @@
 //
 // Writes, in order, inside the insight directory (0700, every file 0600):
 // source snapshots, the run's event-level rows (raw-events-*.json, deleted
-// after 180 days), one aggregate history row, the dashboard, then the prune.
-// The directory is $PORTFOLIO_INSIGHTS_DIR when set (the scheduled job) and
-// .context/insights/ otherwise. Tokens come from the environment or the login
+// once the window they cover began 180 days ago), one aggregate history row,
+// the dashboard, then the prune. The directory is $PORTFOLIO_INSIGHTS_DIR when
+// set, otherwise ~/Library/Application Support/biv/portfolio-insights, the
+// scheduled job's own, so every run shares one history and one prune.
+// Tokens come from the environment or the login
 // Keychain entries `npm run setup:insights` writes and are never printed or
 // written to disk. Nothing here mutates anything remote.
 //
@@ -34,6 +36,7 @@
 
 import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
+import { homedir } from "node:os";
 import { chmod, readFile, stat, truncate } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -559,11 +562,16 @@ async function readPortfolioContent() {
   return JSON.parse(await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
 }
 
-/** @param {Record<string, string | undefined>} env */
-function defaultDirectory(env) {
-  return env.PORTFOLIO_INSIGHTS_DIR
-    ? resolve(env.PORTFOLIO_INSIGHTS_DIR)
-    : fileURLToPath(new URL("../.context/insights/", import.meta.url));
+/**
+ * Where runs keep their files: $PORTFOLIO_INSIGHTS_DIR when set, otherwise
+ * the scheduled job's directory, so a manual run never leaves raw events in a
+ * checkout where no prune reaches them. Must match HISTORY_DIR in
+ * scripts/schedule-portfolio-insights.sh.
+ * @param {Record<string, string | undefined>} [env]
+ */
+export function defaultInsightsDirectory(env = process.env) {
+  if (env.PORTFOLIO_INSIGHTS_DIR) return resolve(env.PORTFOLIO_INSIGHTS_DIR);
+  return join(env.HOME || homedir(), "Library", "Application Support", "biv", "portfolio-insights");
 }
 
 /**
@@ -686,7 +694,7 @@ export async function runInsights(options, dependencies = {}) {
   const readContent = dependencies.readContent ?? readPortfolioContent;
   const storage = dependencies.storage ?? privateStorage;
   const now = dependencies.now ?? (() => new Date());
-  const rawDirectory = dependencies.directory ?? defaultDirectory(env);
+  const rawDirectory = dependencies.directory ?? defaultInsightsDirectory(env);
   const directory = rawDirectory instanceof URL ? fileURLToPath(rawDirectory) : rawDirectory;
 
   if (options.history) {
@@ -855,7 +863,10 @@ export async function runInsights(options, dependencies = {}) {
 
   // Write order: source snapshots (above) → raw events → history → dashboard → prune.
   if (record && events.status === "fresh") {
-    await storage.writeRawEvents(directory, events.events, capturedAt, { truncated: events.truncated });
+    await storage.writeRawEvents(directory, events.events, capturedAt, {
+      truncated: events.truncated,
+      windowStart: range.start,
+    });
   }
   if (record) {
     let existing = "";

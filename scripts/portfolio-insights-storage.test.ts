@@ -65,6 +65,46 @@ describe("latest raw events", () => {
   });
 });
 
+// Owns: the 180-day promise covers every event, not just the capture time. A
+// raw file ages from the start of the window it covers (capture time for
+// legacy files), and no event older than 180 days is ever read back.
+describe("window-based raw retention", () => {
+  const DAY = 86_400_000;
+  const now = "2026-09-11T00:00:00.000Z";
+  const daysAgo = (days: number) => new Date(Date.parse(now) - days * DAY).toISOString();
+
+  it("prunes and never reads a file whose window began more than 180 days ago", async () => {
+    const windowStart = daysAgo(181);
+    await writeRawEvents(directory, [{ timestamp: windowStart, action: "entry" }], daysAgo(175), { windowStart });
+
+    expect(await readLatestRawEvents(directory, now)).toBeNull();
+    expect(await pruneRawSnapshots(directory, now)).toEqual([join(directory, rawEventsFileName(daysAgo(175)))]);
+  });
+
+  it("keeps a file whose window began inside retention", async () => {
+    await writeRawEvents(directory, [{ timestamp: daysAgo(179), action: "entry" }], daysAgo(173), { windowStart: daysAgo(179) });
+
+    expect(await pruneRawSnapshots(directory, now)).toEqual([]);
+    expect((await readLatestRawEvents(directory, now))?.events).toHaveLength(1);
+  });
+
+  it("still prunes a legacy file without windowStart by its capture time", async () => {
+    await writeRawEvents(directory, [], daysAgo(181));
+    await writeRawEvents(directory, [], daysAgo(179));
+
+    expect(await pruneRawSnapshots(directory, now)).toEqual([join(directory, rawEventsFileName(daysAgo(181)))]);
+  });
+
+  it("drops individual events older than 180 days when reading", async () => {
+    const recent = { timestamp: daysAgo(20), action: "entry" };
+    await writeRawEvents(directory, [{ timestamp: daysAgo(200), action: "entry" }, recent], daysAgo(10), {
+      windowStart: daysAgo(30),
+    });
+
+    expect((await readLatestRawEvents(directory, now))?.events).toEqual([recent]);
+  });
+});
+
 // Owns: an Airtable configuration error replaces the saved identity, so no
 // later rebuild or outage can bring cached names back. Retire with Airtable.
 describe("stored configuration errors", () => {

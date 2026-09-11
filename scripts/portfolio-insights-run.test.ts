@@ -27,7 +27,7 @@ import {
 } from "./portfolio-insights-fixture.mjs";
 import { INSIGHT_EVENT_LIMIT, summarizeInsightEvents } from "./portfolio-insights-report.mjs";
 import * as storage from "./portfolio-insights-storage.mjs";
-import { capLog, LOG_LIMIT_BYTES } from "./portfolio-insights.mjs";
+import { capLog, defaultInsightsDirectory, LOG_LIMIT_BYTES } from "./portfolio-insights.mjs";
 
 const NOW = "2026-09-11T11:10:00.000Z";
 const EARLIER = "2026-09-10T07:10:00.000Z";
@@ -267,6 +267,22 @@ describe("source failure behavior", () => {
     expect(result.output).not.toMatch(/returned after|holds attention|evidence-open rate/u);
   });
 
+  it("never shows or keeps journeys from a window that began more than 180 days ago", async () => {
+    // Captured 175 days before NOW with a 7-day window: the window began about 181 days ago.
+    const captured = "2026-03-20T11:10:00.000Z";
+    await run([], {
+      now: captured,
+      events: [eventRow({ at: "2026-03-14 06:00:00", action: "entry", session: "tab-old" })],
+    });
+    expect(await readdir(directory)).toContain(storage.rawEventsFileName(captured));
+
+    const result = await run([], { fetchers: { insightEvents: eventReadFails } });
+
+    expect(result.snapshot.sources.insights.status).toBe("unavailable");
+    expect(result.snapshot.intelligence).toBeNull();
+    expect(await readdir(directory)).not.toContain(storage.rawEventsFileName(captured));
+  });
+
   it("keeps the row-cap flag with the raw rows even when decoding dropped some", async () => {
     const rows = Array.from({ length: INSIGHT_EVENT_LIMIT }, (_, index) =>
       eventRow({ at: "2026-09-10 12:00:00", action: "entry", session: `tab-${index % 40}`, schema: index % 2 ? "v2" : "v9" }),
@@ -503,6 +519,15 @@ describe("scheduled job", () => {
     expect(check).toBeGreaterThan(create);
     expect(install).toBeGreaterThan(check);
     expect(script).not.toMatch(/TOKEN/u);
+  });
+
+  it("defaults manual runs to the scheduled job's directory", async () => {
+    const script = await readFile(scheduleUrl, "utf8");
+    expect(script).toContain('HISTORY_DIR="$HOME/Library/Application Support/biv/portfolio-insights"');
+    expect(defaultInsightsDirectory({ HOME: "/Users/example" })).toBe(
+      "/Users/example/Library/Application Support/biv/portfolio-insights",
+    );
+    expect(defaultInsightsDirectory({ HOME: "/Users/example", PORTFOLIO_INSIGHTS_DIR: "/tmp/elsewhere/" })).toBe("/tmp/elsewhere");
   });
 
   it("runs with umask 077 and a 0600 log checked with stat before installing", async () => {
