@@ -79,9 +79,37 @@ data policy, and operating record. No such monitor is activated by this work.
 ## Read them from the terminal
 
 ```sh
-npm run setup:insights   # once, per machine: mint and store the two tokens
-npm run insights         # last 7 days of Cloudflare, last 3 of Clarity
+npm run setup:insights      # once, per machine: mint and store the two tokens
+npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
+npm run insights -- --history   # one row per past run, oldest first
+npm run schedule:insights   # once, per machine: run it daily at 07:10
+npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
 ```
+
+### The dashboard
+
+Every run that records a snapshot also rewrites `dashboard.html` beside the
+history: one self-contained page, no scripts or network, that shows the
+believable-humans tiles, the curve across runs, day-by-day columns, where
+sessions come from, what gets read, who is crawling, web vitals by device,
+and the frustration signals. Each chart has a table view and works in light
+and dark. `npm run insights -- --dashboard` opens it after a live run;
+`npm run insights:dashboard` opens it without spending any API budget. The
+scheduled run keeps the copy under
+`~/Library/Application Support/biv/portfolio-insights/dashboard.html`
+current every morning, so that file is the thing to bookmark.
+
+The report opens with **believable humans**: Clarity human sessions minus
+localhost referrals, and Cloudflare visits minus the preview login page,
+localhost referrals, and headless browsers. Those are the closest either
+source gets to "people who are not Bradley, a reviewer, or a test run".
+Cloudflare RUM has no opt-out, so its believable number still contains
+Bradley's own devices; Clarity's does not, because those browsers are
+enrolled with `?analytics=off`.
+
+A **daily trend** table follows the Cloudflare headline with pageloads,
+visits, and edge requests per day, and the web vitals are broken out per
+device class so a slow p95 can be placed.
 
 `npm run setup:insights` walks through minting a Cloudflare API token and a
 Clarity Data Export token and stores each in the macOS login Keychain under
@@ -167,6 +195,21 @@ dimension. Read those in the Clarity dashboard.
 `utm_campaign`, so it does not reach the export API's Campaign dimension
 either. It is dashboard-only for the same reason.
 
+### The scheduled run
+
+`npm run schedule:insights` installs a launchd user agent,
+`com.biv.portfolio-insights`, that runs the report daily at 07:10 local time
+from the checkout it was installed for and appends to
+`~/Library/Application Support/biv/portfolio-insights/history.jsonl`, a
+location that outlives any single worktree (`PORTFOLIO_INSIGHTS_DIR` is what
+moves the history there; a manual run without it still writes to
+`.context/insights/`). It logs to `~/Library/Logs/biv/portfolio-insights.log`.
+`--now` also kicks off a run immediately; `--remove` unloads and deletes the
+job and keeps the history. The installer refuses an ephemeral Conductor
+worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
+from one. The job runs whatever that clone has checked out, so keep it on
+`main`.
+
 ### Quotas, retention, and why history.jsonl exists
 
 - Clarity allows **10 API requests per project per day** and returns at most
@@ -177,6 +220,20 @@ either. It is dashboard-only for the same reason.
   appends a rollup to `.context/insights/history.jsonl` and writes a full
   snapshot beside it. That gitignored file is the only durable record of the
   launch curve, so run it on a rhythm rather than only when curious.
+
+## Being found by search
+
+`/sitemap.xml` is generated from the same page inventory as the share
+metadata, so a new record or theme is listed the moment it is authored, and
+`/robots.txt` points at it while disallowing the supporting surfaces the
+worker already marks `noindex`. Cloudflare prepends its content-signal
+comments to `robots.txt` at the edge; that block carries no directives and
+does not change what crawlers may do.
+
+Registering the site in Google Search Console and submitting the sitemap is a
+dashboard step for Bradley. Until then Googlebot's crawl requests in the edge
+report are the only evidence of search interest, and search referrals in the
+Cloudflare and Clarity source tables are the only evidence of search traffic.
 
 ## Verify Clarity's own consent settings
 

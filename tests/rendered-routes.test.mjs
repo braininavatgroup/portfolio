@@ -93,6 +93,27 @@ test("retired work routes stay retired", async () => {
   assert.equal(workResponse.status, 404);
 });
 
+test("the sitemap lists every public page and no supporting surface", async () => {
+  const response = await render("/sitemap.xml");
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /application\/xml/);
+  assert.equal(response.headers.get("x-robots-tag"), null, "the sitemap itself must be crawlable");
+  const xml = await response.text();
+  const locations = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => new URL(url).pathname);
+
+  const content = JSON.parse(await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
+  for (const id of Object.keys(content.records)) {
+    assert.ok(locations.includes(`/index/${id}`), `sitemap lists /index/${id}`);
+  }
+  for (const path of ["/", "/privacy", "/demos/touring", "/demos/quarterly-dashboard"]) {
+    assert.ok(locations.includes(path), `sitemap lists ${path}`);
+  }
+  for (const path of ["/design", "/copy-deck"]) {
+    assert.ok(!locations.includes(path), `sitemap must not list ${path}`);
+  }
+  assert.equal(new Set(locations).size, locations.length, "no duplicate locations");
+});
+
 test("the privacy route discloses analytics, replay masking, and opt-out", async () => {
   const response = await render("/privacy");
   assert.equal(response.status, 200);

@@ -68,3 +68,10 @@ test("the production build copies the configured Bradley avatar byte-for-byte", 
     "built model carries the portrait clips plus the retargeted agree and wave gestures",
   );
 });
+
+test("the production build ships robots.txt pointing at the sitemap", async () => {
+  const built = await readFile(new URL("dist/client/robots.txt", repositoryRoot), "utf8");
+  assert.match(built, /^Sitemap: https:\/\/bradleyberkman\.com\/sitemap\.xml$/m);
+  assert.match(built, /^Disallow: \/_portfolio-preview\/$/m);
+  assert.doesNotMatch(built, /^Disallow: \/$/m, "robots.txt must not block the whole site");
+});

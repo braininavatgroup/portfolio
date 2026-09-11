@@ -5,13 +5,16 @@
 //   npm run insights -- --days 30     # a longer Cloudflare window
 //   npm run insights -- --json        # the raw snapshot
 //   npm run insights -- --no-clarity  # skip Clarity's 10-requests-a-day budget
+//   npm run insights -- --history     # every past run, one row each
+//   npm run insights -- --dashboard   # also rewrite dashboard.html and open it
 //
 // Tokens come from CLOUDFLARE_API_TOKEN and CLARITY_API_TOKEN if set, otherwise
 // from the macOS login Keychain entries `scripts/setup-portfolio-insights.sh`
 // writes. Neither token is ever printed or written to disk.
 //
 // Every run appends a rollup to .context/insights/history.jsonl, which is
-// gitignored. That file exists because both sources forget: Cloudflare's free
+// gitignored (or to $PORTFOLIO_INSIGHTS_DIR when set, which is how the
+// scheduled run keeps one history across checkouts). That file exists because both sources forget: Cloudflare's free
 // plan keeps about ten days of Web Analytics and Clarity's export API returns
 // at most three. A daily run is what turns them into a launch time series.
 //
@@ -19,12 +22,17 @@
 // inside .context/.
 
 import { execFile } from "node:child_process";
-import { mkdir, appendFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, readdir, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { renderDashboard } from "./portfolio-insights-dashboard.mjs";
 import { promisify } from "node:util";
 
 import {
   clarityBreakdowns,
   clarityFrustration,
+  deriveBelievable,
+  formatHistory,
   clarityTraffic,
   deriveTrafficShape,
   formatReport,
@@ -36,6 +44,7 @@ import {
   summarizeDaily,
   summarizeEdgeDetail,
   summarizePerformance,
+  summarizePerformanceByDevice,
   windowForDays,
 } from "./portfolio-insights-report.mjs";
 
@@ -153,6 +162,18 @@ function rumDocument() {
               pageLoadTimeP50 pageLoadTimeP75 pageLoadTimeP95
             }
           }
+          performanceByDevice: rumPerformanceEventsAdaptiveGroups(
+            limit: 5
+            filter: $performanceFilter
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { deviceType }
+            quantiles {
+              firstContentfulPaintP50 firstContentfulPaintP75 firstContentfulPaintP95
+              pageLoadTimeP50 pageLoadTimeP75 pageLoadTimeP95
+            }
+          }
         }
       }
     }`;
@@ -183,6 +204,7 @@ async function fetchCloudflare(token, range) {
     daily,
     dimensions,
     performance: summarizePerformance(account.performance?.[0]),
+    performanceByDevice: summarizePerformanceByDevice(account.performanceByDevice ?? []),
     shape: deriveTrafficShape({
       daily,
       referrers: dimensions.refererHost,
@@ -347,8 +369,46 @@ function missingToken(name, account, where) {
   };
 }
 
+// A scheduled run points this at a directory that outlives any one checkout,
+// so worktrees can come and go without losing the launch curve.
+const HISTORY_DIRECTORY = process.env.PORTFOLIO_INSIGHTS_DIR
+  ? new URL(`${process.env.PORTFOLIO_INSIGHTS_DIR.replace(/\/?$/u, "/")}`, "file://")
+  : new URL("../.context/insights/", import.meta.url);
+
+async function readHistory() {
+  try {
+    const text = await readFile(new URL("history.jsonl", HISTORY_DIRECTORY), "utf8");
+    return text
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
+  if (options.dashboard && !options.cloudflare && !options.clarity) {
+    // --dashboard alone: rebuild from what is already on disk and open it.
+    const page = await writeDashboard();
+    await execFileAsync("open", [page]).catch(() => {});
+    process.stdout.write(`${page}\n`);
+    return;
+  }
+  if (options.history) {
+    const rows = await readHistory();
+    process.stdout.write(
+      options.json ? `${JSON.stringify(rows, null, 2)}\n` : `${formatHistory(rows).join("\n")}\n`,
+    );
+    return;
+  }
   const range = windowForDays(options.days);
   const snapshot = {
     capturedAt: new Date().toISOString(),
@@ -383,15 +443,47 @@ async function main() {
         );
   }
 
+  snapshot.believable = deriveBelievable({
+    shape: snapshot.cloudflare?.shape,
+    dimensions: snapshot.cloudflare?.dimensions,
+    clarity: snapshot.clarity?.error ? null : snapshot.clarity,
+  });
+
   if (options.snapshot) await recordSnapshot(snapshot);
+  if (options.snapshot || options.dashboard) {
+    const page = await writeDashboard(snapshot);
+    if (options.dashboard) {
+      await execFileAsync("open", [page]).catch(() => {
+        process.stderr.write(`Dashboard written to ${page}\n`);
+      });
+    }
+  }
 
   process.stdout.write(
     options.json ? `${JSON.stringify(snapshot, null, 2)}\n` : formatReport(snapshot),
   );
 }
 
+/** Rewrites dashboard.html beside the history from this snapshot, or the newest one. */
+async function writeDashboard(snapshot = null) {
+  await mkdir(HISTORY_DIRECTORY, { recursive: true });
+  let latest = snapshot;
+  if (!latest) {
+    const names = (await readdir(HISTORY_DIRECTORY).catch(() => []))
+      .filter((name) => name.startsWith("snapshot-") && name.endsWith(".json"))
+      .sort();
+    const newest = names.at(-1);
+    if (newest) {
+      latest = JSON.parse(await readFile(new URL(newest, HISTORY_DIRECTORY), "utf8"));
+    }
+  }
+  const target = new URL("dashboard.html", HISTORY_DIRECTORY);
+  await writeFile(target, renderDashboard({ snapshot: latest, history: await readHistory() }));
+  return fileURLToPath(target);
+}
+
 async function recordSnapshot(snapshot) {
-  const directory = new URL("../.context/insights/", import.meta.url);
+  const directory = HISTORY_DIRECTORY;
   await mkdir(directory, { recursive: true });
   const stamp = snapshot.capturedAt.replace(/[:.]/gu, "-");
   await writeFile(

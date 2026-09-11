@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   clarityBreakdowns,
+  deriveBelievable,
+  formatDailyTrend,
+  formatHistory,
+  summarizePerformanceByDevice,
   classifyUserAgent,
   formatEdgeDetail,
   isProbePath,
@@ -30,6 +34,8 @@ describe("parseArguments", () => {
       clarity: true,
       cloudflare: true,
       snapshot: true,
+      history: false,
+      dashboard: false,
     });
   });
 
@@ -317,6 +323,8 @@ describe("historyRow", () => {
       cloudflarePageloads: 4504,
       cloudflareVisits: 121,
       cloudflareExternalVisits: 17,
+      believableVisits: null,
+      believableSessions: null,
       edgeRequests: null,
       edgeCrawlerRequests: null,
       edgeProbeRequests: null,
@@ -565,5 +573,110 @@ describe("historyRow edge columns", () => {
     });
     expect(failed.edgeCrawlerRequests).toBeNull();
     expect(failed.edgeRequests).toBe(10);
+  });
+});
+
+describe("deriveBelievable", () => {
+  const dimensions = {
+    requestPath: [
+      { value: "/", pageloads: 3000, visits: 52, share: 0.9 },
+      { value: "/_portfolio-preview/login", pageloads: 45, visits: 33, share: 0.01 },
+    ],
+    refererHost: [
+      { value: "www.linkedin.com", pageloads: 15, visits: 15, share: 0.1 },
+      { value: "127.0.0.1", pageloads: 4, visits: 4, share: 0.01 },
+      { value: "localhost:3000", pageloads: 1, visits: 1, share: 0.01 },
+    ],
+    userAgentBrowser: [
+      { value: "Chrome", pageloads: 210, visits: 33, share: 0.1 },
+      { value: "ChromeHeadless", pageloads: 25, visits: 14, share: 0.01 },
+    ],
+  };
+  const clarity = {
+    traffic: { sessions: 454, humanSessions: 441, botSessions: 13 },
+    breakdowns: {
+      sources: [
+        { value: "www.linkedin.com  ·  Referral", sessions: 130 },
+        { value: "127.0.0.1  ·  Referral", sessions: 4 },
+      ],
+    },
+  };
+
+  it("removes the preview login, localhost, and headless visits from Cloudflare", () => {
+    const believable = deriveBelievable({ shape: { visits: 89 }, dimensions, clarity });
+    expect(believable.cloudflareExcluded).toBe(33 + 4 + 1 + 14);
+    expect(believable.cloudflareVisits).toBe(89 - 52);
+  });
+
+  it("removes only localhost from Clarity, which already excludes enrolled browsers", () => {
+    const believable = deriveBelievable({ shape: { visits: 89 }, dimensions, clarity });
+    expect(believable.clarityExcluded).toBe(4);
+    expect(believable.claritySessions).toBe(437);
+  });
+
+  it("nulls a side that did not run instead of reporting zero", () => {
+    expect(deriveBelievable({ shape: undefined, dimensions: {}, clarity: null })).toEqual({
+      cloudflareVisits: null,
+      cloudflareExcluded: 0,
+      claritySessions: null,
+      clarityExcluded: 0,
+    });
+  });
+});
+
+describe("summarizePerformanceByDevice", () => {
+  it("keeps one row per device, largest sample first, in milliseconds", () => {
+    const rows = summarizePerformanceByDevice([
+      { count: 20, dimensions: { deviceType: "desktop" }, quantiles: { pageLoadTimeP75: 900_000 } },
+      { count: 80, dimensions: { deviceType: "mobile" }, quantiles: { pageLoadTimeP75: 2_100_000 } },
+      { count: 5, dimensions: {}, quantiles: {} },
+    ]);
+    expect(rows.map((row) => row.device)).toEqual(["mobile", "desktop"]);
+    expect(rows[0].pageLoadTime.p75).toBe(2100);
+  });
+});
+
+describe("formatDailyTrend", () => {
+  it("lines up loads, visits, and edge requests by date and marks a missing edge day", () => {
+    const lines = formatDailyTrend(
+      [
+        { date: "2026-09-09", pageloads: 1800, visits: 40 },
+        { date: "2026-09-10", pageloads: 600, visits: 12 },
+      ],
+      [{ date: "2026-09-09", requests: 11052 }],
+    );
+    expect(lines[1]).toContain("2026-09-09");
+    expect(lines[1]).toContain("11052");
+    expect(lines[2]).toContain("     -");
+  });
+
+  it("renders nothing when there is no daily data", () => {
+    expect(formatDailyTrend([], [])).toEqual([]);
+  });
+});
+
+describe("formatHistory", () => {
+  it("prints one row per run, oldest first, with dashes for missing columns", () => {
+    const text = formatHistory([
+      {
+        capturedAt: "2026-09-11T16:00:00.000Z",
+        windowStart: "2026-09-05T00:00:00.000Z",
+        windowEnd: "2026-09-11T23:59:59.000Z",
+        cloudflareVisits: 89,
+        believableVisits: 37,
+        clarityHumanSessions: 441,
+        edgeRequests: 24524,
+      },
+      { capturedAt: "2026-09-10T16:00:00.000Z", cloudflareVisits: 70 },
+    ]).join("\n");
+    const rows = text.split("\n").filter((line) => line.startsWith("  2026-"));
+    expect(rows[0]).toContain("2026-09-10");
+    expect(rows[1]).toContain("7d");
+    expect(rows[1]).toContain("24524");
+    expect(rows[0]).toContain("-");
+  });
+
+  it("says so when there is no history", () => {
+    expect(formatHistory([]).join("\n")).toContain("No history yet");
   });
 });

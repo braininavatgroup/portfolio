@@ -33,10 +33,14 @@ export function parseArguments(argv) {
     clarity: true,
     cloudflare: true,
     snapshot: true,
+    history: false,
+    dashboard: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--json") options.json = true;
+    else if (argument === "--history") options.history = true;
+    else if (argument === "--dashboard") options.dashboard = true;
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
     else if (argument === "--no-snapshot") options.snapshot = false;
@@ -143,6 +147,45 @@ export function microsecondsToMilliseconds(value) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.round(value / 1000)
     : null;
+}
+
+/** Vitals for each device class, largest sample first. */
+export function summarizePerformanceByDevice(groups = []) {
+  return groups
+    .filter((group) => group?.dimensions?.deviceType)
+    .map((group) => ({ device: group.dimensions.deviceType, ...summarizePerformance(group) }))
+    .sort((left, right) => right.samples - left.samples);
+}
+
+/**
+ * The visits and sessions that are plausibly people who are not Bradley,
+ * a reviewer, or a test run. Cloudflare RUM has no opt-out, so this is the
+ * closest thing to a human count it can give; Clarity already drops the
+ * enrolled browsers and buckets bots, so only localhost referrals remain.
+ */
+export function deriveBelievable(
+  /** @type {{ shape?: { visits?: number } | null, dimensions?: Record<string, DimensionRow[]>, clarity?: { traffic?: { humanSessions?: number }, breakdowns?: { sources?: Array<{ value: string, sessions: number }> } } | null }} */
+  { shape, dimensions = {}, clarity } = {},
+) {
+  const visitsWhere = (rows, predicate) =>
+    (rows ?? []).filter(predicate).reduce((sum, row) => sum + row.visits, 0);
+  const cloudflareVisits = shape?.visits ?? null;
+  const cloudflareExcluded =
+    visitsWhere(dimensions.requestPath, (row) => row.value.startsWith("/_portfolio-preview/")) +
+    visitsWhere(dimensions.refererHost, (row) => /^(?:127\.0\.0\.1|localhost)(?::\d+)?$/u.test(row.value)) +
+    visitsWhere(dimensions.userAgentBrowser, (row) => /headless/iu.test(row.value));
+  const claritySessions = clarity?.traffic?.humanSessions ?? null;
+  const clarityExcluded = (clarity?.breakdowns?.sources ?? [])
+    .filter((row) => /^(?:127\.0\.0\.1|localhost)\b/u.test(row.value))
+    .reduce((sum, row) => sum + row.sessions, 0);
+  return {
+    cloudflareVisits:
+      cloudflareVisits === null ? null : Math.max(0, cloudflareVisits - cloudflareExcluded),
+    cloudflareExcluded,
+    claritySessions:
+      claritySessions === null ? null : Math.max(0, claritySessions - clarityExcluded),
+    clarityExcluded,
+  };
 }
 
 export function summarizePerformance(group) {
@@ -328,6 +371,8 @@ export function historyRow(snapshot) {
     cloudflarePageloads: shape.pageloads ?? null,
     cloudflareVisits: shape.visits ?? null,
     cloudflareExternalVisits: shape.externalVisits ?? null,
+    believableVisits: snapshot.believable?.cloudflareVisits ?? null,
+    believableSessions: snapshot.believable?.claritySessions ?? null,
     edgeRequests: edge.daily?.reduce((sum, row) => sum + row.requests, 0) ?? null,
     edgeCrawlerRequests: detail.crawlerRequests ?? null,
     edgeProbeRequests: detail.probeRequests ?? null,
@@ -365,6 +410,24 @@ export function formatReport(snapshot) {
     "",
   );
 
+  const believable = snapshot.believable;
+  if (believable && (believable.cloudflareVisits !== null || believable.claritySessions !== null)) {
+    lines.push("  Believable humans (Bradley's devices, reviewers, localhost and headless runs removed)");
+    if (believable.claritySessions !== null) {
+      lines.push(
+        `    Clarity sessions     ${String(believable.claritySessions).padStart(5)}` +
+          `  (last ${clarity?.days ?? 3} days; ${believable.clarityExcluded} excluded)`,
+      );
+    }
+    if (believable.cloudflareVisits !== null) {
+      lines.push(
+        `    Cloudflare visits    ${String(believable.cloudflareVisits).padStart(5)}` +
+          `  (whole window; ${believable.cloudflareExcluded} excluded; undercounts, see runbook)`,
+      );
+    }
+    lines.push("");
+  }
+
   if (cloudflare?.error) {
     lines.push(`  Cloudflare: ${cloudflare.error}`, "");
   } else if (cloudflare) {
@@ -378,6 +441,7 @@ export function formatReport(snapshot) {
         `${percent(shape.softNavigationShare)} in-app route changes)`,
       "",
     );
+    lines.push(...formatDailyTrend(cloudflare.daily, cloudflare.edge?.daily));
     if (shape.externalReferrers.length === 0) {
       lines.push(
         "    No external referrers in this window: nothing has linked in yet,",
@@ -425,8 +489,16 @@ export function formatReport(snapshot) {
           `p75 ${perf.firstContentfulPaint.p75}ms  p95 ${perf.firstContentfulPaint.p95}ms`,
         `    page load               p50 ${perf.pageLoadTime.p50}ms  ` +
           `p75 ${perf.pageLoadTime.p75}ms  p95 ${perf.pageLoadTime.p95}ms`,
-        "",
       );
+      for (const row of cloudflare.performanceByDevice ?? []) {
+        lines.push(
+          `    ${row.device.padEnd(10)} (${String(row.samples).padStart(4)})  ` +
+            `FCP p75 ${String(row.firstContentfulPaint.p75).padStart(5)}ms  ` +
+            `load p75 ${String(row.pageLoadTime.p75).padStart(5)}ms  ` +
+            `p95 ${String(row.pageLoadTime.p95).padStart(5)}ms`,
+        );
+      }
+      lines.push("");
     }
   }
 
@@ -721,6 +793,61 @@ export function formatEdgeDetail(detail) {
     lines.push(
       ...requestTable(detail.serverErrorPaths, { label: "server errors (5xx) by path", width: 44 }),
       "    Read the Workers Logs for these in the Cloudflare dashboard.",
+    );
+  }
+  lines.push("");
+  return lines;
+}
+
+// ── Trend and history ────────────────────────────────────────────────────────
+
+/** Day-by-day pageloads, visits, and edge requests for the window. */
+export function formatDailyTrend(daily = [], edgeDaily = []) {
+  if (!daily?.length) return [];
+  const edgeByDate = new Map((edgeDaily ?? []).map((row) => [row.date, row.requests]));
+  const lines = ["  daily trend                loads  visits  edge requests"];
+  for (const row of daily) {
+    const edge = edgeByDate.get(row.date);
+    lines.push(
+      `    ${row.date}             ${String(row.pageloads).padStart(6)}  ` +
+        `${String(row.visits).padStart(6)}  ${edge === undefined ? "     -" : String(edge).padStart(6)}`,
+    );
+  }
+  lines.push("");
+  return lines;
+}
+
+/**
+ * One line per past run from history.jsonl, oldest first. Each row is what a
+ * run saw over its own window, so overlapping windows are expected; the
+ * useful read is the direction of the believable columns over time.
+ */
+export function formatHistory(rows = []) {
+  const parsed = rows.filter((row) => row && row.capturedAt).sort((a, b) =>
+    String(a.capturedAt).localeCompare(String(b.capturedAt)),
+  );
+  if (parsed.length === 0) {
+    return ["", "  No history yet. Every `npm run insights` run appends one row.", ""];
+  }
+  const cell = (value, width = 7) => String(value ?? "-").padStart(width);
+  const lines = [
+    "",
+    "Portfolio insights history (one row per run; each covers its own window)",
+    "",
+    "  captured           window  visits  believ  ext   clarity  believ  edge     crawl  probe  5xx",
+  ];
+  for (const row of parsed) {
+    const days =
+      row.windowStart && row.windowEnd
+        ? Math.round((new Date(row.windowEnd) - new Date(row.windowStart)) / 86_400_000)
+        : null;
+    lines.push(
+      `  ${String(row.capturedAt).slice(0, 16).replace("T", " ")}  ` +
+        `${cell(days === null ? "-" : `${days}d`, 6)}${cell(row.cloudflareVisits)}` +
+        `${cell(row.believableVisits)}${cell(row.cloudflareExternalVisits, 5)}` +
+        `${cell(row.clarityHumanSessions, 9)}${cell(row.believableSessions)}` +
+        `${cell(row.edgeRequests, 8)}${cell(row.edgeCrawlerRequests, 6)}` +
+        `${cell(row.edgeProbeRequests, 6)}${cell(row.edgeServerErrors, 5)}`,
     );
   }
   lines.push("");
