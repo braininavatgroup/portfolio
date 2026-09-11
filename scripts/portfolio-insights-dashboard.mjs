@@ -245,6 +245,18 @@ function unavailableReason(state) {
   return state.error ?? "no data collected";
 }
 
+/**
+ * Why an event-derived section has nothing to show. When intelligence exists
+ * but insights has no usable value, an empty list would falsely claim an
+ * empty window, so the section names the insights status and reason instead.
+ */
+function missingEvents(context, subject) {
+  if (context.eventsKnown) return `${subject} unavailable — this snapshot predates journey reporting.`;
+  const state = context.sources.insights;
+  const status = state.status === "stale" ? "stale with no usable value" : "unavailable";
+  return `Event data unavailable — Analytics Engine events are ${status} (${unavailableReason(state)}), so ${subject.toLowerCase()} cannot be shown.`;
+}
+
 // ---------------------------------------------------------------- helpers
 
 function dataTable(columns, rows, { wide = false } = {}) {
@@ -339,7 +351,7 @@ const FINDING_KINDS = {
 };
 
 function whatChanged(context) {
-  const { intelligence, configurationErrors, truncated, sources } = context;
+  const { intelligence, configurationErrors, truncated } = context;
   const parts = [];
   if (configurationErrors.length) {
     parts.push(
@@ -354,19 +366,18 @@ function whatChanged(context) {
         `Analytics Engine returned its 10,000-row cap for this window, so journeys and content measures cover only the earliest events.</div>`,
     );
   }
-  if (!intelligence) {
-    parts.push(
-      empty(
-        sources.insights.status === "unavailable"
-          ? `No findings: they need Analytics Engine journey data, which is unavailable (${unavailableReason(sources.insights)}).`
-          : "No findings: this snapshot predates journey reporting.",
-      ),
-    );
-  } else {
-    const findings = list(intelligence.findings);
+  // Defensive floor: a finding needs five eligible sessions. Assigned-link
+  // findings describe one link, so their small denominators are expected.
+  const findings = list(intelligence?.findings).filter(
+    (finding) => finding && (finding.kind === "assigned-link" || Number(finding.denominator) >= PATTERN_MINIMUM),
+  );
+  if (!intelligence || !context.eventsKnown) parts.push(empty(missingEvents(context, "Findings")));
+  if (intelligence) {
     parts.push(
       findings.length === 0
-        ? empty("Nothing needs a decision in this window.")
+        ? context.eventsKnown
+          ? empty("Nothing needs a decision in this window.")
+          : ""
         : `<ul class="findings">${findings
             .map(
               (finding) =>
@@ -391,13 +402,11 @@ function assignedLinks(context) {
     parts.push(empty(`Identity resolution unavailable — ${unavailableReason(sources.airtable)}. Link activity stays anonymous under Journeys.`));
   }
   if (!intelligence) {
-    if (sources.airtable.status !== "unavailable") {
-      parts.push(empty(`Link activity needs Analytics Engine journey data: ${sources.insights.status === "unavailable" ? unavailableReason(sources.insights) : "this snapshot predates journey reporting"}.`));
-    }
+    if (sources.airtable.status !== "unavailable") parts.push(empty(missingEvents(context, "Link activity")));
     return section("assigned-links", "Assigned links", ["airtable", "insights"], parts.join(""), context);
   }
   const rows = list(intelligence.assignedLinks).filter((row) => row?.assignment);
-  const eventsKnown = sources.insights.status !== "unavailable";
+  const { eventsKnown } = context;
   if (rows.length === 0 && sources.airtable.status !== "unavailable") parts.push(empty("No assigned links to show for this window."));
   for (const { assignment, journeys: rawJourneys } of rows) {
     const journeys = list(rawJourneys)
@@ -442,13 +451,9 @@ function assignedLinks(context) {
 }
 
 function contentResonance(context) {
-  const { intelligence, sources, labelFor, clarity } = context;
-  if (!intelligence) {
-    const parts = [
-      empty(
-        `Per-content measures need Analytics Engine journey data: ${sources.insights.status === "unavailable" ? unavailableReason(sources.insights) : "this snapshot predates journey reporting"}.`,
-      ),
-    ];
+  const { intelligence, labelFor, clarity } = context;
+  if (!intelligence || !context.eventsKnown) {
+    const parts = [empty(missingEvents(context, "Per-content measures"))];
     const pages = list(clarity?.breakdowns?.pages).slice(0, 12);
     if (pages.length) {
       parts.push(
@@ -503,11 +508,9 @@ function patternLabel(row, labelFor) {
 }
 
 function journeysSection(context) {
-  const { intelligence, sources, labelFor } = context;
-  if (!intelligence) {
-    const body = empty(
-      `Journeys need Analytics Engine journey data: ${sources.insights.status === "unavailable" ? unavailableReason(sources.insights) : "this snapshot predates journey reporting"}.`,
-    );
+  const { intelligence, labelFor } = context;
+  if (!intelligence || !context.eventsKnown) {
+    const body = empty(missingEvents(context, "Journeys"));
     return section("journeys", "Journeys", ["insights"], body, context);
   }
   const parts = [];
@@ -557,14 +560,10 @@ function journeysSection(context) {
 }
 
 function audience(context) {
-  const { intelligence, sources, clarity } = context;
+  const { intelligence, clarity } = context;
   const parts = [];
-  if (!intelligence) {
-    parts.push(
-      empty(
-        `Event-level location, source, and device need Analytics Engine journey data: ${sources.insights.status === "unavailable" ? unavailableReason(sources.insights) : "this snapshot predates journey reporting"}.`,
-      ),
-    );
+  if (!intelligence || !context.eventsKnown) {
+    parts.push(empty(missingEvents(context, "Location, source, and device")));
   } else {
     const data = intelligence.audience ?? {};
     const locations = list(data.locations);
@@ -611,8 +610,9 @@ function observeInClarity(context) {
     note("Clarity keeps the click, scroll, and attention maps and the recordings. No documented Clarity URL keeps filters, so each link opens the project and the steps apply that row's filter."),
     note("Optional shortcut: save a Segment per campaign in Clarity (Segments → <name>) and pick it instead of repeating the filter."),
   ];
-  if (!intelligence) {
+  if (!intelligence || !context.eventsKnown) {
     parts.push(
+      empty(missingEvents(context, "Observation rows")),
       observationRow("Assigned link", { kind: "campaign", code: "<campaign code>" }),
       observationRow("Content", { kind: "content", contentId: "<content id>" }),
       observationRow("Network location", { kind: "location", country: "<country>", regionCode: "<state>", city: "<city>" }),
@@ -934,6 +934,9 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
     sources,
     intelligence,
     clarity: usable(sources.clarity),
+    // Computed once: without a usable insights value, event-derived sections
+    // say the data is unavailable rather than claim an empty window.
+    eventsKnown: insights !== null,
     truncated: insights?.raw?.truncated === true,
     configurationErrors,
     labelFor: (/** @type {string} */ id) => labels.get(id) ?? id,

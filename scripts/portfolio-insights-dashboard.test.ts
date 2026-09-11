@@ -11,6 +11,7 @@ import {
   renderDashboard,
   safeExternalLink,
 } from "./portfolio-insights-dashboard.mjs";
+import { buildPortfolioIntelligence } from "./portfolio-insights-intelligence.mjs";
 
 const window = { start: "2026-09-04T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" };
 
@@ -115,6 +116,15 @@ const intelligence = {
       message: "Activity from <Alex & Co>'s assigned link returned after 26 hours",
       count: 2,
       denominator: 2,
+      currentWindow: "2026-09-04 → 2026-09-11",
+      comparisonWindow: "2026-08-28 → 2026-09-03",
+    },
+    {
+      // Below the five-session floor and not an assigned link: must be dropped.
+      kind: "content",
+      message: "Tiny sample content claim",
+      count: 1,
+      denominator: 3,
       currentWindow: "2026-09-04 → 2026-09-11",
       comparisonWindow: "2026-08-28 → 2026-09-03",
     },
@@ -315,6 +325,13 @@ describe("renderDashboard decision sections", () => {
     expect(first).toContain("2026-08-28 → 2026-09-03");
   });
 
+  it("drops a non-assigned-link finding whose denominator is below five", () => {
+    const first = sectionOf(html, "What changed");
+    expect(first).not.toContain("Tiny sample content claim");
+    // Assigned-link findings are about one link, so a small denominator is expected.
+    expect(first).toContain("returned after 26 hours");
+  });
+
   it("withholds a pattern below five sessions and prints raw measures without a score", () => {
     const content = sectionOf(html, "Content resonance");
     expect(content).toContain("Evidence opens rose from 1 of 6 to 2 of 5");
@@ -445,6 +462,118 @@ describe("renderDashboard empty and unavailable states", () => {
     expect(legacy).toContain("Unavailable — dataset missing");
     expect(legacy).toContain("GPTBot (OpenAI)");
     expect(legacy).not.toContain("#<script>");
+  });
+});
+
+describe("renderDashboard when event data is missing but intelligence exists", () => {
+  const withoutEvents = (insights: Record<string, unknown>) =>
+    renderDashboard({
+      snapshot: {
+        capturedAt: "2026-09-11T16:00:00.000Z",
+        window,
+        sources: {
+          clarity: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z", value: clarityValue },
+          cloudflare: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z", value: cloudflareValue },
+          insights,
+          airtable: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z", value: [alex] },
+        },
+        intelligence: {
+          findings: [],
+          assignedLinks: [{ assignment: alex, journeys: [] }],
+          anonymousJourneys: [],
+          content: [],
+          audience: { sources: [], devices: [], locations: [] },
+          diagnostics: { configurationErrors: ["unmapped campaign code: stray-code-9"] },
+        },
+      },
+      history: [],
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+
+  it.each([
+    ["unavailable", { status: "unavailable", capturedAt: null, value: null, error: "dataset not activated" }, "unavailable (dataset not activated)"],
+    [
+      "stale with no usable value",
+      { status: "stale", capturedAt: "2026-09-10T07:10:00.000Z", value: null, error: "Analytics Engine returned 500" },
+      "stale with no usable value (Analytics Engine returned 500)",
+    ],
+  ])("says event data is unavailable when insights is %s instead of claiming an empty window", (_label, insights, reason) => {
+    const page = withoutEvents(insights);
+    for (const claim of [
+      "Nothing needs a decision in this window",
+      "No portfolio content was opened in this window",
+      "No anonymous tab sessions in this window",
+      "No located tab sessions",
+      "None in this window",
+      "No content or locations to observe",
+    ]) {
+      expect(page).not.toContain(claim);
+    }
+    for (const title of ["What changed", "Content resonance", "Journeys", "Audience", "Observe in Clarity"]) {
+      expect(sectionOf(page, title)).toContain(`Event data unavailable — Analytics Engine events are ${reason}`);
+    }
+    // Identity and configuration still render; only activity is unknown.
+    const assigned = sectionOf(page, "Assigned links");
+    expect(assigned).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
+    expect(assigned).toContain("Unavailable");
+    expect(assigned).not.toContain("No link sessions in this window");
+    expect(sectionOf(page, "What changed")).toMatch(/role="alert"[\s\S]*unmapped campaign code: stray-code-9/u);
+  });
+});
+
+// Seam: the dashboard renders what the real reducer produces, not only this
+// file's hand-written fixture. Retire with either module.
+describe("renderDashboard with the real journey reducer", () => {
+  type ReducerInput = Parameters<typeof buildPortfolioIntelligence>[0];
+  const capturedAt = "2026-09-11T16:00:00.000Z";
+  const build = (events: unknown) =>
+    buildPortfolioIntelligence({
+      events,
+      assignments: [alex],
+      contentCatalog: {},
+      clarity: null,
+      cloudflare: null,
+      window,
+    } as unknown as ReducerInput);
+  const render = (intelligence: unknown, insights: Record<string, unknown>) =>
+    renderDashboard({
+      snapshot: {
+        capturedAt,
+        window,
+        sources: {
+          clarity: { status: "fresh", capturedAt, value: clarityValue },
+          cloudflare: { status: "fresh", capturedAt, value: cloudflareValue },
+          insights,
+          airtable: { status: "fresh", capturedAt, value: [alex] },
+        },
+        intelligence,
+      },
+      history: [],
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+
+  it("renders an assigned tab session from reducer output", () => {
+    const events = [
+      event("2026-09-10T15:00:00.000Z", "entry", { campaign: "alex-code-01", source: "email" }),
+      event("2026-09-10T15:01:00.000Z", "content_open", { campaign: "alex-code-01", contentId: "record-9q" }),
+    ];
+    const page = render(build(events), { status: "fresh", capturedAt, value: { raw: { events, truncated: false } } });
+    expect(headings(page).slice(0, 7)).toEqual([
+      "What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity", "Diagnostics",
+    ]);
+    const assigned = sectionOf(page, "Assigned links");
+    expect(assigned).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
+    expect(assigned).toMatch(/Link sessions<\/span><span class="cell-value">1</u);
+    expect(page).not.toContain("<Alex");
+    expect(page).not.toMatch(/<script|<form/iu);
+  });
+
+  it("marks event data unavailable when the reducer ran without events", () => {
+    const page = render(build(null), { status: "unavailable", capturedAt: null, value: null, error: "dataset not activated" });
+    expect(page).not.toContain("Nothing needs a decision in this window");
+    expect(page).not.toContain("No anonymous tab sessions in this window");
+    expect(sectionOf(page, "Journeys")).toContain("Event data unavailable — Analytics Engine events are unavailable (dataset not activated)");
+    expect(sectionOf(page, "Assigned links")).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
   });
 });
 
