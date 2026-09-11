@@ -7,7 +7,7 @@
 // the dashboard's findings; and the launchd installer checks the directory
 // mode before installing. Retire with the scheduled job.
 import { execFileSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,7 @@ import {
 } from "./portfolio-insights-fixture.mjs";
 import { INSIGHT_EVENT_LIMIT, summarizeInsightEvents } from "./portfolio-insights-report.mjs";
 import * as storage from "./portfolio-insights-storage.mjs";
+import { capLog, LOG_LIMIT_BYTES } from "./portfolio-insights.mjs";
 
 const NOW = "2026-09-11T11:10:00.000Z";
 const EARLIER = "2026-09-10T07:10:00.000Z";
@@ -53,6 +54,17 @@ const historyRows = async () =>
     .map((line) => JSON.parse(line));
 const refuse = async () => {
   throw new Error("this source must not be called");
+};
+const configurationError = async () => {
+  throw new AirtableConfigurationError(["duplicate campaign code: alexcode01"]);
+};
+const eventReadFails = async () => {
+  throw new Error("Analytics Engine returned 503");
+};
+/** One dashboard section, from its id to its closing tag. */
+const sectionOf = (html: string, id: string) => {
+  const start = html.indexOf(`id="${id}"`);
+  return html.slice(start, html.indexOf("</section>", start));
 };
 
 function run(argv: string[] = [], overrides: Record<string, unknown> = {}) {
@@ -128,8 +140,52 @@ describe("source failure behavior", () => {
     // Anonymous analytics still render.
     expect(html).toContain(escapeHtml('Record <9Q> & "quotes"'));
     expect(result.output).toContain("duplicate campaign code: alexcode01");
-    // The cached copy is left for a later run, not rewritten.
-    expect((await json("source-airtable.json")).capturedAt).toBe(EARLIER);
+    // The saved identity is replaced by the errors, so no later run can bring it back.
+    expect(await json("source-airtable.json")).toEqual({
+      capturedAt: NOW,
+      value: null,
+      configurationErrors: ["duplicate campaign code: alexcode01"],
+    });
+  });
+
+  it("keeps identity off in a rebuild from disk after a configuration error", async () => {
+    await storage.writeSourceSnapshot(directory, "airtable", fixtureAssignments(), EARLIER);
+    await run([], { fetchers: { airtable: configurationError } });
+
+    const result = await run(["--dashboard", "--no-cloudflare", "--no-clarity"], {
+      now: "2026-09-11T12:00:00.000Z",
+      fetchers: { clarity: refuse, cloudflare: refuse, insightAggregates: refuse, insightEvents: refuse, airtable: refuse },
+    });
+
+    expect(result.snapshot.sources.airtable).toMatchObject({ status: "unavailable", value: null });
+    expect(result.snapshot.sources.airtable.error).toContain("duplicate campaign code: alexcode01");
+    const html = await readFile(result.dashboardPath, "utf8");
+    expect(html).not.toContain("Alex Rivera");
+    expect(html).toContain("duplicate campaign code: alexcode01");
+  });
+
+  it("keeps identity off through an Airtable outage after a configuration error, until a clean read", async () => {
+    await storage.writeSourceSnapshot(directory, "airtable", fixtureAssignments(), EARLIER);
+    await run([], { now: EARLIER, fetchers: { airtable: configurationError } });
+
+    const outage = await run([], {
+      fetchers: {
+        airtable: async () => {
+          throw new AirtableRequestError("Airtable People request failed: HTTP 503", 503);
+        },
+      },
+    });
+
+    expect(outage.snapshot.sources.airtable).toMatchObject({ status: "unavailable", value: null });
+    expect(outage.snapshot.sources.airtable.error).toContain("duplicate campaign code: alexcode01");
+    expect(outage.snapshot.intelligence.diagnostics.identityResolution).toBe("unavailable");
+    expect(await readFile(outage.dashboardPath, "utf8")).not.toContain("Alex Rivera");
+    expect(outage.output).toContain("duplicate campaign code: alexcode01");
+    expect((await json("source-airtable.json")).configurationErrors).toEqual(["duplicate campaign code: alexcode01"]);
+
+    const fixed = await run([], { now: "2026-09-11T12:00:00.000Z" });
+    expect(fixed.snapshot.sources.airtable.status).toBe("fresh");
+    expect(await readFile(fixed.dashboardPath, "utf8")).toContain("Activity from Alex Rivera&#39;s assigned link");
   });
 
   it("names the missing Analytics Engine capability and still renders Clarity and Cloudflare", async () => {
@@ -187,6 +243,40 @@ describe("source failure behavior", () => {
     expect(result.snapshot.intelligence.diagnostics.sessions).toBeGreaterThan(0);
     const rows = await historyRows();
     expect(rows.map((row) => row.intelligence.journeys)).toEqual(["available", "unavailable"]);
+  });
+
+  it("shows stale journeys at their capture time but draws no findings from them", async () => {
+    const captured = "2026-07-03T11:10:00.000Z";
+    const first = await run([], { now: captured });
+    expect(first.snapshot.intelligence.findings.map((finding: { kind: string }) => finding.kind)).toContain("assigned-link");
+
+    // Seventy days later the event read fails and Clarity shows a real rise.
+    const result = await run([], {
+      fetchers: {
+        insightEvents: eventReadFails,
+        clarity: async () => ({ ...fixtureClarity(), frustration: [{ label: "Dead clicks", value: 140, sessionShare: 0.3 }] }),
+      },
+    });
+
+    expect(result.snapshot.sources.insights).toMatchObject({ status: "stale", capturedAt: captured });
+    const kinds = result.snapshot.intelligence.findings.map((finding: { kind: string }) => finding.kind);
+    expect(kinds).toContain("frustration");
+    for (const kind of kinds) expect(["frustration", "error", "performance"]).toContain(kind);
+    const html = await readFile(result.dashboardPath, "utf8");
+    expect(sectionOf(html, "journeys")).toContain("Stale — last good data 2026-07-03 11:10 UTC");
+    expect(result.output).not.toMatch(/returned after|holds attention|evidence-open rate/u);
+  });
+
+  it("keeps the row-cap flag with the raw rows even when decoding dropped some", async () => {
+    const rows = Array.from({ length: INSIGHT_EVENT_LIMIT }, (_, index) =>
+      eventRow({ at: "2026-09-10 12:00:00", action: "entry", session: `tab-${index % 40}`, schema: index % 2 ? "v2" : "v9" }),
+    );
+    await run([], { now: EARLIER, events: rows });
+
+    const result = await run([], { fetchers: { insightEvents: eventReadFails } });
+
+    expect(result.snapshot.sources.insights.status).toBe("stale");
+    expect(result.snapshot.sources.insights.value.raw).toEqual({ truncated: true, eventCount: INSIGHT_EVENT_LIMIT / 2 });
   });
 
   it("renders a valid empty window without fabricating a trend", async () => {
@@ -413,6 +503,35 @@ describe("scheduled job", () => {
     expect(check).toBeGreaterThan(create);
     expect(install).toBeGreaterThan(check);
     expect(script).not.toMatch(/TOKEN/u);
+  });
+
+  it("runs with umask 077 and a 0600 log checked with stat before installing", async () => {
+    const script = await readFile(scheduleUrl, "utf8");
+    expect(script).toMatch(/<key>Umask<\/key>\s*<integer>63<\/integer>/u);
+    expect(script).toMatch(/<key>PORTFOLIO_INSIGHTS_LOG<\/key>\s*<string>\$LOG<\/string>/u);
+    const create = script.indexOf('chmod 600 "$LOG"');
+    const check = script.indexOf("stat -f '%Lp' \"$LOG\"");
+    const install = script.indexOf('launchctl bootstrap "gui/$uid" "$PLIST"');
+    expect(create).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(create);
+    expect(install).toBeGreaterThan(check);
+  });
+
+  it("starts the log over once it passes the cap, keeping it 0600", async () => {
+    await mkdir(directory, { recursive: true });
+    const log = join(directory, "portfolio-insights.log");
+    expect(await capLog(log, 10)).toBe(false);
+
+    await writeFile(log, "x".repeat(10));
+    await chmod(log, 0o644);
+    expect(await capLog(log, 10)).toBe(false);
+    expect((await stat(log)).size).toBe(10);
+
+    await writeFile(log, "Activity from Alex Rivera's assigned link\n");
+    expect(await capLog(log, 10)).toBe(true);
+    expect((await stat(log)).size).toBe(0);
+    expect(await mode(log)).toBe(0o600);
+    expect(LOG_LIMIT_BYTES).toBe(1_048_576);
   });
 
   it("runs every insights suite from test:insights without changing npm test", async () => {

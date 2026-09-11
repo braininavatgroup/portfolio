@@ -7,7 +7,10 @@
 //   source-cloudflare.json   { capturedAt, value }   kept until replaced
 //   source-insights.json     { capturedAt, value }   kept until replaced
 //   source-airtable.json     { capturedAt, value }   identity-bearing, 0600
+//                            or { capturedAt, value: null, configurationErrors }
+//                            after a configuration error, until a clean read
 //   raw-events-YYYY-MM-DDTHH-MM-SS-sssZ.json         deleted after 180 days
+//                            { capturedAt, truncated?, events }
 //   history.jsonl, dashboard.html                    never pruned here
 //
 // How the CLI (runInsights) is expected to call this, per source:
@@ -35,7 +38,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** @typedef {"clarity" | "cloudflare" | "insights" | "airtable"} SourceName */
-/** @typedef {{ capturedAt: string; value: unknown }} SourceSnapshot */
+/** @typedef {{ capturedAt: string; value: unknown; configurationErrors?: string[] }} SourceSnapshot */
 /**
  * @typedef {{
  *   status: "fresh" | "stale" | "unavailable";
@@ -128,7 +131,15 @@ export async function readSourceSnapshot(directory, source) {
       "value" in parsed &&
       typeof parsed.capturedAt === "string"
     ) {
-      return { capturedAt: parsed.capturedAt, value: parsed.value };
+      const problems =
+        "configurationErrors" in parsed && Array.isArray(parsed.configurationErrors)
+          ? parsed.configurationErrors.filter((problem) => typeof problem === "string" && problem !== "")
+          : [];
+      return {
+        capturedAt: parsed.capturedAt,
+        value: parsed.value,
+        ...(problems.length > 0 ? { configurationErrors: problems } : {}),
+      };
     }
   } catch {
     // A torn or hand-edited file is treated as absent, not as a crash.
@@ -150,6 +161,29 @@ export async function writeSourceSnapshot(directory, source, value, capturedAt) 
   if (value instanceof Error) throw new Error(`refusing to store an error as the ${source} snapshot`);
   if (value === undefined) throw new Error(`refusing to store an undefined ${source} snapshot`);
   const snapshot = { capturedAt: isoTime(capturedAt), value };
+  await ensurePrivateDirectory(directory);
+  await writePrivateFile(join(toPath(directory), name), `${JSON.stringify(snapshot)}\n`);
+}
+
+/**
+ * Replaces one source's snapshot with the configuration problems that made
+ * its answer unusable. A request failure must never touch the last-known-good
+ * file (see writeSourceSnapshot); a configuration error is different, because
+ * the saved value is built on the same broken configuration. It is dropped,
+ * and the run treats the source as unavailable with these problems until a
+ * later fetch parses cleanly and replaces this file.
+ * @param {string | URL} directory
+ * @param {string} source
+ * @param {string[]} problems
+ * @param {string | Date} capturedAt
+ * @returns {Promise<void>}
+ */
+export async function writeSourceConfigurationError(directory, source, problems, capturedAt) {
+  const name = sourceFileName(source);
+  if (!Array.isArray(problems) || problems.length === 0 || problems.some((problem) => typeof problem !== "string" || problem === "")) {
+    throw new Error(`refusing to store an empty ${source} configuration error`);
+  }
+  const snapshot = { capturedAt: isoTime(capturedAt), value: null, configurationErrors: problems };
   await ensurePrivateDirectory(directory);
   await writePrivateFile(join(toPath(directory), name), `${JSON.stringify(snapshot)}\n`);
 }
@@ -178,17 +212,21 @@ export function rawEventsFileName(capturedAt) {
 
 /**
  * Writes one run's event-level results as their own expiring file.
+ * `truncated` records whether the read hit its row cap, which the rows alone
+ * cannot say once decoding has dropped some.
  * @param {string | URL} directory
  * @param {unknown[]} events
  * @param {string | Date} capturedAt
+ * @param {{ truncated?: boolean }} [meta]
  * @returns {Promise<string>} the written path
  */
-export async function writeRawEvents(directory, events, capturedAt) {
+export async function writeRawEvents(directory, events, capturedAt, { truncated } = {}) {
   if (!Array.isArray(events)) throw new Error("raw events must be an array");
   const at = isoTime(capturedAt);
   await ensurePrivateDirectory(directory);
   const path = join(toPath(directory), rawEventsFileName(at));
-  await writePrivateFile(path, `${JSON.stringify({ capturedAt: at, events })}\n`);
+  const body = typeof truncated === "boolean" ? { capturedAt: at, truncated, events } : { capturedAt: at, events };
+  await writePrivateFile(path, `${JSON.stringify(body)}\n`);
   return path;
 }
 
@@ -228,7 +266,7 @@ export async function pruneRawSnapshots(directory, now, retentionDays = RAW_EVEN
  * @param {string | URL} directory
  * @param {string | number | Date} now
  * @param {number} [retentionDays]
- * @returns {Promise<{ capturedAt: string; events: unknown[] } | null>}
+ * @returns {Promise<{ capturedAt: string; events: unknown[]; truncated?: boolean } | null>}
  */
 export async function readLatestRawEvents(directory, now, retentionDays = RAW_EVENTS_RETENTION_DAYS) {
   const nowMs = new Date(now).getTime();
@@ -243,7 +281,11 @@ export async function readLatestRawEvents(directory, now, retentionDays = RAW_EV
     try {
       const parsed = JSON.parse(await readFile(join(path, name), "utf8"));
       if (parsed && typeof parsed.capturedAt === "string" && Array.isArray(parsed.events)) {
-        return { capturedAt: parsed.capturedAt, events: parsed.events };
+        return {
+          capturedAt: parsed.capturedAt,
+          events: parsed.events,
+          ...(typeof parsed.truncated === "boolean" ? { truncated: parsed.truncated } : {}),
+        };
       }
     } catch {
       // A torn file is skipped; the next newest one may still be good.

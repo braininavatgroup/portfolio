@@ -77,6 +77,16 @@ if [[ "$history_mode" != "700" ]]; then
   exit 1
 fi
 
+# The log repeats the terminal report, which names assigned links: owner-only
+# as well, and each run starts it over once it passes 1 MB.
+touch "$LOG"
+chmod 600 "$LOG"
+log_mode="$(stat -f '%Lp' "$LOG")"
+if [[ "$log_mode" != "600" ]]; then
+  printf 'Refusing to install: %s is mode %s, not 600.\n' "$LOG" "$log_mode" >&2
+  exit 1
+fi
+
 cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -88,6 +98,8 @@ cat > "$PLIST" <<PLIST
 <dict>
     <key>Label</key>
     <string>$LABEL</string>
+    <key>Umask</key>
+    <integer>63</integer>
     <key>ProgramArguments</key>
     <array>
         <string>$node_bin</string>
@@ -118,6 +130,8 @@ cat > "$PLIST" <<PLIST
         <string>$(dirname "$node_bin"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
         <key>PORTFOLIO_INSIGHTS_DIR</key>
         <string>$HISTORY_DIR</string>
+        <key>PORTFOLIO_INSIGHTS_LOG</key>
+        <string>$LOG</string>
     </dict>
 </dict>
 </plist>

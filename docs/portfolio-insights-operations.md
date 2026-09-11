@@ -230,6 +230,9 @@ moves the history there; a manual run without it still writes to
 `--now` also kicks off a run immediately; `--remove` unloads and deletes the
 job and keeps the history. The installer creates the history directory as
 mode `0700` and refuses to install the job if `stat` reports anything else.
+The log repeats the terminal report, which names assigned links, so the job
+runs with umask `077`, the installer creates the log as mode `0600` and checks
+it the same way, and each run starts the log over once it passes 1 MB.
 No token is written into the job's property list. The installer refuses an ephemeral Conductor
 worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
 from one. The job runs whatever that clone has checked out, so keep it on
@@ -359,13 +362,14 @@ renamed into place.
 
 | File | Holds | Kept |
 | --- | --- | --- |
-| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-airtable.json` | `{ capturedAt, value }`: the last response from that source that parsed | Until a later run parses a new one |
-| `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows | 180 days, judged by the timestamp in the file name |
+| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-airtable.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Airtable configuration error, `source-airtable.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
+| `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, and whether the read hit its row cap | 180 days, judged by the timestamp in the file name |
 | `history.jsonl` | One aggregate rollup per run, with no names or event sequences | Indefinitely |
 | `dashboard.html` | The latest dashboard | Replaced by each run |
 
 `source-airtable.json` and `dashboard.html` contain recipient names and
-companies. Do not commit, copy, or upload them.
+companies, and the scheduled job's log names assigned links. Do not commit,
+copy, or upload them.
 
 Each dashboard section shows its source's state:
 
@@ -385,12 +389,14 @@ not:
   show the saved value. `--no-airtable` is different: it renders with no
   identity at all and ignores the saved Airtable copy.
 - An Airtable configuration error (a duplicate or malformed code, or an Action
-  linked to more than one Person, Job, or Company) also ignores the saved
-  copy. Every link stays unattributed and the anonymous analytics still
-  render.
+  linked to more than one Person, Job, or Company) replaces the saved copy
+  with the errors, so neither a rebuild nor a later Airtable outage can bring
+  cached names back. Every link stays unattributed until a run reads Airtable
+  cleanly, and the anonymous analytics still render.
 - The aggregate Analytics Engine counts and the event-level read are
   separate. If only the event read fails, the counts survive and the journeys
-  come from the newest `raw-events-*.json` within 180 days, marked stale. If
+  come from the newest `raw-events-*.json` within 180 days, marked stale with their capture time. Stale journeys produce
+  no findings; only this run's Clarity and Cloudflare findings appear. If
   the sink is unreachable or not activated, the dashboard names the missing
   capability and still shows Clarity and Cloudflare.
 - The history row records only what this run measured. A stale or missing

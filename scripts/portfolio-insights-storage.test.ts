@@ -17,6 +17,7 @@ import {
   resolveSourceResult,
   writePrivateFile,
   writeRawEvents,
+  writeSourceConfigurationError,
   writeSourceSnapshot,
 } from "./portfolio-insights-storage.mjs";
 
@@ -52,6 +53,40 @@ describe("latest raw events", () => {
     await writeRawEvents(directory, [{ step: 1 }], "2026-01-01T00:00:00.000Z");
     expect(await readLatestRawEvents(directory, "2026-09-11T00:00:00.000Z")).toBeNull();
     expect(await readLatestRawEvents(join(root, "missing"), "2026-09-11T00:00:00.000Z")).toBeNull();
+  });
+
+  it("keeps the row-cap flag with the rows", async () => {
+    await writeRawEvents(directory, [{ step: 1 }], "2026-09-10T07:10:00.000Z", { truncated: true });
+    expect(await readLatestRawEvents(directory, "2026-09-11T00:00:00.000Z")).toEqual({
+      capturedAt: "2026-09-10T07:10:00.000Z",
+      events: [{ step: 1 }],
+      truncated: true,
+    });
+  });
+});
+
+// Owns: an Airtable configuration error replaces the saved identity, so no
+// later rebuild or outage can bring cached names back. Retire with Airtable.
+describe("stored configuration errors", () => {
+  it("replaces the saved copy with the errors, privately, and reads them back", async () => {
+    await writeSourceSnapshot(directory, "airtable", [{ name: "Alex" }], "2026-09-10T07:10:00.000Z");
+    await writeSourceConfigurationError(directory, "airtable", ["duplicate campaign code: abc123"], "2026-09-11T07:10:00.000Z");
+
+    expect(await readSourceSnapshot(directory, "airtable")).toEqual({
+      capturedAt: "2026-09-11T07:10:00.000Z",
+      value: null,
+      configurationErrors: ["duplicate campaign code: abc123"],
+    });
+    const path = join(directory, "source-airtable.json");
+    expect(await readFile(path, "utf8")).not.toContain("Alex");
+    expect(await mode(path)).toBe(0o600);
+  });
+
+  it("refuses an empty or non-text problem list", async () => {
+    await expect(writeSourceConfigurationError(directory, "airtable", [], "2026-09-11T07:10:00.000Z")).rejects.toThrow();
+    await expect(
+      writeSourceConfigurationError(directory, "airtable", [new Error("x")] as unknown as string[], "2026-09-11T07:10:00.000Z"),
+    ).rejects.toThrow();
   });
 });
 

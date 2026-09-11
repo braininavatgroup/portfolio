@@ -34,7 +34,7 @@
 
 import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { chmod, readFile, stat, truncate } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -507,6 +507,9 @@ const SKIP_FLAGS = {
   airtable: "--no-airtable",
 };
 
+/** Findings that come from this run's Clarity and Cloudflare signals, not from event rows. */
+const SOURCE_FINDING_KINDS = new Set(["frustration", "error", "performance"]);
+
 const ANALYTICS_ENGINE_CAPABILITY =
   "Analytics Engine unavailable (needs Account Analytics Read on the Cloudflare token " +
   "and a deployment with PORTFOLIO_INSIGHT_EVENTS_SINK=analytics-engine)";
@@ -566,9 +569,14 @@ function defaultDirectory(env) {
 /**
  * One source's state for this run. A skipped source shows its saved value
  * (unless `useSaved` is false). A fetch that answers is written as the new
- * last-known-good only after it returned a parsed value; a failure leaves the
- * file alone and falls back to it, unless `refusesSaved` says the failure
- * makes the saved copy untrustworthy.
+ * last-known-good only after it returned a parsed value; a request failure
+ * leaves the file alone and falls back to it.
+ *
+ * A configuration error (`isConfigurationError`) is not a request failure:
+ * the saved value rests on the same broken configuration, so the file is
+ * replaced by the problems. A stored configuration error then outranks any
+ * saved value through skips, rebuilds, and outages, and the source stays
+ * unavailable with those problems until a fetch parses cleanly.
  */
 async function resolveSourceState({
   name,
@@ -578,28 +586,40 @@ async function resolveSourceState({
   record,
   storage,
   useSaved = true,
-  refusesSaved = () => false,
+  isConfigurationError = () => false,
+  onConfigurationErrors = () => {},
   describe = messageOf,
 }) {
+  const saved = useSaved ? await storage.readSourceSnapshot(directory, name) : null;
+  const blocked = saved?.configurationErrors?.length ? saved.configurationErrors : null;
+  const refuse = (problems) => {
+    onConfigurationErrors(problems);
+    return { status: "unavailable", capturedAt: null, value: null, error: problems.join("; ") };
+  };
   if (!fetch) {
-    const previous = useSaved ? await storage.readSourceSnapshot(directory, name) : null;
+    if (blocked) return refuse(blocked);
     return storage.resolveSourceResult({
-      previous,
-      error: previous ? undefined : `not requested (${SKIP_FLAGS[name]})`,
+      previous: saved,
+      error: saved ? undefined : `not requested (${SKIP_FLAGS[name]})`,
       capturedAt,
     });
   }
-  const previous = await storage.readSourceSnapshot(directory, name);
   let fresh;
   try {
     fresh = await fetch();
     if (fresh === undefined || fresh === null) throw new Error(`${name} answered nothing`);
   } catch (error) {
-    if (refusesSaved(error)) return { status: "unavailable", capturedAt: null, value: null, error: messageOf(error) };
-    return storage.resolveSourceResult({ previous, error: describe(error), capturedAt });
+    if (isConfigurationError(error)) {
+      const listed = Array.isArray(error?.problems) ? error.problems.filter((problem) => typeof problem === "string" && problem) : [];
+      const problems = listed.length > 0 ? listed : [messageOf(error)];
+      if (record) await storage.writeSourceConfigurationError(directory, name, problems, capturedAt);
+      return refuse(problems);
+    }
+    if (blocked) return refuse(blocked);
+    return storage.resolveSourceResult({ previous: saved, error: describe(error), capturedAt });
   }
   if (record) await storage.writeSourceSnapshot(directory, name, fresh, capturedAt);
-  return storage.resolveSourceResult({ fresh, previous, capturedAt });
+  return storage.resolveSourceResult({ fresh, previous: saved, capturedAt });
 }
 
 /**
@@ -625,8 +645,8 @@ async function resolveEvents({ fetch, directory, capturedAt, storage }) {
       status: "stale",
       capturedAt: latest.capturedAt,
       events: latest.events,
-      // The raw file keeps the rows, not the flag; a full page is the same signal.
-      truncated: latest.events.length >= INSIGHT_EVENT_LIMIT,
+      // Raw files written before the flag was stored fall back to a full page.
+      truncated: typeof latest.truncated === "boolean" ? latest.truncated : latest.events.length >= INSIGHT_EVENT_LIMIT,
       ...(error ? { error } : {}),
     };
   }
@@ -729,10 +749,9 @@ export async function runInsights(options, dependencies = {}) {
     // --no-airtable means no identity at all, not yesterday's identity.
     useSaved: options.airtable,
     // A duplicate or malformed code makes every saved join suspect too.
-    refusesSaved: (error) => {
-      if (!(error instanceof AirtableConfigurationError)) return false;
-      airtableProblems = error.problems;
-      return true;
+    isConfigurationError: (error) => error instanceof AirtableConfigurationError,
+    onConfigurationErrors: (problems) => {
+      airtableProblems = problems;
     },
   });
   const events = await resolveEvents({
@@ -762,6 +781,13 @@ export async function runInsights(options, dependencies = {}) {
   // History records journeys only when this run read them; stale or missing
   // rows go in as `events: null`, which summarizes as unavailable, never zero.
   const recordedIntelligence = events.status === "fresh" ? intelligence : derive(null);
+  // Stale journeys still show, labelled with the raw file's capture time, but
+  // they are not evidence about this window: only findings from this run's
+  // Clarity and Cloudflare signals survive.
+  const shownIntelligence =
+    events.status === "fresh"
+      ? intelligence
+      : { ...intelligence, findings: intelligence.findings.filter((finding) => SOURCE_FINDING_KINDS.has(finding.kind)) };
 
   const aggregate = shown(insights);
   const raw = events.events ? { truncated: events.truncated, eventCount: events.events.length } : null;
@@ -795,7 +821,7 @@ export async function runInsights(options, dependencies = {}) {
       dimensions: cloudflareValue?.dimensions,
       clarity: clarityValue,
     }),
-    intelligence: events.status === "unavailable" ? null : intelligence,
+    intelligence: events.status === "unavailable" ? null : shownIntelligence,
   };
   const configurationErrors = [
     ...new Set([...airtableProblems, ...(snapshot.intelligence?.diagnostics?.configurationErrors ?? [])]),
@@ -828,7 +854,9 @@ export async function runInsights(options, dependencies = {}) {
   };
 
   // Write order: source snapshots (above) → raw events → history → dashboard → prune.
-  if (record && events.status === "fresh") await storage.writeRawEvents(directory, events.events, capturedAt);
+  if (record && events.status === "fresh") {
+    await storage.writeRawEvents(directory, events.events, capturedAt, { truncated: events.truncated });
+  }
   if (record) {
     let existing = "";
     try {
@@ -859,8 +887,38 @@ export async function runInsights(options, dependencies = {}) {
   return { exitCode: useful ? 0 : 1, output, snapshot, dashboardPath };
 }
 
+/** The scheduled job's log starts over past this size. */
+export const LOG_LIMIT_BYTES = 1_048_576;
+
+/**
+ * The launchd log repeats the terminal report, which names assigned links.
+ * Keep it owner-only and start it over once it passes `limit` bytes. launchd
+ * holds the file open for appending, so this run's output lands at the start
+ * of the emptied file.
+ * @param {string | undefined} path
+ * @param {number} [limit]
+ * @returns {Promise<boolean>} whether the log was emptied
+ */
+export async function capLog(path, limit = LOG_LIMIT_BYTES) {
+  if (!path) return false;
+  let size;
+  try {
+    size = (await stat(path)).size;
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") return false;
+    throw error;
+  }
+  await chmod(path, 0o600);
+  if (size <= limit) return false;
+  await truncate(path, 0);
+  return true;
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
+  // The installer sets PORTFOLIO_INSIGHTS_LOG to the job's own log; a manual
+  // run has none. A log that cannot be capped never stops the report.
+  await capLog(process.env.PORTFOLIO_INSIGHTS_LOG).catch(() => false);
   const result = await runInsights(options);
   process.stdout.write(result.output);
   if (options.dashboard && result.dashboardPath) {
