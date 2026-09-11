@@ -38,9 +38,13 @@ import {
   deriveTrafficShape,
   formatReport,
   historyRow,
+  INSIGHT_DATASET,
+  insightEventQuery,
+  insightWindowClause,
   mergeDayGroups,
   parseArguments,
   rankDimension,
+  readInsightEventRows,
   summarizeClarity,
   summarizeDaily,
   summarizeEdgeDetail,
@@ -367,26 +371,19 @@ async function fetchClarity(token, days) {
 
 const ANALYTICS_ENGINE_ENDPOINT =
   `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_TAG}/analytics_engine/sql`;
-const INSIGHT_DATASET = "portfolio_insights";
 const INSIGHT_ROW_LIMIT = 25;
 
-/** SQL string literal; the only values interpolated are ISO dates and names this file owns. */
-function sqlString(value) {
-  return `'${String(value).replace(/'/gu, "''")}'`;
-}
-
 /**
- * The four questions the report asks the sink. Column positions follow the
- * blob layout in `lib/server/portfolio-insight-sink.ts`: blob1 action, blob2
- * content_id, blob3 content_kind, blob4 campaign, blob5 contact_kind, double1
- * active seconds, double2 completion. Rows are sampled at volume, so every
- * count is `SUM(_sample_interval)` and every quantile is sample-weighted.
+ * The four aggregate questions the report asks the sink. Column positions
+ * follow the blob layout in `lib/server/portfolio-insight-sink.ts`: blob1
+ * action, blob2 content_id, blob3 content_kind, blob4 campaign, blob5
+ * contact_kind, double1 active seconds, double2 completion. Rows are sampled
+ * at volume, so every count is `SUM(_sample_interval)` and every quantile is
+ * sample-weighted. The event-level read is `insightEventQuery` in the report
+ * module, beside the normalizer that decodes it.
  */
 function insightQueries(range) {
-  const start = range.start.slice(0, 19).replace("T", " ");
-  const end = range.end.slice(0, 19).replace("T", " ");
-  const inWindow =
-    `timestamp >= toDateTime(${sqlString(start)}) AND timestamp <= toDateTime(${sqlString(end)})`;
+  const inWindow = insightWindowClause(range);
   return {
     actions: `
       SELECT blob1 AS action, SUM(_sample_interval) AS events
@@ -445,6 +442,9 @@ async function analyticsEngineSql(token, query) {
  * Analytics Read on the Cloudflare token, the same row Web Analytics uses.
  * A dataset that has never been written to answers with an error rather than
  * an empty table, which the report shows as the same one-line note.
+ *
+ * `raw` carries the event-level rows for journeys, beside the aggregate
+ * answers; `events` stays the aggregate count the terminal and history read.
  */
 async function fetchInsightEvents(token, range) {
   const queries = insightQueries(range);
@@ -452,10 +452,12 @@ async function fetchInsightEvents(token, range) {
   for (const [name, query] of Object.entries(queries)) {
     answers[name] = await analyticsEngineSql(token, query);
   }
+  const raw = readInsightEventRows(await analyticsEngineSql(token, insightEventQuery(range)));
   return {
     source: "analytics-engine",
     dataset: INSIGHT_DATASET,
     ...summarizeInsightEvents(answers),
+    raw,
   };
 }
 
