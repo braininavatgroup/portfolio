@@ -6,10 +6,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLARITY_PROJECT_URL,
+  CLARITY_STEPS,
+  contentTrend,
+  decisionTiles,
   headlineTiles,
   historySeries,
   renderDashboard,
   safeExternalLink,
+  sourceBadge,
 } from "./portfolio-insights-dashboard.mjs";
 import { buildPortfolioIntelligence } from "./portfolio-insights-intelligence.mjs";
 
@@ -247,11 +251,55 @@ const hostile = {
   intelligence,
 };
 
-const html = renderDashboard({
-  snapshot: hostile,
-  history: [{ capturedAt: "2026-09-11T16:00:00Z", believableSessions: 437, believableVisits: 38, edgeRequests: 3567 }],
-  generatedAt: "2026-09-11T16:30:00.000Z",
+/** One aggregate history row: only what a run may keep indefinitely. */
+const historyRun = (
+  capturedAt: string,
+  sessions: number,
+  evidenceSessions: number,
+  contactSessions: number,
+  content: Array<[string, number]>,
+  journeys = "available",
+) => ({
+  capturedAt,
+  believableSessions: 430 + sessions,
+  believableVisits: 30 + sessions,
+  edgeRequests: 3560 + sessions,
+  intelligence: {
+    version: 1,
+    journeys,
+    window,
+    sessions,
+    evidenceSessions,
+    contactSessions,
+    content: content.map(([contentId, count]) => ({
+      contentId,
+      sessions: count,
+      attentionSessions: count,
+      evidenceSessions: 0,
+      contactSessions: 0,
+      medianActiveSeconds: 40,
+      medianCompletionPercent: 80,
+    })),
+    locations: [],
+    sources: [],
+    devices: [],
+    clarity: null,
+    cloudflare: null,
+  },
 });
+
+const history = [
+  historyRun("2026-09-09T16:00:00Z", 5, 1, 0, [["record-9q", 3]]),
+  historyRun("2026-09-10T16:00:00Z", 6, 2, 1, [["record-9q", 4], ["thread-<2>", 1]]),
+  historyRun("2026-09-11T16:00:00Z", 7, 1, 1, [["record-9q", 5], ["thread-<2>", 2]]),
+];
+
+const html = renderDashboard({ snapshot: hostile, history, generatedAt: "2026-09-11T16:30:00.000Z" });
+
+/** How many times a literal appears, for "say it once" contracts. */
+const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
+const decisionStripOf = (page: string) =>
+  page.slice(page.indexOf('<div class="tiles decision">'), page.indexOf(">What changed</h2>"));
 
 const headings = (page: string) =>
   [...page.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gu)].map((match) => match[1]);
@@ -302,14 +350,36 @@ describe("renderDashboard decision sections", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("shows each section's source window and freshness, and labels stale data", () => {
-    for (const title of ["What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity"]) {
-      expect(sectionOf(html, title)).toMatch(/class="sources"/u);
+  it("carries one freshness strip at the top and a short badge in each section", () => {
+    const strip = html.slice(html.indexOf('<ul class="freshness">'), html.indexOf("</ul>"));
+    for (const label of ["Analytics Engine events", "Airtable assignments", "Clarity", "Cloudflare Web Analytics"]) {
+      expect(strip).toContain(label);
     }
-    expect(html).toContain("Stale — last good data 2026-09-10 07:10 UTC");
-    expect(html).toContain("Fresh — captured 2026-09-11 16:00 UTC");
-    expect(html).toContain("2026-09-04 → 2026-09-11");
-    expect(sectionOf(html, "Observe in Clarity")).toContain("Clarity returned 429");
+    // The strip is the one place that carries each window and full state.
+    expect(strip).toContain("Stale — last good data 2026-09-10 07:10 UTC");
+    expect(strip).toContain("Fresh — captured 2026-09-11 16:00 UTC");
+    expect(strip).toContain("2026-09-04 → 2026-09-11");
+    expect(strip).toContain("Clarity returned 429");
+
+    for (const title of ["What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity"]) {
+      expect(sectionOf(html, title)).toMatch(/class="badges"/u);
+    }
+    // A same-day capture reads as a clock; an older one keeps its date.
+    expect(sectionOf(html, "Journeys")).toContain("Events · Fresh 16:00");
+    expect(sectionOf(html, "Observe in Clarity")).toContain("Clarity · Stale 09-10 07:10");
+  });
+
+  it("repeats a source's reason under a heading only when it is not fresh", () => {
+    // Journeys names only the fresh Analytics Engine source: no grey line at all.
+    const journeys = sectionOf(html, "Journeys");
+    expect(journeys).toContain("Events · Fresh 16:00");
+    expect(count(journeys, 'class="source-note"')).toBe(0);
+    // Observe in Clarity names the stale Clarity source, so it says why once.
+    const observe = sectionOf(html, "Observe in Clarity");
+    expect(count(observe, 'class="source-note"')).toBe(1);
+    expect(observe).toContain("Clarity returned 429");
+    // What changed names all four, and only the two stale ones explain.
+    expect(count(sectionOf(html, "What changed"), 'class="source-note"')).toBe(2);
   });
 
   it("puts configuration errors and truncation on the first screen", () => {
@@ -332,21 +402,26 @@ describe("renderDashboard decision sections", () => {
     expect(first).toContain("returned after 26 hours");
   });
 
-  it("withholds a pattern below five sessions and prints raw measures without a score", () => {
+  it("withholds a pattern below five sessions, saying so once, and prints no score", () => {
     const content = sectionOf(html, "Content resonance");
     expect(content).toContain("Evidence opens rose from 1 of 6 to 2 of 5");
-    expect(content).toContain("not enough data for a pattern");
     expect(content).not.toContain("Held attention better than every other thread");
     expect(content).toContain("40% (2 of 5)");
     expect(content).toContain("20% (1 of 5)");
     expect(content).not.toMatch(/score/iu);
+    // One line for the whole section, not one per thin row.
+    expect(content).toContain("1 row below 5 eligible sessions");
+    expect(count(content, "not enough data for a pattern")).toBe(1);
   });
 
   it("renders a missing median as missing, never as zero", () => {
     const content = sectionOf(html, "Content resonance");
     // Anchor on the row start: the record row's "Next content" cell also names this thread.
-    const threadRow = content.slice(content.indexOf("<tr><td>thread-&lt;2&gt;</td>") + "<tr>".length);
-    expect(threadRow).toMatch(/^<td>thread-&lt;2&gt;<\/td><td>thread<\/td><td>2<\/td><td>No attention data<\/td><td>No attention data<\/td>/u);
+    const start = content.indexOf('<span class="cell-strong">thread-&lt;2&gt;</span>');
+    expect(start).toBeGreaterThan(-1);
+    const threadRow = content.slice(start, content.indexOf("</tr>", start));
+    expect(threadRow).toContain('<span class="cell-sub">thread</span>');
+    expect(count(threadRow, "No attention data")).toBe(2);
     expect(content).not.toMatch(/>0s<|>0%</u);
   });
 
@@ -369,13 +444,20 @@ describe("renderDashboard decision sections", () => {
     expect(journeys).toContain("Anonymous tab sessions");
   });
 
-  it("links each observation to the Clarity project with exact manual filter steps", () => {
+  it("prints the Clarity steps once and repeats only each row's filter value", () => {
     const observe = sectionOf(html, "Observe in Clarity");
     expect(observe).toContain(`href="${CLARITY_PROJECT_URL}"`);
     expect(CLARITY_PROJECT_URL).toBe("https://clarity.microsoft.com/projects/view/yatoiqtrjm/");
     for (const text of ["portfolio_campaign", "alex-code-01", "portfolio_content_id", "record-9q", "City", "New York", "Click / Scroll / Attention", "Recordings", "Segments"]) {
       expect(observe).toContain(text);
     }
+    // The steps and the project link belong to the section, not to every row.
+    for (const step of CLARITY_STEPS) expect(count(observe, step)).toBe(1);
+    expect(count(observe, "Open the Clarity project")).toBe(1);
+    expect(count(observe, "Click / Scroll / Attention")).toBe(1);
+    // Only the link that actually has sessions earns a row, with its own value.
+    expect(count(observe, "Custom tags → portfolio_campaign")).toBe(1);
+    expect(count(observe, "Custom tags → portfolio_content_id")).toBe(2);
   });
 
   it("is self-contained: no scripts, forms, external resources, or disallowed links", () => {
@@ -393,13 +475,14 @@ describe("renderDashboard decision sections", () => {
   });
 
   it("agrees count and noun wherever it prints a count", () => {
-    // Paths reaching evidence total one session; the reducer diagnostics carry
-    // a one-item array; the anonymous journey has two events.
-    expect(sectionOf(html, "Journeys")).toContain("1 session: not enough data for a pattern.");
-    expect(sectionOf(html, "Journeys")).toContain("2 sessions: not enough data for a pattern.");
-    expect(sectionOf(html, "Journeys")).toContain("· 2 events");
-    expect(html).toContain("<td>1 item</td>");
-    expect(html).not.toMatch(/\b1 (sessions|events|items|days)\b/u);
+    // The thin pattern groups are named once, together; the reducer diagnostics
+    // carry a one-item array; the anonymous journey has two events.
+    const journeys = sectionOf(html, "Journeys");
+    expect(journeys).toContain("5 groups below 5 tab sessions");
+    expect(count(journeys, "not enough data for a pattern")).toBe(1);
+    expect(journeys).toContain("· 2 events");
+    expect(html).toContain('<td class="num">1 item</td>');
+    expect(html).not.toMatch(/\b1 (sessions|events|items|days|rows|groups)\b/u);
     const oneDay = renderDashboard({
       snapshot: { capturedAt: "2026-09-11T16:00:00.000Z", window, clarity: { ...clarityValue, days: 1 } },
       history: [],
@@ -605,6 +688,96 @@ describe("renderDashboard with the real journey reducer", () => {
     expect(page).not.toContain("No anonymous tab sessions in this window");
     expect(sectionOf(page, "Journeys")).toContain("Event data unavailable — Analytics Engine events are unavailable (dataset not activated)");
     expect(sectionOf(page, "Assigned links")).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
+  });
+});
+
+// The page has to answer "what needs me today" before it is read. These own
+// the decision strip, its comparisons, and the per-row trend marks.
+describe("the decision strip", () => {
+  it("leads with the counts that drive a decision", () => {
+    const strip = decisionStripOf(html);
+    for (const label of ["Assigned links active", "Link sessions", "Content opens", "Evidence opens", "Contact actions"]) {
+      expect(strip).toContain(label);
+    }
+    expect(strip).toContain("1 of 3");
+    // It sits above the first section, not inside one.
+    expect(html.indexOf('<div class="tiles decision">')).toBeLessThan(html.indexOf(">What changed</h2>"));
+  });
+
+  it("prints the change against the previous run, and a sparkline where history supports one", () => {
+    const tiles = decisionTiles({ intelligence, eventsKnown: true, history, today: "2026-09-11T16:30:00.000Z" });
+    expect(tiles.map((tile) => tile.label)).toEqual([
+      "Assigned links active",
+      "Link sessions",
+      "Content opens",
+      "Evidence opens",
+      "Contact actions",
+    ]);
+    expect(tiles[2]).toMatchObject({ value: 7, delta: 2, comparedWith: "2026-09-10", series: [3, 5, 7] });
+    expect(tiles[3]).toMatchObject({ value: 1, delta: -1 });
+    expect(tiles[4]).toMatchObject({ value: 1, delta: 0 });
+    // History keeps no campaign codes, so a link measure gets no trend at all.
+    expect(tiles[0].series).toEqual([]);
+    expect(tiles[1].delta).toBeNull();
+
+    const strip = decisionStripOf(html);
+    expect(strip).toContain("+2 since the 2026-09-10 run");
+    expect(strip).toContain("−1 since the 2026-09-10 run");
+    expect(strip).toContain("No change since the 2026-09-10 run");
+    expect(strip).toMatch(/<svg class="spark"/u);
+  });
+
+  it("says unavailable rather than zero when the event data is missing", () => {
+    const tiles = decisionTiles({ intelligence: null, eventsKnown: false, history: [], today: "2026-09-11" });
+    for (const tile of tiles) {
+      expect(tile.value).toBeNull();
+      expect(tile.series).toEqual([]);
+      expect(tile.delta).toBeNull();
+    }
+  });
+
+  it("never plots a run that read no journeys, whose zero is structural", () => {
+    const blind = historyRun("2026-09-08T16:00:00Z", 0, 0, 0, [], "unavailable");
+    expect(contentTrend([blind, ...history], "record-9q")).toEqual([
+      { day: "2026-09-09", sessions: 3 },
+      { day: "2026-09-10", sessions: 4 },
+      { day: "2026-09-11", sessions: 5 },
+    ]);
+  });
+});
+
+describe("per-row trend marks", () => {
+  it("draws each content row's sessions across the runs that read journeys", () => {
+    // A run that read journeys and saw nothing for an item is an observed zero.
+    expect(contentTrend(history, "thread-<2>")).toEqual([
+      { day: "2026-09-09", sessions: 0 },
+      { day: "2026-09-10", sessions: 1 },
+      { day: "2026-09-11", sessions: 2 },
+    ]);
+    const content = sectionOf(html, "Content resonance");
+    // No hover channel on this page: the values ride in the label and the row.
+    expect(content).toContain('aria-label="Record &lt;9Q&gt; sessions per run: 3, 4, 5"');
+    expect(content).toMatch(/<svg class="spark"/u);
+  });
+});
+
+describe("sourceBadge", () => {
+  it("reads as a clock on the same day and keeps the date otherwise", () => {
+    const now = "2026-09-11T16:30:00.000Z";
+    expect(sourceBadge({ status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z" }, now)).toBe("Fresh 16:00");
+    expect(sourceBadge({ status: "stale", capturedAt: "2026-09-10T07:10:00.000Z" }, now)).toBe("Stale 09-10 07:10");
+    expect(sourceBadge({ status: "unavailable", capturedAt: null }, now)).toBe("Unavailable");
+  });
+});
+
+describe("the type scale", () => {
+  it("gives the page real hierarchy and declares nothing under 11px", () => {
+    const style = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+    const sizes = [...style.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/gu)].map((match) => Number(match[1]));
+    expect(sizes.length).toBeGreaterThan(10);
+    // The browser check measures what renders; this is the declared floor.
+    for (const size of sizes) expect(size).toBeGreaterThanOrEqual(11);
+    expect(new Set(sizes).size).toBeGreaterThanOrEqual(5);
   });
 });
 

@@ -8,10 +8,15 @@
 //   node scripts/portfolio-insights-fixture.mjs <directory>
 //
 // The fixture runs twice: a prior week, then the current week with Clarity
-// answering 429, so the page shows assigned and anonymous activity, a stale
-// source, an idle assigned link, hostile strings, cities, evidence, contact,
-// small samples, and findings that compare two windows. The people, companies,
-// and codes are invented. The tokens are placeholders the fetchers never use.
+// answering 429, so the page shows assigned and anonymous activity, an idle
+// assigned link, hostile strings, cities, evidence, contact, small samples,
+// and findings that compare two windows. The people, companies, and codes are
+// invented. The tokens are placeholders the fetchers never use.
+//
+// The command line builds the degraded variant, which additionally seeds three
+// earlier aggregate runs for the trend marks and leaves Cloudflare stale and
+// Clarity unavailable, so one page carries all three source states. The plain
+// two-run form is what the run tests pin; see `buildFixtureDashboard`.
 
 import { realpathSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
@@ -20,6 +25,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { runInsights } from "./portfolio-insights.mjs";
+import { ensurePrivateDirectory, writePrivateFile } from "./portfolio-insights-storage.mjs";
 import {
   deriveTrafficShape,
   parseArguments,
@@ -393,21 +399,106 @@ export async function runFixture(argv, dependencies) {
   return /** @type {FixtureRun} */ (/** @type {unknown} */ (result));
 }
 
+const clarityQuotaSpent = async () => {
+  throw new Error("Clarity returned 429: the project's 10 requests for today are spent.");
+};
+const cloudflareRefused = async () => {
+  throw new Error("Cloudflare returned 403: the token is missing Account Analytics Read.");
+};
+
+/**
+ * Three earlier runs as `history.jsonl` keeps them: aggregate only, with no
+ * names, companies, campaign codes, or session IDs. They give the trend marks
+ * something to draw before the two real runs below add their own points.
+ * @returns {Array<Record<string, any>>}
+ */
+export function fixtureHistoryRows() {
+  /** @param {[string, number]} entry */
+  const content = ([contentId, sessions]) => ({
+    contentId,
+    sessions,
+    attentionSessions: sessions,
+    evidenceSessions: 0,
+    contactSessions: 0,
+    medianActiveSeconds: 95,
+    medianCompletionPercent: 88,
+  });
+  const run = (capturedAt, believable, rows) => ({
+    capturedAt,
+    believableSessions: believable.sessions,
+    believableVisits: believable.visits,
+    edgeRequests: believable.edgeRequests,
+    sources: { clarity: "fresh", cloudflare: "fresh", insights: "fresh", journeys: "fresh", airtable: "fresh" },
+    intelligence: {
+      version: 1,
+      window: null,
+      journeys: "available",
+      sessions: rows.sessions,
+      evidenceSessions: rows.evidence,
+      contactSessions: rows.contact,
+      content: rows.content.map(content),
+      locations: [],
+      sources: [],
+      devices: [],
+      clarity: null,
+      cloudflare: null,
+    },
+  });
+  return [
+    run(
+      "2026-08-21T11:10:00.000Z",
+      { sessions: 310, visits: 18, edgeRequests: 2404 },
+      { sessions: 4, evidence: 1, contact: 0, content: [["record-9q", 2]] },
+    ),
+    run(
+      "2026-08-25T11:10:00.000Z",
+      { sessions: 372, visits: 24, edgeRequests: 2915 },
+      { sessions: 7, evidence: 3, contact: 1, content: [["record-9q", 4], ["thread-2", 1]] },
+    ),
+    run(
+      "2026-08-28T11:10:00.000Z",
+      { sessions: 401, visits: 29, edgeRequests: 3186 },
+      { sessions: 9, evidence: 4, contact: 1, content: [["record-9q", 5], ["thread-2", 2]] },
+    ),
+  ];
+}
+
 /**
  * The prior week, then the current week with Clarity's quota spent.
+ *
+ * `degraded` is what the command line builds, so one page shows every state a
+ * reader has to recognise: Analytics Engine and Airtable fresh, Cloudflare
+ * stale after its last-known-good snapshot, and Clarity unavailable because no
+ * run of this fixture ever reached it. It also seeds the earlier aggregate runs
+ * the trend marks read. The default stays the two-run fixture the run tests
+ * pin, where every source writes a snapshot.
+ *
  * @param {string} directory
+ * @param {{ degraded?: boolean }} [options]
  * @returns {Promise<FixtureRun>}
  */
-export async function buildFixtureDashboard(directory) {
-  await runFixture([], { directory, now: FIXTURE_PRIOR_RUN, events: priorEventRows() });
+export async function buildFixtureDashboard(directory, { degraded = false } = {}) {
+  if (degraded) {
+    await ensurePrivateDirectory(directory);
+    await writePrivateFile(
+      join(directory, "history.jsonl"),
+      `${fixtureHistoryRows().map((row) => JSON.stringify(row)).join("\n")}\n`,
+    );
+  }
+  await runFixture([], {
+    directory,
+    now: FIXTURE_PRIOR_RUN,
+    events: priorEventRows(),
+    // Clarity never answers in a degraded run, so it never writes a snapshot
+    // and stays unavailable rather than falling back to a stale one.
+    ...(degraded ? { fetchers: { clarity: clarityQuotaSpent } } : {}),
+  });
   return runFixture([], {
     directory,
     now: FIXTURE_CURRENT_RUN,
-    fetchers: {
-      clarity: async () => {
-        throw new Error("Clarity returned 429: the project's 10 requests for today are spent.");
-      },
-    },
+    fetchers: degraded
+      ? { clarity: clarityQuotaSpent, cloudflare: cloudflareRefused }
+      : { clarity: clarityQuotaSpent },
   });
 }
 
@@ -415,7 +506,7 @@ async function main() {
   const directory = process.argv[2]
     ? resolve(process.argv[2])
     : join(await mkdtemp(join(tmpdir(), "portfolio-insights-fixture-")), "insights");
-  const result = await buildFixtureDashboard(directory);
+  const result = await buildFixtureDashboard(directory, { degraded: true });
   process.stdout.write(`${result.dashboardPath}\n`);
 }
 

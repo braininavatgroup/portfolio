@@ -99,11 +99,29 @@ the findings with their counts and windows. The traffic detail follows.
 ### The dashboard
 
 Every run that records a snapshot also rewrites `dashboard.html` beside the
-history: one self-contained page, no scripts or network, that shows the
-believable-humans tiles, the curve across runs, day-by-day columns, where
-sessions come from, what gets read, who is crawling, web vitals by device,
-and the frustration signals. Each chart has a table view and works in light
-and dark. `npm run insights -- --dashboard` opens it after a live run;
+history: one self-contained page, no scripts or network, built to be read at a
+glance before it is read in full.
+
+It opens with two strips. The **freshness strip** names all four sources once,
+with each one's window, its state, and why it is not fresh; a section below
+then carries only a short badge per source (`Fresh 16:00`, `Stale 09-10 07:10`,
+`Unavailable`) and repeats a reason only when that source is not fresh, so a
+healthy run shows no grey text under its headings. The **decision strip**
+leads with the counts worth acting on — assigned links active, link sessions,
+content opens, evidence opens, contact actions — each with its change against
+the previous run and a sparkline, wherever the aggregate history supports one.
+Assigned-link measures carry no trend on purpose: history keeps no campaign
+codes, so nothing about one link survives a run.
+
+Below that, content rows carry their own trend mark of sessions per run, the
+Clarity filter steps are printed once for the whole section rather than under
+every row, and `not enough data for a pattern` is said at most once per
+section. Crawler counts, infrastructure totals, and the per-run curve stay in
+the collapsed Diagnostics section. Charts are inline SVG with no scripts, so
+there is no hover or tooltip channel: every value is direct-labelled, carried
+in the mark's accessible label, or reachable in a table view. Each chart has a
+table view and works in light and dark.
+`npm run insights -- --dashboard` opens it after a live run;
 `npm run insights:dashboard` opens it without spending any API budget. The
 scheduled run keeps the copy under
 `~/Library/Application Support/biv/portfolio-insights/dashboard.html`
