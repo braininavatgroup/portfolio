@@ -266,10 +266,14 @@ function note(text) {
   return `<p class="note">${escapeHtml(text)}</p>`;
 }
 
-/** "40% (2 of 5)": a session rate with its count and denominator. */
-function rate(value, sessions) {
+/**
+ * "40% (2 of 5)": a session rate with its count and denominator. The count is
+ * the reducer's own session count when it supplies one, not a rounded product.
+ */
+function rate(value, sessions, count) {
   if (!Number.isFinite(value) || !Number.isFinite(sessions) || sessions <= 0) return "–";
-  return `${Math.round(value * 100)}% (${number(Math.round(value * sessions))} of ${number(sessions)})`;
+  const sessionsWith = Number.isFinite(count) ? count : Math.round(value * sessions);
+  return `${Math.round(value * 100)}% (${number(sessionsWith)} of ${number(sessions)})`;
 }
 
 function share(value) {
@@ -464,10 +468,11 @@ function contentResonance(context) {
           row.label || row.contentId,
           row.kind || "–",
           row.sessions,
-          Number.isFinite(row.medianActiveSeconds) ? `${number(row.medianActiveSeconds)}s` : "–",
-          Number.isFinite(row.medianCompletionPercent) ? `${number(row.medianCompletionPercent)}%` : "–",
-          rate(row.evidenceOpenRate, row.sessions),
-          rate(row.contactActionRate, row.sessions),
+          // A null median means no session sent an attention snapshot: missing, not zero.
+          Number.isFinite(row.medianActiveSeconds) ? `${number(row.medianActiveSeconds)}s` : "No attention data",
+          Number.isFinite(row.medianCompletionPercent) ? `${number(row.medianCompletionPercent)}%` : "No attention data",
+          rate(row.evidenceOpenRate, row.sessions, row.evidenceSessions),
+          rate(row.contactActionRate, row.sessions, row.contactSessions),
           row.commonEntrySource || "–",
           row.commonNextContent ? labelFor(row.commonNextContent) : "–",
           `${share(row.assignedShare)} / ${share(row.anonymousShare)}`,
@@ -483,7 +488,9 @@ const PATTERN_TITLES = {
   entries: "Common entry points",
   transitions: "Content transitions",
   exits: "Exits",
-  pathsToEvidenceOrContact: "Paths that reach evidence or contact",
+  reachingEvidence: "Paths that reach evidence",
+  reachingContact: "Paths that reach contact",
+  openingPaths: "Opening paths",
 };
 
 function patternLabel(row, labelFor) {
@@ -509,14 +516,21 @@ function journeysSection(context) {
     for (const [key, rows] of Object.entries(patterns)) {
       if (!Array.isArray(rows)) continue;
       const title = PATTERN_TITLES[key] ?? key.replace(/([a-z])([A-Z])/gu, "$1 $2");
-      const counted = rows.filter((row) => row && typeof row === "object").map((row) => [patternLabel(row, labelFor), Number(row.sessions ?? row.count ?? 0)]);
-      const total = counted.reduce((sum, [, sessions]) => sum + sessions, 0);
+      const objects = rows.filter((row) => row && typeof row === "object");
+      // Opening paths also say how many of those tab sessions reached contact.
+      const withContact = objects.some((row) => Number.isFinite(row.contactSessions));
+      const counted = objects.map((row) => [
+        patternLabel(row, labelFor),
+        Number(row.sessions ?? row.count ?? 0),
+        ...(withContact ? [Number.isFinite(row.contactSessions) ? row.contactSessions : "–"] : []),
+      ]);
+      const total = counted.reduce((sum, [, sessions]) => sum + Number(sessions), 0);
       parts.push(
         `<h3>${escapeHtml(title)}</h3>` +
           (counted.length === 0
             ? empty("None in this window.")
             : (total < PATTERN_MINIMUM ? note(`${number(total)} sessions: ${SMALL_SAMPLE}.`) : "") +
-              dataTable(["Path", "Tab sessions"], counted)),
+              dataTable(["Path", "Tab sessions", ...(withContact ? ["Reached contact"] : [])], counted)),
       );
     }
   } else {

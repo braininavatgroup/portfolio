@@ -152,8 +152,11 @@ const intelligence = {
       sessions: 5,
       medianActiveSeconds: 42,
       medianCompletionPercent: 80,
+      attentionSessions: 4,
       evidenceOpenRate: 0.4,
+      evidenceSessions: 2,
       contactActionRate: 0.2,
+      contactSessions: 1,
       commonEntrySource: "linkedin",
       commonNextContent: "thread-<2>",
       assignedShare: 0.2,
@@ -165,10 +168,14 @@ const intelligence = {
       label: "thread-<2>",
       kind: "thread",
       sessions: 2,
-      medianActiveSeconds: 12,
-      medianCompletionPercent: 30,
+      // No attention snapshot for this item: the medians are missing, not zero.
+      medianActiveSeconds: null,
+      medianCompletionPercent: null,
+      attentionSessions: 0,
       evidenceOpenRate: 0,
+      evidenceSessions: 0,
       contactActionRate: 0,
+      contactSessions: 0,
       commonEntrySource: "direct",
       commonNextContent: null,
       assignedShare: 0,
@@ -184,13 +191,29 @@ const intelligence = {
       { country: "", regionCode: "", city: "", metroCode: "", sessions: 2 },
     ],
   },
+  // Task 5's shape: resolved labels on entries and exits, IDs on transitions
+  // and paths, plus a label map and top-level counts that are not tables.
   journeyPatterns: {
-    entries: [{ value: "record-9q", sessions: 5 }],
+    entries: [
+      { contentId: "record-9q", label: "Record <9Q>", sessions: 5 },
+      { contentId: null, label: "(no content opened)", sessions: 1 },
+    ],
     transitions: [{ from: "record-9q", to: "thread-<2>", sessions: 2 }],
-    exits: [{ value: "thread-<2>", sessions: 2 }],
-    pathsToEvidenceOrContact: [{ path: ["record-9q", "evidence"], sessions: 1 }],
+    exits: [{ contentId: "thread-<2>", label: "thread-<2>", sessions: 2 }],
+    reachingEvidence: [{ path: ["record-9q"], sessions: 1 }],
+    reachingContact: [{ path: ["record-9q", "thread-<2>"], sessions: 1 }],
+    openingPaths: [{ path: ["record-9q", "thread-<2>"], sessions: 2, contactSessions: 1 }],
+    labels: { "record-9q": "Record <9Q>" },
+    sessions: 7,
+    evidenceSessions: 1,
+    contactSessions: 1,
   },
-  diagnostics: { quarantinedSessions: 1, link: "https://evil.example/diag" },
+  diagnostics: {
+    quarantinedSessions: 1,
+    link: "https://evil.example/diag",
+    configurationErrors: ["unmapped campaign code: stray-code-9"],
+    sources: { clarity: "stale", cloudflare: "fresh" },
+  },
 };
 
 const hostile = {
@@ -282,6 +305,7 @@ describe("renderDashboard decision sections", () => {
   it("puts configuration errors and truncation on the first screen", () => {
     const first = sectionOf(html, "What changed");
     expect(first).toMatch(/role="alert"[\s\S]*duplicate campaign code: dup-code-01/u);
+    expect(first).toMatch(/role="alert"[\s\S]*unmapped campaign code: stray-code-9/u);
     expect(first).toContain("10,000");
   });
 
@@ -297,7 +321,16 @@ describe("renderDashboard decision sections", () => {
     expect(content).toContain("not enough data for a pattern");
     expect(content).not.toContain("Held attention better than every other thread");
     expect(content).toContain("40% (2 of 5)");
+    expect(content).toContain("20% (1 of 5)");
     expect(content).not.toMatch(/score/iu);
+  });
+
+  it("renders a missing median as missing, never as zero", () => {
+    const content = sectionOf(html, "Content resonance");
+    // Anchor on the row start: the record row's "Next content" cell also names this thread.
+    const threadRow = content.slice(content.indexOf("<tr><td>thread-&lt;2&gt;</td>") + "<tr>".length);
+    expect(threadRow).toMatch(/^<td>thread-&lt;2&gt;<\/td><td>thread<\/td><td>2<\/td><td>No attention data<\/td><td>No attention data<\/td>/u);
+    expect(content).not.toMatch(/>0s<|>0%</u);
   });
 
   it("labels geography as network location and groups missing values as Unknown", () => {
@@ -310,6 +343,12 @@ describe("renderDashboard decision sections", () => {
   it("renders journey patterns with content labels", () => {
     const journeys = sectionOf(html, "Journeys");
     expect(journeys).toContain("Record &lt;9Q&gt; → thread-&lt;2&gt;");
+    expect(journeys).toContain("(no content opened)");
+    for (const title of ["Common entry points", "Content transitions", "Exits", "Paths that reach evidence", "Paths that reach contact", "Opening paths"]) {
+      expect(journeys).toContain(`<h3>${title}</h3>`);
+    }
+    expect(journeys).toContain("Reached contact");
+    expect(journeys).not.toMatch(/<h3>(labels|sessions|evidence Sessions|contact Sessions)<\/h3>/u);
     expect(journeys).toContain("Anonymous tab sessions");
   });
 
