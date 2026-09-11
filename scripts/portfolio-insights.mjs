@@ -1,34 +1,55 @@
 #!/usr/bin/env node
-// Read the launch signals: Cloudflare edge and Web Analytics, plus Clarity.
+// Read the launch signals and rebuild the private portfolio dashboard:
+// Cloudflare edge and Web Analytics, Clarity, the first-party Analytics Engine
+// sink, and a read-only Airtable projection of assigned links.
 //
-//   npm run insights                  # last 7 days, both sources
-//   npm run insights -- --days 30     # a longer Cloudflare window
-//   npm run insights -- --json        # the raw snapshot
-//   npm run insights -- --no-clarity  # skip Clarity's 10-requests-a-day budget
-//   npm run insights -- --history     # every past run, one row each
-//   npm run insights -- --dashboard   # also rewrite dashboard.html and open it
-//   npm run insights -- --no-insights # skip the first-party Analytics Engine sink
+//   npm run insights                   # last 7 days, every source
+//   npm run insights -- --days 30      # a longer Cloudflare window
+//   npm run insights -- --json         # the run's snapshot
+//   npm run insights -- --no-clarity   # skip Clarity's 10-requests-a-day budget
+//   npm run insights -- --no-insights  # skip the first-party Analytics Engine sink
+//   npm run insights -- --no-airtable  # render without assigned-link identity
+//   npm run insights -- --no-snapshot  # read only; write nothing
+//   npm run insights -- --history      # every past run, one row each
+//   npm run insights -- --dashboard    # also open dashboard.html
+//   npm run insights:dashboard         # rebuild the page from disk, no requests
 //
-// Tokens come from CLOUDFLARE_API_TOKEN and CLARITY_API_TOKEN if set, otherwise
-// from the macOS login Keychain entries `scripts/setup-portfolio-insights.sh`
-// writes. Neither token is ever printed or written to disk.
+// Each source resolves on its own. A fetch that parses replaces that source's
+// last-known-good file; a failed one leaves it and the run shows the saved
+// value as stale, with its own timestamp. `--no-<source>` skips the request
+// and shows the saved value, except `--no-airtable`, which drops identity.
+// An Airtable configuration error (duplicate or malformed code) never falls
+// back to the saved copy: every link stays unattributed until it is fixed.
 //
-// Every run appends a rollup to .context/insights/history.jsonl, which is
-// gitignored (or to $PORTFOLIO_INSIGHTS_DIR when set, which is how the
-// scheduled run keeps one history across checkouts). That file exists because both sources forget: Cloudflare's free
-// plan keeps about ten days of Web Analytics and Clarity's export API returns
-// at most three. A daily run is what turns them into a launch time series.
+// Writes, in order, inside the insight directory (0700, every file 0600):
+// source snapshots, the run's event-level rows (raw-events-*.json, deleted
+// after 180 days), one aggregate history row, the dashboard, then the prune.
+// The directory is $PORTFOLIO_INSIGHTS_DIR when set (the scheduled job) and
+// .context/insights/ otherwise. Tokens come from the environment or the login
+// Keychain entries `npm run setup:insights` writes and are never printed or
+// written to disk. Nothing here mutates anything remote.
 //
-// Nothing here mutates anything. It reads production analytics and writes only
-// inside .context/.
+// The run exits non-zero only when no source, current or saved, can fill a
+// dashboard; a partial run is a successful run.
 
 import { execFile } from "node:child_process";
-import { mkdir, appendFile, readdir, readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-
-import { renderDashboard } from "./portfolio-insights-dashboard.mjs";
+import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
+import {
+  AirtableConfigurationError,
+  fetchPortfolioAssignments,
+  resolveAirtableToken,
+} from "./portfolio-insights-airtable.mjs";
+import { renderDashboard } from "./portfolio-insights-dashboard.mjs";
+import {
+  buildPortfolioIntelligence,
+  contentCatalogFromPortfolioContent,
+  summarizeForHistory,
+} from "./portfolio-insights-intelligence.mjs";
 import {
   clarityBreakdowns,
   clarityFrustration,
@@ -36,9 +57,11 @@ import {
   formatHistory,
   clarityTraffic,
   deriveTrafficShape,
+  formatLead,
   formatReport,
   historyRow,
   INSIGHT_DATASET,
+  INSIGHT_EVENT_LIMIT,
   insightEventQuery,
   insightWindowClause,
   mergeDayGroups,
@@ -53,6 +76,7 @@ import {
   summarizePerformanceByDevice,
   windowForDays,
 } from "./portfolio-insights-report.mjs";
+import * as privateStorage from "./portfolio-insights-storage.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -89,7 +113,8 @@ const RUM_DIMENSIONS = [
   "navigationType",
 ];
 
-async function readKeychain(account, service = KEYCHAIN_SERVICE) {
+/** @param {string} service @param {string} account */
+async function readKeychainPassword(service, account) {
   const { stdout } = await execFileAsync("/usr/bin/security", [
     "find-generic-password",
     "-s",
@@ -98,11 +123,16 @@ async function readKeychain(account, service = KEYCHAIN_SERVICE) {
     account,
     "-w",
   ]);
-  return stdout.trim();
+  return stdout;
 }
 
-async function resolveToken(environmentVariable, account) {
-  const fromEnvironment = process.env[environmentVariable]?.trim();
+/**
+ * @param {{ env: Record<string, string | undefined>, readKeychain: (service: string, account: string) => Promise<string> }} access
+ * @param {string} environmentVariable
+ * @param {string} account
+ */
+async function resolveToken({ env, readKeychain }, environmentVariable, account) {
+  const fromEnvironment = env[environmentVariable]?.trim();
   if (fromEnvironment) return fromEnvironment;
   const entries = [
     { service: KEYCHAIN_SERVICE, account },
@@ -110,7 +140,7 @@ async function resolveToken(environmentVariable, account) {
   ];
   for (const entry of entries) {
     try {
-      const stored = await readKeychain(entry.account, entry.service);
+      const stored = (await readKeychain(entry.service, entry.account)).trim();
       if (stored) return stored;
     } catch {
       // Try the next entry; the missing-token message is the same either way.
@@ -434,181 +464,418 @@ async function analyticsEngineSql(token, query) {
     throw new Error(`Analytics Engine returned ${response.status}: ${message || response.statusText}`);
   }
   const payload = JSON.parse(text);
-  return Array.isArray(payload?.data) ? payload.data : [];
+  // An answer without a data array did not parse; it is a failure, not an empty window.
+  if (!Array.isArray(payload?.data)) throw new Error("Analytics Engine answered without a data array");
+  return payload.data;
 }
 
 /**
- * The worker's own insight events, read from Analytics Engine. Needs Account
- * Analytics Read on the Cloudflare token, the same row Web Analytics uses.
- * A dataset that has never been written to answers with an error rather than
- * an empty table, which the report shows as the same one-line note.
- *
- * `raw` carries the event-level rows for journeys, beside the aggregate
- * answers; `events` stays the aggregate count the terminal and history read.
+ * The aggregate answers: counts the terminal and history read. Needs Account
+ * Analytics Read on the Cloudflare token, the same row Web Analytics uses. A
+ * dataset that has never been written to answers with an error rather than an
+ * empty table. Kept apart from the event-level read so one failing never
+ * erases the other.
  */
-async function fetchInsightEvents(token, range) {
-  const queries = insightQueries(range);
+async function fetchInsightAggregates(token, range) {
   const answers = {};
-  for (const [name, query] of Object.entries(queries)) {
+  for (const [name, query] of Object.entries(insightQueries(range))) {
     answers[name] = await analyticsEngineSql(token, query);
   }
-  const raw = readInsightEventRows(await analyticsEngineSql(token, insightEventQuery(range)));
   return {
     source: "analytics-engine",
     dataset: INSIGHT_DATASET,
     ...summarizeInsightEvents(answers),
-    raw,
   };
+}
+
+/** The live sources. Each returns a parsed value or throws. */
+const liveFetchers = Object.freeze({
+  cloudflare: (token, range) => fetchCloudflare(token, range),
+  clarity: (token, days) => fetchClarity(token, days),
+  insightAggregates: (token, range) => fetchInsightAggregates(token, range),
+  // Raw rows; the run decodes them with readInsightEventRows.
+  insightEvents: (token, range) => analyticsEngineSql(token, insightEventQuery(range)),
+  airtable: (token) => fetchPortfolioAssignments({ token }),
+});
+
+// ── The run ──────────────────────────────────────────────────────────────────
+
+const SKIP_FLAGS = {
+  clarity: "--no-clarity",
+  cloudflare: "--no-cloudflare",
+  insights: "--no-insights",
+  airtable: "--no-airtable",
+};
+
+const ANALYTICS_ENGINE_CAPABILITY =
+  "Analytics Engine unavailable (needs Account Analytics Read on the Cloudflare token " +
+  "and a deployment with PORTFOLIO_INSIGHT_EVENTS_SINK=analytics-engine)";
+
+/** @param {unknown} error */
+function messageOf(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function missingToken(name, account, where) {
-  return {
-    error:
-      `no token. Set ${name}, or run \`npm run setup:insights\` to store one ` +
+  return new Error(
+    `no token. Set ${name}, or run \`npm run setup:insights\` to store one ` +
       `in the Keychain (${KEYCHAIN_SERVICE} / ${account}). Mint it at ${where}.`,
-  };
+  );
 }
 
-// A scheduled run points this at a directory that outlives any one checkout,
-// so worktrees can come and go without losing the launch curve.
-const HISTORY_DIRECTORY = process.env.PORTFOLIO_INSIGHTS_DIR
-  ? new URL(`${process.env.PORTFOLIO_INSIGHTS_DIR.replace(/\/?$/u, "/")}`, "file://")
-  : new URL("../.context/insights/", import.meta.url);
-
-async function readHistory() {
+/** @param {string} directory */
+async function readHistory(directory) {
+  let text;
   try {
-    const text = await readFile(new URL("history.jsonl", HISTORY_DIRECTORY), "utf8");
-    return text
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      });
+    text = await readFile(join(directory, "history.jsonl"), "utf8");
   } catch {
     return [];
   }
+  return text
+    .split("\n")
+    .filter((line) => line.trim())
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    });
+}
+
+/** The last run's aggregate intelligence summary, which findings compare against. */
+function previousSummary(rows) {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const summary = rows[index]?.intelligence;
+    if (summary && typeof summary === "object" && summary.version === 1) return summary;
+  }
+  return null;
+}
+
+async function readPortfolioContent() {
+  return JSON.parse(await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
+}
+
+/** @param {Record<string, string | undefined>} env */
+function defaultDirectory(env) {
+  return env.PORTFOLIO_INSIGHTS_DIR
+    ? resolve(env.PORTFOLIO_INSIGHTS_DIR)
+    : fileURLToPath(new URL("../.context/insights/", import.meta.url));
+}
+
+/**
+ * One source's state for this run. A skipped source shows its saved value
+ * (unless `useSaved` is false). A fetch that answers is written as the new
+ * last-known-good only after it returned a parsed value; a failure leaves the
+ * file alone and falls back to it, unless `refusesSaved` says the failure
+ * makes the saved copy untrustworthy.
+ */
+async function resolveSourceState({
+  name,
+  fetch,
+  directory,
+  capturedAt,
+  record,
+  storage,
+  useSaved = true,
+  refusesSaved = () => false,
+  describe = messageOf,
+}) {
+  if (!fetch) {
+    const previous = useSaved ? await storage.readSourceSnapshot(directory, name) : null;
+    return storage.resolveSourceResult({
+      previous,
+      error: previous ? undefined : `not requested (${SKIP_FLAGS[name]})`,
+      capturedAt,
+    });
+  }
+  const previous = await storage.readSourceSnapshot(directory, name);
+  let fresh;
+  try {
+    fresh = await fetch();
+    if (fresh === undefined || fresh === null) throw new Error(`${name} answered nothing`);
+  } catch (error) {
+    if (refusesSaved(error)) return { status: "unavailable", capturedAt: null, value: null, error: messageOf(error) };
+    return storage.resolveSourceResult({ previous, error: describe(error), capturedAt });
+  }
+  if (record) await storage.writeSourceSnapshot(directory, name, fresh, capturedAt);
+  return storage.resolveSourceResult({ fresh, previous, capturedAt });
+}
+
+/**
+ * The event-level rows journeys come from. Fresh when the read decodes;
+ * otherwise the newest raw-events file inside retention, shown as stale;
+ * otherwise unavailable, and `events` is null so nothing reads it as zero.
+ */
+async function resolveEvents({ fetch, directory, capturedAt, storage }) {
+  let error;
+  if (fetch) {
+    try {
+      const rows = await fetch();
+      if (!Array.isArray(rows)) throw new Error("Analytics Engine answered without event rows");
+      const { events, truncated } = readInsightEventRows(rows);
+      return { status: "fresh", capturedAt, events, truncated };
+    } catch (failure) {
+      error = `${ANALYTICS_ENGINE_CAPABILITY}: ${messageOf(failure)}`.slice(0, 300);
+    }
+  }
+  const latest = await storage.readLatestRawEvents(directory, capturedAt);
+  if (latest) {
+    return {
+      status: "stale",
+      capturedAt: latest.capturedAt,
+      events: latest.events,
+      // The raw file keeps the rows, not the flag; a full page is the same signal.
+      truncated: latest.events.length >= INSIGHT_EVENT_LIMIT,
+      ...(error ? { error } : {}),
+    };
+  }
+  return {
+    status: "unavailable",
+    capturedAt: null,
+    events: null,
+    truncated: false,
+    error: error ?? `not requested (${SKIP_FLAGS.insights})`,
+  };
+}
+
+/** A source's value for display, or null. */
+const shown = (state) => (state.status !== "unavailable" ? state.value : null);
+/** A source's value only when this run measured it, for history. */
+const measured = (state) => (state.status === "fresh" ? state.value : null);
+
+/**
+ * One insights run: resolve every source, derive intelligence, write the
+ * files in their safe order, and return the terminal output and exit code.
+ *
+ * @param {ReturnType<typeof parseArguments>} options
+ * @param {{
+ *   directory?: string | URL,
+ *   now?: () => Date,
+ *   env?: Record<string, string | undefined>,
+ *   readKeychain?: (service: string, account: string) => Promise<string>,
+ *   fetchers?: Partial<typeof liveFetchers>,
+ *   readContent?: () => Promise<unknown>,
+ *   storage?: typeof privateStorage,
+ * }} [dependencies]
+ */
+export async function runInsights(options, dependencies = {}) {
+  const env = dependencies.env ?? process.env;
+  const readKeychain = dependencies.readKeychain ?? readKeychainPassword;
+  const fetchers = { ...liveFetchers, ...dependencies.fetchers };
+  const readContent = dependencies.readContent ?? readPortfolioContent;
+  const storage = dependencies.storage ?? privateStorage;
+  const now = dependencies.now ?? (() => new Date());
+  const rawDirectory = dependencies.directory ?? defaultDirectory(env);
+  const directory = rawDirectory instanceof URL ? fileURLToPath(rawDirectory) : rawDirectory;
+
+  if (options.history) {
+    const rows = await readHistory(directory);
+    return {
+      exitCode: 0,
+      output: options.json ? `${JSON.stringify(rows, null, 2)}\n` : `${formatHistory(rows).join("\n")}\n`,
+      snapshot: null,
+      dashboardPath: null,
+    };
+  }
+
+  const started = now();
+  const capturedAt = started.toISOString();
+  const range = windowForDays(options.days, started);
+  // --dashboard with neither Cloudflare nor Clarity rebuilds the page from
+  // what is on disk: no source is requested and no run is recorded.
+  const offline = options.dashboard && !options.cloudflare && !options.clarity;
+  const record = options.snapshot && !offline;
+  if (record) await storage.ensurePrivateDirectory(directory);
+
+  const access = { env, readKeychain };
+  const cloudflareToken = async () =>
+    (await resolveToken(access, "CLOUDFLARE_API_TOKEN", "cloudflare-api-token")) ??
+    Promise.reject(missingToken("CLOUDFLARE_API_TOKEN", "cloudflare-api-token", "https://dash.cloudflare.com/profile/api-tokens"));
+  const clarityToken = async () =>
+    (await resolveToken(access, "CLARITY_API_TOKEN", "clarity-api-token")) ??
+    Promise.reject(
+      missingToken("CLARITY_API_TOKEN", "clarity-api-token", `https://clarity.microsoft.com/projects/view/${CLARITY_PROJECT}/settings`),
+    );
+  const airtableToken = async () =>
+    (await resolveAirtableToken({ env, readKeychain })) ??
+    Promise.reject(missingToken("PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN", "airtable-read-token", "https://airtable.com/create/tokens"));
+
+  const shared = { directory, capturedAt, record, storage };
+  const clarity = await resolveSourceState({
+    ...shared,
+    name: "clarity",
+    // Clarity's export API reaches back three days at most, whatever --days says.
+    fetch: options.clarity ? async () => fetchers.clarity(await clarityToken(), Math.min(3, options.days)) : null,
+  });
+  const cloudflare = await resolveSourceState({
+    ...shared,
+    name: "cloudflare",
+    fetch: options.cloudflare ? async () => fetchers.cloudflare(await cloudflareToken(), range) : null,
+  });
+  const readInsights = options.insights && !offline;
+  const insights = await resolveSourceState({
+    ...shared,
+    name: "insights",
+    fetch: readInsights ? async () => fetchers.insightAggregates(await cloudflareToken(), range) : null,
+    describe: (error) => `${ANALYTICS_ENGINE_CAPABILITY}: ${messageOf(error)}`,
+  });
+  /** @type {string[]} */
+  let airtableProblems = [];
+  const airtable = await resolveSourceState({
+    ...shared,
+    name: "airtable",
+    fetch: options.airtable && !offline ? async () => fetchers.airtable(await airtableToken()) : null,
+    // --no-airtable means no identity at all, not yesterday's identity.
+    useSaved: options.airtable,
+    // A duplicate or malformed code makes every saved join suspect too.
+    refusesSaved: (error) => {
+      if (!(error instanceof AirtableConfigurationError)) return false;
+      airtableProblems = error.problems;
+      return true;
+    },
+  });
+  const events = await resolveEvents({
+    ...shared,
+    fetch: readInsights ? async () => fetchers.insightEvents(await cloudflareToken(), range) : null,
+  });
+
+  const history = await readHistory(directory);
+  let catalog = {};
+  try {
+    catalog = contentCatalogFromPortfolioContent(await readContent());
+  } catch {
+    // Labels fall back to content IDs.
+  }
+  const reportWindow = { ...range, label: `${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}` };
+  const derive = (eventRows) =>
+    buildPortfolioIntelligence({
+      events: eventRows,
+      assignments: airtable,
+      contentCatalog: catalog,
+      clarity,
+      cloudflare,
+      previous: previousSummary(history),
+      window: reportWindow,
+    });
+  const intelligence = derive(events.events);
+  // History records journeys only when this run read them; stale or missing
+  // rows go in as `events: null`, which summarizes as unavailable, never zero.
+  const recordedIntelligence = events.status === "fresh" ? intelligence : derive(null);
+
+  const aggregate = shown(insights);
+  const raw = events.events ? { truncated: events.truncated, eventCount: events.events.length } : null;
+  const insightsError = events.error ?? (insights.error ? `aggregate counts: ${insights.error}` : undefined);
+  const cloudflareValue = shown(cloudflare);
+  const clarityValue = shown(clarity);
+  const legacy = (state) => shown(state) ?? { error: state.error ?? "unavailable" };
+
+  const snapshot = {
+    capturedAt,
+    site: SITE_HOST,
+    window: range,
+    sources: {
+      clarity,
+      cloudflare,
+      // Journeys are what the dashboard's Analytics Engine sections show, so
+      // this state follows the event-level read; aggregate counts ride along.
+      insights: {
+        status: events.status,
+        capturedAt: events.capturedAt,
+        value: raw ? { ...(aggregate ?? {}), raw } : null,
+        ...(insightsError ? { error: insightsError } : {}),
+      },
+      airtable,
+    },
+    clarity: legacy(clarity),
+    cloudflare: legacy(cloudflare),
+    insights: aggregate ? { ...aggregate, ...(raw ? { raw } : {}) } : { error: insights.error ?? "unavailable" },
+    believable: deriveBelievable({
+      shape: cloudflareValue?.shape,
+      dimensions: cloudflareValue?.dimensions,
+      clarity: clarityValue,
+    }),
+    intelligence: events.status === "unavailable" ? null : intelligence,
+  };
+  const configurationErrors = [
+    ...new Set([...airtableProblems, ...(snapshot.intelligence?.diagnostics?.configurationErrors ?? [])]),
+  ];
+
+  // The history row holds only what this run measured, in aggregate.
+  const measuredCloudflare = measured(cloudflare);
+  const measuredClarity = measured(clarity);
+  const row = {
+    ...historyRow({
+      capturedAt,
+      window: range,
+      cloudflare: measuredCloudflare ?? undefined,
+      clarity: measuredClarity ?? undefined,
+      insights: measured(insights) ?? undefined,
+      believable: deriveBelievable({
+        shape: measuredCloudflare?.shape,
+        dimensions: measuredCloudflare?.dimensions,
+        clarity: measuredClarity,
+      }),
+    }),
+    sources: {
+      clarity: clarity.status,
+      cloudflare: cloudflare.status,
+      insights: insights.status,
+      journeys: events.status,
+      airtable: airtable.status,
+    },
+    intelligence: summarizeForHistory(recordedIntelligence),
+  };
+
+  // Write order: source snapshots (above) → raw events → history → dashboard → prune.
+  if (record && events.status === "fresh") await storage.writeRawEvents(directory, events.events, capturedAt);
+  if (record) {
+    let existing = "";
+    try {
+      existing = await readFile(join(directory, "history.jsonl"), "utf8");
+    } catch (error) {
+      if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") throw error;
+    }
+    const separator = existing && !existing.endsWith("\n") ? "\n" : "";
+    await storage.writePrivateFile(join(directory, "history.jsonl"), `${existing}${separator}${JSON.stringify(row)}\n`);
+  }
+  let dashboardPath = null;
+  if (record || options.dashboard) {
+    await storage.ensurePrivateDirectory(directory);
+    dashboardPath = join(directory, "dashboard.html");
+    const page = renderDashboard({ snapshot, history: record ? [...history, row] : history, generatedAt: capturedAt });
+    await storage.writePrivateFile(dashboardPath, page);
+  }
+  // Only after history and the dashboard both landed: an aborted run keeps
+  // every raw file it may not have summarised yet.
+  if (record) await storage.pruneRawSnapshots(directory, started);
+
+  const useful =
+    [clarity, cloudflare, insights].some((state) => state.status !== "unavailable") || events.status !== "unavailable";
+  let output;
+  if (options.json) output = `${JSON.stringify(snapshot, null, 2)}\n`;
+  else if (offline) output = `${dashboardPath}\n`;
+  else output = `${formatLead(snapshot, { configurationErrors })}${formatReport(snapshot)}`;
+  return { exitCode: useful ? 0 : 1, output, snapshot, dashboardPath };
 }
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
-  if (options.dashboard && !options.cloudflare && !options.clarity) {
-    // --dashboard alone: rebuild from what is already on disk and open it.
-    const page = await writeDashboard();
-    await execFileAsync("open", [page]).catch(() => {});
-    process.stdout.write(`${page}\n`);
-    return;
+  const result = await runInsights(options);
+  process.stdout.write(result.output);
+  if (options.dashboard && result.dashboardPath) {
+    const page = result.dashboardPath;
+    await execFileAsync("open", [page]).catch(() => {
+      process.stderr.write(`Dashboard written to ${page}\n`);
+    });
   }
-  if (options.history) {
-    const rows = await readHistory();
-    process.stdout.write(
-      options.json ? `${JSON.stringify(rows, null, 2)}\n` : `${formatHistory(rows).join("\n")}\n`,
-    );
-    return;
-  }
-  const range = windowForDays(options.days);
-  const snapshot = {
-    capturedAt: new Date().toISOString(),
-    site: SITE_HOST,
-    window: range,
-  };
+  process.exitCode = result.exitCode;
+}
 
-  if (options.cloudflare) {
-    const token = await resolveToken("CLOUDFLARE_API_TOKEN", "cloudflare-api-token");
-    snapshot.cloudflare = token
-      ? await fetchCloudflare(token, range).catch((error) => ({
-          error: String(error.message ?? error),
-        }))
-      : missingToken(
-          "CLOUDFLARE_API_TOKEN",
-          "cloudflare-api-token",
-          "https://dash.cloudflare.com/profile/api-tokens",
-        );
-  }
-
-  if (options.clarity) {
-    const token = await resolveToken("CLARITY_API_TOKEN", "clarity-api-token");
-    // Clarity's export API reaches back three days at most, whatever --days says.
-    snapshot.clarity = token
-      ? await fetchClarity(token, Math.min(3, options.days)).catch((error) => ({
-          error: String(error.message ?? error),
-        }))
-      : missingToken(
-          "CLARITY_API_TOKEN",
-          "clarity-api-token",
-          `https://clarity.microsoft.com/projects/view/${CLARITY_PROJECT}/settings`,
-        );
-  }
-
-  snapshot.believable = deriveBelievable({
-    shape: snapshot.cloudflare?.shape,
-    dimensions: snapshot.cloudflare?.dimensions,
-    clarity: snapshot.clarity?.error ? null : snapshot.clarity,
+// Run only as the entry point, so tests and the fixture can import runInsights.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+  main().catch((error) => {
+    process.stderr.write(`${messageOf(error)}\n`);
+    process.exitCode = 1;
   });
-  if (options.insights) {
-    const token = await resolveToken("CLOUDFLARE_API_TOKEN", "cloudflare-api-token");
-    snapshot.insights = token
-      ? await fetchInsightEvents(token, range).catch((error) => ({
-          error: String(error.message ?? error),
-        }))
-      : missingToken(
-          "CLOUDFLARE_API_TOKEN",
-          "cloudflare-api-token",
-          "https://dash.cloudflare.com/profile/api-tokens",
-        );
-  }
-
-  if (options.snapshot) await recordSnapshot(snapshot);
-  if (options.snapshot || options.dashboard) {
-    const page = await writeDashboard(snapshot);
-    if (options.dashboard) {
-      await execFileAsync("open", [page]).catch(() => {
-        process.stderr.write(`Dashboard written to ${page}\n`);
-      });
-    }
-  }
-
-  process.stdout.write(
-    options.json ? `${JSON.stringify(snapshot, null, 2)}\n` : formatReport(snapshot),
-  );
 }
-
-/** Rewrites dashboard.html beside the history from this snapshot, or the newest one. */
-async function writeDashboard(snapshot = null) {
-  await mkdir(HISTORY_DIRECTORY, { recursive: true });
-  let latest = snapshot;
-  if (!latest) {
-    const names = (await readdir(HISTORY_DIRECTORY).catch(() => []))
-      .filter((name) => name.startsWith("snapshot-") && name.endsWith(".json"))
-      .sort();
-    const newest = names.at(-1);
-    if (newest) {
-      latest = JSON.parse(await readFile(new URL(newest, HISTORY_DIRECTORY), "utf8"));
-    }
-  }
-  const target = new URL("dashboard.html", HISTORY_DIRECTORY);
-  await writeFile(target, renderDashboard({ snapshot: latest, history: await readHistory() }));
-  return fileURLToPath(target);
-}
-
-async function recordSnapshot(snapshot) {
-  const directory = HISTORY_DIRECTORY;
-  await mkdir(directory, { recursive: true });
-  const stamp = snapshot.capturedAt.replace(/[:.]/gu, "-");
-  await writeFile(
-    new URL(`snapshot-${stamp}.json`, directory),
-    `${JSON.stringify(snapshot, null, 2)}\n`,
-  );
-  await appendFile(
-    new URL("history.jsonl", directory),
-    `${JSON.stringify(historyRow(snapshot))}\n`,
-  );
-}
-
-main().catch((error) => {
-  process.stderr.write(`${error.message ?? error}\n`);
-  process.exitCode = 1;
-});

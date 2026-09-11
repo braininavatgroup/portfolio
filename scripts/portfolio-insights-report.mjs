@@ -33,6 +33,7 @@ export function parseArguments(argv) {
     clarity: true,
     cloudflare: true,
     insights: true,
+    airtable: true,
     snapshot: true,
     history: false,
     dashboard: false,
@@ -45,6 +46,7 @@ export function parseArguments(argv) {
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
     else if (argument === "--no-insights") options.insights = false;
+    else if (argument === "--no-airtable") options.airtable = false;
     else if (argument === "--no-snapshot") options.snapshot = false;
     else if (argument === "--days") {
       const value = Number.parseInt(argv[(index += 1)] ?? "", 10);
@@ -401,6 +403,94 @@ function table(rows, { label, limit = 8 }) {
       `${String(row.visits).padStart(5)} visits  ${percent(row.share).padStart(6)}`,
     ),
   ];
+}
+
+// ── Lead: the dashboard's findings, first ───────────────────────────────────
+
+const LEAD_SOURCES = [
+  ["insights", "Analytics Engine events"],
+  ["airtable", "Airtable assignments"],
+  ["clarity", "Clarity"],
+  ["cloudflare", "Cloudflare Web Analytics"],
+];
+
+/** @param {unknown} value @returns {string | null} "YYYY-MM-DD HH:MM UTC" */
+function leadStamp(value) {
+  if (typeof value !== "string" || value === "") return null;
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? null : `${time.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
+/** @param {{ status: string, capturedAt: string | null, error?: string }} state */
+function leadFreshness(state) {
+  if (state.status === "fresh") return `fresh · captured ${leadStamp(state.capturedAt) ?? "at an unknown time"}`;
+  if (state.status === "stale") {
+    const reason = state.error ? ` · latest attempt failed: ${state.error}` : "";
+    return `stale · last good ${leadStamp(state.capturedAt) ?? "at an unknown time"}${reason}`;
+  }
+  return `unavailable · ${state.error ?? "no data collected"}`;
+}
+
+/**
+ * What the dashboard's "What changed" section says, for the terminal: each
+ * source's freshness, configuration errors, the row-cap warning, then the
+ * findings with their count, denominator, and windows.
+ *
+ * @param {Record<string, any>} snapshot
+ * @param {{ configurationErrors?: string[] }} [extra]
+ */
+export function formatLead(snapshot, { configurationErrors = [] } = {}) {
+  const range = snapshot.window ?? {};
+  const sources = snapshot.sources ?? {};
+  const lines = [
+    "",
+    `Portfolio findings · ${String(range.start ?? "").slice(0, 10)} → ${String(range.end ?? "").slice(0, 10)} (UTC)`,
+    "",
+    "  Sources",
+  ];
+  for (const [name, label] of LEAD_SOURCES) {
+    if (sources[name]) lines.push(`    ${label.padEnd(26)}${leadFreshness(sources[name])}`);
+  }
+  lines.push("");
+
+  if (configurationErrors.length > 0) {
+    lines.push(
+      "  Configuration error: affected links stay unattributed",
+      ...configurationErrors.map((problem) => `    ${problem}`),
+      "    Fix the campaign code on the Airtable Action. The report never guesses which link owns an ambiguous code.",
+      "",
+    );
+  }
+  if (sources.insights?.value?.raw?.truncated) {
+    lines.push(
+      `  Event data is truncated: Analytics Engine returned its ${INSIGHT_EVENT_LIMIT.toLocaleString("en-US")}-row cap`,
+      "  for this window, so journeys and content measures cover only the earliest events.",
+      "",
+    );
+  }
+
+  lines.push("  What changed");
+  const intelligence = snapshot.intelligence;
+  const findings = Array.isArray(intelligence?.findings) ? intelligence.findings : [];
+  if (!intelligence) {
+    lines.push(
+      sources.insights?.status === "unavailable"
+        ? `    No findings: they need Analytics Engine journey data, which is unavailable (${sources.insights.error ?? "no data collected"}).`
+        : "    No findings: this snapshot predates journey reporting.",
+    );
+  } else if (findings.length === 0) {
+    lines.push("    Nothing needs a decision in this window.");
+  } else {
+    const count = (value) => Number(value ?? 0).toLocaleString("en-US");
+    for (const finding of findings) {
+      lines.push(
+        `    - ${finding.message}`,
+        `      ${count(finding.count)} of ${count(finding.denominator)} · ${finding.currentWindow} compared with ${finding.comparisonWindow}`,
+      );
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 export function formatReport(snapshot) {

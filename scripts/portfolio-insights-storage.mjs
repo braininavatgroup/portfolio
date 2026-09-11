@@ -209,24 +209,63 @@ export async function pruneRawSnapshots(directory, now, retentionDays = RAW_EVEN
     throw new Error(`invalid retentionDays: ${String(retentionDays)}`);
   }
   const path = toPath(directory);
-  let names;
-  try {
-    names = await readdir(path);
-  } catch (error) {
-    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") return [];
-    throw error;
-  }
   const cutoff = nowMs - retentionDays * DAY_MS;
   const deleted = [];
-  for (const name of names.sort()) {
-    const match = RAW_EVENTS_PATTERN.exec(name);
-    if (!match) continue;
-    const [, year, month, day, hour, minute, second, ms] = match.map(Number);
-    const capturedMs = Date.UTC(year, month - 1, day, hour, minute, second, ms);
-    if (capturedMs >= cutoff) continue;
+  for (const name of (await listNames(path)).sort()) {
+    const capturedMs = rawEventsTime(name);
+    if (capturedMs === null || capturedMs >= cutoff) continue;
     const target = join(path, name);
     await unlink(target);
     deleted.push(target);
   }
   return deleted;
+}
+
+/**
+ * The newest raw-events file still inside retention that parses, or null.
+ * The run shows it as stale journeys when the event-level read fails, so a
+ * file past retention never comes back as data even before pruning runs.
+ * @param {string | URL} directory
+ * @param {string | number | Date} now
+ * @param {number} [retentionDays]
+ * @returns {Promise<{ capturedAt: string; events: unknown[] } | null>}
+ */
+export async function readLatestRawEvents(directory, now, retentionDays = RAW_EVENTS_RETENTION_DAYS) {
+  const nowMs = new Date(now).getTime();
+  if (Number.isNaN(nowMs)) throw new Error(`invalid now: ${String(now)}`);
+  const path = toPath(directory);
+  const cutoff = nowMs - retentionDays * DAY_MS;
+  const newestFirst = (await listNames(path))
+    .map((name) => ({ name, at: rawEventsTime(name) }))
+    .filter((entry) => entry.at !== null && entry.at >= cutoff)
+    .sort((left, right) => Number(right.at) - Number(left.at));
+  for (const { name } of newestFirst) {
+    try {
+      const parsed = JSON.parse(await readFile(join(path, name), "utf8"));
+      if (parsed && typeof parsed.capturedAt === "string" && Array.isArray(parsed.events)) {
+        return { capturedAt: parsed.capturedAt, events: parsed.events };
+      }
+    } catch {
+      // A torn file is skipped; the next newest one may still be good.
+    }
+  }
+  return null;
+}
+
+/** @param {string} path @returns {Promise<string[]>} */
+async function listNames(path) {
+  try {
+    return await readdir(path);
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+/** @param {string} name @returns {number | null} capture time from a raw-events file name */
+function rawEventsTime(name) {
+  const match = RAW_EVENTS_PATTERN.exec(name);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second, ms] = match.map(Number);
+  return Date.UTC(year, month - 1, day, hour, minute, second, ms);
 }

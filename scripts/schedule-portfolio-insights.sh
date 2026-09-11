@@ -13,8 +13,9 @@
 #
 # The job runs the checkout this script lives in. Run it from the canonical
 # clone, not an ephemeral worktree, or the job breaks when the worktree goes.
-# History is written to ~/Library/Application Support/biv/portfolio-insights/
-# so it survives checkouts. Tokens come from the login Keychain entries that
+# Source snapshots, history, and the dashboard are written to
+# ~/Library/Application Support/biv/portfolio-insights/ (mode 0700, checked
+# before install) so they survive checkouts. Tokens come from the login Keychain entries that
 # `npm run setup:insights` writes; launchd user agents can read them while
 # you are logged in.
 
@@ -64,15 +65,26 @@ fi
 node_bin="$(command -v node || true)"
 [[ -n "$node_bin" ]] || { printf 'node is not on PATH.\n' >&2; exit 1; }
 
-mkdir -p "$LOG_DIR" "$HISTORY_DIR" "$HOME/Library/LaunchAgents"
+mkdir -p "$LOG_DIR" "$HOME/Library/LaunchAgents"
+
+# The history directory holds Airtable names and the dashboard, so it is
+# owner-only, and the job is not installed until stat confirms it.
+mkdir -p "$HISTORY_DIR"
+chmod 700 "$HISTORY_DIR"
+history_mode="$(stat -f '%Lp' "$HISTORY_DIR")"
+if [[ "$history_mode" != "700" ]]; then
+  printf 'Refusing to install: %s is mode %s, not 700.\n' "$HISTORY_DIR" "$history_mode" >&2
+  exit 1
+fi
 
 cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <!-- Installed by scripts/schedule-portfolio-insights.sh in the portfolio repository.
-     Reads production analytics (Cloudflare, Clarity) and appends one row to the
-     history file. Never mutates anything outside $HISTORY_DIR and the log. -->
+     Reads the portfolio's analytics sources and assigned-link projection, then
+     rewrites the private dashboard. Never mutates anything outside $HISTORY_DIR
+     and the log. -->
 <dict>
     <key>Label</key>
     <string>$LABEL</string>

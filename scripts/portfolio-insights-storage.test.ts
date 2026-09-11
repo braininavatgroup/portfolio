@@ -12,6 +12,7 @@ import {
   ensurePrivateDirectory,
   pruneRawSnapshots,
   rawEventsFileName,
+  readLatestRawEvents,
   readSourceSnapshot,
   resolveSourceResult,
   writePrivateFile,
@@ -31,6 +32,27 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
+});
+
+// Owns: the last-known-good event-level read is the newest raw file still
+// inside retention, so an expired journey never reappears as stale data.
+describe("latest raw events", () => {
+  it("returns the newest readable raw file inside retention", async () => {
+    await writeRawEvents(directory, [{ step: 1 }], "2026-09-09T07:10:00.000Z");
+    await writeRawEvents(directory, [{ step: 2 }], "2026-09-10T07:10:00.000Z");
+    await writeFile(join(directory, rawEventsFileName("2026-09-11T07:10:00.000Z")), "{torn");
+
+    expect(await readLatestRawEvents(directory, "2026-09-11T08:00:00.000Z")).toEqual({
+      capturedAt: "2026-09-10T07:10:00.000Z",
+      events: [{ step: 2 }],
+    });
+  });
+
+  it("answers null when every raw file has expired or none exists", async () => {
+    await writeRawEvents(directory, [{ step: 1 }], "2026-01-01T00:00:00.000Z");
+    expect(await readLatestRawEvents(directory, "2026-09-11T00:00:00.000Z")).toBeNull();
+    expect(await readLatestRawEvents(join(root, "missing"), "2026-09-11T00:00:00.000Z")).toBeNull();
+  });
 });
 
 describe("source snapshots", () => {

@@ -86,9 +86,15 @@ data policy, and operating record. No such monitor is activated by this work.
 npm run setup:insights      # once, per machine: mint and store the three tokens
 npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
 npm run insights -- --history   # one row per past run, oldest first
+npm run insights -- --no-airtable   # render without assigned-link identity
 npm run schedule:insights   # once, per machine: run it daily at 07:10
 npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
+npm run test:insights       # every insights test, no network or token
 ```
+
+The terminal report opens with the dashboard's own **What changed**: each
+source's freshness, any Airtable configuration error, the row-cap warning, and
+the findings with their counts and windows. The traffic detail follows.
 
 ### The dashboard
 
@@ -222,7 +228,9 @@ location that outlives any single worktree (`PORTFOLIO_INSIGHTS_DIR` is what
 moves the history there; a manual run without it still writes to
 `.context/insights/`). It logs to `~/Library/Logs/biv/portfolio-insights.log`.
 `--now` also kicks off a run immediately; `--remove` unloads and deletes the
-job and keeps the history. The installer refuses an ephemeral Conductor
+job and keeps the history. The installer creates the history directory as
+mode `0700` and refuses to install the job if `stat` reports anything else.
+No token is written into the job's property list. The installer refuses an ephemeral Conductor
 worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
 from one. The job runs whatever that clone has checked out, so keep it on
 `main`.
@@ -337,9 +345,9 @@ months. Local raw copies follow the 180-day rule below.
   is the sustainable rhythm; `--no-clarity` runs the Cloudflare half free.
 - Cloudflare's free plan keeps roughly **10 days** of Web Analytics.
 - Both sources therefore forget faster than a job search lasts. Every run
-  appends a rollup to `.context/insights/history.jsonl` and writes a full
-  snapshot beside it. That gitignored file is the only durable record of the
-  launch curve, so run it on a rhythm rather than only when curious.
+  appends an aggregate rollup to `history.jsonl` in the insight directory.
+  That file is the only durable record of the launch curve, so run it on a
+  rhythm rather than only when curious.
 
 ### Local files and retention
 
@@ -367,6 +375,35 @@ Each dashboard section shows its source's state:
   touches the snapshot file.
 - **unavailable**: no run has ever succeeded. The section says so and never
   shows zero.
+
+A run is partial rather than failed when some sources answer and others do
+not:
+
+- Each source resolves on its own. Clarity's `429`, a Cloudflare error, or an
+  Airtable outage shows that source's saved value as stale.
+- `--no-clarity`, `--no-cloudflare`, and `--no-insights` skip the request and
+  show the saved value. `--no-airtable` is different: it renders with no
+  identity at all and ignores the saved Airtable copy.
+- An Airtable configuration error (a duplicate or malformed code, or an Action
+  linked to more than one Person, Job, or Company) also ignores the saved
+  copy. Every link stays unattributed and the anonymous analytics still
+  render.
+- The aggregate Analytics Engine counts and the event-level read are
+  separate. If only the event read fails, the counts survive and the journeys
+  come from the newest `raw-events-*.json` within 180 days, marked stale. If
+  the sink is unreachable or not activated, the dashboard names the missing
+  capability and still shows Clarity and Cloudflare.
+- The history row records only what this run measured. A stale or missing
+  source is `null`, and journeys are recorded as `unavailable`, never as zero
+  sessions.
+- The run exits non-zero only when no source, current or saved, can fill a
+  dashboard.
+
+`npm run insights:dashboard` (`--dashboard --no-cloudflare --no-clarity`)
+calls no source. It rebuilds the page from the saved snapshots and the newest
+raw events, and records no history row. Runs from before the
+source-wise files wrote `snapshot-*.json` beside the history. Nothing reads
+those files now, and they can be deleted by hand.
 
 Pruning runs last, after the history row and the dashboard are both written,
 so an aborted run never loses raw events it has not yet summarised. It deletes

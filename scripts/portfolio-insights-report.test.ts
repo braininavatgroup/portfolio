@@ -41,10 +41,15 @@ describe("parseArguments", () => {
       clarity: true,
       cloudflare: true,
       insights: true,
+      airtable: true,
       snapshot: true,
       history: false,
       dashboard: false,
     });
+  });
+
+  it("skips Airtable identity with --no-airtable", () => {
+    expect(parseArguments(["--no-airtable"])).toMatchObject({ airtable: false, insights: true });
   });
 
   it("reads the flags", () => {
