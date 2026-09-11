@@ -49,6 +49,10 @@ const number = (value) =>
     ? "–"
     : Number(value).toLocaleString("en-US");
 
+/** "1 session", "2 sessions": a formatted count with its agreeing noun. */
+const plural = (count, singular, pluralForm = `${singular}s`) =>
+  `${number(count)} ${Number(count) === 1 ? singular : pluralForm}`;
+
 /** @param {unknown} value @returns {string | null} "YYYY-MM-DD HH:MM UTC" */
 function stamp(value) {
   if (typeof value !== "string" || value === "") return null;
@@ -144,7 +148,7 @@ export function headlineTiles(snapshot) {
     {
       label: "Believable sessions",
       value: believable.claritySessions,
-      note: `Clarity, last ${clarity?.days ?? 3} days, localhost removed`,
+      note: `Clarity, last ${plural(clarity?.days ?? 3, "day")}, localhost removed`,
     },
     {
       label: "Believable visits",
@@ -224,7 +228,7 @@ function freshness(state) {
 
 function sourceWindow(name, state, snapshot) {
   if (name === "airtable") return "current link assignments";
-  if (name === "clarity") return `last ${usable(state)?.days ?? 3} days`;
+  if (name === "clarity") return `last ${plural(usable(state)?.days ?? 3, "day")}`;
   return windowLabel(snapshot?.window) ?? "no window";
 }
 
@@ -458,7 +462,7 @@ function contentResonance(context) {
     if (pages.length) {
       parts.push(
         `<h3>Clarity sessions per page</h3>` +
-          note(`Clarity, last ${clarity.days ?? 3} days, tracking parameters stripped. A different measure from link sessions.`) +
+          note(`Clarity, last ${plural(clarity.days ?? 3, "day")}, tracking parameters stripped. A different measure from link sessions.`) +
           dataTable(["Page", "Clarity sessions"], pages.map((row) => [row.value, row.sessions])),
       );
     }
@@ -532,7 +536,7 @@ function journeysSection(context) {
         `<h3>${escapeHtml(title)}</h3>` +
           (counted.length === 0
             ? empty("None in this window.")
-            : (total < PATTERN_MINIMUM ? note(`${number(total)} sessions: ${SMALL_SAMPLE}.`) : "") +
+            : (total < PATTERN_MINIMUM ? note(`${plural(total, "session")}: ${SMALL_SAMPLE}.`) : "") +
               dataTable(["Path", "Tab sessions", ...(withContact ? ["Reached contact"] : [])], counted)),
       );
     }
@@ -552,7 +556,7 @@ function journeysSection(context) {
             .slice(0, ANONYMOUS_JOURNEY_LIMIT)
             .map(
               (journey, index) =>
-                `<details class="journey"><summary>${escapeHtml(`${journeyHeading(journey, index)} · ${number(list(journey.events).length)} events`)}</summary>${journeyEvents(journey, labelFor)}</details>`,
+                `<details class="journey"><summary>${escapeHtml(`${journeyHeading(journey, index)} · ${plural(list(journey.events).length, "event")}`)}</summary>${journeyEvents(journey, labelFor)}</details>`,
             )
             .join("")),
   );
@@ -573,7 +577,7 @@ function audience(context) {
         note("Approximate, from the network that made each request. A VPN, mobile gateway, or corporate network can place it far away; it does not mean residence or physical presence.") +
         (locations.length === 0
           ? empty("No located tab sessions in this window.")
-          : (total < PATTERN_MINIMUM ? note(`${number(total)} sessions: ${SMALL_SAMPLE}.`) : "") +
+          : (total < PATTERN_MINIMUM ? note(`${plural(total, "session")}: ${SMALL_SAMPLE}.`) : "") +
             dataTable(
               ["Country", "Region", "City", "Metro", "Tab sessions"],
               locations.map((row) => [row.country || "Unknown", row.regionCode || "Unknown", row.city || "Unknown", row.metroCode || "–", row.sessions]),
@@ -591,7 +595,7 @@ function audience(context) {
   if (claritySources.length) {
     parts.push(
       `<h3>Clarity session sources</h3>` +
-        note(`Clarity sessions, last ${clarity.days ?? 3} days. A separate measure; never added to tab sessions.`) +
+        note(`Clarity sessions, last ${plural(clarity.days ?? 3, "day")}. A separate measure; never added to tab sessions.`) +
         dataTable(["Source", "Clarity sessions"], claritySources.map((row) => [row.value, row.sessions])),
     );
   }
@@ -702,7 +706,9 @@ function svgLine({ points, width = 720, height = 200, series, id }) {
         : "",
     )
     .join("");
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-title">${grid}${paths}${xLabels}</svg>`;
+  // Never narrower than the viewBox, so 11px labels never scale below 11px;
+  // .chart-scroll scrolls the chart sideways instead.
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" style="min-width:${width}px" role="img" aria-labelledby="${id}-title">${grid}${paths}${xLabels}</svg>`;
 }
 
 function svgBars({ rows, width = 720, color = "series1", id }) {
@@ -721,7 +727,7 @@ function svgBars({ rows, width = 720, color = "series1", id }) {
       );
     })
     .join("");
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-title">${bars}</svg>`;
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" style="min-width:${width}px" role="img" aria-labelledby="${id}-title">${bars}</svg>`;
 }
 
 function svgColumns({ rows, width = 360, height = 130, color = "series1", id }) {
@@ -743,7 +749,7 @@ function svgColumns({ rows, width = 360, height = 130, color = "series1", id }) 
       );
     })
     .join("");
-  return `<svg class="chart columns" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-title">${columns}</svg>`;
+  return `<svg class="chart columns" viewBox="0 0 ${width} ${height}" style="min-width:${width}px" role="img" aria-labelledby="${id}-title">${columns}</svg>`;
 }
 
 function table(columns, rows) {
@@ -875,7 +881,7 @@ function diagnostics(context, history) {
       figure({
         id: "frustration",
         title: "Frustration signals",
-        note: `Clarity, last ${clarity.days ?? 3} days: count and share of sessions with at least one`,
+        note: `Clarity, last ${plural(clarity.days ?? 3, "day")}: count and share of sessions with at least one`,
         chart: "",
         tableHtml: table(
           ["Signal", "Count", "Sessions"],
@@ -892,7 +898,7 @@ function diagnostics(context, history) {
     .map(([key, value]) => {
       if (typeof value === "number" && Number.isFinite(value)) return [key, value];
       if (typeof value === "boolean") return [key, value ? "yes" : "no"];
-      if (Array.isArray(value)) return [key, `${number(value.length)} items`];
+      if (Array.isArray(value)) return [key, plural(value.length, "item")];
       return null;
     })
     .filter(Boolean);
@@ -1015,7 +1021,8 @@ details { margin-top: 8px; } summary { color: var(--text-secondary); cursor: poi
 .tile-value { font-size: 24px; font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.02em; margin: 2px 0; }
 .fig { background: var(--surface-1); border-radius: 8px; margin: 0 0 16px; padding: 12px 14px; }
 .fig h3 { margin-top: 0; }
-.multiples { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.multiples { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 392px), 1fr)); }
+.multiples > .fig { min-width: 0; }
 .chart-scroll { overflow-x: auto; }
 .chart { display: block; height: auto; margin-top: 8px; width: 100%; }
 .grid { stroke: var(--grid); stroke-width: 1; }
@@ -1033,7 +1040,6 @@ details { margin-top: 8px; } summary { color: var(--text-secondary); cursor: poi
   .cells { grid-template-columns: 1fr; margin-left: 0; }
   .cell { flex-direction: row; gap: 12px; justify-content: space-between; }
   .cell-value { text-align: right; }
-  .chart { min-width: 640px; } .chart.columns { min-width: 340px; }
   .tiles { grid-template-columns: 1fr 1fr; }
 }
 </style>

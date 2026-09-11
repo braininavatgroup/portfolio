@@ -392,6 +392,37 @@ describe("renderDashboard decision sections", () => {
     expect(html).toContain('href="https://airtable.com/app0LM9NfGL4ZHi3j/tblPeople/recPerson1"');
   });
 
+  it("agrees count and noun wherever it prints a count", () => {
+    // Paths reaching evidence total one session; the reducer diagnostics carry
+    // a one-item array; the anonymous journey has two events.
+    expect(sectionOf(html, "Journeys")).toContain("1 session: not enough data for a pattern.");
+    expect(sectionOf(html, "Journeys")).toContain("2 sessions: not enough data for a pattern.");
+    expect(sectionOf(html, "Journeys")).toContain("· 2 events");
+    expect(html).toContain("<td>1 item</td>");
+    expect(html).not.toMatch(/\b1 (sessions|events|items|days)\b/u);
+    const oneDay = renderDashboard({
+      snapshot: { capturedAt: "2026-09-11T16:00:00.000Z", window, clarity: { ...clarityValue, days: 1 } },
+      history: [],
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+    expect(oneDay).toContain("last 1 day");
+    expect(oneDay).not.toMatch(/\b1 days\b/u);
+  });
+
+  it("keeps every chart at least as wide as its viewBox so 11px labels never shrink", () => {
+    // A viewBox scales its text by rendered width / viewBox width; below 1 the
+    // 11px labels drop under the 11px floor. The chart scrolls in its container instead.
+    const svgs = [...html.matchAll(/<svg\b[^>]*>/gu)].map((match) => match[0]);
+    expect(svgs.length).toBeGreaterThan(4);
+    for (const svg of svgs) {
+      const viewBoxWidth = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) /u)?.[1];
+      expect(viewBoxWidth, svg).toBeDefined();
+      expect(svg, svg).toContain(`min-width:${viewBoxWidth}px`);
+    }
+    expect(html).toMatch(/\.chart-scroll \{[^}]*overflow-x: auto/u);
+    expect(html).toMatch(/\.multiples > \.fig \{[^}]*min-width: 0/u);
+  });
+
   it("escapes every source string", () => {
     expect(html).not.toContain("<Alex");
     expect(html).not.toContain("<b>Labs");
