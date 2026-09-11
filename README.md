@@ -2,13 +2,23 @@
 
 An experimental spatial portfolio for Bradley Berkman's product, systems, and creative technology work. The main view turns portfolio records and threads into an explorable map with a shared reader; the flat HTML index links into that same reading surface.
 
-## Run it
+This is the source for my own portfolio, published for people interested in how the map, reader, and assistant work. It is actively developed, and a fork needs its own content and deployment configuration. Start with [content/portfolio-content.json](content/portfolio-content.json) for the writing, [lib/portfolio-world.ts](lib/portfolio-world.ts) for the assembled model, or [the avatar documentation](docs/embodied-portfolio-agent.md) for the assistant.
 
-Requires Node.js 22.13 or newer.
+## Run it locally
+
+Requires Git, Node.js 22.13 or newer, npm, and your own OpenAI API key. The development launcher requires a key even if you only want to browse the map. Chat submissions make real provider requests and incur usage charges on that key.
+
+Clone the repository and install its dependencies:
 
 ```bash
+git clone https://github.com/braininavatgroup/portfolio.git
+cd portfolio
 bash scripts/bootstrap-worktree.sh
-npm run setup:chat # once per Mac
+```
+
+Set `OPENAI_API_KEY` in your local process environment using your preferred secret manager, then start the server:
+
+```bash
 npm run dev
 ```
 
@@ -19,6 +29,11 @@ that dependency state inside the worktree. Conductor setup also activates the
 versioned `post-checkout` hook, so later `git worktree add` operations bootstrap
 their own dependencies automatically. Workspaces can run concurrently because
 Wrangler and Miniflare keep their state inside each worktree.
+
+### Maintainer credential setup
+
+`npm run setup:chat` is an optional macOS workflow for this portfolio's operator. It handles development Keychain storage and can upload a production secret to Cloudflare. It is not required when you supply `OPENAI_API_KEY` yourself. The deployment and feedback setup commands later in this README also target this project's infrastructure; adapting a fork requires your own Cloudflare account, bindings, routes, and secrets.
+
 The setup wizard opens the OpenAI project page and separates the credentials:
 
 - The `portfolio-dev` key lives in macOS Keychain under service
@@ -199,3 +214,9 @@ access was retired by BIV-321.
 Run `npm run media:studio` to reopen the local redaction studio. See
 [the studio guide](docs/visuals/redaction-studio.md) for saved-work locations,
 new media, and the export/review workflow. Originals and selections stay private.
+
+## Contributing and reuse
+
+For bugs, include the browser, device, route, steps to reproduce, and what you expected. Keep private chat transcripts, feedback, credentials, and unpublished personal material out of public issues. For changes, read [AGENTS.md](AGENTS.md) and the relevant component document, then run the checks for the behavior you changed. `npm run typecheck` and `npm run lint` provide static checks; `npm test` runs the repository's test suites. `npm run eval:chat` is a separate provider evaluation and can spend API credit.
+
+The [license](LICENSE) grants MIT terms for source code and documentation subject to its exclusions. Writing, case studies, images, video, avatar models, and other media in `content/`, `public/`, and `assets/` are reserved unless an asset-specific license says otherwise. A fork should supply its own identity and portfolio material. See `public/licenses/` and `assets/avatar-sources/README.md` for third-party asset terms.
