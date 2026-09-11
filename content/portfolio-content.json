@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 32,
+  "revision": 33,
   "records": {
     "bradley": {
       "label": "Bradley Berkman",
@@ -688,9 +688,9 @@
     "chat.unavailable": "The answer service is temporarily unavailable.",
     "privacy.backLink": "← Portfolio",
     "privacy.title": "Privacy",
-    "privacy.p1": "This site uses Cloudflare edge analytics for aggregate traffic. When enabled, Microsoft Clarity provides usage analytics, performance reporting, heatmaps, and session replay. These may include pages viewed, referral source, approximate geography, device and browser details, clicks, pointer movement, scrolling, and time spent reading. A code in a shared link may identify the campaign that brought you here.",
+    "privacy.p1": "This site uses Cloudflare edge analytics for aggregate traffic. When enabled, Microsoft Clarity provides usage analytics, performance reporting, heatmaps, and session replay. These may include pages viewed, referral source, approximate geography, device and browser details, clicks, pointer movement, scrolling, and time spent reading. With analytics enabled, the site also records portfolio actions, such as opening a story or a piece of evidence, through Cloudflare. Each record also carries a random ID that ends when you close the tab, your device type (phone, tablet, or computer), and the approximate location your network reports, down to the city. The records hold no name, email address, IP address, or precise location. Cloudflare keeps them for three months, and Bradley keeps a copy on his own computer for 180 days. A link Bradley sends you directly may carry an opaque code. On his own computer he matches it to the person and role he sent it for, so he sees activity through that link, though not who opened it.",
     "privacy.p2": "Form inputs and the portfolio chat are masked from session replay. If you use the Guide, your message and recent conversation are sent to OpenAI with relevant portfolio content to generate an answer. Cloudflare provides hosting and abuse protection, including security verification for the chat when required. Masking the chat from replay does not prevent the chat service from processing your messages.",
-    "privacy.p3": "You can opt out or back in below. This controls Clarity analytics, and your preference is stored in this browser when browser storage is available. After changing it, reload the page. An opt-out prevents Clarity from loading on subsequent page loads. On a page where Clarity has already loaded, declining analytics storage can still allow cookieless measurement until you reload. Cloudflare traffic analytics, security processing, and messages you choose to send to the Guide continue independently.",
+    "privacy.p3": "You can opt out or back in below. This controls Clarity analytics and the portfolio action records described above, and your preference is stored in this browser when browser storage is available. After changing it, reload the page. An opt-out stops new action records right away and prevents Clarity from loading on subsequent page loads. On a page where Clarity has already loaded, declining analytics storage can still allow cookieless measurement until you reload. Cloudflare edge analytics, security processing, and messages you choose to send to the Guide continue independently.",
     "privacy.questionsPrefix": "Questions? Email",
     "privacy.enableAnalytics": "Enable Clarity analytics",
     "privacy.optOutAnalytics": "Opt out of Clarity analytics",
