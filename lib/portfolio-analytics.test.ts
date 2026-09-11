@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as portfolioAnalytics from "./portfolio-analytics";
 import {
+  getPortfolioTabSessionId,
   PortfolioAttention,
   PUBLIC_CLARITY_PROJECT_ID,
   setPrivacySafeReplayConsent,
@@ -11,9 +12,23 @@ import {
   trackPortfolioInsight,
 } from "./portfolio-analytics";
 
+const TAB_SESSION_KEY = "biv_portfolio_insight_session_v1";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
+
+function createMemoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+  };
+}
+
 afterEach(() => {
   document.head.innerHTML = "";
   delete window.clarity;
+  window.sessionStorage.clear();
 });
 
 describe("privacy-safe portfolio replay", () => {
@@ -260,6 +275,41 @@ describe("portfolio insight events", () => {
   });
 });
 
+describe("tab session identity", () => {
+  it("reuses one random session id in a tab and changes it in another tab", () => {
+    const tabA = createMemoryStorage();
+    const tabB = createMemoryStorage();
+    expect(getPortfolioTabSessionId(tabA, () => "session-a")).toBe("session-a");
+    expect(getPortfolioTabSessionId(tabA, () => "unused")).toBe("session-a");
+    expect(getPortfolioTabSessionId(tabB, () => "session-b")).toBe("session-b");
+    expect(tabA.getItem(TAB_SESSION_KEY)).toBe("session-a");
+  });
+
+  it("replaces a malformed stored or generated id with a random UUID", () => {
+    const tampered = createMemoryStorage();
+    tampered.setItem(TAB_SESSION_KEY, "alice@example.com");
+    const replaced = getPortfolioTabSessionId(tampered, () => "short");
+    expect(replaced).toMatch(UUID);
+    expect(tampered.getItem(TAB_SESSION_KEY)).toBe(replaced);
+
+    expect(getPortfolioTabSessionId(createMemoryStorage(), () => "x".repeat(129))).toMatch(UUID);
+    expect(getPortfolioTabSessionId(createMemoryStorage(), () => "-leading-hyphen")).toMatch(UUID);
+  });
+
+  it("keeps one id in memory when private mode rejects storage", () => {
+    const refuse = () => {
+      throw new DOMException("storage disabled", "SecurityError");
+    };
+    const blocked = { getItem: refuse, setItem: refuse };
+    expect(getPortfolioTabSessionId(blocked, () => "session-private")).toBe("session-private");
+    expect(getPortfolioTabSessionId(blocked, () => "unused")).toBe("session-private");
+
+    const quotaFull = { getItem: () => null, setItem: refuse };
+    expect(getPortfolioTabSessionId(quotaFull, () => "session-quota")).toBe("session-quota");
+    expect(getPortfolioTabSessionId(quotaFull, () => "unused")).toBe("session-quota");
+  });
+});
+
 describe("first-party insight sink", () => {
   const originalSendBeacon = Object.getOwnPropertyDescriptor(navigator, "sendBeacon");
   const originalFetch = window.fetch;
@@ -294,6 +344,8 @@ describe("first-party insight sink", () => {
       hostname: "bradleyberkman.com",
       projectId: "abc123",
     });
+    window.sessionStorage.setItem(TAB_SESSION_KEY, "session-a");
+    window.clarity!.q = [];
 
     expect(trackPortfolioInsight("content_open", {
       selection_source: "map",
@@ -310,7 +362,56 @@ describe("first-party insight sink", () => {
         content_id: "record-9q",
         selection_source: "map",
       },
+      session_id: "session-a",
     });
+    // The journey key is the sink's alone; Clarity never receives it as a tag.
+    expect(JSON.stringify(window.clarity?.q)).not.toContain("session-a");
+    expect(JSON.stringify(window.clarity?.q)).not.toContain("session_id");
+  });
+
+  it("creates the tab id on the first eligible event and reuses it", () => {
+    const sendBeacon = stubBeacon();
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+
+    expect(window.sessionStorage.getItem(TAB_SESSION_KEY)).toBeNull();
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(true);
+    expect(trackPortfolioInsight("content_open", { content_id: "record-9q" })).toBe(true);
+
+    const [first, second] = sendBeacon.mock.calls.map(
+      (call) => JSON.parse((call as unknown as [string, string])[1]).session_id,
+    );
+    expect(first).toMatch(UUID);
+    expect(second).toBe(first);
+    expect(window.sessionStorage.getItem(TAB_SESSION_KEY)).toBe(first);
+  });
+
+  it("creates no session and sends nothing when analytics is ineligible, denied, or the event is invalid", () => {
+    const sendBeacon = stubBeacon();
+
+    startPrivacySafeReplay({
+      context: "preview",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(false);
+
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    setPrivacySafeReplayConsent("denied");
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(false);
+
+    setPrivacySafeReplayConsent("granted");
+    expect(trackPortfolioInsight("entry", { note: "alice@example.com" })).toBe(false);
+
+    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(TAB_SESSION_KEY)).toBeNull();
   });
 
   it("falls back to a keepalive fetch when beacons are unavailable or refused", () => {
@@ -321,12 +422,17 @@ describe("first-party insight sink", () => {
       hostname: "bradleyberkman.com",
       projectId: "abc123",
     });
+    window.sessionStorage.setItem(TAB_SESSION_KEY, "session-fetch");
 
     expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith("/api/portfolio-insight", expect.objectContaining({
       method: "POST",
       keepalive: true,
-      body: JSON.stringify({ action: "entry", dimensions: { entry_source: "direct" } }),
+      body: JSON.stringify({
+        action: "entry",
+        dimensions: { entry_source: "direct" },
+        session_id: "session-fetch",
+      }),
     }));
 
     const refused = stubBeacon(false);

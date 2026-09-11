@@ -19,8 +19,13 @@ import {
   deriveTrafficShape,
   formatReport,
   historyRow,
+  INSIGHT_EVENT_LIMIT,
+  insightEventQuery,
+  insightWindowClause,
   microsecondsToMilliseconds,
+  normalizeInsightEvents,
   parseArguments,
+  readInsightEventRows,
   rankDimension,
   summarizeClarity,
   summarizeDaily,
@@ -36,10 +41,15 @@ describe("parseArguments", () => {
       clarity: true,
       cloudflare: true,
       insights: true,
+      airtable: true,
       snapshot: true,
       history: false,
       dashboard: false,
     });
+  });
+
+  it("skips Airtable identity with --no-airtable", () => {
+    expect(parseArguments(["--no-airtable"])).toMatchObject({ airtable: false, insights: true });
   });
 
   it("reads the flags", () => {
@@ -855,5 +865,240 @@ describe("historyRow first-party columns", () => {
     expect(failed.insightEvents).toBeNull();
     expect(failed.insightCampaignEntries).toBeNull();
     expect(historyRow({ capturedAt: "x", window: {} }).insightEvents).toBeNull();
+  });
+});
+
+// Owns fixed-column decoding, chronological order, v1 compatibility, and the
+// truncation signal for the event-level Analytics Engine read, until the
+// Analytics Engine sink is removed.
+describe("event-level insight rows", () => {
+  const range = { start: "2026-09-05T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" };
+
+  it("selects every fixed column in chronological order, capped, inside the escaped window", () => {
+    const query = insightEventQuery(range);
+    const window = insightWindowClause(range);
+    expect(window).toBe(
+      "timestamp >= toDateTime('2026-09-05 00:00:00') AND timestamp <= toDateTime('2026-09-11 23:59:59')",
+    );
+    expect(query).toContain(`WHERE ${window}`);
+    expect(query).toMatch(/FROM portfolio_insights\b/u);
+    const columns = [
+      "blob1 AS action",
+      "blob2 AS content_id",
+      "blob3 AS content_kind",
+      "blob4 AS campaign",
+      "blob5 AS contact_kind",
+      "blob6 AS source",
+      "blob7 AS target_id",
+      "blob8 AS target_kind",
+      "blob9 AS country",
+      "blob10 AS device",
+      "blob11 AS schema",
+      "blob12 AS session_id",
+      "blob13 AS region_code",
+      "blob14 AS city",
+      "blob15 AS metro_code",
+      "double1 AS active_seconds",
+      "double2 AS completion_percent",
+    ];
+    for (const column of columns) expect(query).toContain(column);
+    expect(query).toMatch(/SELECT\s+timestamp,/u);
+    expect(query).toMatch(/ORDER BY timestamp ASC\s+LIMIT 10000\s+FORMAT JSON/u);
+    expect(INSIGHT_EVENT_LIMIT).toBe(10_000);
+  });
+
+  it("escapes a quote that reaches the window", () => {
+    expect(insightWindowClause({ start: "2026-09-0'T00:00:00.000Z", end: range.end })).toContain(
+      "toDateTime('2026-09-0'' 00:00:00')",
+    );
+  });
+
+  it("decodes a v2 row into its journey and city fields", () => {
+    expect(
+      normalizeInsightEvents([
+        {
+          timestamp: "2026-09-11 14:30:00.000",
+          action: "content_open",
+          content_id: "record-9q",
+          schema: "v2",
+          session_id: "session-a",
+          region_code: "NY",
+          city: "New York",
+          metro_code: "501",
+          active_seconds: 0,
+          completion_percent: 0,
+        },
+      ])[0],
+    ).toMatchObject({
+      sessionId: "session-a",
+      regionCode: "NY",
+      city: "New York",
+      metroCode: "501",
+    });
+
+    expect(
+      normalizeInsightEvents([
+        {
+          timestamp: "2026-09-11 14:31:05",
+          action: "contact_action",
+          content_id: "",
+          content_kind: "",
+          campaign: "a1b2c3d4e5f6",
+          contact_kind: "email",
+          source: "guide",
+          target_id: "evidence-2",
+          target_kind: "document",
+          country: "DE",
+          device: "mobile",
+          schema: "v2",
+          session_id: "session-a",
+          region_code: "BE",
+          city: "Berlin",
+          metro_code: "27612",
+          active_seconds: "12.5",
+          completion_percent: "40",
+        },
+      ]),
+    ).toEqual([
+      {
+        timestamp: "2026-09-11T14:31:05.000Z",
+        action: "contact_action",
+        contentId: "",
+        contentKind: "",
+        campaign: "a1b2c3d4e5f6",
+        contactKind: "email",
+        source: "guide",
+        targetId: "evidence-2",
+        targetKind: "document",
+        country: "DE",
+        device: "mobile",
+        schema: "v2",
+        sessionId: "session-a",
+        regionCode: "BE",
+        city: "Berlin",
+        metroCode: "27612",
+        activeSeconds: 12.5,
+        completionPercent: 40,
+      },
+    ]);
+  });
+
+  it("keeps v1 rows with empty journey and city fields, even if later blobs hold stray values", () => {
+    const [plain, stray] = normalizeInsightEvents([
+      {
+        timestamp: "2026-09-10 08:00:00",
+        action: "entry",
+        country: "US",
+        device: "desktop",
+        schema: "v1",
+        session_id: "",
+        region_code: "",
+        city: "",
+        metro_code: "",
+      },
+      {
+        timestamp: "2026-09-10 08:00:01",
+        action: "entry",
+        schema: "v1",
+        session_id: "not-a-v1-column",
+        region_code: "CA",
+        city: "Irvine",
+        metro_code: "803",
+      },
+    ]);
+    expect(plain).toMatchObject({
+      schema: "v1",
+      country: "US",
+      device: "desktop",
+      sessionId: "",
+      regionCode: "",
+      city: "",
+      metroCode: "",
+    });
+    expect(stray).toMatchObject({ sessionId: "", regionCode: "", city: "", metroCode: "" });
+  });
+
+  it("drops rows with invalid timestamps, unknown schemas, or no action", () => {
+    const valid = { action: "entry", schema: "v2", timestamp: "2026-09-10 08:00:00" };
+    const events = normalizeInsightEvents([
+      valid,
+      { ...valid, timestamp: "" },
+      { ...valid, timestamp: null },
+      { ...valid, timestamp: "yesterday" },
+      { ...valid, timestamp: "2026-13-40 25:61:00" },
+      { ...valid, schema: "v3" },
+      { ...valid, schema: "" },
+      { ...valid, action: "" },
+      null,
+    ]);
+    expect(events).toHaveLength(1);
+    expect(events[0].timestamp).toBe("2026-09-10T08:00:00.000Z");
+  });
+
+  it("clamps active seconds at zero and completion to 0 through 100", () => {
+    const row = (active_seconds: unknown, completion_percent: unknown) => ({
+      timestamp: "2026-09-10 08:00:00",
+      action: "content_attention",
+      schema: "v2",
+      active_seconds,
+      completion_percent,
+    });
+    const values = normalizeInsightEvents([
+      row(-5, -3),
+      row("abc", 140),
+      row(Number.POSITIVE_INFINITY, "63"),
+      row(null, undefined),
+      row(3_600, 100),
+    ]).map((event) => [event.activeSeconds, event.completionPercent]);
+    expect(values).toEqual([
+      [0, 0],
+      [0, 100],
+      [0, 63],
+      [0, 0],
+      [3_600, 100],
+    ]);
+  });
+
+  it("returns events in chronological order whatever order the rows arrive in", () => {
+    const events = normalizeInsightEvents([
+      { timestamp: "2026-09-10 08:00:02", action: "content_open", schema: "v2" },
+      { timestamp: "2026-09-10 08:00:00", action: "entry", schema: "v2" },
+      { timestamp: "2026-09-10T08:00:01.000Z", action: "content_attention", schema: "v1" },
+    ]);
+    expect(events.map((event) => event.action)).toEqual([
+      "entry",
+      "content_attention",
+      "content_open",
+    ]);
+  });
+
+  it("marks a response truncated exactly when it fills the row cap", () => {
+    const rows = (count: number) =>
+      Array.from({ length: count }, () => ({
+        timestamp: "2026-09-10 08:00:00",
+        action: "entry",
+        schema: "v2",
+      }));
+    expect(readInsightEventRows(rows(INSIGHT_EVENT_LIMIT)).truncated).toBe(true);
+    const partial = readInsightEventRows(rows(INSIGHT_EVENT_LIMIT - 1));
+    expect(partial.truncated).toBe(false);
+    expect(partial.events).toHaveLength(INSIGHT_EVENT_LIMIT - 1);
+    // The cap counts rows returned, not rows kept, so dropped rows cannot hide it.
+    const capped = rows(INSIGHT_EVENT_LIMIT);
+    capped[0] = { ...capped[0], timestamp: "bad" };
+    expect(readInsightEventRows(capped)).toMatchObject({ truncated: true });
+    expect(readInsightEventRows(undefined)).toEqual({ events: [], truncated: false });
+  });
+
+  it("warns in the terminal report when the event-level read was truncated", () => {
+    const insights = {
+      ...summarizeInsightEvents({ actions: [{ action: "entry", events: 4 }] }),
+      raw: { events: [], truncated: true },
+    };
+    expect(formatInsightEvents(insights).join("\n")).toContain(
+      "Event-level read hit the 10000-row cap",
+    );
+    const complete = { ...insights, raw: { events: [], truncated: false } };
+    expect(formatInsightEvents(complete).join("\n")).not.toContain("row cap");
   });
 });

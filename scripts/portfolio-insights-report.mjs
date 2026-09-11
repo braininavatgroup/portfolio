@@ -33,6 +33,7 @@ export function parseArguments(argv) {
     clarity: true,
     cloudflare: true,
     insights: true,
+    airtable: true,
     snapshot: true,
     history: false,
     dashboard: false,
@@ -45,6 +46,7 @@ export function parseArguments(argv) {
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
     else if (argument === "--no-insights") options.insights = false;
+    else if (argument === "--no-airtable") options.airtable = false;
     else if (argument === "--no-snapshot") options.snapshot = false;
     else if (argument === "--days") {
       const value = Number.parseInt(argv[(index += 1)] ?? "", 10);
@@ -401,6 +403,94 @@ function table(rows, { label, limit = 8 }) {
       `${String(row.visits).padStart(5)} visits  ${percent(row.share).padStart(6)}`,
     ),
   ];
+}
+
+// ── Lead: the dashboard's findings, first ───────────────────────────────────
+
+const LEAD_SOURCES = [
+  ["insights", "Analytics Engine events"],
+  ["airtable", "Airtable assignments"],
+  ["clarity", "Clarity"],
+  ["cloudflare", "Cloudflare Web Analytics"],
+];
+
+/** @param {unknown} value @returns {string | null} "YYYY-MM-DD HH:MM UTC" */
+function leadStamp(value) {
+  if (typeof value !== "string" || value === "") return null;
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? null : `${time.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
+/** @param {{ status: string, capturedAt: string | null, error?: string }} state */
+function leadFreshness(state) {
+  if (state.status === "fresh") return `fresh · captured ${leadStamp(state.capturedAt) ?? "at an unknown time"}`;
+  if (state.status === "stale") {
+    const reason = state.error ? ` · latest attempt failed: ${state.error}` : "";
+    return `stale · last good ${leadStamp(state.capturedAt) ?? "at an unknown time"}${reason}`;
+  }
+  return `unavailable · ${state.error ?? "no data collected"}`;
+}
+
+/**
+ * What the dashboard's "What changed" section says, for the terminal: each
+ * source's freshness, configuration errors, the row-cap warning, then the
+ * findings with their count, denominator, and windows.
+ *
+ * @param {Record<string, any>} snapshot
+ * @param {{ configurationErrors?: string[] }} [extra]
+ */
+export function formatLead(snapshot, { configurationErrors = [] } = {}) {
+  const range = snapshot.window ?? {};
+  const sources = snapshot.sources ?? {};
+  const lines = [
+    "",
+    `Portfolio findings · ${String(range.start ?? "").slice(0, 10)} → ${String(range.end ?? "").slice(0, 10)} (UTC)`,
+    "",
+    "  Sources",
+  ];
+  for (const [name, label] of LEAD_SOURCES) {
+    if (sources[name]) lines.push(`    ${label.padEnd(26)}${leadFreshness(sources[name])}`);
+  }
+  lines.push("");
+
+  if (configurationErrors.length > 0) {
+    lines.push(
+      "  Configuration error: affected links stay unattributed",
+      ...configurationErrors.map((problem) => `    ${problem}`),
+      "    Fix the campaign code on the Airtable Action. The report never guesses which link owns an ambiguous code.",
+      "",
+    );
+  }
+  if (sources.insights?.value?.raw?.truncated) {
+    lines.push(
+      `  Event data is truncated: Analytics Engine returned its ${INSIGHT_EVENT_LIMIT.toLocaleString("en-US")}-row cap`,
+      "  for this window, so journeys and content measures cover only the earliest events.",
+      "",
+    );
+  }
+
+  lines.push("  What changed");
+  const intelligence = snapshot.intelligence;
+  const findings = Array.isArray(intelligence?.findings) ? intelligence.findings : [];
+  if (!intelligence) {
+    lines.push(
+      sources.insights?.status === "unavailable"
+        ? `    No findings: they need Analytics Engine journey data, which is unavailable (${sources.insights.error ?? "no data collected"}).`
+        : "    No findings: this snapshot predates journey reporting.",
+    );
+  } else if (findings.length === 0) {
+    lines.push("    Nothing needs a decision in this window.");
+  } else {
+    const count = (value) => Number(value ?? 0).toLocaleString("en-US");
+    for (const finding of findings) {
+      lines.push(
+        `    - ${finding.message}`,
+        `      ${count(finding.count)} of ${count(finding.denominator)} · ${finding.currentWindow} compared with ${finding.comparisonWindow}`,
+      );
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 export function formatReport(snapshot) {
@@ -926,6 +1016,178 @@ export function summarizeInsightEvents({
   };
 }
 
+// ── Event-level rows ─────────────────────────────────────────────────────────
+//
+// The aggregate answers above say how much happened; journeys need each event
+// in order. One capped read returns every fixed column, oldest first, and the
+// normalizer below decodes it into `InsightEvent`s.
+
+export const INSIGHT_DATASET = "portfolio_insights";
+
+/** The most rows one event-level read returns. A full page means the window held more. */
+export const INSIGHT_EVENT_LIMIT = 10_000;
+
+/** SQL string literal; the only values interpolated are ISO dates and names this file owns. */
+function sqlString(value) {
+  return `'${String(value).replace(/'/gu, "''")}'`;
+}
+
+/**
+ * The escaped UTC window every Analytics Engine query filters on.
+ * @param {{ start: string, end: string }} range
+ */
+export function insightWindowClause(range) {
+  const start = range.start.slice(0, 19).replace("T", " ");
+  const end = range.end.slice(0, 19).replace("T", " ");
+  return `timestamp >= toDateTime(${sqlString(start)}) AND timestamp <= toDateTime(${sqlString(end)})`;
+}
+
+/** Fixed positions from `lib/server/portfolio-insight-sink.ts`, v1 and v2 alike. */
+const INSIGHT_EVENT_COLUMNS = [
+  ["blob1", "action"],
+  ["blob2", "content_id"],
+  ["blob3", "content_kind"],
+  ["blob4", "campaign"],
+  ["blob5", "contact_kind"],
+  ["blob6", "source"],
+  ["blob7", "target_id"],
+  ["blob8", "target_kind"],
+  ["blob9", "country"],
+  ["blob10", "device"],
+  ["blob11", "schema"],
+  ["blob12", "session_id"],
+  ["blob13", "region_code"],
+  ["blob14", "city"],
+  ["blob15", "metro_code"],
+  ["double1", "active_seconds"],
+  ["double2", "completion_percent"],
+];
+
+/**
+ * Every event in the window, oldest first, capped at `INSIGHT_EVENT_LIMIT`.
+ * @param {{ start: string, end: string }} range
+ */
+export function insightEventQuery(range) {
+  const columns = INSIGHT_EVENT_COLUMNS.map(([column, alias]) => `${column} AS ${alias}`);
+  return `
+      SELECT timestamp,
+        ${columns.join(",\n        ")}
+      FROM ${INSIGHT_DATASET}
+      WHERE ${insightWindowClause(range)}
+      ORDER BY timestamp ASC
+      LIMIT ${INSIGHT_EVENT_LIMIT} FORMAT JSON`;
+}
+
+/**
+ * @typedef {{
+ *   timestamp: string, action: string, contentId: string, contentKind: string,
+ *   campaign: string, contactKind: string, source: string, targetId: string,
+ *   targetKind: string, country: string, device: string, schema: "v1" | "v2",
+ *   sessionId: string, regionCode: string, city: string, metroCode: string,
+ *   activeSeconds: number, completionPercent: number,
+ * }} InsightEvent
+ */
+
+const EVENT_TIMESTAMP_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?Z?$/u;
+
+/** Analytics Engine answers `YYYY-MM-DD hh:mm:ss[.fff]` in UTC; return ISO or null. */
+function eventTimestamp(value) {
+  const match = EVENT_TIMESTAMP_PATTERN.exec(String(value ?? "").trim());
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second, fraction = "0"] = match;
+  const date = new Date(
+    Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+      Number(fraction.padEnd(3, "0").slice(0, 3)),
+    ),
+  );
+  // Date.UTC rolls an impossible date forward; reject it instead.
+  const exact =
+    date.getUTCMonth() === Number(month) - 1 &&
+    date.getUTCDate() === Number(day) &&
+    date.getUTCHours() === Number(hour) &&
+    date.getUTCMinutes() === Number(minute) &&
+    date.getUTCSeconds() === Number(second);
+  return exact ? date.toISOString() : null;
+}
+
+function text(value) {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+/** The sink's own bound: finite and not negative, otherwise zero. */
+function nonNegative(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+}
+
+/**
+ * Decode event-level rows. Rows without a valid timestamp, an action, or a
+ * known schema are dropped. v1 rows predate the journey columns, so their
+ * blobs 12 to 15 are read as empty whatever they hold. The result is sorted
+ * by timestamp; the sort is stable, so ties keep the order the query returned.
+ *
+ * @param {Array<Record<string, unknown> | null | undefined> | null | undefined} rows
+ * @returns {InsightEvent[]}
+ */
+export function normalizeInsightEvents(rows = []) {
+  /** @type {InsightEvent[]} */
+  const events = [];
+  for (const row of rows ?? []) {
+    if (!row || typeof row !== "object") continue;
+    // Any other schema value names a layout whose columns this reader cannot
+    // know, so the row is dropped rather than decoded by guesswork.
+    const schema = text(row.schema);
+    if (schema !== "v1" && schema !== "v2") continue;
+    const timestamp = eventTimestamp(row.timestamp);
+    const action = text(row.action);
+    if (!timestamp || !action) continue;
+    const journey = schema === "v2";
+    events.push({
+      timestamp,
+      action,
+      contentId: text(row.content_id),
+      contentKind: text(row.content_kind),
+      campaign: text(row.campaign),
+      contactKind: text(row.contact_kind),
+      source: text(row.source),
+      targetId: text(row.target_id),
+      targetKind: text(row.target_kind),
+      country: text(row.country),
+      device: text(row.device),
+      schema,
+      sessionId: journey ? text(row.session_id) : "",
+      regionCode: journey ? text(row.region_code) : "",
+      city: journey ? text(row.city) : "",
+      metroCode: journey ? text(row.metro_code) : "",
+      activeSeconds: nonNegative(row.active_seconds),
+      completionPercent: Math.min(100, nonNegative(row.completion_percent)),
+    });
+  }
+  return events.sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+}
+
+/**
+ * The event-level answer as the snapshot carries it. `truncated` counts rows
+ * returned, not rows kept, so rows the normalizer drops cannot hide the cap.
+ *
+ * @param {unknown} rows
+ * @returns {{ events: InsightEvent[], truncated: boolean }}
+ */
+export function readInsightEventRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return {
+    events: normalizeInsightEvents(list),
+    truncated: list.length === INSIGHT_EVENT_LIMIT,
+  };
+}
+
 function insightHistoryColumns(insights) {
   const ready = insights && !insights.error ? insights : null;
   return {
@@ -1006,6 +1268,14 @@ export function formatInsightEvents(insights) {
       );
     }
     lines.push("");
+  }
+
+  if (insights.raw?.truncated) {
+    lines.push(
+      `  Event-level read hit the ${INSIGHT_EVENT_LIMIT}-row cap: journeys cover only the`,
+      "  earliest events in the window. A shorter --days reads the rest.",
+      "",
+    );
   }
 
   lines.push(

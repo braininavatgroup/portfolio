@@ -41,7 +41,8 @@
     "clip:render": "node scripts/clip-studio/render.mjs",
     "clip:setup": "npx --yes playwright@1.58.2 install chromium",
     "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs",
-    "insights": "node scripts/portfolio-insights.mjs"
+    "insights": "node scripts/portfolio-insights.mjs",
+    "test:insights": "vitest run scripts/portfolio-insights scripts/setup-portfolio-insights.test.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",

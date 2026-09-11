@@ -27,26 +27,50 @@
 //   blob9   country         ISO 3166-1 alpha-2 from the edge (`cf.country`)
 //   blob10  device          mobile | tablet | desktop | unknown, derived from
 //                           the user agent and nothing else of it kept
-//   blob11  schema          "v1", so the layout can change without a re-read
-//                           of old rows guessing which column meant what
+//   blob11  schema          "v2", so the layout can change without a re-read
+//                           of old rows guessing which column meant what;
+//                           v1 rows stop at this column
+//   blob12  session_id      random per-tab id from the client's sessionStorage
+//   blob13  region_code     `cf.regionCode`, at most 16 ASCII letters, digits, hyphens
+//   blob14  city            `cf.city`, letters, marks, digits, space . ' - (at most 96)
+//   blob15  metro_code      `cf.metroCode`, at most 16 ASCII letters and digits
 //   double1 active_seconds      on content_attention
 //   double2 completion_percent  on content_attention
 //   index1  action
 //
 // Nothing else from the request is written: not the address, the user agent
-// string, cookies, referrer, or the URL. Content IDs and codes are the opaque
-// values the client already restricts to `[A-Za-z0-9._:-]`.
+// string, cookies, referrer, the URL, latitude, longitude, postal code, colo,
+// or any other `cf` property. City is the most specific geography kept, and it
+// only says where the network reports the request came from. Region, city and
+// metro come from `request.cf` alone; a value outside its shape is stored
+// empty. Content IDs, codes and the session id are the opaque values the client
+// already restricts to `[A-Za-z0-9._:-]`; a malformed session id drops the event
+// the same way a malformed dimension does.
 
 export const INSIGHT_SINK_ANALYTICS_ENGINE = "analytics-engine";
 export const MAX_INSIGHT_BODY_BYTES = 2 * 1_024;
 const MAX_INSIGHT_DIMENSIONS = 8;
-const SCHEMA_VERSION = "v1";
+const SCHEMA_VERSION = "v2";
 const ACTION_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;
 const VALUE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/u;
+const COUNTRY_PATTERN = /^[A-Z]{2}$|^T1$/u;
+const REGION_CODE_PATTERN = /^[A-Za-z0-9-]{1,16}$/u;
+const CITY_PATTERN = /^[\p{L}\p{M}\p{N} .'-]{1,96}$/u;
+const METRO_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/u;
 
 export type PortfolioInsightPayload = {
   action: string;
   dimensions: Record<string, string>;
+  /** Random per-tab journey id, or empty when the client sent none. */
+  session_id: string;
+};
+
+export type InsightGeography = {
+  country: string;
+  regionCode: string;
+  city: string;
+  metroCode: string;
 };
 
 export type PortfolioInsightDataPoint = {
@@ -78,8 +102,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The same rules `trackPortfolioInsight` applies before it sends anything. */
 export function parsePortfolioInsightPayload(input: unknown): PortfolioInsightPayload | null {
   if (!isRecord(input)) return null;
-  const { action, dimensions = {} } = input;
+  const { action, dimensions = {}, session_id: sessionId } = input;
   if (typeof action !== "string" || !ACTION_PATTERN.test(action)) return null;
+  // Absent is an event from a client without tab ids; present but malformed
+  // rejects the whole event, as a malformed dimension does.
+  if (
+    sessionId !== undefined &&
+    (typeof sessionId !== "string" || !SESSION_ID_PATTERN.test(sessionId))
+  ) {
+    return null;
+  }
   if (!isRecord(dimensions)) return null;
   const entries = Object.entries(dimensions);
   if (entries.length > MAX_INSIGHT_DIMENSIONS) return null;
@@ -94,7 +126,11 @@ export function parsePortfolioInsightPayload(input: unknown): PortfolioInsightPa
     }
     safe[key] = value;
   }
-  return { action, dimensions: safe };
+  return {
+    action,
+    dimensions: safe,
+    session_id: typeof sessionId === "string" ? sessionId : "",
+  };
 }
 
 /** A coarse class is all the report needs; the string itself is never kept. */
@@ -120,8 +156,8 @@ function first(dimensions: Record<string, string>, keys: string[]) {
 }
 
 export function insightDataPoint(
-  { action, dimensions }: PortfolioInsightPayload,
-  { country, device }: { country: string; device: DeviceClass },
+  { action, dimensions, session_id: sessionId }: PortfolioInsightPayload,
+  { country, regionCode, city, metroCode, device }: InsightGeography & { device: DeviceClass },
 ): PortfolioInsightDataPoint {
   return {
     blobs: [
@@ -136,6 +172,10 @@ export function insightDataPoint(
       country,
       device,
       SCHEMA_VERSION,
+      sessionId,
+      regionCode,
+      city,
+      metroCode,
     ],
     doubles: [bounded(dimensions.active_seconds), bounded(dimensions.completion_percent)],
     indexes: [action],
@@ -190,11 +230,27 @@ async function readBoundedBody(request: Request) {
   return body;
 }
 
-function countryOf(request: Request) {
+function shaped(value: unknown, pattern: RegExp) {
+  return typeof value === "string" && pattern.test(value) ? value : "";
+}
+
+/**
+ * The only request properties the row keeps besides the device class. Country
+ * keeps its v1 `cf-ipcountry` fallback; region, city and metro are read from
+ * `request.cf` alone. Each property is named, so nothing else on `cf` can reach
+ * the row.
+ */
+function geographyOf(request: Request): InsightGeography {
   const cf = Reflect.get(request, "cf") as unknown;
-  const fromCf = isRecord(cf) ? cf.country : undefined;
-  const country = typeof fromCf === "string" ? fromCf : request.headers.get("cf-ipcountry") ?? "";
-  return /^[A-Z]{2}$|^T1$/u.test(country) ? country : "";
+  const edge: Record<string, unknown> = isRecord(cf) ? cf : {};
+  const country =
+    typeof edge.country === "string" ? edge.country : request.headers.get("cf-ipcountry") ?? "";
+  return {
+    country: shaped(country, COUNTRY_PATTERN),
+    regionCode: shaped(edge.regionCode, REGION_CODE_PATTERN),
+    city: shaped(edge.city, CITY_PATTERN),
+    metroCode: shaped(edge.metroCode, METRO_CODE_PATTERN),
+  };
 }
 
 /** A transient throttle key; the address is hashed and never written anywhere. */
@@ -246,7 +302,7 @@ export function createPortfolioInsightSink({ env }: { env: PortfolioInsightSinkE
       try {
         env.PORTFOLIO_INSIGHTS!.writeDataPoint(
           insightDataPoint(payload, {
-            country: countryOf(request),
+            ...geographyOf(request),
             device: deviceClassFromUserAgent(request.headers.get("user-agent")),
           }),
         );

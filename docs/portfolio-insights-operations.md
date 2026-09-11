@@ -34,37 +34,41 @@ consent API itself. A document that is not eligible — the `preview` marker, a
 missing marker, a non-public hostname — ignores the saved preference entirely
 and stays dormant.
 
-## Use opaque job-search links
+## Use assigned job-search links
 
-Generate a random code that carries no human meaning, for example:
+Every link Bradley sends directly gets its own opaque code, stored on one
+Action in the Airtable `Job Search` base (`app0LM9NfGL4ZHi3j`). Actions have
+carried four portfolio fields since 2026-09-11T20:07Z (job-search PR #11):
 
-```sh
-openssl rand -hex 8
-```
+| Field | Holds |
+| --- | --- |
+| `Portfolio Campaign Code` | The code: random, lowercase, `[a-z0-9][a-z0-9_-]{5,63}`, unique across Actions |
+| `Portfolio Link Sent` | When the link went out |
+| `Portfolio Link Channel` | `Email`, `LinkedIn`, `Application`, `Referral`, or `Other` |
+| `Portfolio URL` | The portfolio URL carrying `?campaign=<code>` |
 
-Add it to a portfolio URL as `campaign=<code>`. The browser removes the
-parameter from the visible URL, keeps it only for the current tab session, and
-adds it to later portfolio insight signals. Never use a company name, person's
-name, email address, job title, or recognizable abbreviation as the code.
+Generate the code with `openssl rand -hex 8`. Never use a company name,
+person's name, email address, job title, or recognizable abbreviation. One
+Action is one link, so two recipients for the same job get two codes. The
+Action's own links to Person, Job, and Company supply the context, and
+Airtable stays the only place the code meets a name or an outcome.
 
-Keep the mapping in the private opportunity tracker, outside this repository
-and Clarity. A practical row contains:
-
-- opaque campaign code;
-- opportunity and recipient class;
-- date and channel sent;
-- eventual response, interview, offer, or closed outcome.
-
-Clarity answers what an eligible visitor did. The private tracker answers
-which outreach and job outcome that anonymous code represents. Do not add the
-mapping or outcome to portfolio telemetry.
+The browser removes the parameter from the visible URL, keeps it for the
+current tab, and adds it to later portfolio insight signals. Clarity and the
+Analytics Engine row see only the code. The name is joined to it only in the
+local report (see [Assigned-link attribution](#assigned-link-attribution)).
 
 ## Read the signals
 
-Use Clarity for eligible human behavior: entries, content opens and their
-selection source, active Reader time, maximum Reader completion, evidence
-opens, Guide evidence navigation, and contact-action kinds. Treat Draw, Hold,
-and Advance as working analysis lenses, not permanent product categories.
+Use the local dashboard for portfolio actions: entries, content opens and
+their selection source, active Reader time, maximum Reader completion,
+evidence opens, Guide evidence navigation, and contact-action kinds. It reads
+them from the first-party sink as anonymous tab journeys and joins them to
+assigned links, so until the sink is activated those sections say
+unavailable. Use Clarity for what only Clarity records: masked recordings and
+click, scroll, and attention heatmaps (see [Observe in
+Clarity](#observe-in-clarity)). Treat Draw, Hold, and Advance as working
+analysis lenses, not permanent product categories.
 
 Use Cloudflare analytics for aggregate edge traffic, request geography,
 status, bots, and crawler access. Cloudflare requests and Clarity sessions
@@ -79,12 +83,18 @@ data policy, and operating record. No such monitor is activated by this work.
 ## Read them from the terminal
 
 ```sh
-npm run setup:insights      # once, per machine: mint and store the two tokens
+npm run setup:insights      # once, per machine: mint and store the three tokens
 npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
 npm run insights -- --history   # one row per past run, oldest first
+npm run insights -- --no-airtable   # render without assigned-link identity
 npm run schedule:insights   # once, per machine: run it daily at 07:10
 npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
+npm run test:insights       # every insights test, no network or token
 ```
+
+The terminal report opens with the dashboard's own **What changed**: each
+source's freshness, any Airtable configuration error, the row-cap warning, and
+the findings with their counts and windows. The traffic detail follows.
 
 ### The dashboard
 
@@ -120,6 +130,16 @@ API — so both come from a dashboard. `CLOUDFLARE_API_TOKEN` and
 also reads the older hand-made entry `biv-cloudflare-analytics / api-token`,
 so a Cloudflare token stored there before `setup:insights` existed keeps
 working without being copied.
+
+Stage 3 stores a read-only Airtable token for the assigned-link join. Mint a
+personal access token at `https://airtable.com/create/tokens` with only the
+`data.records:read` scope and access to only the `Job Search` base. The setup
+verifies the token before storing it in Keychain as service
+`biv-portfolio-insights`, account `airtable-read-token`, and refuses the admin
+`AIRTABLE_API_TOKEN`. `PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN` in the environment
+overrides the stored one. The report never writes to Airtable. Without a
+token it renders anonymous analytics and marks identity resolution
+unavailable.
 
 The Cloudflare token needs **two** permission rows, because they answer
 different questions:
@@ -189,11 +209,14 @@ The Clarity Data Export API breaks down by Browser, Device, Country/Region, OS,
 Source, Medium, Campaign, Channel and URL only. The portfolio's own signals —
 Reader active time, Reader completion, evidence opens, Guide navigation,
 contact-action kinds — are custom Clarity events (`portfolio_*`) with no export
-dimension. Read those in the Clarity dashboard.
+dimension. The same events also go to the first-party sink below, and the
+local report reads them from there.
 
 `campaign=<code>` is stored as the custom tag `portfolio_campaign`, not as
 `utm_campaign`, so it does not reach the export API's Campaign dimension
-either. It is dashboard-only for the same reason.
+either. The report takes the code from the sink's `blob4` and joins it to
+Airtable locally. In Clarity it remains a filter value (see [Observe in
+Clarity](#observe-in-clarity)).
 
 ### The scheduled run
 
@@ -201,18 +224,22 @@ either. It is dashboard-only for the same reason.
 `com.biv.portfolio-insights`, that runs the report daily at 07:10 local time
 from the checkout it was installed for and appends to
 `~/Library/Application Support/biv/portfolio-insights/history.jsonl`, a
-location that outlives any single worktree (`PORTFOLIO_INSIGHTS_DIR` is what
-moves the history there; a manual run without it still writes to
-`.context/insights/`). It logs to `~/Library/Logs/biv/portfolio-insights.log`.
+location that outlives any single worktree. A manual run uses the same
+directory unless `PORTFOLIO_INSIGHTS_DIR` points elsewhere. It logs to `~/Library/Logs/biv/portfolio-insights.log`.
 `--now` also kicks off a run immediately; `--remove` unloads and deletes the
-job and keeps the history. The installer refuses an ephemeral Conductor
+job and keeps the history. The installer creates the history directory as
+mode `0700` and refuses to install the job if `stat` reports anything else.
+The log repeats the terminal report, which names assigned links, so the job
+runs with umask `077`, the installer creates the log as mode `0600` and checks
+it the same way, and each run starts the log over once it passes 1 MB.
+No token is written into the job's property list. The installer refuses an ephemeral Conductor
 worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
 from one. The job runs whatever that clone has checked out, so keep it on
 `main`.
 
 The first-party sink below exists to close exactly this gap. Until it is
-activated, those signals stay dashboard-only, and the report says so in one
-line rather than printing zeros.
+activated, the report marks those sections unavailable rather than printing
+zeros, and the signals can be read only in Clarity.
 
 ### The first-party sink (dormant)
 
@@ -224,7 +251,7 @@ until the gate below is flipped in a deployed candidate.
 **How it flows.** `trackPortfolioInsight` in `lib/portfolio-analytics.ts`
 decides eligibility once — the `external` document marker, the public
 hostname, and the stored analytics preference — and only then sends the
-validated event to Clarity *and* posts the same `{ action, dimensions }` body
+validated event to Clarity *and* posts the same `{ action, dimensions }` body, plus the tab's `session_id`,
 to `POST /api/portfolio-insight` with `navigator.sendBeacon` (keepalive
 `fetch` as the fallback). A visit Clarity would not hear from never reaches
 the worker either; the `?analytics=off` enrollment excludes a browser from
@@ -254,15 +281,29 @@ absent:
 | `blob7` / `blob8` | target: `target_id` / `target_kind` on Guide navigation, `evidence_id` / `evidence_kind` on an evidence open |
 | `blob9` | country, ISO 3166-1 alpha-2, from the edge's `cf.country` |
 | `blob10` | device class derived from the user agent: `mobile`, `tablet`, `desktop`, `unknown` |
-| `blob11` | schema version, `v1` |
+| `blob11` | schema version, `v2` (`v1` rows stop at this column) |
+| `blob12` | `session_id`: a random id held in the tab's `sessionStorage`, one per tab |
+| `blob13` | region code from `cf.regionCode` (at most 16 ASCII letters, digits, hyphens) |
+| `blob14` | city from `cf.city` (letters, marks, digits, space, `.`, `'`, `-`; at most 96) |
+| `blob15` | metro code from `cf.metroCode` when present (at most 16 ASCII letters and digits) |
 | `double1` / `double2` | `active_seconds` / `completion_percent` on `content_attention` |
 | `index1` | action |
 
-No address, user agent string, cookie, referrer or URL is written. Content
-IDs and codes are the opaque values the client already restricts to
-`[A-Za-z0-9._:-]`. Analytics Engine keeps rows for three months and samples
+No address, user agent string, cookie, referrer, URL, latitude, longitude,
+postal code, colo or other `cf` property is written. City is the most specific
+geography kept, and it is only where the network reports the request came
+from; a VPN, mobile gateway or corporate network can move it. Region, city and
+metro have no header fallback, and a value outside its shape is stored empty.
+The session id is not a cookie and ends with the tab; a malformed one drops
+the event. Content IDs, codes and session ids are the opaque values the client
+already restricts to `[A-Za-z0-9._:-]`. Analytics Engine keeps rows for three months and samples
 at high volume, which is why the report sums `_sample_interval` instead of
 counting rows.
+
+Because the session id ends with the tab, no source here identifies a person
+across visits, and the report makes no new-versus-returning claim. It labels
+country, region, city, and metro as the network location reported for this
+request, never as where someone is or lives.
 
 **Reading it.** `npm run insights` queries the dataset with the Cloudflare
 token it already has. The Analytics Engine SQL API is documented as needing
@@ -282,18 +323,22 @@ item and does not sum them.
 
 **Activation** is a separate, approved change, in this order:
 
-1. A `/privacy` copy review through the copy deck. The notice describes
-   Clarity only; a first-party sink is a second processor (Cloudflare, already
-   the host) and a second place the same events land, and the notice has to
-   say so before any row is written. Do not edit the page copy in the same
-   change as the code.
+1. Confirm the deployed `/privacy` notice describes the sink. `privacy.p1`
+   names the Cloudflare action records, the tab session ID, city-level
+   network location, three-month and 180-day retention, and assigned-link
+   codes. That copy landed in BIV-421 through the copy deck, separately from
+   the code. Any later change to the row needs the notice changed first.
 2. Set `PORTFOLIO_INSIGHT_EVENTS_SINK` to `"analytics-engine"` in
    `wrangler.main-preview.jsonc` and deploy that candidate through the usual
    approval. The config test that pins the dormant value is updated in the
    same change so the pin moves deliberately.
 3. Run `npm run insights` the next day and confirm the "Portfolio signals
-   (first-party)" section reads rows. Rolling back is the reverse flip; rows
-   already written age out after three months.
+   (first-party)" section reads rows.
+
+**Rollback.** Set `PORTFOLIO_INSIGHT_EVENTS_SINK` back to `"off"`, restore the
+config test's dormant pin, and deploy. The endpoint keeps answering 204 and
+writes nothing. Rows already written age out of Analytics Engine after three
+months. Local raw copies follow the 180-day rule below.
 
 ### Quotas, retention, and why history.jsonl exists
 
@@ -302,9 +347,141 @@ item and does not sum them.
   is the sustainable rhythm; `--no-clarity` runs the Cloudflare half free.
 - Cloudflare's free plan keeps roughly **10 days** of Web Analytics.
 - Both sources therefore forget faster than a job search lasts. Every run
-  appends a rollup to `.context/insights/history.jsonl` and writes a full
-  snapshot beside it. That gitignored file is the only durable record of the
-  launch curve, so run it on a rhythm rather than only when curious.
+  appends an aggregate rollup to `history.jsonl` in the insight directory.
+  That file is the only durable record of the launch curve, so run it on a
+  rhythm rather than only when curious.
+
+### Local files and retention
+
+The scheduled job keeps everything in
+`~/Library/Application Support/biv/portfolio-insights/`. Manual runs use the
+same directory unless `PORTFOLIO_INSIGHTS_DIR` is set, so every run shares one
+history and one prune. The directory is mode `0700`. Every file in it is mode
+`0600`, written to a temporary name and renamed into place.
+
+Manual runs used to write to `<checkout>/.context/insights/`. Nothing writes
+there now, and nothing prunes it. Earlier runs left only aggregate history,
+`dashboard.html`, and `snapshot-*.json` there. If any `raw-events-*.json`
+exist in a checkout's `.context/insights/`, delete them once:
+
+```sh
+rm -f <checkout>/.context/insights/raw-events-*.json
+```
+
+The rest of that directory can be deleted by hand once any history you want
+has been copied.
+
+| File | Holds | Kept |
+| --- | --- | --- |
+| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-airtable.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Airtable configuration error, `source-airtable.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
+| `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, the window they cover, and whether the read hit its row cap | Until the window it covers began 180 days ago (files without a recorded window: the file-name timestamp) |
+| `history.jsonl` | One aggregate rollup per run, with no names or event sequences | Indefinitely |
+| `dashboard.html` | The latest dashboard | Replaced by each run |
+
+`source-airtable.json` and `dashboard.html` contain recipient names and
+companies, and the scheduled job's log names assigned links. Do not commit,
+copy, or upload them.
+
+Each dashboard section shows its source's state:
+
+- **fresh**: this run fetched and parsed it.
+- **stale**: this run failed, so the section shows the last-known-good
+  snapshot with its `capturedAt` time. A failed or unparsable fetch never
+  touches the snapshot file.
+- **unavailable**: no run has ever succeeded. The section says so and never
+  shows zero.
+
+A run is partial rather than failed when some sources answer and others do
+not:
+
+- Each source resolves on its own. Clarity's `429`, a Cloudflare error, or an
+  Airtable outage shows that source's saved value as stale.
+- `--no-clarity`, `--no-cloudflare`, and `--no-insights` skip the request and
+  show the saved value. `--no-airtable` is different: it renders with no
+  identity at all and ignores the saved Airtable copy.
+- An Airtable configuration error (a duplicate or malformed code, or an Action
+  linked to more than one Person, Job, or Company) replaces the saved copy
+  with the errors, so neither a rebuild nor a later Airtable outage can bring
+  cached names back. Every link stays unattributed until a run reads Airtable
+  cleanly, and the anonymous analytics still render.
+- The aggregate Analytics Engine counts and the event-level read are
+  separate. If only the event read fails, the counts survive and the journeys
+  come from the newest `raw-events-*.json` within 180 days, marked stale with their capture time. Stale journeys produce
+  no findings; only this run's Clarity and Cloudflare findings appear. If
+  the sink is unreachable or not activated, the dashboard names the missing
+  capability and still shows Clarity and Cloudflare.
+- The history row records only what this run measured. A stale or missing
+  source is `null`, and journeys are recorded as `unavailable`, never as zero
+  sessions.
+- The run exits non-zero only when no source, current or saved, can fill a
+  dashboard.
+
+`npm run insights:dashboard` (`--dashboard --no-cloudflare --no-clarity`)
+calls no source. It rebuilds the page from the saved snapshots and the newest
+raw events, and records no history row. Runs from before the
+source-wise files wrote `snapshot-*.json` beside the history. Nothing reads
+those files now, and they can be deleted by hand.
+
+Pruning runs last, after the history row and the dashboard are both written,
+so an aborted run never loses raw events it has not yet summarised. It deletes
+only `raw-events-*.json` files whose window began more than 180 days ago, and
+the stale fallback never reads such a file or any event older than 180 days.
+Source snapshots and aggregate history are never pruned.
+
+The launchd job runs as Bradley's user and reads its tokens from the login
+Keychain. It needs no permission beyond the three read-only tokens above and
+write access to its own directory.
+
+### Assigned-link attribution
+
+The report matches each event's campaign code to the Action whose
+`Portfolio Campaign Code` equals it. A matched row reads
+"Activity from <name>'s assigned link" and never "<name> visited" or
+"<name> read". A link can be forwarded, opened by a mail scanner, or used on
+a shared device, so a code identifies the assignment, not the person holding
+the browser.
+
+- A code no Action carries stays anonymous.
+- An Action with a code but no Person shows as unassigned outreach.
+- Duplicate or malformed codes in Airtable turn the whole Airtable source into
+  a configuration error. The report never guesses which Action a shared code
+  belongs to, and no activity is attributed until the codes are fixed.
+
+To recover from a configuration error:
+
+1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
+   Airtable. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
+2. In the job-search repository, run
+   `python3 scripts/migrate_v2.py --portfolio-fields-only --verify`.
+3. Run `npm run insights` again and confirm the Airtable source reads fresh.
+
+### Observe in Clarity
+
+Clarity documents no URL that carries filters. Share links exist only on the
+Recordings and Heatmaps pages, are created by hand, and have no documented
+format ([Share Clarity](https://learn.microsoft.com/en-us/clarity/setup-and-installation/share-clarity)).
+Segments have no documented URL either
+([Segments](https://learn.microsoft.com/en-us/clarity/filters/clarity-segments)).
+The dashboard's Clarity controls therefore open the project at
+`https://clarity.microsoft.com/projects/view/yatoiqtrjm/` and print the
+values to enter. The report builds no Clarity query parameters.
+
+In the project
+([Filters](https://learn.microsoft.com/en-us/clarity/filters/clarity-filters),
+[Custom tags](https://learn.microsoft.com/en-us/clarity/filters/custom-tags)):
+
+1. For a link or a story, open Filters → Custom tags, choose
+   `portfolio_campaign` or `portfolio_content_id`, pick the value the
+   dashboard printed, and Apply.
+2. For a city, open Filters → User info → Location, choose Country/Region,
+   then State, then City, and Apply.
+3. For a heatmap, set the device first. Then open Heatmaps, choose the page
+   URL, select View Heatmap, and pick Click, Scroll, or Attention under
+   Heatmaps types.
+4. For recordings, open Recordings with the same filters applied.
+
+For a campaign worth watching over weeks, save the step 1 filter as a
+Segment so it is one click next time.
 
 ## Being found by search
 
