@@ -5,13 +5,15 @@
 //   npm run insights -- --days 30     # a longer Cloudflare window
 //   npm run insights -- --json        # the raw snapshot
 //   npm run insights -- --no-clarity  # skip Clarity's 10-requests-a-day budget
+//   npm run insights -- --history     # every past run, one row each
 //
 // Tokens come from CLOUDFLARE_API_TOKEN and CLARITY_API_TOKEN if set, otherwise
 // from the macOS login Keychain entries `scripts/setup-portfolio-insights.sh`
 // writes. Neither token is ever printed or written to disk.
 //
 // Every run appends a rollup to .context/insights/history.jsonl, which is
-// gitignored. That file exists because both sources forget: Cloudflare's free
+// gitignored (or to $PORTFOLIO_INSIGHTS_DIR when set, which is how the
+// scheduled run keeps one history across checkouts). That file exists because both sources forget: Cloudflare's free
 // plan keeps about ten days of Web Analytics and Clarity's export API returns
 // at most three. A daily run is what turns them into a launch time series.
 //
@@ -19,12 +21,14 @@
 // inside .context/.
 
 import { execFile } from "node:child_process";
-import { mkdir, appendFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, readFile, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 
 import {
   clarityBreakdowns,
   clarityFrustration,
+  deriveBelievable,
+  formatHistory,
   clarityTraffic,
   deriveTrafficShape,
   formatReport,
@@ -36,6 +40,7 @@ import {
   summarizeDaily,
   summarizeEdgeDetail,
   summarizePerformance,
+  summarizePerformanceByDevice,
   windowForDays,
 } from "./portfolio-insights-report.mjs";
 
@@ -153,6 +158,18 @@ function rumDocument() {
               pageLoadTimeP50 pageLoadTimeP75 pageLoadTimeP95
             }
           }
+          performanceByDevice: rumPerformanceEventsAdaptiveGroups(
+            limit: 5
+            filter: $performanceFilter
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { deviceType }
+            quantiles {
+              firstContentfulPaintP50 firstContentfulPaintP75 firstContentfulPaintP95
+              pageLoadTimeP50 pageLoadTimeP75 pageLoadTimeP95
+            }
+          }
         }
       }
     }`;
@@ -183,6 +200,7 @@ async function fetchCloudflare(token, range) {
     daily,
     dimensions,
     performance: summarizePerformance(account.performance?.[0]),
+    performanceByDevice: summarizePerformanceByDevice(account.performanceByDevice ?? []),
     shape: deriveTrafficShape({
       daily,
       referrers: dimensions.refererHost,
@@ -347,8 +365,39 @@ function missingToken(name, account, where) {
   };
 }
 
+// A scheduled run points this at a directory that outlives any one checkout,
+// so worktrees can come and go without losing the launch curve.
+const HISTORY_DIRECTORY = process.env.PORTFOLIO_INSIGHTS_DIR
+  ? new URL(`${process.env.PORTFOLIO_INSIGHTS_DIR.replace(/\/?$/u, "/")}`, "file://")
+  : new URL("../.context/insights/", import.meta.url);
+
+async function readHistory() {
+  try {
+    const text = await readFile(new URL("history.jsonl", HISTORY_DIRECTORY), "utf8");
+    return text
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
+  if (options.history) {
+    const rows = await readHistory();
+    process.stdout.write(
+      options.json ? `${JSON.stringify(rows, null, 2)}\n` : `${formatHistory(rows).join("\n")}\n`,
+    );
+    return;
+  }
   const range = windowForDays(options.days);
   const snapshot = {
     capturedAt: new Date().toISOString(),
@@ -383,6 +432,12 @@ async function main() {
         );
   }
 
+  snapshot.believable = deriveBelievable({
+    shape: snapshot.cloudflare?.shape,
+    dimensions: snapshot.cloudflare?.dimensions,
+    clarity: snapshot.clarity?.error ? null : snapshot.clarity,
+  });
+
   if (options.snapshot) await recordSnapshot(snapshot);
 
   process.stdout.write(
@@ -391,7 +446,7 @@ async function main() {
 }
 
 async function recordSnapshot(snapshot) {
-  const directory = new URL("../.context/insights/", import.meta.url);
+  const directory = HISTORY_DIRECTORY;
   await mkdir(directory, { recursive: true });
   const stamp = snapshot.capturedAt.replace(/[:.]/gu, "-");
   await writeFile(
