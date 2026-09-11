@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clarityBreakdowns,
+  classifyUserAgent,
+  formatEdgeDetail,
+  isProbePath,
+  mergeDayGroups,
+  normalizeClarityUrl,
+  summarizeEdgeDetail,
   clarityFrustration,
   clarityTraffic,
   deriveTrafficShape,
@@ -164,12 +171,46 @@ describe("summarizePerformance", () => {
 });
 
 describe("summarizeClarity", () => {
+  // The export returns, per metric, one project-wide row and then one row per
+  // dimension value. Four requests therefore repeat the project total four times.
   const payloads = [
     [
       {
         metricName: "Traffic",
         information: [
-          { totalSessionCount: "40", totalBotSessionCount: "12", distantUserCount: "31" },
+          { totalSessionCount: "454", totalBotSessionCount: "13", distinctUserCount: "479" },
+        ],
+      },
+      {
+        metricName: "RageClickCount",
+        information: [{ sessionsCount: "454", sessionsWithMetricPercentage: "0.66", subTotal: "4" }],
+      },
+      { metricName: "EngagementTime", information: [{ totalTime: "107", activeTime: "52" }] },
+      { metricName: "ScrollDepth", information: [{ averageScrollDepth: "99.31" }] },
+    ],
+    [
+      {
+        metricName: "Traffic",
+        information: [
+          { totalSessionCount: "454", totalBotSessionCount: "13", distinctUserCount: "479" },
+          { totalSessionCount: "125", totalBotSessionCount: "5", Url: "https://bradleyberkman.com/" },
+          {
+            totalSessionCount: "3",
+            totalBotSessionCount: "0",
+            Url: "https://bradleyberkman.com/?fbclid=abc&view=graph#real-estate",
+          },
+          {
+            totalSessionCount: "16",
+            totalBotSessionCount: "0",
+            Url: "https://bradleyberkman.com/?view=graph#real-estate",
+          },
+        ],
+      },
+      {
+        metricName: "RageClickCount",
+        information: [
+          { sessionsCount: "454", sessionsWithMetricPercentage: "0.66", subTotal: "4" },
+          { sessionsCount: "125", subTotal: "4", Url: "https://bradleyberkman.com/" },
         ],
       },
     ],
@@ -177,32 +218,41 @@ describe("summarizeClarity", () => {
       {
         metricName: "Traffic",
         information: [
-          { totalSessionCount: "25", totalBotSessionCount: "5", distantUserCount: "31", URL: "/" },
-          { totalSessionCount: "15", totalBotSessionCount: "7", distantUserCount: "31", URL: "/privacy" },
+          { totalSessionCount: "454", totalBotSessionCount: "13", distinctUserCount: "479" },
+          { totalSessionCount: "130", totalBotSessionCount: "2", Source: "www.linkedin.com", Channel: "Social" },
+          { totalSessionCount: "177", totalBotSessionCount: "7", Source: "", Channel: "Other" },
         ],
       },
-      { metricName: "RageClickCount", information: [{ sessionsCount: "3", URL: "/" }] },
+    ],
+    [
+      {
+        metricName: "Traffic",
+        information: [
+          { totalSessionCount: "454", totalBotSessionCount: "13", distinctUserCount: "479" },
+          { totalSessionCount: "253", totalBotSessionCount: "4", Device: "Mobile" },
+          { totalSessionCount: "0", totalBotSessionCount: "0", Device: "Email" },
+        ],
+      },
     ],
   ];
 
   it("folds every payload into one metric map and coerces string counts", () => {
     const metrics = summarizeClarity(payloads);
-    expect(metrics.Traffic).toHaveLength(3);
-    expect(metrics.Traffic[0].totalSessionCount).toBe(40);
-    expect(metrics.RageClickCount[0].sessionsCount).toBe(3);
+    expect(metrics.Traffic).toHaveLength(11);
+    expect(metrics.Traffic[0].totalSessionCount).toBe(454);
+    expect(metrics.RageClickCount[0].subTotal).toBe(4);
   });
 
   it("ignores a payload that is not the documented array shape", () => {
     expect(summarizeClarity([{ error: "nope" }, null])).toEqual({});
   });
 
-  it("subtracts bots from sessions and does not double-count users", () => {
+  it("reads the project total once, not once per requested dimension", () => {
     const traffic = clarityTraffic(summarizeClarity(payloads));
-    expect(traffic.sessions).toBe(80);
-    expect(traffic.botSessions).toBe(24);
-    expect(traffic.humanSessions).toBe(56);
-    // distantUserCount repeats per row, so the largest value is the project total.
-    expect(traffic.users).toBe(31);
+    expect(traffic.sessions).toBe(454);
+    expect(traffic.botSessions).toBe(13);
+    expect(traffic.humanSessions).toBe(441);
+    expect(traffic.users).toBe(479);
   });
 
   it("never reports negative human sessions", () => {
@@ -212,10 +262,42 @@ describe("summarizeClarity", () => {
     expect(traffic.humanSessions).toBe(0);
   });
 
-  it("totals only the frustration metrics that came back", () => {
+  it("counts a frustration metric by its own occurrences, not by total sessions", () => {
     expect(clarityFrustration(summarizeClarity(payloads))).toEqual([
-      { label: "Rage clicks", value: 3 },
+      { label: "Rage clicks", value: 4, sessionShare: 0.0066 },
     ]);
+  });
+
+  it("breaks sessions down by source, page, and device from the dimension rows", () => {
+    const breakdowns = clarityBreakdowns(summarizeClarity(payloads));
+    expect(breakdowns.sources).toEqual([
+      { value: "(no referrer)  ·  Other", sessions: 177 },
+      { value: "www.linkedin.com  ·  Social", sessions: 130 },
+    ]);
+    // The two real-estate URLs differ only by a click id, so they are one page.
+    expect(breakdowns.pages).toEqual([
+      { value: "/", sessions: 125 },
+      { value: "/?view=graph#real-estate", sessions: 19 },
+    ]);
+    expect(breakdowns.devices).toEqual([{ value: "Mobile", sessions: 253 }]);
+    expect(breakdowns.engagement).toEqual({ totalSeconds: 107, activeSeconds: 52 });
+    expect(breakdowns.averageScrollDepth).toBe(99.31);
+  });
+});
+
+describe("normalizeClarityUrl", () => {
+  it("drops tracking parameters and keeps the ones that name a view", () => {
+    expect(
+      normalizeClarityUrl(
+        "https://bradleyberkman.com/index/touring?utm_source=ig&utm_medium=social&fbclid=x&view=graph",
+      ),
+    ).toBe("/index/touring?view=graph");
+    expect(normalizeClarityUrl("https://bradleyberkman.com/?trk=feed-detail_main-feed")).toBe("/");
+  });
+
+  it("returns a non-URL value unchanged so nothing is silently dropped", () => {
+    expect(normalizeClarityUrl("not a url")).toBe("not a url");
+    expect(normalizeClarityUrl(null)).toBe("(none)");
   });
 });
 
@@ -235,6 +317,10 @@ describe("historyRow", () => {
       cloudflarePageloads: 4504,
       cloudflareVisits: 121,
       cloudflareExternalVisits: 17,
+      edgeRequests: null,
+      edgeCrawlerRequests: null,
+      edgeProbeRequests: null,
+      edgeServerErrors: null,
       claritySessions: 80,
       clarityHumanSessions: 56,
       clarityBotSessions: 24,
@@ -292,11 +378,192 @@ describe("formatReport", () => {
       clarity: {
         days: 3,
         traffic: { sessions: 10, humanSessions: 7, botSessions: 3 },
-        frustration: [{ label: "Rage clicks", value: 2 }],
+        frustration: [{ label: "Rage clicks", value: 2, sessionShare: 0.01 }],
       },
     });
     expect(report).toContain("human sessions  7");
     expect(report).toContain("Rage clicks");
     expect(report).toContain("Clarity dashboard");
+  });
+});
+
+describe("classifyUserAgent", () => {
+  it("names the AI and search crawlers that matter to a job search", () => {
+    expect(
+      classifyUserAgent(
+        "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.4; +https://openai.com/gptbot)",
+      ),
+    ).toEqual({ kind: "crawler", label: "GPTBot (OpenAI)" });
+    expect(
+      classifyUserAgent("Claude-User (claude-code/2.1.257; +https://support.anthropic.com/)"),
+    ).toEqual({ kind: "crawler", label: "Claude-User (Anthropic)" });
+    expect(
+      classifyUserAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)").label,
+    ).toBe("Googlebot");
+  });
+
+  it("falls back to the generic bot token for crawlers it has no label for", () => {
+    expect(classifyUserAgent("PipericBot/1.0 (+https://piperic.com/bot)")).toEqual({
+      kind: "crawler",
+      label: "PipericBot",
+    });
+  });
+
+  it("treats headless browsers, HTTP libraries, and URL-shaped agents as automation", () => {
+    expect(
+      classifyUserAgent(
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0 Safari/537.36",
+      ),
+    ).toEqual({ kind: "automation", label: "Headless Chrome" });
+    expect(classifyUserAgent("Go-http-client/1.1")).toEqual({
+      kind: "automation",
+      label: "Go-http-client",
+    });
+    expect(classifyUserAgent("http://bradleyberkman.com/wp-admin/install.php?step=1")).toEqual({
+      kind: "automation",
+      label: "URL-shaped user agent",
+    });
+    expect(classifyUserAgent("")).toEqual({ kind: "automation", label: "empty user agent" });
+  });
+
+  it("leaves a real browser alone, including the LinkedIn in-app one", () => {
+    expect(
+      classifyUserAgent(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [LinkedInApp]",
+      ).kind,
+    ).toBe("browser");
+  });
+});
+
+describe("isProbePath", () => {
+  it("recognises WordPress and PHP probes and double-slash prefixes", () => {
+    for (const path of [
+      "/wp-admin/install.php",
+      "//blog/wp-includes/wlwmanifest.xml",
+      "/wp/wp-json/Batch/v1",
+      "/.env",
+      "/phpmyadmin/index.php",
+    ]) {
+      expect(isProbePath(path), path).toBe(true);
+    }
+  });
+
+  it("leaves the portfolio's own routes alone", () => {
+    for (const path of [
+      "/",
+      "/index/real-estate",
+      "/privacy",
+      "/_portfolio-preview/login",
+      "/api/portfolio-chat/session",
+      "/.well-known/security.txt",
+      "/glyph-textures/map.svg",
+    ]) {
+      expect(isProbePath(path), path).toBe(false);
+    }
+  });
+});
+
+describe("mergeDayGroups", () => {
+  it("sums the same value across day-sized queries and survives a missing day", () => {
+    const merged = mergeDayGroups(
+      [
+        [{ count: 3, dimensions: { userAgent: "a" } }, { count: 1, dimensions: { userAgent: "b" } }],
+        undefined,
+        [{ count: "4", dimensions: { userAgent: "a" } }],
+      ],
+      "userAgent",
+    );
+    expect([...merged.entries()]).toEqual([
+      ["a", 7],
+      ["b", 1],
+    ]);
+  });
+});
+
+describe("summarizeEdgeDetail", () => {
+  const detail = summarizeEdgeDetail({
+    userAgents: new Map([
+      ["Mozilla/5.0 (Macintosh) Safari/605.1.15", 600],
+      ["Mozilla/5.0 (compatible; GPTBot/1.4; +https://openai.com/gptbot)", 160],
+      ["Mozilla/5.0 (compatible; Googlebot/2.1)", 25],
+      ["http://bradleyberkman.com/wp-admin/install.php?step=1", 100],
+      ["Go-http-client/1.1", 40],
+    ]),
+    paths: new Map([
+      ["/", 500],
+      ["/wp-admin/install.php", 90],
+      ["//wp/wp-includes/wlwmanifest.xml", 10],
+    ]),
+    statuses: new Map([
+      ["200", 700],
+      ["303", 100],
+      ["404", 100],
+      ["500", 7],
+    ]),
+    serverErrorPaths: new Map([["/api/portfolio-chat/session", 7]]),
+  });
+
+  it("splits requests into browsers, crawlers, and automation", () => {
+    expect(detail.browserRequests).toBe(600);
+    expect(detail.crawlerRequests).toBe(185);
+    expect(detail.automationRequests).toBe(140);
+    expect(detail.classified).toBe(925);
+    expect(detail.crawlers[0]).toEqual({ value: "GPTBot (OpenAI)", requests: 160 });
+  });
+
+  it("counts probes by path, not by user agent", () => {
+    expect(detail.probeRequests).toBe(100);
+    expect(detail.probePaths.map((row) => row.value)).toEqual([
+      "/wp-admin/install.php",
+      "//wp/wp-includes/wlwmanifest.xml",
+    ]);
+  });
+
+  it("buckets status codes and keeps the server error paths", () => {
+    expect(detail.statusClasses).toEqual({ "2xx": 700, "3xx": 100, "4xx": 100, "5xx": 7 });
+    expect(detail.serverErrors).toBe(7);
+    expect(detail.serverErrorPaths).toEqual([
+      { value: "/api/portfolio-chat/session", requests: 7 },
+    ]);
+  });
+
+  it("renders the section and points 5xx at the Workers Logs", () => {
+    const text = formatEdgeDetail(detail).join("\n");
+    expect(text).toContain("GPTBot (OpenAI)");
+    expect(text).toContain("vulnerability probes  100 requests");
+    expect(text).toContain("5xx      7");
+    expect(text).toContain("/api/portfolio-chat/session");
+    expect(text).toContain("Workers Logs");
+    expect(text).toContain("not that any answer cited it");
+  });
+
+  it("says when the detail query failed instead of rendering zeros", () => {
+    expect(formatEdgeDetail({ error: "1d only" }).join("\n")).toContain(
+      "Crawlers and scanners: unavailable.",
+    );
+    expect(formatEdgeDetail(undefined)).toEqual([]);
+  });
+});
+
+describe("historyRow edge columns", () => {
+  it("carries the edge totals and nulls them when the detail failed", () => {
+    const edge = {
+      daily: [{ requests: 10, cachedRequests: 1, threats: 0, uniques: 2 }],
+      detail: { crawlerRequests: 3, probeRequests: 1, serverErrors: 0 },
+    };
+    const row = historyRow({ capturedAt: "x", window: {}, cloudflare: { shape: {}, edge } });
+    expect(row).toMatchObject({
+      edgeRequests: 10,
+      edgeCrawlerRequests: 3,
+      edgeProbeRequests: 1,
+      edgeServerErrors: 0,
+    });
+    const failed = historyRow({
+      capturedAt: "x",
+      window: {},
+      cloudflare: { shape: {}, edge: { ...edge, detail: { error: "no" } } },
+    });
+    expect(failed.edgeCrawlerRequests).toBeNull();
+    expect(failed.edgeRequests).toBe(10);
   });
 });

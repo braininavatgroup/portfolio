@@ -23,15 +23,18 @@ import { mkdir, appendFile, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 
 import {
+  clarityBreakdowns,
   clarityFrustration,
   clarityTraffic,
   deriveTrafficShape,
   formatReport,
   historyRow,
+  mergeDayGroups,
   parseArguments,
   rankDimension,
   summarizeClarity,
   summarizeDaily,
+  summarizeEdgeDetail,
   summarizePerformance,
   windowForDays,
 } from "./portfolio-insights-report.mjs";
@@ -39,6 +42,11 @@ import {
 const execFileAsync = promisify(execFile);
 
 const KEYCHAIN_SERVICE = "biv-portfolio-insights";
+// Older entries written by hand before `setup:insights` existed. Read as a
+// fallback so a token that already works keeps working.
+const LEGACY_KEYCHAIN_ENTRIES = {
+  "cloudflare-api-token": [{ service: "biv-cloudflare-analytics", account: "api-token" }],
+};
 const CLOUDFLARE_ACCOUNT_TAG = "d459e1fdd68165fbc952d009070658d7";
 const CLOUDFLARE_ZONE_TAG = "624bf95296a4ce1f2a927e5013537bc2";
 const RUM_SITE_TAG = "bc27c8ff1dab471ea19546ac65ac42e2";
@@ -66,11 +74,11 @@ const RUM_DIMENSIONS = [
   "navigationType",
 ];
 
-async function readKeychain(account) {
+async function readKeychain(account, service = KEYCHAIN_SERVICE) {
   const { stdout } = await execFileAsync("/usr/bin/security", [
     "find-generic-password",
     "-s",
-    KEYCHAIN_SERVICE,
+    service,
     "-a",
     account,
     "-w",
@@ -81,11 +89,17 @@ async function readKeychain(account) {
 async function resolveToken(environmentVariable, account) {
   const fromEnvironment = process.env[environmentVariable]?.trim();
   if (fromEnvironment) return fromEnvironment;
-  try {
-    const stored = await readKeychain(account);
-    if (stored) return stored;
-  } catch {
-    // Fall through to the same missing-token message either way.
+  const entries = [
+    { service: KEYCHAIN_SERVICE, account },
+    ...(LEGACY_KEYCHAIN_ENTRIES[account] ?? []),
+  ];
+  for (const entry of entries) {
+    try {
+      const stored = await readKeychain(entry.account, entry.service);
+      if (stored) return stored;
+    } catch {
+      // Try the next entry; the missing-token message is the same either way.
+    }
   }
   return null;
 }
@@ -216,10 +230,80 @@ async function fetchEdge(token, range) {
         threats: group.sum.threats,
         uniques: group.uniq.uniques,
       })),
+      detail: await fetchEdgeDetail(token, range).catch((error) => ({
+        error: String(error.message ?? error),
+      })),
     };
   } catch (error) {
     return { error: String(error.message ?? error) };
   }
+}
+
+// The free plan answers httpRequestsAdaptiveGroups one UTC day at a time and
+// returns the top rows only, so the tail of rare user agents is not counted.
+const EDGE_DETAIL_ROW_LIMIT = 50;
+
+/** Each UTC day in the window as an inclusive [start, end) pair. */
+function utcDays(range) {
+  const days = [];
+  const cursor = new Date(range.start);
+  const end = new Date(range.end);
+  while (cursor <= end) {
+    const start = cursor.toISOString();
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    days.push({ start, end: cursor.toISOString() });
+  }
+  return days;
+}
+
+/**
+ * Who is actually making the edge requests: named crawlers, automation,
+ * vulnerability probes, and where the server errors landed.
+ */
+async function fetchEdgeDetail(token, range) {
+  const query = `
+    query PortfolioEdgeDetail($zone: String!, $start: Time!, $end: Time!, $limit: Int!) {
+      viewer {
+        zones(filter: { zoneTag: $zone }) {
+          userAgents: httpRequestsAdaptiveGroups(
+            limit: $limit
+            filter: { datetime_geq: $start, datetime_lt: $end }
+            orderBy: [count_DESC]
+          ) { count dimensions { userAgent } }
+          paths: httpRequestsAdaptiveGroups(
+            limit: $limit
+            filter: { datetime_geq: $start, datetime_lt: $end }
+            orderBy: [count_DESC]
+          ) { count dimensions { clientRequestPath } }
+          statuses: httpRequestsAdaptiveGroups(
+            limit: $limit
+            filter: { datetime_geq: $start, datetime_lt: $end }
+            orderBy: [count_DESC]
+          ) { count dimensions { edgeResponseStatus } }
+          serverErrors: httpRequestsAdaptiveGroups(
+            limit: $limit
+            filter: { datetime_geq: $start, datetime_lt: $end, edgeResponseStatus_geq: 500 }
+            orderBy: [count_DESC]
+          ) { count dimensions { clientRequestPath } }
+        }
+      }
+    }`;
+  const perDay = [];
+  for (const day of utcDays(range)) {
+    const data = await graphql(token, query, {
+      zone: CLOUDFLARE_ZONE_TAG,
+      start: day.start,
+      end: day.end,
+      limit: EDGE_DETAIL_ROW_LIMIT,
+    });
+    perDay.push(data?.viewer?.zones?.[0] ?? {});
+  }
+  return summarizeEdgeDetail({
+    userAgents: mergeDayGroups(perDay.map((day) => day.userAgents), "userAgent"),
+    paths: mergeDayGroups(perDay.map((day) => day.paths), "clientRequestPath"),
+    statuses: mergeDayGroups(perDay.map((day) => day.statuses), "edgeResponseStatus"),
+    serverErrorPaths: mergeDayGroups(perDay.map((day) => day.serverErrors), "clientRequestPath"),
+  });
 }
 
 async function fetchClarity(token, days) {
@@ -251,6 +335,7 @@ async function fetchClarity(token, days) {
     metrics,
     traffic: clarityTraffic(metrics),
     frustration: clarityFrustration(metrics),
+    breakdowns: clarityBreakdowns(metrics),
   };
 }
 

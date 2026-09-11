@@ -88,7 +88,10 @@ Clarity Data Export token and stores each in the macOS login Keychain under
 `biv-portfolio-insights`. Neither token can be minted by a script — Cloudflare
 refuses to let an API token create another API token, and Clarity has no token
 API — so both come from a dashboard. `CLOUDFLARE_API_TOKEN` and
-`CLARITY_API_TOKEN` in the environment override the stored ones.
+`CLARITY_API_TOKEN` in the environment override the stored ones. The script
+also reads the older hand-made entry `biv-cloudflare-analytics / api-token`,
+so a Cloudflare token stored there before `setup:insights` existed keeps
+working without being copied.
 
 The Cloudflare token needs **two** permission rows, because they answer
 different questions:
@@ -113,11 +116,44 @@ these counts.
 
 Clarity counts a **session** of an eligible visitor and buckets bot sessions
 separately. The two totals are not expected to match and are never added.
+Clarity's count is the larger and the more honest one for humans: Cloudflare
+visits drop every entry whose referrer is the site itself, and its adaptive
+sampling drops small referrers entirely, so a LinkedIn share can show 15
+Cloudflare visits and 130 Clarity sessions in the same window.
+
+The report also breaks Clarity sessions down by source and channel, by page
+with click and campaign parameters stripped, and by device, and shows average
+engagement time and scroll depth. Frustration signals are shown as the
+metric's own count and the share of sessions that had one; they are read from
+the project-wide row only, never summed across the dimension rows, which
+repeat the project total once per requested breakdown.
 
 Cloudflare samples adaptively, and it samples harder over a wider window: at
 `--days 10` the counts round to the nearest ten and a referrer worth nine
 pageloads disappears entirely, while the same query at `--days 7` shows it. When
 the question is *did anyone arrive from outside*, ask a narrow window.
+
+### Crawlers, scanners, and status codes
+
+With Zone Analytics Read the report adds a section that splits edge requests
+by user agent into **browsers**, **named crawlers** (GPTBot, OAI-SearchBot,
+ClaudeBot, Googlebot, link-preview fetchers and the rest), and **automation**
+(headless Chrome, Go and Python HTTP clients, curl, and user agents that are
+themselves a URL). It then counts **vulnerability probes** by path — requests
+to WordPress, PHP, dotfile and admin-panel paths this site has never had — and
+buckets response status, listing every path that returned a 5xx.
+
+Read it with three caveats:
+
+- Cloudflare's free plan answers the per-user-agent dataset one UTC day at a
+  time and returns only the top rows of each day, so the script asks once per
+  day and the long tail of rare agents is not counted in any bucket.
+- The browser bucket still contains Bradley's own devices, reviewers, and the
+  preview login page. It is an upper bound on humans, not a count.
+- A 5xx here says only that the edge returned it. The cause is in the Workers
+  Logs for `bradley-portfolio-main-preview` in the Cloudflare dashboard, which
+  the deployed worker keeps because observability is enabled in
+  `wrangler.main-preview.jsonc`.
 
 ### What the export API cannot answer
 
