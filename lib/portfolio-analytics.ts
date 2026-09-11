@@ -98,7 +98,10 @@ export function trackPortfolioInsight(
   action: string,
   dimensions: Readonly<Record<string, string>> = {},
 ) {
-  if (!insightEventsEnabled || !window.clarity) return false;
+  // One eligibility decision for both sinks: the same replay bootstrap and
+  // consent state that gate Clarity gate the first-party post, so the worker
+  // never hears from a visit Clarity would not.
+  if (!insightEventsEnabled) return false;
   if (!/^[a-z][a-z0-9_]{0,63}$/u.test(action)) return false;
 
   const attributedDimensions = insightCampaignCode
@@ -115,11 +118,42 @@ export function trackPortfolioInsight(
     return false;
   }
 
-  for (const [key, value] of entries) {
-    window.clarity("set", `portfolio_${key}`, value);
+  if (window.clarity) {
+    for (const [key, value] of entries) {
+      window.clarity("set", `portfolio_${key}`, value);
+    }
+    window.clarity("event", `portfolio_${action}`);
   }
-  window.clarity("event", `portfolio_${action}`);
+  postInsightEvent(action, Object.fromEntries(entries));
   return true;
+}
+
+const INSIGHT_SINK_PATH = "/api/portfolio-insight";
+
+/**
+ * Fire-and-forget copy of the event to the worker's own sink. A beacon
+ * survives the page unloading, which is when the last attention snapshot is
+ * sent; the keepalive fetch is the fallback where beacons are unavailable or
+ * refused. The worker no-ops while its sink is off, and a failure here is
+ * never allowed to reach the caller.
+ */
+function postInsightEvent(action: string, dimensions: Record<string, string>) {
+  const body = JSON.stringify({ action, dimensions });
+  try {
+    if (typeof navigator.sendBeacon === "function" && navigator.sendBeacon(INSIGHT_SINK_PATH, body)) {
+      return;
+    }
+    if (typeof fetch === "function") {
+      void fetch(INSIGHT_SINK_PATH, {
+        method: "POST",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+        body,
+      }).catch(() => {});
+    }
+  } catch {
+    // Telemetry never interrupts the page.
+  }
 }
 
 export function trackPortfolioAttention(

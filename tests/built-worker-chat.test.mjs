@@ -229,3 +229,31 @@ test("the built Worker serves bound static assets after password authentication"
   );
   assert.equal(assetCalls, 1);
 });
+
+// The first-party insight sink ships dormant. The built Worker must register
+// the route (the client beacons to it unconditionally once analytics is
+// eligible) and answer 204 with nothing else, whether or not a dataset is
+// bound; the local dev config binds none, which is the dormant shape exactly.
+test("the built Worker accepts insight beacons silently while the sink is dormant", async () => {
+  const port = await availablePort();
+  const worker = await startBuiltWorker(port);
+
+  try {
+    const beacon = await fetch(`http://127.0.0.1:${port}/api/portfolio-insight`, {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({ action: "entry", dimensions: { entry_source: "direct" } }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    assert.equal(beacon.status, 204);
+    assert.equal(await beacon.text(), "");
+    assert.equal(beacon.headers.get("cache-control"), "no-store");
+
+    const probe = await fetch(`http://127.0.0.1:${port}/api/portfolio-insight`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    assert.equal(probe.status, 405);
+  } finally {
+    await worker.stop();
+  }
+});
