@@ -4,15 +4,16 @@
 #
 #   npm run setup:insights
 #
-# Walks you through minting the two read-only tokens the insights report needs
-# — a Cloudflare API token and a Clarity Data Export token — and stores each in
-# your macOS login Keychain. Neither can be minted by a script: Cloudflare will
-# not let an API token create another API token, and Clarity has no token API,
-# so both come from a dashboard you drive yourself.
+# Walks you through minting the three read-only tokens the insights report
+# needs — a Cloudflare API token, a Clarity Data Export token, and an Airtable
+# personal access token — and stores each in your macOS login Keychain. None
+# can be minted by a script: Cloudflare will not let an API token create
+# another API token, Clarity has no token API, and an Airtable token is only
+# created from its builder page, so each comes from a dashboard you drive.
 #
 # Run it from Terminal or iTerm as yourself. Each token is verified with a live
 # read before it is stored, and is never printed or written to disk. Re-running
-# rotates whichever token you paste and keeps the other.
+# rotates whichever token you paste and keeps the others.
 
 set -euo pipefail
 
@@ -21,6 +22,8 @@ ZONE_TAG="624bf95296a4ce1f2a927e5013537bc2"
 ACCOUNT_TAG="d459e1fdd68165fbc952d009070658d7"
 RUM_SITE_TAG="bc27c8ff1dab471ea19546ac65ac42e2"
 CLARITY_PROJECT="yatoiqtrjm"
+AIRTABLE_BASE="app0LM9NfGL4ZHi3j"
+AIRTABLE_ACTIONS_TABLE="tblheGY3pSKmWvAS9"
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -52,10 +55,10 @@ store() {
 }
 
 printf '\n%sPortfolio insights: analytics tokens%s\n' "$BOLD" "$RESET"
-note "Two stages. Ctrl-C any time; a token already stored stays stored."
+note "Three stages. Ctrl-C any time; a token already stored stays stored."
 
 # ── Stage 1 · Cloudflare ────────────────────────────────────────────────────
-rule "Stage 1/2 · Cloudflare API token"
+rule "Stage 1/3 · Cloudflare API token"
 say "One token covering both halves of the Cloudflare picture: Web Analytics"
 say "(what browsers did) and edge requests (what every client asked for,"
 say "including crawlers that never run JavaScript)."
@@ -102,7 +105,7 @@ fi
 unset CF_TOKEN
 
 # ── Stage 2 · Clarity ───────────────────────────────────────────────────────
-rule "Stage 2/2 · Clarity Data Export token"
+rule "Stage 2/3 · Clarity Data Export token"
 say "Clarity holds the behaviour half: sessions, scroll depth, engagement time,"
 say "and the frustration signals. Only a project admin can mint the token."
 printf '\n'
@@ -135,6 +138,44 @@ else
   note "Skipped. CLARITY_API_TOKEN in the environment also works."
 fi
 unset CLARITY_TOKEN
+
+# ── Stage 3 · Airtable ──────────────────────────────────────────────────────
+rule "Stage 3/3 · Airtable read-only token"
+say "Airtable says which Job Search Action each assigned portfolio link belongs"
+say "to, and the Person, Job, and Company around it. The report only reads."
+printf '\n'
+step "Opening the personal access token builder."
+open_url "https://airtable.com/create/tokens/new"
+printf '\n'
+say "Name it:   portfolio-insights-read"
+say "Scopes:    data.records:read   (this one only)"
+say "Access:    Job Search          (this base only)"
+note "No write, comment, or schema scopes, and no other bases. Do not paste your"
+note "general AIRTABLE_API_TOKEN: the unattended report must not hold it."
+printf '\n'
+printf '  %sPaste the token (input hidden, Enter to skip):%s ' "$BOLD" "$RESET"
+read -rs AIRTABLE_TOKEN || true
+printf '\n\n'
+
+if [[ -n "${AIRTABLE_TOKEN:-}" ]]; then
+  if [[ -n "${AIRTABLE_API_TOKEN:-}" && "$AIRTABLE_TOKEN" == "$AIRTABLE_API_TOKEN" ]]; then
+    fail "That is your general AIRTABLE_API_TOKEN. Mint a separate read-only token."
+  fi
+  say "Verifying with one projected Actions read…"
+  # The header reaches curl on stdin so the token never appears in argv.
+  STATUS="$(printf 'Authorization: Bearer %s\n' "$AIRTABLE_TOKEN" | curl -sS -o /dev/null -w '%{http_code}' -H @- \
+    "https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_ACTIONS_TABLE}?pageSize=1&fields%5B%5D=Action" || true)"
+  case "$STATUS" in
+    200) done_ "Job Search Actions readable" ;;
+    401) fail "Airtable answered 401: the token is rejected. Mint a fresh one." ;;
+    403|404) fail "Airtable answered $STATUS: the token cannot read Job Search. Add the base under Access." ;;
+    *)   fail "Airtable answered $STATUS. Nothing stored; re-run once it answers 200." ;;
+  esac
+  store "airtable-read-token" "Portfolio insights Airtable read-only token" "$AIRTABLE_TOKEN"
+else
+  note "Skipped. PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN in the environment also works."
+fi
+unset AIRTABLE_TOKEN
 
 rule "Done"
 say "Read the launch signals with:"
