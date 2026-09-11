@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import * as portfolioAnalytics from "./portfolio-analytics";
 import {
   PortfolioAttention,
@@ -257,5 +257,126 @@ describe("portfolio insight events", () => {
       contact: "alice@example.com",
     })).toBe(false);
     expect(window.clarity?.q).toEqual([]);
+  });
+});
+
+describe("first-party insight sink", () => {
+  const originalSendBeacon = Object.getOwnPropertyDescriptor(navigator, "sendBeacon");
+  const originalFetch = window.fetch;
+
+  function stubBeacon(result = true) {
+    const sendBeacon = vi.fn(() => result);
+    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: sendBeacon });
+    return sendBeacon;
+  }
+
+  function stubFetch() {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    window.fetch = fetchMock as unknown as typeof fetch;
+    return fetchMock;
+  }
+
+  afterEach(() => {
+    if (originalSendBeacon) {
+      Object.defineProperty(navigator, "sendBeacon", originalSendBeacon);
+    } else {
+      delete (navigator as { sendBeacon?: unknown }).sendBeacon;
+    }
+    window.fetch = originalFetch;
+    setPrivacySafeReplayConsent("denied");
+  });
+
+  it("posts the same validated payload to the worker as a beacon", () => {
+    const sendBeacon = stubBeacon();
+    startPrivacySafeReplay({
+      campaignCode: "a1b2c3d4e5f6",
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+
+    expect(trackPortfolioInsight("content_open", {
+      selection_source: "map",
+      content_id: "record-9q",
+    })).toBe(true);
+
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+    const [path, body] = sendBeacon.mock.calls[0] as unknown as [string, string];
+    expect(path).toBe("/api/portfolio-insight");
+    expect(JSON.parse(body)).toEqual({
+      action: "content_open",
+      dimensions: {
+        campaign: "a1b2c3d4e5f6",
+        content_id: "record-9q",
+        selection_source: "map",
+      },
+    });
+  });
+
+  it("falls back to a keepalive fetch when beacons are unavailable or refused", () => {
+    const fetchMock = stubFetch();
+    delete (navigator as { sendBeacon?: unknown }).sendBeacon;
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("/api/portfolio-insight", expect.objectContaining({
+      method: "POST",
+      keepalive: true,
+      body: JSON.stringify({ action: "entry", dimensions: { entry_source: "direct" } }),
+    }));
+
+    const refused = stubBeacon(false);
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(true);
+    expect(refused).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("fires exactly when Clarity would, and still fires when Clarity is absent", () => {
+    const sendBeacon = stubBeacon();
+
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(false);
+    expect(sendBeacon).not.toHaveBeenCalled();
+
+    startPrivacySafeReplay({
+      context: "preview",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(false);
+    expect(sendBeacon).not.toHaveBeenCalled();
+
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+    setPrivacySafeReplayConsent("denied");
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(false);
+    expect(sendBeacon).not.toHaveBeenCalled();
+
+    setPrivacySafeReplayConsent("granted");
+    delete window.clarity;
+    expect(trackPortfolioInsight("entry", { entry_source: "direct" })).toBe(true);
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends nothing for an invalid event and never throws", () => {
+    const sendBeacon = vi.fn(() => {
+      throw new Error("blocked");
+    });
+    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: sendBeacon });
+    startPrivacySafeReplay({
+      context: "external",
+      hostname: "bradleyberkman.com",
+      projectId: "abc123",
+    });
+
+    expect(trackPortfolioInsight("entry", { note: "alice@example.com" })).toBe(false);
+    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(() => trackPortfolioInsight("entry", { entry_source: "direct" })).not.toThrow();
   });
 });

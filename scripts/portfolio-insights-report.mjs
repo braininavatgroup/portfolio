@@ -32,6 +32,7 @@ export function parseArguments(argv) {
     json: false,
     clarity: true,
     cloudflare: true,
+    insights: true,
     snapshot: true,
     history: false,
     dashboard: false,
@@ -43,6 +44,7 @@ export function parseArguments(argv) {
     else if (argument === "--dashboard") options.dashboard = true;
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
+    else if (argument === "--no-insights") options.insights = false;
     else if (argument === "--no-snapshot") options.snapshot = false;
     else if (argument === "--days") {
       const value = Number.parseInt(argv[(index += 1)] ?? "", 10);
@@ -380,6 +382,7 @@ export function historyRow(snapshot) {
     claritySessions: traffic.sessions ?? null,
     clarityHumanSessions: traffic.humanSessions ?? null,
     clarityBotSessions: traffic.botSessions ?? null,
+    ...insightHistoryColumns(snapshot.insights),
   };
 }
 
@@ -556,6 +559,8 @@ export function formatReport(snapshot) {
       "",
     );
   }
+
+  lines.push(...formatInsightEvents(snapshot.insights));
 
   return lines.join("\n");
 }
@@ -851,5 +856,162 @@ export function formatHistory(rows = []) {
     );
   }
   lines.push("");
+  return lines;
+}
+
+// ── First-party portfolio signals ────────────────────────────────────────────
+//
+// The worker's own insight sink writes one Analytics Engine row per
+// `portfolio_*` event, which is how Reader attention, evidence opens, Guide
+// navigation, contact actions and campaign codes become readable here at all;
+// Clarity's export API has no dimension for any of them. The SQL lives in
+// `portfolio-insights.mjs`; the rows it returns are shaped and printed below.
+// The blob layout is documented in `lib/server/portfolio-insight-sink.ts`.
+
+function count(value) {
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+/**
+ * @param {{
+ *   actions?: Array<{ action: string, events: number | string }>,
+ *   contacts?: Array<{ kind: string, events: number | string }>,
+ *   attention?: Array<Record<string, number | string>>,
+ *   campaigns?: Array<{ campaign: string, events: number | string, entries: number | string }>,
+ * }} answers
+ */
+export function summarizeInsightEvents({
+  actions = [],
+  contacts = [],
+  attention = [],
+  campaigns = [],
+} = {}) {
+  const actionRows = actions
+    .map((row) => ({ action: String(row.action ?? ""), events: count(row.events) }))
+    .filter((row) => row.action)
+    .sort((left, right) => right.events - left.events);
+  const eventsFor = (action) =>
+    actionRows.find((row) => row.action === action)?.events ?? 0;
+  const attentionRows = attention
+    .map((row) => ({
+      contentId: String(row.content_id ?? ""),
+      contentKind: String(row.content_kind ?? ""),
+      snapshots: count(row.snapshots),
+      activeSecondsP50: Math.round(count(row.active_seconds_p50)),
+      activeSecondsMax: Math.round(count(row.active_seconds_max)),
+      completionP50: Math.round(count(row.completion_p50)),
+      completionMax: Math.round(count(row.completion_max)),
+    }))
+    .filter((row) => row.contentId);
+  return {
+    events: actionRows.reduce((sum, row) => sum + row.events, 0),
+    actions: actionRows,
+    entries: eventsFor("entry"),
+    contactActions: eventsFor("contact_action"),
+    contacts: contacts
+      .map((row) => ({ kind: String(row.kind ?? ""), events: count(row.events) }))
+      .filter((row) => row.kind)
+      .sort((left, right) => right.events - left.events),
+    attentionSnapshots: attentionRows.reduce((sum, row) => sum + row.snapshots, 0),
+    attention: attentionRows,
+    campaigns: campaigns
+      .map((row) => ({
+        campaign: String(row.campaign ?? ""),
+        events: count(row.events),
+        entries: count(row.entries),
+      }))
+      .filter((row) => row.campaign)
+      .sort((left, right) => right.entries - left.entries || right.events - left.events),
+  };
+}
+
+function insightHistoryColumns(insights) {
+  const ready = insights && !insights.error ? insights : null;
+  return {
+    insightEvents: ready?.events ?? null,
+    insightEntries: ready?.entries ?? null,
+    insightContactActions: ready?.contactActions ?? null,
+    insightAttentionSnapshots: ready?.attentionSnapshots ?? null,
+    insightCampaignEntries: ready
+      ? ready.campaigns.reduce((sum, row) => sum + row.entries, 0)
+      : null,
+  };
+}
+
+/** Lines for the first-party section of the report. */
+export function formatInsightEvents(insights) {
+  if (!insights) return [];
+  if (insights.error) {
+    return [
+      "  Portfolio signals (first-party): unavailable.",
+      `    ${insights.error}`,
+      "    Reading the sink needs a token with Account Analytics Read, and a",
+      "    deployment with PORTFOLIO_INSIGHT_EVENTS_SINK set to analytics-engine.",
+      "",
+    ];
+  }
+  if (insights.events === 0) {
+    return [
+      "  Portfolio signals (first-party): no events in this window.",
+      "    The sink stays dormant until PORTFOLIO_INSIGHT_EVENTS_SINK is",
+      "    analytics-engine in a deployed candidate. Until then these signals",
+      "    are dashboard-only in Clarity.",
+      "",
+    ];
+  }
+
+  const lines = [
+    "  Portfolio signals (first-party)",
+    `    events   ${insights.events}`,
+    `    entries  ${insights.entries}`,
+  ];
+  const width = Math.max(...insights.actions.map((row) => row.action.length));
+  for (const row of insights.actions) {
+    lines.push(`      ${row.action.padEnd(width)}  ${String(row.events).padStart(6)}`);
+  }
+  lines.push("");
+
+  if (insights.contacts.length > 0) {
+    lines.push(`  Contact actions  ${insights.contactActions}`);
+    const kindWidth = Math.max(...insights.contacts.map((row) => row.kind.length));
+    for (const row of insights.contacts) {
+      lines.push(`    ${row.kind.padEnd(kindWidth)}  ${String(row.events).padStart(5)}`);
+    }
+    lines.push("");
+  }
+
+  if (insights.attention.length > 0) {
+    const idWidth = Math.min(40, Math.max(...insights.attention.map((row) => row.contentId.length)));
+    lines.push("  Reader attention by item (snapshots are running totals per open, so");
+    lines.push("  p50 and max describe a read; they are not summed)");
+    for (const row of insights.attention) {
+      lines.push(
+        `    ${row.contentId.slice(0, idWidth).padEnd(idWidth)}  ${row.contentKind.padEnd(6)}  ` +
+          `${String(row.snapshots).padStart(4)} snapshots  ` +
+          `p50 ${String(row.activeSecondsP50).padStart(4)}s  max ${String(row.activeSecondsMax).padStart(5)}s  ` +
+          `read ${String(row.completionP50).padStart(3)}%  max ${String(row.completionMax).padStart(3)}%`,
+      );
+    }
+    lines.push("");
+  }
+
+  if (insights.campaigns.length > 0) {
+    lines.push("  Campaign codes (join to the private tracker; nothing here names anyone)");
+    const codeWidth = Math.max(...insights.campaigns.map((row) => row.campaign.length));
+    for (const row of insights.campaigns) {
+      lines.push(
+        `    ${row.campaign.padEnd(codeWidth)}  ${String(row.entries).padStart(4)} entries  ` +
+          `${String(row.events).padStart(5)} events`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push(
+    "  Rows are sampled at high volume; counts are sample-weighted sums.",
+    "  Attention rows exclude sessions that opted out or never became eligible.",
+    "",
+  );
   return lines;
 }

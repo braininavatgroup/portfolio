@@ -35,7 +35,27 @@ test("the public candidate serves the apex and www routes without a login", asyn
     OPENAI_PORTFOLIO_REASONING_EFFORT: "low",
     OPENAI_PORTFOLIO_VERBOSITY: "low",
     PORTFOLIO_FEEDBACK_ENABLED: "false",
+    PORTFOLIO_INSIGHT_EVENTS_SINK: "off",
   });
+  // The first-party insight sink ships dormant: the dataset is bound so the
+  // candidate can be activated by a variable flip alone, and the variable is
+  // anything but "analytics-engine" until that separately approved change.
+  assert.notEqual(config.vars.PORTFOLIO_INSIGHT_EVENTS_SINK, "analytics-engine");
+  assert.deepEqual(config.analytics_engine_datasets, [
+    { binding: "PORTFOLIO_INSIGHTS", dataset: "portfolio_insights" },
+  ]);
+  assert.deepEqual(config.ratelimits, [
+    {
+      name: "PORTFOLIO_CHAT_RATE_LIMITER",
+      namespace_id: "1001",
+      simple: { limit: 25, period: 60 },
+    },
+    {
+      name: "PORTFOLIO_INSIGHT_RATE_LIMITER",
+      namespace_id: "1002",
+      simple: { limit: 60, period: 60 },
+    },
+  ]);
   assert.deepEqual(config.secrets, {
     required: [
       "OPENAI_API_KEY",

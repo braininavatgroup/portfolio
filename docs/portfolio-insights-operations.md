@@ -210,6 +210,91 @@ worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
 from one. The job runs whatever that clone has checked out, so keep it on
 `main`.
 
+The first-party sink below exists to close exactly this gap. Until it is
+activated, those signals stay dashboard-only, and the report says so in one
+line rather than printing zeros.
+
+### The first-party sink (dormant)
+
+The worker has a second sink for the same `portfolio_*` events: a Workers
+Analytics Engine dataset it writes itself, which the SQL API can read from the
+terminal. It ships **dormant** and nothing about it changes live behaviour
+until the gate below is flipped in a deployed candidate.
+
+**How it flows.** `trackPortfolioInsight` in `lib/portfolio-analytics.ts`
+decides eligibility once — the `external` document marker, the public
+hostname, and the stored analytics preference — and only then sends the
+validated event to Clarity *and* posts the same `{ action, dimensions }` body
+to `POST /api/portfolio-insight` with `navigator.sendBeacon` (keepalive
+`fetch` as the fallback). A visit Clarity would not hear from never reaches
+the worker either; the `?analytics=off` enrollment excludes a browser from
+both. The route (`app/api/portfolio-insight/route.ts`,
+`lib/server/portfolio-insight-sink.ts`) re-validates the body with the same
+rules, caps it at 2 KB and 8 dimensions, throttles by a hashed connecting
+address through the `PORTFOLIO_INSIGHT_RATE_LIMITER` binding, and answers 204
+whether it wrote, rejected, or is dormant, so the response never says which.
+
+**The gate.** `PORTFOLIO_INSIGHT_EVENTS_SINK` in `wrangler.main-preview.jsonc`
+is `"off"`. The worker writes only when it is exactly `"analytics-engine"` and
+the `PORTFOLIO_INSIGHTS` dataset binding (`portfolio_insights`) is present.
+Any other value, including a missing variable, is dormant;
+`tests/main-preview-worker-config.test.mjs` fails if the committed value is
+ever the live one. Dormant, the endpoint still answers 204 and reads nothing.
+
+**What one row holds.** Fixed positions, empty string when a dimension is
+absent:
+
+| Column | Value |
+| --- | --- |
+| `blob1` | action (`entry`, `content_open`, `content_attention`, `evidence_open`, `guide_evidence`, `contact_action`) |
+| `blob2` / `blob3` | `content_id` / `content_kind` |
+| `blob4` | opaque `campaign` code, or empty for a direct visit |
+| `blob5` | `contact_kind` on a contact action |
+| `blob6` | source: `selection_source`, `entry_source` or `evidence_source` |
+| `blob7` / `blob8` | target: `target_id` / `target_kind` on Guide navigation, `evidence_id` / `evidence_kind` on an evidence open |
+| `blob9` | country, ISO 3166-1 alpha-2, from the edge's `cf.country` |
+| `blob10` | device class derived from the user agent: `mobile`, `tablet`, `desktop`, `unknown` |
+| `blob11` | schema version, `v1` |
+| `double1` / `double2` | `active_seconds` / `completion_percent` on `content_attention` |
+| `index1` | action |
+
+No address, user agent string, cookie, referrer or URL is written. Content
+IDs and codes are the opaque values the client already restricts to
+`[A-Za-z0-9._:-]`. Analytics Engine keeps rows for three months and samples
+at high volume, which is why the report sums `_sample_interval` instead of
+counting rows.
+
+**Reading it.** `npm run insights` queries the dataset with the Cloudflare
+token it already has. The Analytics Engine SQL API is documented as needing
+**Account · Account Analytics · Read** — the same row Web Analytics uses, so a
+token minted by `npm run setup:insights` needs no new permission (checked
+against the Cloudflare docs for the SQL API and the Analytics Engine
+get-started guide on 2026-09-11). If the query fails — no permission, or a
+dataset that has never been written to, which the API reports as an error
+rather than an empty table — the report prints a one-line "unavailable" note,
+the same way the edge section does without Zone Analytics Read. An empty
+window prints a one-line "no events" note. `--no-insights` skips the query.
+
+The Reader attention rows need one caveat. Each snapshot is a running total
+for one open of one item, published on a 15-second cadence and on blur, hide
+and unload, so the report shows p50 and max active seconds and completion per
+item and does not sum them.
+
+**Activation** is a separate, approved change, in this order:
+
+1. A `/privacy` copy review through the copy deck. The notice describes
+   Clarity only; a first-party sink is a second processor (Cloudflare, already
+   the host) and a second place the same events land, and the notice has to
+   say so before any row is written. Do not edit the page copy in the same
+   change as the code.
+2. Set `PORTFOLIO_INSIGHT_EVENTS_SINK` to `"analytics-engine"` in
+   `wrangler.main-preview.jsonc` and deploy that candidate through the usual
+   approval. The config test that pins the dormant value is updated in the
+   same change so the pin moves deliberately.
+3. Run `npm run insights` the next day and confirm the "Portfolio signals
+   (first-party)" section reads rows. Rolling back is the reverse flip; rows
+   already written age out after three months.
+
 ### Quotas, retention, and why history.jsonl exists
 
 - Clarity allows **10 API requests per project per day** and returns at most

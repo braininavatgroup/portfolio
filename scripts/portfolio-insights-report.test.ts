@@ -8,7 +8,9 @@ import {
   summarizePerformanceByDevice,
   classifyUserAgent,
   formatEdgeDetail,
+  formatInsightEvents,
   isProbePath,
+  summarizeInsightEvents,
   mergeDayGroups,
   normalizeClarityUrl,
   summarizeEdgeDetail,
@@ -33,6 +35,7 @@ describe("parseArguments", () => {
       json: false,
       clarity: true,
       cloudflare: true,
+      insights: true,
       snapshot: true,
       history: false,
       dashboard: false,
@@ -332,6 +335,11 @@ describe("historyRow", () => {
       claritySessions: 80,
       clarityHumanSessions: 56,
       clarityBotSessions: 24,
+      insightEvents: null,
+      insightEntries: null,
+      insightContactActions: null,
+      insightAttentionSnapshots: null,
+      insightCampaignEntries: null,
     });
   });
 
@@ -624,6 +632,68 @@ describe("deriveBelievable", () => {
   });
 });
 
+describe("summarizeInsightEvents", () => {
+  it("shapes the four Analytics Engine answers and coerces the counts", () => {
+    const summary = summarizeInsightEvents({
+      actions: [
+        { action: "content_attention", events: "40" },
+        { action: "content_open", events: 12 },
+        { action: "entry", events: "9" },
+        { action: "contact_action", events: 2 },
+      ],
+      contacts: [{ kind: "email", events: "2" }],
+      attention: [
+        {
+          content_id: "record-9q",
+          content_kind: "record",
+          snapshots: "30",
+          active_seconds_p50: "47.5",
+          active_seconds_max: 180,
+          completion_p50: 63,
+          completion_max: "100",
+        },
+      ],
+      campaigns: [{ campaign: "a1b2c3d4e5f6", events: "20", entries: "3" }],
+    });
+
+    expect(summary).toEqual({
+      events: 63,
+      actions: [
+        { action: "content_attention", events: 40 },
+        { action: "content_open", events: 12 },
+        { action: "entry", events: 9 },
+        { action: "contact_action", events: 2 },
+      ],
+      entries: 9,
+      contactActions: 2,
+      contacts: [{ kind: "email", events: 2 }],
+      attentionSnapshots: 30,
+      attention: [
+        {
+          contentId: "record-9q",
+          contentKind: "record",
+          snapshots: 30,
+          activeSecondsP50: 48,
+          activeSecondsMax: 180,
+          completionP50: 63,
+          completionMax: 100,
+        },
+      ],
+      campaigns: [{ campaign: "a1b2c3d4e5f6", events: 20, entries: 3 }],
+    });
+  });
+
+  it("reads an empty dataset as zero events, not as a failure", () => {
+    expect(summarizeInsightEvents({})).toMatchObject({
+      events: 0,
+      actions: [],
+      contacts: [],
+      attention: [],
+      campaigns: [],
+    });
+  });
+});
+
 describe("summarizePerformanceByDevice", () => {
   it("keeps one row per device, largest sample first, in milliseconds", () => {
     const rows = summarizePerformanceByDevice([
@@ -678,5 +748,112 @@ describe("formatHistory", () => {
 
   it("says so when there is no history", () => {
     expect(formatHistory([]).join("\n")).toContain("No history yet");
+  });
+});
+
+describe("formatInsightEvents", () => {
+  it("degrades to one note when the query failed, and to another when the sink is silent", () => {
+    expect(formatInsightEvents(undefined)).toEqual([]);
+    const failed = formatInsightEvents({ error: "Authentication error (10000)" }).join("\n");
+    expect(failed).toContain("Portfolio signals (first-party): unavailable.");
+    expect(failed).toContain("Authentication error (10000)");
+    expect(failed).toContain("Account Analytics Read");
+
+    const silent = formatInsightEvents(summarizeInsightEvents({})).join("\n");
+    expect(silent).toContain("Portfolio signals (first-party): no events in this window.");
+    expect(silent).toContain("PORTFOLIO_INSIGHT_EVENTS_SINK");
+  });
+
+  it("renders the signals Clarity's export cannot", () => {
+    const lines = formatInsightEvents(
+      summarizeInsightEvents({
+        actions: [
+          { action: "content_attention", events: 40 },
+          { action: "contact_action", events: 2 },
+          { action: "entry", events: 9 },
+        ],
+        contacts: [{ kind: "email", events: 2 }],
+        attention: [
+          {
+            content_id: "record-9q",
+            content_kind: "record",
+            snapshots: 30,
+            active_seconds_p50: 47,
+            active_seconds_max: 180,
+            completion_p50: 63,
+            completion_max: 100,
+          },
+        ],
+        campaigns: [{ campaign: "a1b2c3d4e5f6", events: 20, entries: 3 }],
+      }),
+    ).join("\n");
+
+    expect(lines).toContain("Portfolio signals (first-party)");
+    expect(lines).toContain("events   51");
+    expect(lines).toContain("content_attention");
+    expect(lines).toMatch(/email\s+2/u);
+    expect(lines).toMatch(/record-9q\s+record\s+30 snapshots\s+p50\s+47s\s+max\s+180s\s+read\s+63%\s+max\s+100%/u);
+    expect(lines).toMatch(/a1b2c3d4e5f6\s+3 entries\s+20 events/u);
+    expect(lines).toContain("running totals");
+  });
+});
+
+describe("formatReport with first-party signals", () => {
+  const base = {
+    capturedAt: "2026-09-09T21:00:00.000Z",
+    window: { start: "2026-09-03T00:00:00.000Z", end: "2026-09-09T23:59:59.000Z" },
+  };
+
+  it("adds the first-party section after the other sources", () => {
+    const report = formatReport({
+      ...base,
+      clarity: { error: "429 today" },
+      insights: summarizeInsightEvents({
+        actions: [{ action: "entry", events: 4 }],
+      }),
+    });
+    expect(report.indexOf("Clarity: 429 today")).toBeLessThan(
+      report.indexOf("Portfolio signals (first-party)"),
+    );
+    expect(report).toContain("events   4");
+  });
+
+  it("shows the failure note in place of the section", () => {
+    const report = formatReport({ ...base, insights: { error: "no permission" } });
+    expect(report).toContain("Portfolio signals (first-party): unavailable.");
+  });
+});
+
+describe("historyRow first-party columns", () => {
+  it("carries the totals and nulls them when the query failed", () => {
+    const row = historyRow({
+      capturedAt: "x",
+      window: {},
+      insights: summarizeInsightEvents({
+        actions: [
+          { action: "content_attention", events: 40 },
+          { action: "contact_action", events: 2 },
+          { action: "entry", events: 9 },
+        ],
+        contacts: [{ kind: "email", events: 2 }],
+        attention: [{ content_id: "record-9q", content_kind: "record", snapshots: 40 }],
+        campaigns: [
+          { campaign: "a1b2c3d4e5f6", events: 20, entries: 3 },
+          { campaign: "f6e5d4c3b2a1", events: 1, entries: 1 },
+        ],
+      }),
+    });
+    expect(row).toMatchObject({
+      insightEvents: 51,
+      insightEntries: 9,
+      insightContactActions: 2,
+      insightAttentionSnapshots: 40,
+      insightCampaignEntries: 4,
+    });
+
+    const failed = historyRow({ capturedAt: "x", window: {}, insights: { error: "no" } });
+    expect(failed.insightEvents).toBeNull();
+    expect(failed.insightCampaignEntries).toBeNull();
+    expect(historyRow({ capturedAt: "x", window: {} }).insightEvents).toBeNull();
   });
 });

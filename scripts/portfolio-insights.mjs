@@ -7,6 +7,7 @@
 //   npm run insights -- --no-clarity  # skip Clarity's 10-requests-a-day budget
 //   npm run insights -- --history     # every past run, one row each
 //   npm run insights -- --dashboard   # also rewrite dashboard.html and open it
+//   npm run insights -- --no-insights # skip the first-party Analytics Engine sink
 //
 // Tokens come from CLOUDFLARE_API_TOKEN and CLARITY_API_TOKEN if set, otherwise
 // from the macOS login Keychain entries `scripts/setup-portfolio-insights.sh`
@@ -43,6 +44,7 @@ import {
   summarizeClarity,
   summarizeDaily,
   summarizeEdgeDetail,
+  summarizeInsightEvents,
   summarizePerformance,
   summarizePerformanceByDevice,
   windowForDays,
@@ -361,6 +363,102 @@ async function fetchClarity(token, days) {
   };
 }
 
+// ── First-party portfolio signals ────────────────────────────────────────────
+
+const ANALYTICS_ENGINE_ENDPOINT =
+  `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_TAG}/analytics_engine/sql`;
+const INSIGHT_DATASET = "portfolio_insights";
+const INSIGHT_ROW_LIMIT = 25;
+
+/** SQL string literal; the only values interpolated are ISO dates and names this file owns. */
+function sqlString(value) {
+  return `'${String(value).replace(/'/gu, "''")}'`;
+}
+
+/**
+ * The four questions the report asks the sink. Column positions follow the
+ * blob layout in `lib/server/portfolio-insight-sink.ts`: blob1 action, blob2
+ * content_id, blob3 content_kind, blob4 campaign, blob5 contact_kind, double1
+ * active seconds, double2 completion. Rows are sampled at volume, so every
+ * count is `SUM(_sample_interval)` and every quantile is sample-weighted.
+ */
+function insightQueries(range) {
+  const start = range.start.slice(0, 19).replace("T", " ");
+  const end = range.end.slice(0, 19).replace("T", " ");
+  const inWindow =
+    `timestamp >= toDateTime(${sqlString(start)}) AND timestamp <= toDateTime(${sqlString(end)})`;
+  return {
+    actions: `
+      SELECT blob1 AS action, SUM(_sample_interval) AS events
+      FROM ${INSIGHT_DATASET}
+      WHERE ${inWindow}
+      GROUP BY action ORDER BY events DESC LIMIT ${INSIGHT_ROW_LIMIT} FORMAT JSON`,
+    contacts: `
+      SELECT blob5 AS kind, SUM(_sample_interval) AS events
+      FROM ${INSIGHT_DATASET}
+      WHERE ${inWindow} AND blob1 = 'contact_action'
+      GROUP BY kind ORDER BY events DESC LIMIT ${INSIGHT_ROW_LIMIT} FORMAT JSON`,
+    attention: `
+      SELECT blob2 AS content_id, blob3 AS content_kind,
+        SUM(_sample_interval) AS snapshots,
+        quantileExactWeighted(0.5)(double1, _sample_interval) AS active_seconds_p50,
+        max(double1) AS active_seconds_max,
+        quantileExactWeighted(0.5)(double2, _sample_interval) AS completion_p50,
+        max(double2) AS completion_max
+      FROM ${INSIGHT_DATASET}
+      WHERE ${inWindow} AND blob1 = 'content_attention'
+      GROUP BY content_id, content_kind ORDER BY snapshots DESC LIMIT ${INSIGHT_ROW_LIMIT} FORMAT JSON`,
+    campaigns: `
+      SELECT blob4 AS campaign,
+        SUM(_sample_interval) AS events,
+        sumIf(_sample_interval, blob1 = 'entry') AS entries
+      FROM ${INSIGHT_DATASET}
+      WHERE ${inWindow} AND blob4 != ''
+      GROUP BY campaign ORDER BY entries DESC LIMIT ${INSIGHT_ROW_LIMIT} FORMAT JSON`,
+  };
+}
+
+async function analyticsEngineSql(token, query) {
+  const response = await fetch(ANALYTICS_ENGINE_ENDPOINT, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}` },
+    body: query,
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    // Errors come back as plain text or as the API's JSON envelope.
+    let message = text.trim();
+    try {
+      const payload = JSON.parse(text);
+      message = payload.errors?.map((error) => error.message).join("; ") || message;
+    } catch {
+      // Plain text stays as it is.
+    }
+    throw new Error(`Analytics Engine returned ${response.status}: ${message || response.statusText}`);
+  }
+  const payload = JSON.parse(text);
+  return Array.isArray(payload?.data) ? payload.data : [];
+}
+
+/**
+ * The worker's own insight events, read from Analytics Engine. Needs Account
+ * Analytics Read on the Cloudflare token, the same row Web Analytics uses.
+ * A dataset that has never been written to answers with an error rather than
+ * an empty table, which the report shows as the same one-line note.
+ */
+async function fetchInsightEvents(token, range) {
+  const queries = insightQueries(range);
+  const answers = {};
+  for (const [name, query] of Object.entries(queries)) {
+    answers[name] = await analyticsEngineSql(token, query);
+  }
+  return {
+    source: "analytics-engine",
+    dataset: INSIGHT_DATASET,
+    ...summarizeInsightEvents(answers),
+  };
+}
+
 function missingToken(name, account, where) {
   return {
     error:
@@ -448,6 +546,18 @@ async function main() {
     dimensions: snapshot.cloudflare?.dimensions,
     clarity: snapshot.clarity?.error ? null : snapshot.clarity,
   });
+  if (options.insights) {
+    const token = await resolveToken("CLOUDFLARE_API_TOKEN", "cloudflare-api-token");
+    snapshot.insights = token
+      ? await fetchInsightEvents(token, range).catch((error) => ({
+          error: String(error.message ?? error),
+        }))
+      : missingToken(
+          "CLOUDFLARE_API_TOKEN",
+          "cloudflare-api-token",
+          "https://dash.cloudflare.com/profile/api-tokens",
+        );
+  }
 
   if (options.snapshot) await recordSnapshot(snapshot);
   if (options.snapshot || options.dashboard) {
