@@ -24,7 +24,7 @@
     "OPENAI_PORTFOLIO_REASONING_EFFORT": "low",
     "OPENAI_PORTFOLIO_VERBOSITY": "low",
     "PORTFOLIO_FEEDBACK_ENABLED": "false",
-    "PORTFOLIO_INSIGHT_EVENTS_SINK": "off"
+    "PORTFOLIO_INSIGHT_EVENTS_SINK": "analytics-engine"
   },
   "secrets": {
     "required": [
