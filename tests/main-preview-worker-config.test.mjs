@@ -35,12 +35,12 @@ test("the public candidate serves the apex and www routes without a login", asyn
     OPENAI_PORTFOLIO_REASONING_EFFORT: "low",
     OPENAI_PORTFOLIO_VERBOSITY: "low",
     PORTFOLIO_FEEDBACK_ENABLED: "false",
-    PORTFOLIO_INSIGHT_EVENTS_SINK: "off",
+    PORTFOLIO_INSIGHT_EVENTS_SINK: "analytics-engine",
   });
-  // The first-party insight sink ships dormant: the dataset is bound so the
-  // candidate can be activated by a variable flip alone, and the variable is
-  // anything but "analytics-engine" until that separately approved change.
-  assert.notEqual(config.vars.PORTFOLIO_INSIGHT_EVENTS_SINK, "analytics-engine");
+  // BIV-421 activated the first-party insight sink. Rollback is this one value
+  // back to "off" with the pin restored; the endpoint then answers 204 and
+  // writes nothing.
+  assert.equal(config.vars.PORTFOLIO_INSIGHT_EVENTS_SINK, "analytics-engine");
   assert.deepEqual(config.analytics_engine_datasets, [
     { binding: "PORTFOLIO_INSIGHTS", dataset: "portfolio_insights" },
   ]);
