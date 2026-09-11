@@ -129,17 +129,72 @@ export function trackPortfolioInsight(
 }
 
 const INSIGHT_SINK_PATH = "/api/portfolio-insight";
+const TAB_SESSION_KEY = "biv_portfolio_insight_session_v1";
+const TAB_SESSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/u;
+
+type TabSessionStorage = Pick<Storage, "getItem" | "setItem">;
+
+// Where storage refuses the write (private modes), the id lives only as long
+// as this document, keyed by the storage it could not be written to.
+const unpersistedTabSessionIds = new WeakMap<TabSessionStorage, string>();
+// Stands in for `sessionStorage` when merely touching it throws.
+const detachedTabValues = new Map<string, string>();
+const detachedTabStorage: TabSessionStorage = {
+  getItem: (key) => detachedTabValues.get(key) ?? null,
+  setItem: (key, value) => {
+    detachedTabValues.set(key, value);
+  },
+};
+
+/**
+ * One random, meaningless id per browser tab, so the sink can order a visit's
+ * events into an anonymous journey. `sessionStorage` scopes it to the tab and
+ * ends it with the tab; it is not a cookie and never identifies a returning
+ * visitor. Only the first-party sink receives it — never Clarity.
+ */
+export function getPortfolioTabSessionId(
+  storage: TabSessionStorage,
+  makeId: () => string = () => crypto.randomUUID(),
+) {
+  const unpersisted = unpersistedTabSessionIds.get(storage);
+  if (unpersisted) return unpersisted;
+  try {
+    const stored = storage.getItem(TAB_SESSION_KEY);
+    if (stored !== null && TAB_SESSION_PATTERN.test(stored)) return stored;
+  } catch {
+    // Unreadable storage falls through to a fresh id held in memory.
+  }
+  const candidate = makeId();
+  const id = TAB_SESSION_PATTERN.test(candidate) ? candidate : crypto.randomUUID();
+  try {
+    storage.setItem(TAB_SESSION_KEY, id);
+  } catch {
+    unpersistedTabSessionIds.set(storage, id);
+  }
+  return id;
+}
+
+function currentTabSessionId() {
+  let storage: TabSessionStorage = detachedTabStorage;
+  try {
+    storage = window.sessionStorage;
+  } catch {
+    // Blocked storage throws on access; the detached store keeps the tab's id.
+  }
+  return getPortfolioTabSessionId(storage);
+}
 
 /**
  * Fire-and-forget copy of the event to the worker's own sink. A beacon
  * survives the page unloading, which is when the last attention snapshot is
  * sent; the keepalive fetch is the fallback where beacons are unavailable or
  * refused. The worker no-ops while its sink is off, and a failure here is
- * never allowed to reach the caller.
+ * never allowed to reach the caller. The tab id is created here, and only
+ * here, so an ineligible visit or a rejected event never writes one.
  */
 function postInsightEvent(action: string, dimensions: Record<string, string>) {
-  const body = JSON.stringify({ action, dimensions });
   try {
+    const body = JSON.stringify({ action, dimensions, session_id: currentTabSessionId() });
     if (typeof navigator.sendBeacon === "function" && navigator.sendBeacon(INSIGHT_SINK_PATH, body)) {
       return;
     }

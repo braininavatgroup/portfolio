@@ -10,7 +10,10 @@ allowed host with explicit `external` context and no opt-out. A saved
 `granted` is forwarded to Clarity's consent API on that load, so an opt-in
 survives a reload; an absent preference stays absent. `?analytics=off` enrolls
 a Bradley-controlled browser before bootstrap. An opaque `?campaign=<code>` is
-captured for the tab. Both parameters are removed before Clarity starts. `PortfolioAnalyticsPreference` is the `/privacy` control.
+captured for the tab. Both parameters are removed before Clarity starts. The
+first eligible, valid insight event writes a random tab id to `sessionStorage`
+(`biv_portfolio_insight_session_v1`). Only the first-party beacon carries it,
+never Clarity, and an ineligible or opted-out visit writes none. `PortfolioAnalyticsPreference` is the `/privacy` control.
 
 ## Props
 

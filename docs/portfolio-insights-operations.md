@@ -224,7 +224,7 @@ until the gate below is flipped in a deployed candidate.
 **How it flows.** `trackPortfolioInsight` in `lib/portfolio-analytics.ts`
 decides eligibility once — the `external` document marker, the public
 hostname, and the stored analytics preference — and only then sends the
-validated event to Clarity *and* posts the same `{ action, dimensions }` body
+validated event to Clarity *and* posts the same `{ action, dimensions }` body, plus the tab's `session_id`,
 to `POST /api/portfolio-insight` with `navigator.sendBeacon` (keepalive
 `fetch` as the fallback). A visit Clarity would not hear from never reaches
 the worker either; the `?analytics=off` enrollment excludes a browser from
@@ -254,13 +254,22 @@ absent:
 | `blob7` / `blob8` | target: `target_id` / `target_kind` on Guide navigation, `evidence_id` / `evidence_kind` on an evidence open |
 | `blob9` | country, ISO 3166-1 alpha-2, from the edge's `cf.country` |
 | `blob10` | device class derived from the user agent: `mobile`, `tablet`, `desktop`, `unknown` |
-| `blob11` | schema version, `v1` |
+| `blob11` | schema version, `v2` (`v1` rows stop at this column) |
+| `blob12` | `session_id`: a random id held in the tab's `sessionStorage`, one per tab |
+| `blob13` | region code from `cf.regionCode` (at most 16 ASCII letters, digits, hyphens) |
+| `blob14` | city from `cf.city` (letters, marks, digits, space, `.`, `'`, `-`; at most 96) |
+| `blob15` | metro code from `cf.metroCode` when present (at most 16 ASCII letters and digits) |
 | `double1` / `double2` | `active_seconds` / `completion_percent` on `content_attention` |
 | `index1` | action |
 
-No address, user agent string, cookie, referrer or URL is written. Content
-IDs and codes are the opaque values the client already restricts to
-`[A-Za-z0-9._:-]`. Analytics Engine keeps rows for three months and samples
+No address, user agent string, cookie, referrer, URL, latitude, longitude,
+postal code, colo or other `cf` property is written. City is the most specific
+geography kept, and it is only where the network reports the request came
+from; a VPN, mobile gateway or corporate network can move it. Region, city and
+metro have no header fallback, and a value outside its shape is stored empty.
+The session id is not a cookie and ends with the tab; a malformed one drops
+the event. Content IDs, codes and session ids are the opaque values the client
+already restricts to `[A-Za-z0-9._:-]`. Analytics Engine keeps rows for three months and samples
 at high volume, which is why the report sums `_sample_interval` instead of
 counting rows.
 

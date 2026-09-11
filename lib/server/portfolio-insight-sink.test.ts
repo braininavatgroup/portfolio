@@ -38,21 +38,55 @@ function dataset() {
 
 const activeEnv = { PORTFOLIO_INSIGHT_EVENTS_SINK: "analytics-engine" };
 
+const noGeography = { country: "", regionCode: "", city: "", metroCode: "" };
+
+/** The blobs of the one point a request wrote, or undefined when it wrote none. */
+async function writtenBlobs(
+  body: object,
+  options: { cf?: Record<string, unknown>; headers?: Record<string, string> } = {},
+) {
+  const PORTFOLIO_INSIGHTS = dataset();
+  const sink = createPortfolioInsightSink({ env: { ...activeEnv, PORTFOLIO_INSIGHTS } });
+  const response = await sink.handle(insightRequest(body, options));
+  expect(response.status).toBe(204);
+  return PORTFOLIO_INSIGHTS.writeDataPoint.mock.calls[0]?.[0]?.blobs as string[] | undefined;
+}
+
 describe("parsePortfolioInsightPayload", () => {
   it("accepts the shape the client adapter already validates", () => {
     expect(
       parsePortfolioInsightPayload({
         action: "content_open",
         dimensions: { content_id: "record-9q", content_kind: "record", selection_source: "map" },
+        session_id: "0b7c1e52-4c4b-4d0e-9a53-6f1f0f7f2d11",
       }),
     ).toEqual({
       action: "content_open",
       dimensions: { content_id: "record-9q", content_kind: "record", selection_source: "map" },
+      session_id: "0b7c1e52-4c4b-4d0e-9a53-6f1f0f7f2d11",
     });
     expect(parsePortfolioInsightPayload({ action: "entry" })).toEqual({
       action: "entry",
       dimensions: {},
+      session_id: "",
     });
+  });
+
+  it("drops an event whose session id is malformed or oversized", () => {
+    for (const session_id of [
+      "short",
+      "x".repeat(129),
+      "-leading-hyphen",
+      "alice@example.com",
+      "session a",
+      42,
+      null,
+    ]) {
+      expect(parsePortfolioInsightPayload({ action: "entry", session_id })).toBeNull();
+    }
+    expect(
+      parsePortfolioInsightPayload({ action: "entry", session_id: "x".repeat(128) })?.session_id,
+    ).toBe("x".repeat(128));
   });
 
   it("rejects anything that could carry personal content", () => {
@@ -122,8 +156,9 @@ describe("insightDataPoint", () => {
             target_id: "record-9q",
             target_kind: "record",
           },
+          session_id: "session-g",
         },
-        { country: "NL", device: "desktop" },
+        { country: "NL", regionCode: "NH", city: "Amsterdam", metroCode: "", device: "desktop" },
       ),
     ).toEqual({
       blobs: [
@@ -137,7 +172,11 @@ describe("insightDataPoint", () => {
         "record",
         "NL",
         "desktop",
-        "v1",
+        "v2",
+        "session-g",
+        "NH",
+        "Amsterdam",
+        "",
       ],
       doubles: [0, 0],
       indexes: ["guide_evidence"],
@@ -154,23 +193,24 @@ describe("insightDataPoint", () => {
           content_id: "record-9q",
           content_kind: "record",
         },
+        session_id: "",
       },
-      { country: "", device: "mobile" },
+      { ...noGeography, device: "mobile" },
     );
     expect(point.blobs.slice(0, 3)).toEqual(["content_attention", "record-9q", "record"]);
     expect(point.doubles).toEqual([47, 63]);
     expect(
       insightDataPoint(
-        { action: "content_attention", dimensions: { active_seconds: "lots" } },
-        { country: "", device: "unknown" },
+        { action: "content_attention", dimensions: { active_seconds: "lots" }, session_id: "" },
+        { ...noGeography, device: "unknown" },
       ).doubles,
     ).toEqual([0, 0]);
   });
 
   it("drops dimensions the layout has no slot for", () => {
     const point = insightDataPoint(
-      { action: "entry", dimensions: { entry_source: "campaign", mystery: "value" } },
-      { country: "GB", device: "desktop" },
+      { action: "entry", dimensions: { entry_source: "campaign", mystery: "value" }, session_id: "" },
+      { ...noGeography, country: "GB", device: "desktop" },
     );
     expect(point.blobs).not.toContain("value");
     expect(point.blobs[5]).toBe("campaign");
@@ -203,15 +243,32 @@ describe("portfolio insight sink", () => {
     expect(PORTFOLIO_INSIGHTS.writeDataPoint).not.toHaveBeenCalled();
   });
 
-  it("writes one data point per valid event, with only the country from the edge", async () => {
+  it("writes one data point per valid event, with only the approved geography from the edge", async () => {
     const PORTFOLIO_INSIGHTS = dataset();
     const sink = createPortfolioInsightSink({ env: { ...activeEnv, PORTFOLIO_INSIGHTS } });
 
     const response = await sink.handle(
       insightRequest(
-        { action: "contact_action", dimensions: { contact_kind: "email", campaign: "a1b2c3d4e5f6" } },
         {
-          cf: { country: "DE", city: "Berlin", colo: "FRA" },
+          action: "contact_action",
+          dimensions: { contact_kind: "email", campaign: "a1b2c3d4e5f6" },
+          session_id: "session-a",
+        },
+        {
+          cf: {
+            country: "DE",
+            regionCode: "BE",
+            city: "Berlin",
+            metroCode: "27612",
+            colo: "FRA",
+            latitude: "52.52437",
+            longitude: "13.41053",
+            postalCode: "10115",
+            asn: 64496,
+            asOrganization: "Example Transit GmbH",
+            timezone: "Europe/Berlin",
+            mysteryProperty: "unknown-cf-value",
+          },
           headers: {
             "cf-connecting-ip": "203.0.113.10",
             cookie: "portfolio_main_preview_session=secret",
@@ -224,15 +281,84 @@ describe("portfolio insight sink", () => {
     expect(response.status).toBe(204);
     expect(PORTFOLIO_INSIGHTS.writeDataPoint).toHaveBeenCalledTimes(1);
     const point = PORTFOLIO_INSIGHTS.writeDataPoint.mock.calls[0][0];
-    expect(point).toEqual({
-      blobs: ["contact_action", "", "", "a1b2c3d4e5f6", "email", "", "", "", "DE", "mobile", "v1"],
-      doubles: [0, 0],
-      indexes: ["contact_action"],
-    });
+    expect(point.blobs).toEqual([
+      "contact_action", "", "", "a1b2c3d4e5f6", "email", "", "", "",
+      "DE", "mobile", "v2", "session-a", "BE", "Berlin", "27612",
+    ]);
+    expect(point.doubles).toEqual([0, 0]);
+    expect(point.indexes).toEqual(["contact_action"]);
     const serialized = JSON.stringify(point);
-    for (const leak of ["203.0.113.10", "secret", "Mozilla", "Berlin", "FRA"]) {
+    for (const leak of [
+      "203.0.113.10",
+      "secret",
+      "Mozilla",
+      "iPhone",
+      "FRA",
+      "52.52437",
+      "13.41053",
+      "10115",
+      "64496",
+      "Example Transit",
+      "Europe/Berlin",
+      "unknown-cf-value",
+    ]) {
       expect(serialized).not.toContain(leak);
     }
+  });
+
+  it("stores the geography only in its approved, bounded shape", async () => {
+    const body = { action: "entry", session_id: "session-a" };
+    const geographyOf = (blobs: string[] | undefined) => blobs?.slice(12, 15);
+
+    expect(
+      geographyOf(
+        await writtenBlobs(body, {
+          cf: { country: "BR", regionCode: "SP", city: "São Paulo", metroCode: "501" },
+        }),
+      ),
+    ).toEqual(["SP", "São Paulo", "501"]);
+    expect(
+      geographyOf(
+        await writtenBlobs(body, {
+          cf: { country: "FR", regionCode: "NAQ", city: "Saint-Jean-d'Angély" },
+        }),
+      ),
+    ).toEqual(["NAQ", "Saint-Jean-d'Angély", ""]);
+
+    for (const cf of [
+      { regionCode: "R".repeat(17), city: "C".repeat(97), metroCode: "1".repeat(17) },
+      { regionCode: "B E", city: "Berlin<script>", metroCode: "50-1" },
+      { regionCode: "BÉ", city: "", metroCode: "" },
+      { regionCode: 12, city: ["Berlin"], metroCode: 501 },
+      { regionCode: null, city: { name: "Berlin" }, metroCode: undefined },
+    ]) {
+      expect(geographyOf(await writtenBlobs(body, { cf }))).toEqual(["", "", ""]);
+    }
+    expect(
+      geographyOf(await writtenBlobs(body, { cf: { regionCode: "R".repeat(16), metroCode: "Z".repeat(16) } })),
+    ).toEqual(["R".repeat(16), "", "Z".repeat(16)]);
+  });
+
+  it("takes region, city, and metro only from request.cf, never from headers", async () => {
+    const blobs = await writtenBlobs(
+      { action: "entry", session_id: "session-a" },
+      {
+        headers: {
+          "cf-ipcountry": "US",
+          "cf-region-code": "CA",
+          "cf-ipcity": "San Francisco",
+          "cf-metro-code": "807",
+        },
+      },
+    );
+    expect(blobs?.[8]).toBe("US");
+    expect(blobs?.slice(12, 15)).toEqual(["", "", ""]);
+  });
+
+  it("drops an event with a malformed session id and keeps one without any", async () => {
+    expect(await writtenBlobs({ action: "entry", session_id: "bad id!" })).toBeUndefined();
+    expect(await writtenBlobs({ action: "entry", session_id: "x".repeat(129) })).toBeUndefined();
+    expect((await writtenBlobs({ action: "entry" }))?.[11]).toBe("");
   });
 
   it("accepts a sendBeacon body sent as text/plain and falls back to the country header", async () => {
