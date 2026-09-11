@@ -104,10 +104,12 @@
  *   journeyPatterns?: JourneyPatterns,
  *   signals?: SourceSignals,
  *   contentCatalog?: ContentCatalog,
+ *   diagnostics?: Record<string, unknown>,
  * }} FindingInput
  * @typedef {{
  *   version: 1,
  *   window: ReportWindow | null,
+ *   journeys: "available" | "unavailable",
  *   sessions: number, evidenceSessions: number, contactSessions: number,
  *   content: Array<{
  *     contentId: string, sessions: number, attentionSessions: number,
@@ -686,6 +688,11 @@ function resolveAssignments(input) {
  * location, source, and device, plus the source signals findings compare.
  * No names, companies, jobs, campaign codes, session IDs, or event sequences.
  *
+ * `journeys` says whether the run had journey data at all. When it did not,
+ * the session counts below are zero by construction, not an observed zero,
+ * and no later run may compare against them. A row without the field
+ * predates it and is read as unavailable.
+ *
  * @param {FindingInput} intelligence
  * @returns {HistorySummary}
  */
@@ -697,6 +704,7 @@ export function summarizeForHistory(intelligence) {
     window: reportWindow
       ? { start: reportWindow.start, end: reportWindow.end, label: reportWindow.label }
       : null,
+    journeys: intelligence.diagnostics?.journeySource === "available" ? "available" : "unavailable",
     sessions: patterns?.sessions ?? 0,
     evidenceSessions: patterns?.evidenceSessions ?? 0,
     contactSessions: patterns?.contactSessions ?? 0,
@@ -854,13 +862,17 @@ export function deriveFindings(current, previous) {
   }
 
   if (previous) {
+    // "No sessions" is only a claim when the prior window had journey data
+    // and enough of it; a missing or thin prior window is not a zero.
+    const priorJourneysUsable =
+      previous.journeys === "available" && (previous.sessions ?? 0) >= MIN_PATTERN_SESSIONS;
     const cityKey = (row) => JSON.stringify([row.country, row.regionCode, row.city]);
     const priorCities = new Set(
       (previous.locations ?? []).filter((row) => row.sessions > 0 && row.city !== UNKNOWN).map(cityKey),
     );
     /** @type {Map<string, Geo & { sessions: number }>} */
     const cities = new Map();
-    for (const row of now.locations) {
+    for (const row of priorJourneysUsable ? now.locations : []) {
       if (row.city === UNKNOWN) continue;
       const key = cityKey(row);
       const city = cities.get(key) ?? { ...row, metroCode: UNKNOWN, sessions: 0 };
@@ -905,9 +917,11 @@ export function deriveFindings(current, previous) {
 
     const edge = now.cloudflare;
     const priorEdge = previous.cloudflare;
+    // The prior rate needs a real denominator: 0 of 4 responses is not a 0% baseline.
     if (
       edge?.serverErrors != null && edge.statusRequests &&
-      priorEdge?.serverErrors != null && priorEdge.statusRequests &&
+      priorEdge?.serverErrors != null && priorEdge.statusRequests != null &&
+      priorEdge.statusRequests >= MIN_PATTERN_SESSIONS &&
       edge.serverErrors >= SERVER_ERROR_MIN_COUNT
     ) {
       const rate = edge.serverErrors / edge.statusRequests;
@@ -978,6 +992,7 @@ export function buildPortfolioIntelligence({
   window: reportWindow,
 }) {
   const { journeys: grouped, diagnostics: grouping } = partitionJourneys(events);
+  const journeySource = Array.isArray(events) ? "available" : "unavailable";
   const identity = resolveAssignments(assignments);
 
   /** @type {Map<string, PortfolioAssignment>} */
@@ -1028,6 +1043,7 @@ export function buildPortfolioIntelligence({
     journeyPatterns: summarizeJourneyPatterns(journeys, contentCatalog),
     signals: { clarity: claritySignals(clarityState), cloudflare: cloudflareSignals(cloudflareState) },
     contentCatalog,
+    diagnostics: { journeySource },
   };
 
   return {
@@ -1040,7 +1056,7 @@ export function buildPortfolioIntelligence({
     signals: current.signals,
     window: reportWindow,
     diagnostics: {
-      journeySource: Array.isArray(events) ? "available" : "unavailable",
+      journeySource,
       ...grouping,
       sessions: journeys.length,
       assignedSessions: journeys.length - journeys.filter((journey) => journey.assignment === null).length,

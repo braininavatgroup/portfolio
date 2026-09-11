@@ -125,7 +125,7 @@ function assignment(code: string, name: string | null = "Alex Rivera"): Portfoli
 const fresh = (value: unknown) => ({ status: "fresh" as const, capturedAt: "2026-09-16T08:00:00.000Z", value });
 
 function build(
-  events: InsightEvent[],
+  events: InsightEvent[] | null,
   {
     assignments = [] as PortfolioAssignment[] | null,
     previous = null as HistorySummary | null,
@@ -146,7 +146,7 @@ function build(
 }
 
 /** The prior window's aggregate history, produced the same way a real run keeps it. */
-function priorHistory(events: InsightEvent[], sources: { clarity?: unknown; cloudflare?: unknown } = {}) {
+function priorHistory(events: InsightEvent[] | null, sources: { clarity?: unknown; cloudflare?: unknown } = {}) {
   return summarizeForHistory(build(events, { window: PRIOR, ...sources }));
 }
 
@@ -608,6 +608,36 @@ describe("geography findings", () => {
   it("draws no comparison without a prior window", () => {
     expect(findingsOf(build(cityEvents("a", 6, "Austin", "TX")).findings, "geography")).toEqual([]);
   });
+
+  // Protects against: a prior run with no journey data (sink not yet active,
+  // Analytics Engine outage) recorded as `sessions: 0` and read as "no sessions".
+  it("draws no comparison when the prior window had no journey data", () => {
+    const previous = priorHistory(null);
+    expect(previous).toMatchObject({ journeys: "unavailable", sessions: 0, locations: [] });
+    expect(findingsOf(build(cityEvents("a", 6, "Austin", "TX"), { previous }).findings, "geography")).toEqual([]);
+  });
+
+  it("requires an available prior window, with at least five sessions, before comparing", () => {
+    const available = priorHistory(cityEvents("p", 5, "New York", "NY"));
+    expect(available.journeys).toBe("available");
+    expect(findingsOf(build(cityEvents("a", 5, "Austin", "TX"), { previous: available }).findings, "geography")).toHaveLength(1);
+
+    const quiet = priorHistory(cityEvents("p", 4, "New York", "NY"));
+    expect(quiet.journeys).toBe("available");
+    expect(findingsOf(build(cityEvents("a", 6, "Austin", "TX"), { previous: quiet }).findings, "geography")).toEqual([]);
+
+    const empty = priorHistory([]);
+    expect(findingsOf(build(cityEvents("a", 6, "Austin", "TX"), { previous: empty }).findings, "geography")).toEqual([]);
+  });
+
+  // Protects against: history written before `journeys` existed being trusted.
+  // Retire once no stored history row predates the field.
+  it("treats a legacy history row without journey availability as unavailable", () => {
+    const legacy: Partial<HistorySummary> = { ...priorHistory(cityEvents("p", 5, "New York", "NY")) };
+    delete legacy.journeys;
+    const events = cityEvents("a", 6, "Austin", "TX");
+    expect(findingsOf(build(events, { previous: legacy as HistorySummary }).findings, "geography")).toEqual([]);
+  });
 });
 
 describe("source regression findings", () => {
@@ -680,6 +710,16 @@ describe("source regression findings", () => {
     expect(findingsOf(build([], { previous, cloudflare: failed }).findings, "error")).toEqual([]);
   });
 
+  // Protects against: a near-empty prior window (0 of 4 responses) standing in
+  // as a real 0% baseline for a rate comparison.
+  it("stays silent when the prior window had fewer than five edge responses", () => {
+    const thin = priorHistory([], { cloudflare: fresh(cloudflareSnapshot({ serverErrors: 0, statusRequests: 4 })) });
+    expect(findingsOf(build([], { previous: thin, cloudflare: fresh(cloudflareSnapshot({ serverErrors: 5 })) }).findings, "error")).toEqual([]);
+
+    const enough = priorHistory([], { cloudflare: fresh(cloudflareSnapshot({ serverErrors: 0, statusRequests: 5 })) });
+    expect(findingsOf(build([], { previous: enough, cloudflare: fresh(cloudflareSnapshot({ serverErrors: 5 })) }).findings, "error")).toHaveLength(1);
+  });
+
   it("reports a Web Vitals p75 that regressed by at least 20% and 100 ms", () => {
     const previous = priorHistory([], { cloudflare: fresh(cloudflareSnapshot({ fcp: 1000, samples: 20 })) });
     const [finding] = findingsOf(
@@ -734,6 +774,7 @@ describe("summarizeForHistory", () => {
     }
     expect(history).toMatchObject({
       window: CURRENT,
+      journeys: "available",
       sessions: 2,
       contactSessions: 1,
       evidenceSessions: 1,
