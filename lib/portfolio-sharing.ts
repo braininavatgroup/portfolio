@@ -32,7 +32,7 @@ export function shareMetadata(id: string): Metadata {
   if (!page) throw new Error(`Unknown share page: ${id}`);
   const title = id === "home" ? page.title : `${page.title} | Bradley Berkman`;
   const url = `${portfolioOrigin}${page.path}`;
-  const image = `${portfolioOrigin}/sharing/${page.id}.png`;
+  const image = `${portfolioOrigin}/sharing/${page.id}.png?v=biv-433`;
   return {
     metadataBase: new URL(portfolioOrigin),
     title,

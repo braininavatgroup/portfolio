@@ -26,3 +26,8 @@ Deploying remains a separate action. After deployment, inspect the actual public
 project URLs in LinkedIn's Post Inspector to refresh cached previews, then retry
 adding the touring, reporting, and Dubs links to Featured. Local metadata checks do
 not prove LinkedIn has fetched the deployed page or refreshed its cache.
+
+The BIV-433 composition uses `scripts/vendor/social-preview.mjs`, vendored unchanged from
+music-promo's `tools/social-preview/render.mjs`. Identity, category, headline, and domain
+share the BiV layout. Descriptions stay in metadata. Titles cannot shrink below 48px.
+The `v=biv-433` image URL distinguishes the new cards from the previous cached images.
