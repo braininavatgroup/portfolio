@@ -1,4 +1,5 @@
-// Owns: section order, assigned-link attribution wording, per-source
+// Owns: section order, what the page opens on, the gist each folded section
+// puts in its summary, assigned-link attribution wording, per-source
 // freshness, empty and unavailable states, escaping, and the Clarity/Airtable
 // link allowlist of the local decision dashboard. Retire with the HTML
 // dashboard.
@@ -307,6 +308,16 @@ const sectionOf = (page: string, title: string) => {
   const start = page.indexOf(`>${title}</h2>`);
   const next = page.indexOf("<h2", start + 1);
   return page.slice(start, next === -1 ? undefined : next);
+};
+/** A panel from its wrapper to its closing tag, so its openness is readable. */
+const panelOf = (page: string, id: string) => {
+  const start = page.indexOf(`<section class="panel" id="${id}">`);
+  return page.slice(start, page.indexOf("</section>", start));
+};
+/** Only what a folded section shows before anything is clicked. */
+const summaryOf = (page: string, id: string) => {
+  const panel = panelOf(page, id);
+  return panel.slice(panel.indexOf("<summary>"), panel.indexOf("</summary>"));
 };
 
 describe("renderDashboard decision sections", () => {
@@ -758,6 +769,117 @@ describe("per-row trend marks", () => {
     // No hover channel on this page: the values ride in the label and the row.
     expect(content).toContain('aria-label="Record &lt;9Q&gt; sessions per run: 3, 4, 5"');
     expect(content).toMatch(/<svg class="spark"/u);
+  });
+});
+
+// The first screen has to be enough. These own what is open on load, what a
+// folded summary has to say before it is opened, and the row cap. Nothing is
+// removed by folding: every one of these sections still holds its whole body.
+describe("what the page opens on", () => {
+  const OPEN = ["what-changed", "assigned-links"];
+  const FOLDED = ["content-resonance", "journeys", "audience", "observe-in-clarity", "diagnostics"];
+
+  it("opens on what needs a decision and folds the rest", () => {
+    for (const id of OPEN) {
+      expect(panelOf(html, id)).toMatch(new RegExp(`^<section class="panel" id="${id}"><div class="panel-head">`, "u"));
+    }
+    for (const id of FOLDED) {
+      const panel = panelOf(html, id);
+      expect(panel, id).toMatch(new RegExp(`^<section class="panel" id="${id}"><details[^>]*><summary>`, "u"));
+      // Folded, not opened: an `open` attribute would defeat the whole point.
+      expect(panel.slice(0, panel.indexOf("<summary>")), id).not.toMatch(/\bopen\b/u);
+    }
+    // Folding moves nothing between sections: the order contract still holds.
+    expect(headings(html).slice(0, 7)).toEqual([
+      "What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity", "Diagnostics",
+    ]);
+  });
+
+  it("puts the numbers that justify opening a section in its summary", () => {
+    expect(summaryOf(html, "content-resonance")).toContain("2 items, 1 with 5+ sessions");
+    expect(summaryOf(html, "journeys")).toContain("7 tab sessions, 1 path reached contact");
+    expect(summaryOf(html, "audience")).toContain("7 sessions from 2 locations, 2 devices");
+    expect(summaryOf(html, "observe-in-clarity")).toContain("1 assigned link, 2 content items, 1 location");
+    expect(summaryOf(html, "diagnostics")).toContain("2 sources not fresh, 310 crawler requests, 9 server errors");
+    for (const id of FOLDED) expect(summaryOf(html, id), id).toMatch(/<h2>/u);
+  });
+
+  it("shows a source's state and its reason in the summary, without opening anything", () => {
+    // Clarity is stale here with an error, and Observe in Clarity is folded: the
+    // reason has to be readable before the reader decides whether to open it.
+    const observe = summaryOf(html, "observe-in-clarity");
+    expect(observe).toContain("Clarity · Stale 09-10 07:10");
+    expect(observe).toContain("Stale — last good data 2026-09-10 07:10 UTC · latest attempt failed: Clarity returned 429");
+
+    // An unavailable source is the case that must never hide behind a fold.
+    const down = renderDashboard({
+      snapshot: {
+        capturedAt: "2026-09-11T16:00:00.000Z",
+        window,
+        sources: {
+          clarity: { status: "unavailable", capturedAt: null, value: null, error: "no Clarity token" },
+          cloudflare: { status: "unavailable", capturedAt: null, value: null, error: "Cloudflare returned 403" },
+          insights: { status: "unavailable", capturedAt: null, value: null, error: "dataset not activated" },
+          airtable: { status: "unavailable", capturedAt: null, value: null, error: "Airtable returned 401" },
+        },
+      },
+      history: [],
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+    expect(summaryOf(down, "observe-in-clarity")).toContain("Unavailable — no Clarity token");
+    for (const id of ["content-resonance", "journeys", "audience"]) {
+      expect(summaryOf(down, id), id).toContain("Unavailable — dataset not activated");
+      expect(summaryOf(down, id), id).toContain("event data unavailable — dataset not activated");
+    }
+    expect(summaryOf(down, "diagnostics")).toContain("4 sources not fresh");
+    // Never a fabricated zero in a summary that stands in for missing data.
+    for (const id of FOLDED) expect(summaryOf(down, id), id).not.toMatch(/>0(%|\s*<)/u);
+  });
+
+  it("keeps each assigned link's counts visible and its identity grid behind the row", () => {
+    const panel = panelOf(html, "assigned-links");
+    const row = panel.slice(panel.indexOf('<details class="assignment"'));
+    const summary = row.slice(0, row.indexOf("</summary>"));
+    expect(summary).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
+    for (const label of ["Link sessions", "Content opened", "Evidence opened", "Contact actions", "Latest activity"]) {
+      expect(summary, label).toContain(label);
+    }
+    for (const label of ["Recipient", "Assigned company", "Job", "Stage", "Sent", "Outcome"]) {
+      expect(summary, label).not.toContain(label);
+      expect(row, label).toContain(label);
+    }
+  });
+
+  it("renders the journey patterns in the section and folds only the per-tab list", () => {
+    const journeys = panelOf(html, "journeys");
+    const anonymous = journeys.slice(journeys.indexOf('<details class="anon">'));
+    const patterns = journeys.slice(0, journeys.indexOf('<details class="anon">'));
+    for (const title of ["Common entry points", "Content transitions", "Exits", "Paths that reach evidence", "Paths that reach contact", "Opening paths"]) {
+      expect(patterns, title).toContain(`<h3>${title}</h3>`);
+    }
+    expect(anonymous).toMatch(/^<details class="anon"><summary><h3>Anonymous tab sessions<\/h3>/u);
+    expect(anonymous).toContain("1 tab session");
+    // The tab sessions themselves are still there, one more click in.
+    expect(anonymous).toContain("· 2 events");
+  });
+
+  it("caps a long table at five rows and keeps the rest one click away", () => {
+    const many = Array.from({ length: 8 }, (_, index) => ({ value: `source-${index}`, sessions: index + 1 }));
+    const page = renderDashboard({
+      snapshot: {
+        ...hostile,
+        intelligence: { ...intelligence, audience: { ...intelligence.audience, sources: many } },
+      },
+      history,
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+    const audience = panelOf(page, "audience");
+    const first = audience.slice(audience.indexOf(">Entry source</h3>"), audience.indexOf(">Device</h3>"));
+    const shown = first.slice(0, first.indexOf('<details class="more">'));
+    // Descending by sessions, so the five on show are the interesting ones.
+    expect([...shown.matchAll(/source-(\d)/gu)].map((match) => match[1])).toEqual(["7", "6", "5", "4", "3"]);
+    expect(first).toContain("<summary>3 more rows</summary>");
+    for (const index of [0, 1, 2]) expect(first.slice(first.indexOf('<details class="more">'))).toContain(`source-${index}`);
   });
 });
 

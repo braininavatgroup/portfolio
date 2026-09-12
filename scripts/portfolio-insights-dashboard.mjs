@@ -19,10 +19,17 @@
 //   2. A decision strip leads with the counts that drive a decision, each with
 //      its change against the previous run and a sparkline where the aggregate
 //      history supports one.
-//   3. The Clarity filter steps are printed once per page; each row repeats
+//   3. The first screen is what needs a decision: the freshness strip, the
+//      decision strip, What changed, and Assigned links stay open. Content
+//      resonance, Journeys, Audience, Observe in Clarity, and Diagnostics fold
+//      behind a `<details>`, and each `<summary>` carries its heading, its
+//      source badges, the reason for any source that is not fresh, and a gist
+//      with the numbers that justify opening it. Nothing is removed and
+//      nothing missing hides behind a closed disclosure.
+//   4. The Clarity filter steps are printed once per page; each row repeats
 //      only its own filter and value.
-//   4. "not enough data for a pattern" is said at most once per section.
-//   5. Charts are inline SVG with no scripts, so there is no hover or tooltip
+//   5. "not enough data for a pattern" is said at most once per section.
+//   6. Charts are inline SVG with no scripts, so there is no hover or tooltip
 //      channel: every value is direct-labelled or reachable in a table twin.
 //
 // Every interpolated string passes through `escapeHtml`; every href passes
@@ -39,6 +46,8 @@ const LINK_PREFIXES = { clarity: CLARITY_PROJECT_URL, airtable: AIRTABLE_BASE_UR
 
 /** Findings, content comparisons, and pattern tables need at least this many sessions. */
 const PATTERN_MINIMUM = 5;
+/** Rows a table shows before folding the rest into a nested disclosure. */
+const TABLE_CAP = 5;
 const SMALL_SAMPLE = "not enough data for a pattern";
 const ANONYMOUS_JOURNEY_LIMIT = 25;
 /** A sparkline reads as a shape, not a series of points, past about a dozen runs. */
@@ -416,6 +425,10 @@ function freshnessStrip(context) {
 /**
  * A section's sources: a badge each, and a reason line only for a source that
  * is not fresh. A healthy run therefore carries no grey text under a heading.
+ *
+ * These are spans, not paragraphs, because a folded section puts them inside
+ * its `<summary>`: a closed section must still say that one of its sources is
+ * stale or unavailable, so missing data is never hidden behind a disclosure.
  */
 function sectionSources(names, context) {
   const badges = names
@@ -431,10 +444,10 @@ function sectionSources(names, context) {
     .filter((name) => context.sources[name].status !== "fresh")
     .map(
       (name) =>
-        `<p class="source-note">${escapeHtml(SOURCE_LABELS[name])} · ${escapeHtml(freshness(context.sources[name]))}</p>`,
+        `<span class="source-note">${escapeHtml(SOURCE_LABELS[name])} · ${escapeHtml(freshness(context.sources[name]))}</span>`,
     )
     .join("");
-  return `<p class="badges">${badges}</p>${reasons}`;
+  return `<span class="badges">${badges}</span>${reasons}`;
 }
 
 function unavailableReason(state) {
@@ -455,20 +468,59 @@ function missingEvents(context, subject) {
 
 // ---------------------------------------------------------------- helpers
 
+/**
+ * Descending by the first column every row fills with a finite number, so the
+ * five rows a capped table shows are the ones worth a glance. A table with no
+ * such column — the source list, the Clarity filter values — keeps the order
+ * its caller chose.
+ * @param {Array<Array<unknown>>} rows
+ */
+function interestingFirst(rows) {
+  if (rows.length < 2) return rows;
+  const width = rows.reduce((widest, row) => Math.max(widest, row.length), 0);
+  for (let index = 1; index < width; index += 1) {
+    if (rows.every((row) => Number.isFinite(row[index]))) {
+      // V8's sort is stable, so equal counts keep the caller's order.
+      return rows.slice().sort((a, b) => Number(b[index]) - Number(a[index]));
+    }
+  }
+  return rows;
+}
+
+/**
+ * The first `TABLE_CAP` rows, then the rest behind a nested disclosure. Nothing
+ * is dropped: the tail keeps the same columns, one click away.
+ * @param {Array<unknown>} rows
+ * @param {(group: Array<any>) => string} wrap
+ */
+function capped(rows, wrap) {
+  const rest = rows.slice(TABLE_CAP);
+  return (
+    wrap(rows.slice(0, TABLE_CAP)) +
+    (rest.length
+      ? `<details class="more"><summary>${escapeHtml(plural(rest.length, "more row"))}</summary>${wrap(rest)}</details>`
+      : "")
+  );
+}
+
+/** A table showing its most interesting rows, with the tail one click away. */
 function dataTable(columns, rows) {
   const head = columns.map((column, index) => `<th${index ? ' class="num"' : ""}>${escapeHtml(column)}</th>`).join("");
-  const body = rows
-    .map(
-      (row) =>
-        `<tr>${row
-          .map(
-            (cellValue, index) =>
-              `<td${index ? ' class="num"' : ""}>${escapeHtml(typeof cellValue === "number" ? number(cellValue) : cellValue)}</td>`,
-          )
-          .join("")}</tr>`,
-    )
-    .join("");
-  return `<div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const bodyOf = (group) =>
+    group
+      .map(
+        (row) =>
+          `<tr>${row
+            .map(
+              (cellValue, index) =>
+                `<td${index ? ' class="num"' : ""}>${escapeHtml(typeof cellValue === "number" ? number(cellValue) : cellValue)}</td>`,
+            )
+            .join("")}</tr>`,
+      )
+      .join("");
+  const wrap = (group) =>
+    `<div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${bodyOf(group)}</tbody></table></div>`;
+  return capped(interestingFirst(rows), wrap);
 }
 
 function empty(text) {
@@ -536,11 +588,116 @@ function cell(label, value) {
   return `<span class="cell"><span class="cell-label">${escapeHtml(label)}</span><span class="cell-value">${escapeHtml(value)}</span></span>`;
 }
 
-function section(id, title, sourceNames, body, context) {
+/**
+ * One panel. `open` keeps the body on the page; otherwise the body folds behind
+ * a `<details>` whose `<summary>` carries the heading, the gist with the numbers
+ * that justify opening it, the source badges, and the reason for any source that
+ * is not fresh — so a closed section still says when its data is missing.
+ *
+ * The `<section class="panel" id>` wrapper stays outside the `<details>` and the
+ * `<h2>` stays inside the `<summary>`, which keeps both the heading-order
+ * contract and the id-to-`</section>` slicing the run tests use.
+ *
+ * @param {{ open?: boolean, gist?: string, foldClass?: string }} [options]
+ */
+function section(id, title, sourceNames, body, context, { open = false, gist = "", foldClass = "" } = {}) {
+  const head =
+    `<h2>${escapeHtml(title)}</h2>` +
+    (gist ? `<span class="gist">${escapeHtml(gist)}</span>` : "") +
+    sectionSources(sourceNames, context);
+  if (open) return `<section class="panel" id="${id}"><div class="panel-head">${head}</div>${body}</section>`;
   return (
-    `<section class="panel" id="${id}"><div class="panel-head"><h2>${escapeHtml(title)}</h2>` +
-    `${sectionSources(sourceNames, context)}</div>${body}</section>`
+    `<section class="panel" id="${id}"><details${foldClass ? ` class="${foldClass}"` : ""}>` +
+    `<summary><span class="panel-head">${head}</span></summary>${body}</details></section>`
   );
+}
+
+// ------------------------------------------------------------------- gists
+
+/**
+ * The short reason an event-derived section has nothing, for a closed summary.
+ * The section body still carries the full sentence.
+ */
+function eventsGist(context) {
+  if (context.eventsKnown) return "journey reporting not in this snapshot";
+  const state = context.sources.insights;
+  const status = state.status === "stale" ? "stale with no usable value" : "unavailable";
+  return `event data ${status} — ${unavailableReason(state)}`;
+}
+
+/** Tab sessions as the reducer counted them, or as the rendered lists total. */
+function tabSessionCount(intelligence) {
+  const fromPatterns = finite(intelligence?.journeyPatterns?.sessions);
+  if (fromPatterns !== null) return fromPatterns;
+  return (
+    list(intelligence?.assignedLinks).reduce((sum, row) => sum + list(row?.journeys).length, 0) +
+    list(intelligence?.anonymousJourneys).length
+  );
+}
+
+function contentGist(context) {
+  const pages = list(context.clarity?.breakdowns?.pages).length;
+  const clarityPart = pages ? plural(pages, "Clarity page") : "";
+  if (!context.intelligence || !context.eventsKnown) {
+    return [eventsGist(context), clarityPart].filter(Boolean).join(" · ");
+  }
+  const rows = list(context.intelligence.content);
+  if (rows.length === 0) return "nothing opened in this window";
+  const strong = rows.filter((row) => Number(row.sessions ?? 0) >= PATTERN_MINIMUM).length;
+  return `${plural(rows.length, "item")}, ${number(strong)} with ${PATTERN_MINIMUM}+ sessions`;
+}
+
+function journeysGist(context) {
+  const { intelligence } = context;
+  if (!intelligence || !context.eventsKnown) return eventsGist(context);
+  const sessions = tabSessionCount(intelligence);
+  const anonymous = list(intelligence.anonymousJourneys).length;
+  if (sessions === 0 && anonymous === 0) return "nothing recorded in this window";
+  const contactPaths = list(intelligence.journeyPatterns?.reachingContact).length;
+  return `${plural(sessions, "tab session")}, ${plural(contactPaths, "path")} reached contact`;
+}
+
+function audienceGist(context) {
+  const claritySources = list(context.clarity?.breakdowns?.sources).length;
+  const clarityPart = claritySources ? plural(claritySources, "Clarity source") : "";
+  if (!context.intelligence || !context.eventsKnown) {
+    return [eventsGist(context), clarityPart].filter(Boolean).join(" · ");
+  }
+  const data = context.intelligence.audience ?? {};
+  const locations = list(data.locations);
+  const devices = list(data.devices);
+  const sessions = locations.reduce((sum, row) => sum + Number(row.sessions ?? 0), 0);
+  const own =
+    locations.length || devices.length
+      ? `${plural(sessions, "session")} from ${plural(locations.length, "location")}, ${plural(devices.length, "device")}`
+      : "nothing located in this window";
+  return [own, clarityPart].filter(Boolean).join(" · ");
+}
+
+function observeGist(context) {
+  const { intelligence } = context;
+  if (!intelligence || !context.eventsKnown) return `${eventsGist(context)} · example filter rows only`;
+  const links = list(intelligence.assignedLinks).filter(
+    (row) => row?.assignment?.campaignCode && list(row.journeys).length,
+  ).length;
+  const content = list(intelligence.content).filter((row) => row?.contentId).length;
+  const cities = list(intelligence.audience?.locations).filter((row) => row?.city).length;
+  if (links + content + cities === 0) return "nothing to filter in this window";
+  return `${plural(links, "assigned link")}, ${plural(content, "content item")}, ${plural(cities, "location")} to filter by hand`;
+}
+
+function diagnosticsGist(context) {
+  const cloudflare = usable(context.sources.cloudflare);
+  const detail = cloudflare?.edge?.detail?.error ? null : cloudflare?.edge?.detail;
+  const degraded = SOURCE_ORDER.filter((name) => context.sources[name].status !== "fresh");
+  return [
+    degraded.length ? `${plural(degraded.length, "source")} not fresh` : "all four sources fresh",
+    // A failed edge read has no count at all, which must never read as zero.
+    Number.isFinite(detail?.crawlerRequests) ? plural(detail.crawlerRequests, "crawler request") : "",
+    Number.isFinite(detail?.serverErrors) ? plural(detail.serverErrors, "server error") : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 // ---------------------------------------------------------------- charts
@@ -768,7 +925,7 @@ function whatChanged(context) {
             .join("")}</ul>`,
     );
   }
-  return section("what-changed", "What changed", SOURCE_ORDER, parts.join(""), context);
+  return section("what-changed", "What changed", SOURCE_ORDER, parts.join(""), context, { open: true });
 }
 
 function assignedLinks(context) {
@@ -784,7 +941,7 @@ function assignedLinks(context) {
   }
   if (!intelligence) {
     if (sources.airtable.status !== "unavailable") parts.push(empty(missingEvents(context, "Link activity")));
-    return section("assigned-links", "Assigned links", ["airtable", "insights"], parts.join(""), context);
+    return section("assigned-links", "Assigned links", ["airtable", "insights"], parts.join(""), context, { open: true });
   }
   const rows = list(intelligence.assignedLinks).filter((row) => row?.assignment);
   const { eventsKnown } = context;
@@ -810,7 +967,7 @@ function assignedLinks(context) {
       cell("Contact actions", activity(contactKinds.length ? `${number(contactKinds.length)} (${[...new Set(contactKinds)].join(", ")})` : "0")),
       cell("Latest activity", activity(latest ? stamp(latest) ?? latest : "No link activity in this window")),
     ].join("");
-    // Who and where it came from, quieter.
+    // Who and where it came from: the grid behind the row's own disclosure.
     const identity = [
       cell("Recipient", name || "Unassigned outreach"),
       cell("Assigned company", assignment.company || "Not linked"),
@@ -823,6 +980,7 @@ function assignedLinks(context) {
     const stateText = !eventsKnown ? "Activity unavailable" : journeys.length > 0 ? plural(journeys.length, "link session") : "No activity yet";
     const airtable = name ? externalLink(assignment.person?.airtableUrl, "airtable", "Open the Person in Airtable") : "";
     const detail = [
+      `<div class="cells identity">${identity}</div>`,
       `<p class="note">Campaign code <code>${escapeHtml(assignment.campaignCode)}</code>${assignment.action ? ` · Action: ${escapeHtml(assignment.action)}` : ""}${assignment.state ? ` · ${escapeHtml(assignment.state)}` : ""}${airtable ? ` · ${airtable}` : ""}</p>`,
       contentIds.length ? `<p>Content: ${escapeHtml(contentIds.map(labelFor).join(", "))}</p>` : "",
       evidenceIds.length ? `<p>Evidence: ${escapeHtml(evidenceIds.join(", "))}</p>` : "",
@@ -834,11 +992,11 @@ function assignedLinks(context) {
       `<details class="assignment" data-state="${state}"><summary>` +
         `<span class="row-head"><span class="row-title">${escapeHtml(title)}</span>` +
         `<span class="badge" data-state="${state}">${escapeHtml(stateText)}</span></span>` +
-        `<span class="cells metrics">${metrics}</span><span class="cells identity">${identity}</span>` +
+        `<span class="cells metrics">${metrics}</span>` +
         `</summary>${detail}</details>`,
     );
   }
-  return section("assigned-links", "Assigned links", ["airtable", "insights"], parts.join(""), context);
+  return section("assigned-links", "Assigned links", ["airtable", "insights"], parts.join(""), context, { open: true });
 }
 
 /** One content item: its measures, its trend, and its claim on a second line. */
@@ -846,7 +1004,7 @@ function contentRows(rows, context) {
   const { labelFor, history } = context;
   const columns = ["Content", "Sessions", "Trend", "Median active", "Median done", "Evidence opened", "Contact action", "Assigned / anon"];
   const head = columns.map((column, index) => `<th${index ? ' class="num"' : ""}>${escapeHtml(column)}</th>`).join("");
-  const body = rows
+  const bodyOf = (group) => group
     .map((row) => {
       const label = row.label || row.contentId;
       const trend = contentTrend(history, row.contentId);
@@ -880,7 +1038,11 @@ function contentRows(rows, context) {
       return `<tr>${measures}</tr>${second}`;
     })
     .join("");
-  return `<div class="scroll"><table class="content"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const wrap = (group) =>
+    `<div class="scroll"><table class="content"><thead><tr>${head}</tr></thead><tbody>${bodyOf(group)}</tbody></table></div>`;
+  // The reducer ranks content by sessions, so the first five are the ones worth
+  // a glance; the rest keep every column inside a nested disclosure.
+  return capped(rows, wrap);
 }
 
 function contentResonance(context) {
@@ -895,7 +1057,7 @@ function contentResonance(context) {
           dataTable(["Page", "Clarity sessions"], pages.map((row) => [row.value, row.sessions])),
       );
     }
-    return section("content-resonance", "Content resonance", ["insights", "clarity"], parts.join(""), context);
+    return section("content-resonance", "Content resonance", ["insights", "clarity"], parts.join(""), context, { gist: contentGist(context) });
   }
   const rows = list(intelligence.content);
   const thin = rows.filter((row) => (row.sessions ?? 0) < PATTERN_MINIMUM);
@@ -906,7 +1068,7 @@ function contentResonance(context) {
         : "") +
       contentRows(rows, context)
     : empty("No portfolio content was opened in this window.");
-  return section("content-resonance", "Content resonance", ["insights", "airtable"], body, context);
+  return section("content-resonance", "Content resonance", ["insights", "airtable"], body, context, { gist: contentGist(context) });
 }
 
 const PATTERN_TITLES = {
@@ -931,7 +1093,7 @@ function journeysSection(context) {
   const { intelligence, labelFor } = context;
   if (!intelligence || !context.eventsKnown) {
     const body = empty(missingEvents(context, "Journeys"));
-    return section("journeys", "Journeys", ["insights"], body, context);
+    return section("journeys", "Journeys", ["insights"], body, context, { gist: journeysGist(context) });
   }
   const groups = [];
   let thinGroups = 0;
@@ -967,21 +1129,28 @@ function journeysSection(context) {
   const anonymous = list(intelligence.anonymousJourneys)
     .slice()
     .sort((a, b) => String(b.entryAt ?? "").localeCompare(String(a.entryAt ?? "")));
+  // The six pattern tables are the reason to open Journeys; the per-tab list is
+  // a second click, with its own count in its summary so nothing hides.
+  const anonymousGist =
+    anonymous.length === 0
+      ? "none in this window"
+      : `${plural(Math.min(anonymous.length, ANONYMOUS_JOURNEY_LIMIT), "tab session")}${anonymous.length > ANONYMOUS_JOURNEY_LIMIT ? ` of ${number(anonymous.length)}, newest first` : ""}`;
   parts.push(
-    `<h3>Anonymous tab sessions</h3>` +
+    `<details class="anon"><summary><h3>Anonymous tab sessions</h3>` +
+      `<span class="gist">${escapeHtml(anonymousGist)}</span></summary>` +
       note("Direct and unmapped traffic stays anonymous. One entry per browser tab; a tab session is not a person.") +
       (anonymous.length === 0
         ? empty("No anonymous tab sessions in this window.")
-        : (anonymous.length > ANONYMOUS_JOURNEY_LIMIT ? note(`Newest ${ANONYMOUS_JOURNEY_LIMIT} of ${number(anonymous.length)}.`) : "") +
-          anonymous
+        : anonymous
             .slice(0, ANONYMOUS_JOURNEY_LIMIT)
             .map(
               (journey, index) =>
                 `<details class="journey"><summary>${escapeHtml(`${journeyHeading(journey, index)} · ${plural(list(journey.events).length, "event")}`)}</summary>${journeyEvents(journey, labelFor)}</details>`,
             )
-            .join("")),
+            .join("")) +
+      `</details>`,
   );
-  return section("journeys", "Journeys", ["insights"], parts.join(""), context);
+  return section("journeys", "Journeys", ["insights"], parts.join(""), context, { gist: journeysGist(context) });
 }
 
 function audience(context) {
@@ -1020,7 +1189,7 @@ function audience(context) {
         dataTable(["Source", "Clarity sessions"], claritySources.map((row) => [row.value, row.sessions])),
     );
   }
-  return section("audience", "Audience", ["insights", "clarity"], parts.join(""), context);
+  return section("audience", "Audience", ["insights", "clarity"], parts.join(""), context, { gist: audienceGist(context) });
 }
 
 /** The filter values, one row each. The steps above them are printed once. */
@@ -1043,7 +1212,7 @@ function observeInClarity(context) {
       ["Network location", ...Object.values(clarityFilterFor({ kind: "location", country: "<country>", regionCode: "<state>", city: "<city>" }))],
     ];
     parts.push(empty(missingEvents(context, "Observation rows")), observationTable(example));
-    return section("observe-in-clarity", "Observe in Clarity", ["clarity"], parts.join(""), context);
+    return section("observe-in-clarity", "Observe in Clarity", ["clarity"], parts.join(""), context, { gist: observeGist(context) });
   }
   const groups = [];
   const links = list(intelligence.assignedLinks).filter((row) => row?.assignment?.campaignCode && list(row.journeys).length);
@@ -1094,7 +1263,7 @@ function observeInClarity(context) {
   }
   if (locations.length > cities.length) parts.push(note("Sessions without a reported city cannot be isolated by location in Clarity."));
   parts.push(...(groups.length ? groups : [empty("No content or locations to observe in this window.")]));
-  return section("observe-in-clarity", "Observe in Clarity", ["clarity"], parts.join(""), context);
+  return section("observe-in-clarity", "Observe in Clarity", ["clarity"], parts.join(""), context, { gist: observeGist(context) });
 }
 
 // ---------------------------------------------------------------- diagnostics
@@ -1237,7 +1406,10 @@ function diagnostics(context, history) {
   parts.push(
     note("Believable = Bradley's enrolled browsers, reviewers, localhost and headless runs removed. Cloudflare and Clarity count differently and are never added. Regenerated by every npm run insights run."),
   );
-  return `<details class="diagnostics"><summary><h2>Diagnostics</h2> <span class="note">Crawler counts, infrastructure totals, and source detail</span></summary>${parts.join("")}</details>`;
+  return section("diagnostics", "Diagnostics", SOURCE_ORDER, parts.join(""), context, {
+    gist: `crawler counts, infrastructure totals, and source detail · ${diagnosticsGist(context)}`,
+    foldClass: "diagnostics",
+  });
 }
 
 // ---------------------------------------------------------------- page
@@ -1337,7 +1509,9 @@ header { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; justif
 .badge[data-status="stale"] { border-color: var(--series2); color: var(--text-primary); }
 .badge[data-status="unavailable"] { background: var(--surface-3); border-color: var(--text-secondary); color: var(--text-primary); }
 .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
-.source-note { margin: 4px 0 0; overflow-wrap: anywhere; }
+/* A span so it can sit inside a folded section's summary; block so two stale
+   sources never run together on one line. */
+.source-note { display: block; margin: 4px 0 0; overflow-wrap: anywhere; }
 
 /* The decision strip: the counts that lead. */
 .tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 0 0 24px; }
@@ -1352,8 +1526,29 @@ header { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; justif
 .spark-line { fill: none; stroke: var(--muted); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 .spark-end { fill: var(--series1); stroke: var(--surface-2); stroke-width: 2; }
 
-.panel { background: var(--surface-2); border-radius: 8px; margin: 0 0 20px; padding: 16px 18px; }
-.panel-head { border-bottom: 1px solid var(--grid); margin-bottom: 12px; padding-bottom: 10px; }
+.panel { background: var(--surface-2); border-radius: 8px; margin: 0 0 12px; padding: 16px 18px; }
+.panel-head { border-bottom: 1px solid var(--grid); display: block; margin-bottom: 12px; padding-bottom: 10px; }
+/* A folded section: the whole head is the control, and it reads like an open one. */
+.panel > details { margin-top: 0; }
+.panel > details > summary { color: var(--text-primary); font-size: 14px; }
+.panel > details:not([open]) > summary > .panel-head { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.gist { color: var(--text-secondary); font-size: 12px; margin-left: 8px; }
+.anon > summary { color: var(--text-primary); }
+.anon > summary > h3 { display: inline; }
+.more > summary { margin-left: 2px; }
+/* The default marker sits on its own line above a block summary. Draw it on the
+   heading instead, so the triangle reads as part of the title it opens. The
+   glyph is CSS content, so it never enters the heading's own text. */
+.panel > details > summary, .anon > summary, .assignment > summary { list-style: none; }
+.panel > details > summary::-webkit-details-marker,
+.anon > summary::-webkit-details-marker,
+.assignment > summary::-webkit-details-marker { display: none; }
+.panel > details > summary h2::before,
+.anon > summary h3::before,
+.assignment > summary .row-title::before { color: var(--text-secondary); content: "▸ "; }
+.panel > details[open] > summary h2::before,
+.anon[open] > summary h3::before,
+.assignment[open] > summary .row-title::before { content: "▾ "; }
 .alert { background: var(--surface-1); border-left: 4px solid var(--series2); border-radius: 4px; margin: 8px 0 12px; padding: 10px 12px; }
 .alert ul { margin: 6px 0; padding-left: 20px; } .alert p { margin: 0; }
 .alert[data-level="warning"] { border-left-color: var(--text-secondary); }
@@ -1396,8 +1591,6 @@ tr.detail .claim { display: block; font-size: 13px; font-weight: 500; }
 tr.detail .note { display: block; }
 
 details { margin-top: 8px; } summary { color: var(--text-secondary); cursor: pointer; font-size: 12px; }
-.diagnostics { background: var(--surface-2); border-radius: 8px; padding: 16px 18px; }
-.diagnostics > summary { color: var(--text-primary); }
 .fig { background: var(--surface-1); border-radius: 8px; margin: 0 0 16px; padding: 12px 14px; }
 .fig h3 { margin-top: 0; }
 .multiples { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 392px), 1fr)); }
