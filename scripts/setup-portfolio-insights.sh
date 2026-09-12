@@ -18,6 +18,7 @@
 set -euo pipefail
 
 KEYCHAIN_SERVICE="biv-portfolio-insights"
+KEYCHAIN_WRITER="scripts/store-keychain-secret.swift"
 ZONE_TAG="624bf95296a4ce1f2a927e5013537bc2"
 ACCOUNT_TAG="d459e1fdd68165fbc952d009070658d7"
 RUM_SITE_TAG="bc27c8ff1dab471ea19546ac65ac42e2"
@@ -41,21 +42,42 @@ rule()  { printf '\n%s%s%s\n\n' "$BOLD" "$1" "$RESET"; }
 [[ "$(uname)" == "Darwin" ]] || fail "This stores tokens in the macOS Keychain; run it on your Mac."
 [[ -f "scripts/portfolio-insights.mjs" ]] || fail "Run from the portfolio repository."
 command -v curl >/dev/null 2>&1 || fail "curl is required."
+[[ -f "$KEYCHAIN_WRITER" ]] || fail "Missing $KEYCHAIN_WRITER; nothing can be stored safely."
+# The Keychain writer is a Swift script because that is the only way to hand a
+# token to the Keychain over stdin. Without a toolchain there is no safe path,
+# and the unsafe one — a token on the command line — is not a fallback.
+/usr/bin/xcrun --find swift >/dev/null 2>&1 || \
+  fail "Storing a token without exposing it needs Swift. Run xcode-select --install, then re-run."
 
 open_url() { open "$1" >/dev/null 2>&1 || warn "Open it yourself: $1"; }
 
-# store ACCOUNT LABEL <<< "$TOKEN" — writes, reads back, and clears the value.
+# store ACCOUNT LABEL TOKEN — writes and reads back.
+#
+# The token reaches the writer on stdin, so it never appears in any process's
+# argument list, where every other process running as this user could read it.
+#
+# Rotation deletes the old item first. The item's access controls name exactly
+# one trusted program, /usr/bin/security, so that is the one thing that can
+# remove it without asking; the writer would have to request an authorization
+# it does not hold, and macOS asks for that with a password dialog. Deleting
+# first also means the new item carries freshly built access controls rather
+# than inheriting whatever an older hand-made entry had. The delete takes no
+# secret on its command line and is a no-op when nothing is stored yet.
 store() {
   local account="$1" label="$2" token="$3" readback
-  /usr/bin/security add-generic-password -U \
-    -s "$KEYCHAIN_SERVICE" -a "$account" -l "$label" -w "$token" >/dev/null
+  /usr/bin/security delete-generic-password \
+    -s "$KEYCHAIN_SERVICE" -a "$account" >/dev/null 2>&1 || true
+  printf '%s' "$token" | /usr/bin/xcrun swift -suppress-warnings \
+    "$KEYCHAIN_WRITER" "$KEYCHAIN_SERVICE" "$account" "$label" \
+    || fail "Could not store $account: any previous value was removed, so re-run and paste it again."
   readback="$(/usr/bin/security find-generic-password -s "$KEYCHAIN_SERVICE" -a "$account" -w)"
   [[ "$readback" == "$token" ]] || fail "Keychain readback did not match for $account."
   done_ "Stored in your login Keychain ($KEYCHAIN_SERVICE / $account)"
 }
 
 printf '\n%sPortfolio insights: analytics tokens%s\n' "$BOLD" "$RESET"
-note "Three stages. Ctrl-C any time; a token already stored stays stored."
+note "Three stages. Ctrl-C before a paste and nothing changes; pasting replaces"
+note "that one token, briefly clearing it, and leaves the other two alone."
 
 # ── Stage 1 · Cloudflare ────────────────────────────────────────────────────
 rule "Stage 1/3 · Cloudflare API token"
@@ -81,8 +103,9 @@ printf '\n\n'
 if [[ -n "${CF_TOKEN:-}" ]]; then
   say "Verifying against Web Analytics and the zone…"
   RUM_QUERY="{\"query\":\"query{viewer{accounts(filter:{accountTag:\\\"$ACCOUNT_TAG\\\"}){rumPageloadEventsAdaptiveGroups(limit:1,filter:{siteTag:\\\"$RUM_SITE_TAG\\\"}){count}}}}\"}"
-  if curl -sS -X POST https://api.cloudflare.com/client/v4/graphql \
-      -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+  # The header reaches curl on stdin so the token never appears in argv.
+  if printf 'Authorization: Bearer %s\n' "$CF_TOKEN" | curl -sS -X POST https://api.cloudflare.com/client/v4/graphql \
+      -H @- -H "Content-Type: application/json" \
       -d "$RUM_QUERY" | grep -q '"rumPageloadEventsAdaptiveGroups"'; then
     done_ "Web Analytics readable"
   else
@@ -90,8 +113,8 @@ if [[ -n "${CF_TOKEN:-}" ]]; then
   fi
 
   ZONE_QUERY="{\"query\":\"query{viewer{zones(filter:{zoneTag:\\\"$ZONE_TAG\\\"}){httpRequests1dGroups(limit:1,filter:{date_geq:\\\"2026-01-01\\\"}){sum{requests}}}}}\"}"
-  if curl -sS -X POST https://api.cloudflare.com/client/v4/graphql \
-      -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+  if printf 'Authorization: Bearer %s\n' "$CF_TOKEN" | curl -sS -X POST https://api.cloudflare.com/client/v4/graphql \
+      -H @- -H "Content-Type: application/json" \
       -d "$ZONE_QUERY" | grep -q '"httpRequests1dGroups"'; then
     done_ "Zone analytics readable — crawler and bot traffic will appear"
   else
@@ -124,8 +147,9 @@ printf '\n\n'
 
 if [[ -n "${CLARITY_TOKEN:-}" ]]; then
   say "Verifying against the export API…"
-  STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
-    -H "Authorization: Bearer $CLARITY_TOKEN" -H "Content-Type: application/json" \
+  # The header reaches curl on stdin so the token never appears in argv.
+  STATUS="$(printf 'Authorization: Bearer %s\n' "$CLARITY_TOKEN" | curl -sS -o /dev/null -w '%{http_code}' \
+    -H @- -H "Content-Type: application/json" \
     "https://www.clarity.ms/export-data/api/v1/project-live-insights?numOfDays=1" || true)"
   case "$STATUS" in
     200) done_ "Export API answers 200" ;;

@@ -20,6 +20,7 @@ CONFIG="wrangler.main-preview.jsonc"
 SECRET_NAME="PORTFOLIO_FEEDBACK_ADMIN_TOKEN"
 KEYCHAIN_SERVICE="biv-portfolio-feedback"
 KEYCHAIN_ACCOUNT="admin-token"
+KEYCHAIN_WRITER="scripts/store-keychain-secret.swift"
 SITE="${PORTFOLIO_SITE:-https://bradleyberkman.com}"
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -32,6 +33,12 @@ printf '\n\033[1mReviewer feedback: admin token\033[0m\n\n'
 
 [[ "$(uname)" == "Darwin" ]] || fail "This stores the token in the macOS Keychain; run it on your Mac."
 [[ -f "$CONFIG" ]] || fail "Run from the portfolio repository; $CONFIG not found."
+[[ -f "$KEYCHAIN_WRITER" ]] || fail "Missing $KEYCHAIN_WRITER; nothing can be stored safely."
+# The token reaches the Keychain over stdin, which needs the Swift writer.
+# Without a toolchain there is no safe path, and a token on the command line —
+# readable by every process running as this user — is not a fallback.
+/usr/bin/xcrun --find swift >/dev/null 2>&1 || \
+  fail "Storing the token without exposing it needs Swift. Run xcode-select --install, then re-run."
 
 say "Checking your Cloudflare login…"
 if ! npx wrangler whoami >/dev/null 2>&1; then
@@ -47,17 +54,24 @@ printf '%s' "$TOKEN" | npx wrangler secret put "$SECRET_NAME" --config "$CONFIG"
 done_ "Worker secret set"
 
 say "Storing the token in your login Keychain ($KEYCHAIN_SERVICE)…"
-/usr/bin/security add-generic-password -U \
-  -s "$KEYCHAIN_SERVICE" -a "$KEYCHAIN_ACCOUNT" \
-  -l "Portfolio reviewer feedback admin token" \
-  -w "$TOKEN" >/dev/null
+# Delete first so the writer always takes its create path: the item's access
+# controls name /usr/bin/security alone, so only it can remove the old entry
+# without macOS asking for an authorization the writer does not hold. No secret
+# reaches the delete's command line, and it is a no-op when nothing is stored.
+/usr/bin/security delete-generic-password \
+  -s "$KEYCHAIN_SERVICE" -a "$KEYCHAIN_ACCOUNT" >/dev/null 2>&1 || true
+printf '%s' "$TOKEN" | /usr/bin/xcrun swift -suppress-warnings \
+  "$KEYCHAIN_WRITER" "$KEYCHAIN_SERVICE" "$KEYCHAIN_ACCOUNT" \
+  "Portfolio reviewer feedback admin token" \
+  || fail "Could not store the token: any previous value was removed, so re-run."
 READBACK="$(/usr/bin/security find-generic-password -s "$KEYCHAIN_SERVICE" -a "$KEYCHAIN_ACCOUNT" -w)"
 [[ "$READBACK" == "$TOKEN" ]] || fail "Keychain readback did not match."
 done_ "Keychain entry written and read back"
 
 say "Checking the digest route on ${SITE}…"
-STATUS="$(curl -s -o /dev/null -w '%{http_code}' \
-  -H "authorization: Bearer $TOKEN" "$SITE/_portfolio-feedback/admin/notes" || true)"
+# The header reaches curl on stdin so the token never appears in argv.
+STATUS="$(printf 'authorization: Bearer %s\n' "$TOKEN" | curl -s -o /dev/null -w '%{http_code}' \
+  -H @- "$SITE/_portfolio-feedback/admin/notes" || true)"
 unset TOKEN READBACK
 case "$STATUS" in
   200) done_ "Digest route answers 200 — feedback is live. Try: npm run feedback" ;;
