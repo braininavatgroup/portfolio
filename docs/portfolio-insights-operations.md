@@ -149,6 +149,36 @@ also reads the older hand-made entry `biv-cloudflare-analytics / api-token`,
 so a Cloudflare token stored there before `setup:insights` existed keeps
 working without being copied.
 
+Every token reaches the Keychain on standard input, through
+`scripts/store-keychain-secret.swift`, and never as a command-line argument:
+an argument vector is readable by any process running as the same user, and
+`ps` would have shown the token for as long as the call took. The same is true
+of the verification requests, which build the `Authorization` header with
+`printf` and hand it to `curl` on stdin with `-H @-`.
+
+Storing is delete-then-create. Each item's access controls name exactly one
+trusted program, `/usr/bin/security`, which is how the report and the
+read-back check are able to read the value. That also makes `security` the
+only thing that can remove the item without macOS asking for an
+authorization, and macOS asks with a password dialog. So `setup:insights`
+deletes any existing entry with `security delete-generic-password` — which
+carries no secret on its command line and does nothing when the entry is
+absent — and then the writer creates a fresh item with fresh access controls.
+Re-running therefore replaces whichever token you paste, leaves the others
+alone, and never prompts.
+
+The consequence of deleting first is that a write which fails leaves nothing
+stored for that one account. The setup says so and asks you to paste it again;
+the other two tokens are untouched.
+
+The writer can also update an existing item in place, and does when it is
+called directly without a prior delete. That path depends on the item's
+existing access controls permitting it, so the setup scripts do not rely on
+it.
+
+The toolchain is required, not optional: without `xcrun swift` the setup stops
+with an explicit message rather than storing a token the exposed way.
+
 Stage 3 stores a read-only Airtable token for the assigned-link join. Mint a
 personal access token at `https://airtable.com/create/tokens` with only the
 `data.records:read` scope and access to only the `Job Search` base. The setup
