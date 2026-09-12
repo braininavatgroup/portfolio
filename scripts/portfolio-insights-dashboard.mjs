@@ -18,7 +18,10 @@
 //      healthy run shows no grey text under its headings at all.
 //   2. A decision strip leads with the counts that drive a decision, each with
 //      its change against the previous run and a sparkline where the aggregate
-//      history supports one.
+//      history supports one. A comparison is a claim, so both runs must clear
+//      the five-session floor and must have covered the same number of days;
+//      otherwise the tile shows its count alone. Per-row trend marks hold to
+//      the same floor.
 //   3. The first screen is what needs a decision: the freshness strip, the
 //      decision strip, What changed, and Assigned links stay open. Content
 //      resonance, Journeys, Audience, Observe in Clarity, and Diagnostics fold
@@ -100,6 +103,23 @@ function windowLabel(window) {
   const range = /** @type {{ start?: unknown; end?: unknown } | null} */ (window);
   if (typeof range?.start !== "string" || typeof range?.end !== "string") return null;
   return `${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}`;
+}
+
+/**
+ * How many days a run covered, rounded to whole days so runs started at
+ * different times of day still match, or null when the window is unreadable.
+ * Two runs may only be compared when this is equal: a 30-day run beside a
+ * 7-day one differs by its window, not by anything a reader did.
+ * @param {unknown} window
+ * @returns {number | null}
+ */
+function windowSpanDays(window) {
+  const range = /** @type {{ start?: unknown; end?: unknown } | null} */ (window);
+  if (typeof range?.start !== "string" || typeof range?.end !== "string") return null;
+  const start = new Date(range.start).getTime();
+  const end = new Date(range.end).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
+  return Math.round((end - start) / 86_400_000);
 }
 
 const list = (value) => (Array.isArray(value) ? value : []);
@@ -226,17 +246,29 @@ export function historySeries(rows = []) {
 }
 
 /**
- * The runs whose aggregate summary actually observed journeys, oldest first,
- * one per day. A run without journey data recorded zero sessions by
- * construction, not by observation, so it must not become a point on a trend.
+ * The runs whose aggregate summary actually observed journeys and covered the
+ * same number of days as this run, oldest first, one per day.
+ *
+ * A run without journey data recorded zero sessions by construction, not by
+ * observation, so it must not become a point on a trend. A run over a
+ * different window length counted a different stretch of time, so the
+ * difference between it and this run is an artifact of `--days`, not a
+ * change: `npm run insights -- --days 30` must not lift every count against
+ * the weekly runs around it. A run whose window is unreadable cannot be shown
+ * to match, so it is left out too. Without a window on this run there is
+ * nothing to match against and every journey-bearing run is kept.
+ *
  * @param {Array<Record<string, any>>} history
+ * @param {unknown} [reportWindow] this run's window, when it is known
  * @returns {Array<{ day: string, summary: Record<string, any> }>}
  */
-function historyRuns(history = []) {
+function historyRuns(history = [], reportWindow = null) {
+  const span = windowSpanDays(reportWindow);
   const byDay = new Map();
   for (const row of list(history)) {
     const summary = row?.intelligence;
     if (!summary || summary.version !== 1 || summary.journeys !== "available") continue;
+    if (span !== null && windowSpanDays(summary.window) !== span) continue;
     const day = String(row.capturedAt ?? "").slice(0, 10);
     if (day) byDay.set(day, summary); // the last run of a day wins
   }
@@ -248,12 +280,14 @@ function historyRuns(history = []) {
 /**
  * One content item's sessions per run, oldest first. A run that read journeys
  * and saw nothing for this item contributes an observed zero, which is a real
- * point on the curve; a run that never read journeys contributes no point.
+ * point on the curve; a run that never read journeys, or that covered a
+ * different number of days, contributes no point.
  * @param {Array<Record<string, any>>} history
  * @param {string} contentId
+ * @param {unknown} [reportWindow] this run's window, when it is known
  */
-export function contentTrend(history = [], contentId) {
-  return historyRuns(history).map(({ day, summary }) => ({
+export function contentTrend(history = [], contentId, reportWindow = null) {
+  return historyRuns(history, reportWindow).map(({ day, summary }) => ({
     day,
     sessions: Number(list(summary.content).find((row) => row?.contentId === contentId)?.sessions ?? 0),
   }));
@@ -269,16 +303,22 @@ const contentOpensOf = (summary) =>
  * trend on purpose: history keeps no campaign codes, so nothing about one link
  * survives a run.
  *
+ * A comparison is a claim about direction, so it holds to the same floor the
+ * findings and the content table do: unless this run and the run it is
+ * compared against each cleared `PATTERN_MINIMUM`, the tile shows its count
+ * and nothing else. One or two sessions moving is not a direction, and the
+ * curve is that same claim drawn rather than written.
+ *
  * @param {{ intelligence: Record<string, any> | null, eventsKnown: boolean,
- *   history?: Array<Record<string, any>>, today?: string }} input
+ *   history?: Array<Record<string, any>>, today?: string, window?: unknown }} input
  */
-export function decisionTiles({ intelligence, eventsKnown, history = [], today = "" }) {
+export function decisionTiles({ intelligence, eventsKnown, history = [], today = "", window = null }) {
   const links = list(intelligence?.assignedLinks);
   const active = links.filter((row) => list(row?.journeys).length > 0).length;
   const linkSessions = links.reduce((sum, row) => sum + list(row?.journeys).length, 0);
   const patterns = intelligence?.journeyPatterns;
 
-  const runs = historyRuns(history);
+  const runs = historyRuns(history, window);
   const earlier = runs.filter(({ day }) => day < String(today).slice(0, 10));
   const previous = earlier.length ? earlier[earlier.length - 1] : null;
 
@@ -290,13 +330,14 @@ export function decisionTiles({ intelligence, eventsKnown, history = [], today =
       series.push(value);
     }
     const before = previous ? read(previous.summary) : null;
+    const comparable = value !== null && before !== null && value >= PATTERN_MINIMUM && before >= PATTERN_MINIMUM;
     return {
       label,
       value,
       note,
-      delta: value !== null && before !== null ? value - before : null,
-      comparedWith: previous?.day ?? null,
-      series: series.slice(-SPARK_RUNS),
+      delta: comparable ? value - before : null,
+      comparedWith: comparable ? previous.day : null,
+      series: comparable ? series.slice(-SPARK_RUNS) : [],
     };
   };
 
@@ -851,6 +892,7 @@ function decisionStrip(context) {
     eventsKnown: context.eventsKnown,
     history: context.history,
     today: context.generatedAt,
+    window: context.reportWindow,
   });
   const body = tiles
     .map((tile) => {
@@ -1022,18 +1064,21 @@ function assignedLinks(context) {
 
 /** One content item: its measures, its trend, and its claim on a second line. */
 function contentRows(rows, context) {
-  const { labelFor, history } = context;
+  const { labelFor, history, reportWindow } = context;
   const columns = ["Content", "Sessions", "Trend", "Median active", "Median done", "Evidence opened", "Contact action", "Assigned / anon"];
   const head = columns.map((column, index) => `<th${index ? ' class="num"' : ""}>${escapeHtml(column)}</th>`).join("");
   const bodyOf = (group) => group
     .map((row) => {
       const label = row.label || row.contentId;
-      const trend = contentTrend(history, row.contentId);
-      const spark = svgSparkline({ values: trend.map((point) => point.sessions), label: `${label} sessions per run` });
+      // Below the floor the row shows counts only, so it draws no mark either:
+      // a curve is the direction the section just said it cannot claim.
+      const thin = (row.sessions ?? 0) < PATTERN_MINIMUM;
+      const trend = thin ? [] : contentTrend(history, row.contentId, reportWindow);
+      const spark = thin ? "" : svgSparkline({ values: trend.map((point) => point.sessions), label: `${label} sessions per run` });
       const measures = [
         `<td><span class="cell-strong">${escapeHtml(label)}</span><span class="cell-sub">${escapeHtml(row.kind || "–")}</span></td>`,
         `<td class="num">${escapeHtml(number(row.sessions))}</td>`,
-        `<td class="num">${spark || `<span class="muted">${escapeHtml(trend.length === 1 ? "first run" : "–")}</span>`}</td>`,
+        `<td class="num">${spark || `<span class="muted">${escapeHtml(!thin && trend.length === 1 ? "first run" : "–")}</span>`}</td>`,
         // A null median means no session sent an attention snapshot: missing, not zero.
         `<td class="num">${escapeHtml(Number.isFinite(row.medianActiveSeconds) ? `${number(row.medianActiveSeconds)}s` : "No attention data")}</td>`,
         `<td class="num">${escapeHtml(Number.isFinite(row.medianCompletionPercent) ? `${number(row.medianCompletionPercent)}%` : "No attention data")}</td>`,
@@ -1465,6 +1510,9 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
     intelligence,
     history,
     generatedAt,
+    // The window this run covered: a past run may only be compared against it
+    // when it covered the same number of days.
+    reportWindow: snapshot?.window ?? null,
     clarity: usable(sources.clarity),
     // Computed once: without a usable insights value, event-derived sections
     // say the data is unavailable rather than claim an empty window.

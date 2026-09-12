@@ -36,6 +36,7 @@ import {
   summarizeEdgeDetail,
   summarizeInsightEvents,
   summarizePerformance,
+  windowForDays,
 } from "./portfolio-insights-report.mjs";
 
 export const FIXTURE_TOKENS = Object.freeze({
@@ -436,6 +437,8 @@ const cloudflareRefused = async () => {
  * Three earlier runs as `history.jsonl` keeps them: aggregate only, with no
  * names, companies, campaign codes, or session IDs. They give the trend marks
  * something to draw before the two real runs below add their own points.
+ * Each carries the seven-day window it covered, because a trend only compares
+ * runs of equal window length.
  * @returns {Array<Record<string, any>>}
  */
 export function fixtureHistoryRows() {
@@ -457,7 +460,7 @@ export function fixtureHistoryRows() {
     sources: { clarity: "fresh", cloudflare: "fresh", insights: "fresh", journeys: "fresh", airtable: "fresh" },
     intelligence: {
       version: 1,
-      window: null,
+      window: windowForDays(7, new Date(capturedAt)),
       journeys: "available",
       sessions: rows.sessions,
       evidenceSessions: rows.evidence,

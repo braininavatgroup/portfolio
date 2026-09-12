@@ -314,6 +314,12 @@ const panelOf = (page: string, id: string) => {
   const start = page.indexOf(`<section class="panel" id="${id}">`);
   return page.slice(start, page.indexOf("</section>", start));
 };
+/** One table row from the page, found by the label in its first cell. */
+const rowOf = (page: string, label: string) => {
+  const cell = page.indexOf(`<span class="cell-strong">${label}</span>`);
+  const start = page.lastIndexOf("<tr>", cell);
+  return page.slice(start, page.indexOf("</tr>", start));
+};
 /** Only what a folded section shows before anything is clicked. */
 const summaryOf = (page: string, id: string) => {
   const panel = panelOf(page, id);
@@ -743,17 +749,57 @@ describe("the decision strip", () => {
       "Contact actions",
     ]);
     expect(tiles[2]).toMatchObject({ value: 7, delta: 2, comparedWith: "2026-09-10", series: [3, 5, 7] });
-    expect(tiles[3]).toMatchObject({ value: 1, delta: -1 });
-    expect(tiles[4]).toMatchObject({ value: 1, delta: 0 });
     // History keeps no campaign codes, so a link measure gets no trend at all.
     expect(tiles[0].series).toEqual([]);
     expect(tiles[1].delta).toBeNull();
 
     const strip = decisionStripOf(html);
     expect(strip).toContain("+2 since the 2026-09-10 run");
-    expect(strip).toContain("−1 since the 2026-09-10 run");
-    expect(strip).toContain("No change since the 2026-09-10 run");
     expect(strip).toMatch(/<svg class="spark"/u);
+  });
+
+  it("draws no direction from a measure under the five-session floor", () => {
+    const tiles = decisionTiles({ intelligence, eventsKnown: true, history, today: "2026-09-11T16:30:00.000Z" });
+    // Evidence opens is 1 this run against 2 last run, and contact actions is 1
+    // against 1: a floor's worth of sessions is missing on both sides, so
+    // neither may carry a delta or a curve.
+    expect(tiles[3]).toMatchObject({ value: 1, delta: null, comparedWith: null, series: [] });
+    expect(tiles[4]).toMatchObject({ value: 1, delta: null, comparedWith: null, series: [] });
+
+    const strip = decisionStripOf(html);
+    expect(strip).not.toContain("−1 since");
+    expect(strip).not.toContain("No change since");
+    // One curve on the strip, and it belongs to the one measure that cleared
+    // the floor on both sides.
+    expect(count(strip, '<svg class="spark"')).toBe(1);
+    expect(strip).toContain('aria-label="Content opens per run: 3, 5, 7"');
+  });
+
+  it("suppresses the comparison when the only earlier run covered a different window length", () => {
+    // A `--days 30` run between two weekly runs: its counts are a window-length
+    // artifact, so it may neither be the compared run nor a point on the curve.
+    const wide = { start: "2026-08-13T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" };
+    const spanned = (row: ReturnType<typeof historyRun>, reportWindow: typeof window | typeof wide) => ({
+      ...row,
+      intelligence: { ...row.intelligence, window: reportWindow },
+    });
+    const monthly = spanned(historyRun("2026-09-10T16:00:00Z", 40, 30, 30, [["record-9q", 40]]), wide);
+    const weekly = historyRun("2026-09-09T16:00:00Z", 9, 6, 6, [["record-9q", 6]]);
+    const today = "2026-09-11T16:30:00.000Z";
+
+    // The weekly run is the comparison; the monthly run is not on the curve.
+    const mixed = decisionTiles({ intelligence, eventsKnown: true, history: [weekly, monthly, history[2]], today, window });
+    expect(mixed[2]).toMatchObject({ value: 7, delta: 1, comparedWith: "2026-09-09", series: [6, 7] });
+
+    // With every earlier run on a different span there is nothing to compare.
+    const alone = decisionTiles({ intelligence, eventsKnown: true, history: [monthly, history[2]], today, window });
+    expect(alone[2]).toMatchObject({ value: 7, delta: null, comparedWith: null, series: [] });
+
+    // A row's own curve reads the same spans.
+    expect(contentTrend([weekly, monthly, history[2]], "record-9q", window)).toEqual([
+      { day: "2026-09-09", sessions: 6 },
+      { day: "2026-09-11", sessions: 5 },
+    ]);
   });
 
   it("says unavailable rather than zero when the event data is missing", () => {
@@ -787,6 +833,20 @@ describe("per-row trend marks", () => {
     // No hover channel on this page: the values ride in the label and the row.
     expect(content).toContain('aria-label="Record &lt;9Q&gt; sessions per run: 3, 4, 5"');
     expect(content).toMatch(/<svg class="spark"/u);
+  });
+
+  it("gives a row under the five-session floor a placeholder instead of a curve", () => {
+    const content = sectionOf(html, "Content resonance");
+    // The section says these rows show counts only; a trend mark above that
+    // sentence would be a direction drawn from two sessions.
+    expect(content).toContain("1 row below 5 eligible sessions");
+    const thin = rowOf(content, "thread-&lt;2&gt;");
+    expect(thin).toContain('<td class="num"><span class="muted">–</span></td>');
+    expect(thin).not.toMatch(/<svg class="spark"/u);
+    expect(content).not.toContain("thread-&lt;2&gt; sessions per run");
+    // The row that cleared the floor still carries its curve.
+    expect(rowOf(content, "Record &lt;9Q&gt;")).toMatch(/<svg class="spark"/u);
+    expect(count(content, '<svg class="spark"')).toBe(1);
   });
 });
 
