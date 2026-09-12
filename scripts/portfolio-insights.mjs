@@ -18,8 +18,11 @@
 // last-known-good file; a failed one leaves it and the run shows the saved
 // value as stale, with its own timestamp. `--no-<source>` skips the request
 // and shows the saved value, except `--no-airtable`, which drops identity.
-// An Airtable configuration error (duplicate or malformed code) never falls
-// back to the saved copy: every link stays unattributed until it is fixed.
+// An Airtable configuration error (duplicate or malformed code, or a linked
+// field carrying more than one record) never falls back to the saved copy:
+// every link stays unattributed until it is fixed. A code no Action carries is
+// not an error — it is an old, retired, or forwarded link, so it stays
+// anonymous and is reported as a neutral note instead.
 //
 // Writes, in order, inside the insight directory (0700, every file 0600):
 // source snapshots, the run's event-level rows (raw-events-*.json, deleted
@@ -834,6 +837,9 @@ export async function runInsights(options, dependencies = {}) {
   const configurationErrors = [
     ...new Set([...airtableProblems, ...(snapshot.intelligence?.diagnostics?.configurationErrors ?? [])]),
   ];
+  // Not an error: a code no Action carries is an old, retired, or forwarded
+  // link. Its activity is already anonymous; the lead only names it.
+  const unmappedCampaigns = snapshot.intelligence?.diagnostics?.unmappedCampaigns ?? [];
 
   // The history row holds only what this run measured, in aggregate.
   const measuredCloudflare = measured(cloudflare);
@@ -894,7 +900,7 @@ export async function runInsights(options, dependencies = {}) {
   let output;
   if (options.json) output = `${JSON.stringify(snapshot, null, 2)}\n`;
   else if (offline) output = `${dashboardPath}\n`;
-  else output = `${formatLead(snapshot, { configurationErrors })}${formatReport(snapshot)}`;
+  else output = `${formatLead(snapshot, { configurationErrors, unmappedCampaigns })}${formatReport(snapshot)}`;
   return { exitCode: useful ? 0 : 1, output, snapshot, dashboardPath };
 }
 

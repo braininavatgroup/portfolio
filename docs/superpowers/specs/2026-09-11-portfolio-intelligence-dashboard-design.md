@@ -114,9 +114,10 @@ base. It requests only the fields required for the dashboard. It never updates
 Airtable during a report run. Schema creation is a one-time migration and is
 not delegated to the unattended morning job.
 
-An unmapped campaign code remains anonymous. A mapped Action without a Person
-is shown as unassigned outreach. Duplicate non-empty codes fail the join and
-appear as a configuration error. They are never assigned by guessing.
+An unmapped campaign code remains anonymous and is reported as a neutral note,
+not an error. A mapped Action without a Person is shown as unassigned outreach.
+Duplicate non-empty codes fail the join and appear as a configuration error.
+They are never assigned by guessing.
 
 ## Local storage and privacy
 
@@ -245,8 +246,11 @@ small data produces no conclusion.
   unavailable.
 - Analytics Engine unavailable or not activated: render existing Clarity and
   Cloudflare sections and name the missing capability.
-- Unknown or duplicate campaign code: keep activity unattributed and show a
-  configuration error.
+- Unknown campaign code: keep activity anonymous and show a neutral note naming
+  the code. A code with no Action is normally an old, retired, or forwarded
+  link, not a misconfiguration.
+- Duplicate or malformed campaign code, or a linked field carrying more than
+  one record: keep activity unattributed and show a configuration error.
 - Missing city or region: group as `Unknown`; do not infer from timezone or
   language.
 - Malformed event: answer `204` without writing, preserving the sink's

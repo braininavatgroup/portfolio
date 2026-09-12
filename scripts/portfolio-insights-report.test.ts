@@ -17,6 +17,7 @@ import {
   clarityFrustration,
   clarityTraffic,
   deriveTrafficShape,
+  formatLead,
   formatReport,
   historyRow,
   INSIGHT_EVENT_LIMIT,
@@ -32,6 +33,7 @@ import {
   summarizePerformance,
   windowForDays,
 } from "./portfolio-insights-report.mjs";
+import { unmappedCampaignNote } from "./portfolio-insights-dashboard.mjs";
 
 describe("parseArguments", () => {
   it("defaults to a week of both sources", () => {
@@ -362,6 +364,47 @@ describe("historyRow", () => {
     });
     expect(row.cloudflareVisits).toBeNull();
     expect(row.claritySessions).toBeNull();
+  });
+});
+
+// Owns: the terminal lead splits a configuration error (ambiguous: two Actions
+// claim one code) from an unmapped code (a retired, old, or forwarded link),
+// and says the unmapped sentence in the same words as the dashboard. Retire
+// with either the terminal lead or the unmappedCampaigns diagnostic.
+describe("formatLead campaign diagnostics", () => {
+  const snapshot = {
+    window: { start: "2026-09-04T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" },
+    sources: { airtable: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z" } },
+    intelligence: { findings: [] },
+  };
+
+  it("reports an unmapped code as a neutral line and never as a configuration error", () => {
+    const lead = formatLead(snapshot, {
+      unmappedCampaigns: [{ code: "smoke-7de62efc", sessions: 3, events: 4 }],
+    });
+
+    expect(lead).toContain("3 tab sessions came from a link that is not in Airtable, kept anonymous: smoke-7de62efc");
+    expect(lead).not.toContain("Configuration error");
+    expect(lead).not.toContain("unmapped campaign code");
+  });
+
+  it("still leads with a configuration error for an ambiguous code", () => {
+    const lead = formatLead(snapshot, { configurationErrors: ["duplicate campaign code: alexcode01"] });
+
+    expect(lead).toContain("Configuration error: affected links stay unattributed");
+    expect(lead).toContain("duplicate campaign code: alexcode01");
+    expect(lead).not.toContain("not in Airtable");
+  });
+
+  it("says the unmapped sentence in exactly the dashboard's words", () => {
+    const rows = [
+      { code: "smoke-7de62efc", sessions: 3, events: 4 },
+      { code: "old-code-0001", sessions: 1, events: 1 },
+    ];
+    expect(formatLead(snapshot, { unmappedCampaigns: rows })).toContain(unmappedCampaignNote(rows));
+    expect(unmappedCampaignNote(rows)).toBe(
+      "4 tab sessions came from links that are not in Airtable, kept anonymous: smoke-7de62efc, old-code-0001",
+    );
   });
 });
 

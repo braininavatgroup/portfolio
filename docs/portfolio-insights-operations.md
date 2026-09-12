@@ -99,11 +99,29 @@ the findings with their counts and windows. The traffic detail follows.
 ### The dashboard
 
 Every run that records a snapshot also rewrites `dashboard.html` beside the
-history: one self-contained page, no scripts or network, that shows the
-believable-humans tiles, the curve across runs, day-by-day columns, where
-sessions come from, what gets read, who is crawling, web vitals by device,
-and the frustration signals. Each chart has a table view and works in light
-and dark. `npm run insights -- --dashboard` opens it after a live run;
+history: one self-contained page, no scripts or network, built to be read at a
+glance before it is read in full.
+
+It opens with two strips. The **freshness strip** names all four sources once,
+with each one's window, its state, and why it is not fresh; a section below
+then carries only a short badge per source (`Fresh 16:00`, `Stale 09-10 07:10`,
+`Unavailable`) and repeats a reason only when that source is not fresh, so a
+healthy run shows no grey text under its headings. The **decision strip**
+leads with the counts worth acting on — assigned links active, link sessions,
+content opens, evidence opens, contact actions — each with its change against
+the previous run and a sparkline, wherever the aggregate history supports one.
+Assigned-link measures carry no trend on purpose: history keeps no campaign
+codes, so nothing about one link survives a run.
+
+Below that, content rows carry their own trend mark of sessions per run, the
+Clarity filter steps are printed once for the whole section rather than under
+every row, and `not enough data for a pattern` is said at most once per
+section. Crawler counts, infrastructure totals, and the per-run curve stay in
+the collapsed Diagnostics section. Charts are inline SVG with no scripts, so
+there is no hover or tooltip channel: every value is direct-labelled, carried
+in the mark's accessible label, or reachable in a table view. Each chart has a
+table view and works in light and dark.
+`npm run insights -- --dashboard` opens it after a live run;
 `npm run insights:dashboard` opens it without spending any API budget. The
 scheduled run keeps the copy under
 `~/Library/Application Support/biv/portfolio-insights/dashboard.html`
@@ -441,13 +459,20 @@ The report matches each event's campaign code to the Action whose
 a shared device, so a code identifies the assignment, not the person holding
 the browser.
 
-- A code no Action carries stays anonymous.
+- A code no Action carries stays anonymous and is not an error. Analytics
+  Engine keeps events for three months, so a deleted test Action or an old
+  link leaves its code behind that long. What changed says so in one line, for
+  example "3 tab sessions came from a link that is not in Airtable, kept
+  anonymous: smoke-7de62efc", and the terminal lead says the same sentence.
+  Nothing needs fixing; delete nothing to make it go away.
 - An Action with a code but no Person shows as unassigned outreach.
 - Duplicate or malformed codes in Airtable turn the whole Airtable source into
   a configuration error. The report never guesses which Action a shared code
   belongs to, and no activity is attributed until the codes are fixed.
 
-To recover from a configuration error:
+To recover from a configuration error (a duplicate or malformed code, or an
+Action linked to more than one Person, Job, or Company — an unmapped code is
+not one and needs no recovery):
 
 1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
    Airtable. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
