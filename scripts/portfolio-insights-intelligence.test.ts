@@ -264,8 +264,44 @@ describe("campaign assignment", () => {
       identityResolution: "available",
       unmappedCampaignCodes: ["alpha-code12"],
       unmappedCampaignSessions: 1,
-      configurationErrors: ["unmapped campaign code: alpha-code12"],
+      unmappedCampaigns: [{ code: "alpha-code12", sessions: 1, events: 1 }],
+      configurationErrors: [],
     });
+  });
+
+  // Owns: a code with no Action is normally an old link, a retired test, or a
+  // forwarded link. It is a neutral diagnostic, never a configuration error.
+  // Retire when unmapped codes stop reaching Analytics Engine at all.
+  it("reports an unmapped campaign code as a neutral diagnostic, not a configuration error", () => {
+    const events = [
+      ...session("session-a", BASE, [entry("campaign"), open("kickoff")], { campaign: "smoke-7de62efc" }),
+      ...session("session-b", BASE + HOUR, [entry("campaign")], { campaign: "smoke-7de62efc" }),
+      ...session("session-c", BASE + 2 * HOUR, [entry("campaign")], { campaign: "alpha-code1" }),
+    ];
+    const intelligence = build(events, { assignments: [assignment("alpha-code1")] });
+
+    expect(intelligence.diagnostics.configurationErrors).toEqual([]);
+    expect(intelligence.diagnostics.unmappedCampaigns).toEqual([
+      { code: "smoke-7de62efc", sessions: 2, events: 3 },
+    ]);
+    // The activity itself is unchanged: still anonymous, still counted.
+    expect(intelligence.anonymousJourneys.map((journey) => journey.sessionId).sort()).toEqual(["session-a", "session-b"]);
+    expect(intelligence.anonymousJourneys.every((journey) => journey.assignment === null)).toBe(true);
+    expect(intelligence.diagnostics).toMatchObject({ unmappedCampaignSessions: 2, anonymousSessions: 2 });
+  });
+
+  it("ranks unmapped codes by sessions so the busiest stale link reads first", () => {
+    const events = [
+      ...session("session-a", BASE, [entry("campaign")], { campaign: "quiet-code99" }),
+      ...session("session-b", BASE + HOUR, [entry("campaign")], { campaign: "busy-code01" }),
+      ...session("session-c", BASE + 2 * HOUR, [entry("campaign")], { campaign: "busy-code01" }),
+    ];
+    const intelligence = build(events, { assignments: [assignment("alpha-code1")] });
+
+    expect(intelligence.diagnostics.unmappedCampaigns).toEqual([
+      { code: "busy-code01", sessions: 2, events: 2 },
+      { code: "quiet-code99", sessions: 1, events: 1 },
+    ]);
   });
 
   it("keeps every coded session anonymous when Airtable is unavailable", () => {
@@ -290,6 +326,8 @@ describe("campaign assignment", () => {
     expect(intelligence.diagnostics).toMatchObject({
       duplicateCampaignCodes: ["alpha-code1"],
       configurationErrors: ["duplicate campaign code: alpha-code1"],
+      // A duplicate is ambiguous, not retired: it never becomes the neutral note.
+      unmappedCampaigns: [],
     });
   });
 });

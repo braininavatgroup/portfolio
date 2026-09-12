@@ -384,6 +384,28 @@ describe("run options", () => {
     expect(result.dashboardPath).toBe(join(directory, "dashboard.html"));
   });
 
+  // Owns: the whole run splits the two campaign-code paths the same way the
+  // page and the terminal do. `straycode9` is carried by no Action and stays a
+  // neutral note; `dupecode04` is claimed by two, so it stays an error. Retire
+  // with the unmappedCampaigns diagnostic.
+  it("separates an unmapped campaign code from a duplicate one, in the page and the terminal", async () => {
+    const result = await buildFixtureDashboard(directory, { degraded: true });
+
+    expect(result.snapshot.intelligence.diagnostics.unmappedCampaigns).toEqual([
+      { code: "straycode9", sessions: 1, events: 1 },
+    ]);
+    expect(result.snapshot.intelligence.diagnostics.configurationErrors).toEqual(["duplicate campaign code: dupecode04"]);
+
+    const html = await readFile(result.dashboardPath, "utf8");
+    expect(html).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: straycode9");
+    expect(html).toContain("duplicate campaign code: dupecode04");
+    expect(html).not.toContain("unmapped campaign code");
+
+    expect(result.output).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: straycode9");
+    expect(result.output).toContain("Configuration error: affected links stay unattributed");
+    expect(result.output).toContain("duplicate campaign code: dupecode04");
+  });
+
   it("leads the terminal report with the dashboard's findings", async () => {
     const result = await buildFixtureDashboard(directory);
 

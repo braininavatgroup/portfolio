@@ -14,9 +14,11 @@
 // invented. The tokens are placeholders the fetchers never use.
 //
 // The command line builds the degraded variant, which additionally seeds three
-// earlier aggregate runs for the trend marks and leaves Cloudflare stale and
-// Clarity unavailable, so one page carries all three source states. The plain
-// two-run form is what the run tests pin; see `buildFixtureDashboard`.
+// earlier aggregate runs for the trend marks, leaves Cloudflare stale and
+// Clarity unavailable, and duplicates one campaign code, so one page carries
+// all three source states and both campaign-code paths: the neutral unmapped
+// note and the red configuration error. The plain two-run form is what the run
+// tests pin; see `buildFixtureDashboard`.
 
 import { realpathSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
@@ -399,6 +401,30 @@ export async function runFixture(argv, dependencies) {
   return /** @type {FixtureRun} */ (/** @type {unknown} */ (result));
 }
 
+/**
+ * The degraded page has to show both campaign-code paths at once, because they
+ * read differently on purpose: `straycode9` in the event rows belongs to no
+ * Action (a neutral note, kept anonymous) while these two Actions both claim
+ * `dupecode04` (a configuration error to fix). Only the degraded variant adds
+ * the duplicate, so the two-run fixture the run tests pin keeps its three
+ * clean assignments.
+ */
+const ambiguousAssignments = async () => {
+  const duplicate = (suffix) => ({
+    actionRecordId: `recDuplicate${suffix}`,
+    campaignCode: "dupecode04",
+    sentAt: "2026-09-05T09:00:00.000Z",
+    channel: "Email",
+    portfolioUrl: "https://bradleyberkman.com/?campaign=dupecode04",
+    action: "Send portfolio",
+    state: "Done",
+    person: { name: `Dana Quinn ${suffix}`, airtableUrl: "https://airtable.com/app0LM9NfGL4ZHi3j/tblrJTH1gruJDCAVx/recDana" },
+    company: "Quinn Studio",
+    job: null,
+  });
+  return [...fixtureAssignments(), duplicate("A"), duplicate("B")];
+};
+
 const clarityQuotaSpent = async () => {
   throw new Error("Clarity returned 429: the project's 10 requests for today are spent.");
 };
@@ -491,13 +517,13 @@ export async function buildFixtureDashboard(directory, { degraded = false } = {}
     events: priorEventRows(),
     // Clarity never answers in a degraded run, so it never writes a snapshot
     // and stays unavailable rather than falling back to a stale one.
-    ...(degraded ? { fetchers: { clarity: clarityQuotaSpent } } : {}),
+    ...(degraded ? { fetchers: { clarity: clarityQuotaSpent, airtable: ambiguousAssignments } } : {}),
   });
   return runFixture([], {
     directory,
     now: FIXTURE_CURRENT_RUN,
     fetchers: degraded
-      ? { clarity: clarityQuotaSpent, cloudflare: cloudflareRefused }
+      ? { clarity: clarityQuotaSpent, cloudflare: cloudflareRefused, airtable: ambiguousAssignments }
       : { clarity: clarityQuotaSpent },
   });
 }

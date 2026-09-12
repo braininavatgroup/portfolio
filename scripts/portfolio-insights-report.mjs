@@ -433,13 +433,20 @@ function leadFreshness(state) {
 
 /**
  * What the dashboard's "What changed" section says, for the terminal: each
- * source's freshness, configuration errors, the row-cap warning, then the
- * findings with their count, denominator, and windows.
+ * source's freshness, configuration errors, unmapped campaign codes, the
+ * row-cap warning, then the findings with their count, denominator, and
+ * windows.
+ *
+ * A configuration error is ambiguity to fix — two Actions claiming one code, a
+ * malformed code, a linked field with more than one record. An unmapped code
+ * is not: it is an old link, a retired test, or a forwarded one, so it gets a
+ * neutral line in the same words the dashboard uses (`unmappedCampaignNote` in
+ * portfolio-insights-dashboard.mjs; both modules stay import-free by design).
  *
  * @param {Record<string, any>} snapshot
- * @param {{ configurationErrors?: string[] }} [extra]
+ * @param {{ configurationErrors?: string[], unmappedCampaigns?: Array<{ code: string, sessions: number, events?: number }> }} [extra]
  */
-export function formatLead(snapshot, { configurationErrors = [] } = {}) {
+export function formatLead(snapshot, { configurationErrors = [], unmappedCampaigns = [] } = {}) {
   const range = snapshot.window ?? {};
   const sources = snapshot.sources ?? {};
   const lines = [
@@ -458,6 +465,15 @@ export function formatLead(snapshot, { configurationErrors = [] } = {}) {
       "  Configuration error: affected links stay unattributed",
       ...configurationErrors.map((problem) => `    ${problem}`),
       "    Fix the campaign code on the Airtable Action. The report never guesses which link owns an ambiguous code.",
+      "",
+    );
+  }
+  if (unmappedCampaigns.length > 0) {
+    const codes = unmappedCampaigns.map((row) => row.code);
+    const sessions = unmappedCampaigns.reduce((total, row) => total + (Number(row.sessions) || 0), 0);
+    const link = codes.length === 1 ? "a link that is not in Airtable" : "links that are not in Airtable";
+    lines.push(
+      `  ${sessions.toLocaleString("en-US")} tab session${sessions === 1 ? "" : "s"} came from ${link}, kept anonymous: ${codes.join(", ")}`,
       "",
     );
   }

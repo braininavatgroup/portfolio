@@ -459,13 +459,20 @@ The report matches each event's campaign code to the Action whose
 a shared device, so a code identifies the assignment, not the person holding
 the browser.
 
-- A code no Action carries stays anonymous.
+- A code no Action carries stays anonymous and is not an error. Analytics
+  Engine keeps events for three months, so a deleted test Action or an old
+  link leaves its code behind that long. What changed says so in one line, for
+  example "3 tab sessions came from a link that is not in Airtable, kept
+  anonymous: smoke-7de62efc", and the terminal lead says the same sentence.
+  Nothing needs fixing; delete nothing to make it go away.
 - An Action with a code but no Person shows as unassigned outreach.
 - Duplicate or malformed codes in Airtable turn the whole Airtable source into
   a configuration error. The report never guesses which Action a shared code
   belongs to, and no activity is attributed until the codes are fixed.
 
-To recover from a configuration error:
+To recover from a configuration error (a duplicate or malformed code, or an
+Action linked to more than one Person, Job, or Company — an unmapped code is
+not one and needs no recovery):
 
 1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
    Airtable. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.

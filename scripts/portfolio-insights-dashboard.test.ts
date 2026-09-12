@@ -226,7 +226,7 @@ const intelligence = {
   diagnostics: {
     quarantinedSessions: 1,
     link: "https://evil.example/diag",
-    configurationErrors: ["unmapped campaign code: stray-code-9"],
+    unmappedCampaigns: [{ code: "stray-code-9", sessions: 3, events: 5 }],
     sources: { clarity: "stale", cloudflare: "fresh" },
   },
 };
@@ -396,8 +396,22 @@ describe("renderDashboard decision sections", () => {
   it("puts configuration errors and truncation on the first screen", () => {
     const first = sectionOf(html, "What changed");
     expect(first).toMatch(/role="alert"[\s\S]*duplicate campaign code: dup-code-01/u);
-    expect(first).toMatch(/role="alert"[\s\S]*unmapped campaign code: stray-code-9/u);
     expect(first).toContain("10,000");
+  });
+
+  // Owns: an unmapped code is an old, retired, or forwarded link, so it reads
+  // as a neutral note and never as a red configuration error. Retire with the
+  // unmappedCampaigns diagnostic.
+  it("reports an unmapped campaign code as a neutral note, not a configuration error", () => {
+    const first = sectionOf(html, "What changed");
+    expect(first).toContain(
+      '<p class="note">3 tab sessions came from a link that is not in Airtable, kept anonymous: stray-code-9</p>',
+    );
+    expect(first).not.toContain("unmapped campaign code");
+    // The neutral note is outside the alert block, which still names only the duplicate.
+    const alert = /<div class="alert" role="alert">[\s\S]*?<\/div>/u.exec(first)?.[0] ?? "";
+    expect(alert).toContain("duplicate campaign code: dup-code-01");
+    expect(alert).not.toContain("not in Airtable");
   });
 
   it("prints findings with count, denominator, and both windows", () => {
@@ -608,7 +622,7 @@ describe("renderDashboard when event data is missing but intelligence exists", (
           anonymousJourneys: [],
           content: [],
           audience: { sources: [], devices: [], locations: [] },
-          diagnostics: { configurationErrors: ["unmapped campaign code: stray-code-9"] },
+          diagnostics: { unmappedCampaigns: [{ code: "stray-code-9", sessions: 1, events: 1 }] },
         },
       },
       history: [],
@@ -642,7 +656,11 @@ describe("renderDashboard when event data is missing but intelligence exists", (
     expect(assigned).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
     expect(assigned).toContain("Unavailable");
     expect(assigned).not.toContain("No link sessions in this window");
-    expect(sectionOf(page, "What changed")).toMatch(/role="alert"[\s\S]*unmapped campaign code: stray-code-9/u);
+    // Nothing is misconfigured here, so the red block never renders.
+    const changed = sectionOf(page, "What changed");
+    expect(changed).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: stray-code-9");
+    expect(changed).not.toContain('role="alert"');
+    expect(changed).not.toContain("Configuration error");
   });
 });
 

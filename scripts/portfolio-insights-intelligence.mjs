@@ -17,8 +17,11 @@
 //   quarantined: it belongs to neither link and is counted, not shown.
 //
 //   An Airtable assignment attaches only on an exact campaign-code match. An
-//   unmapped or duplicated code stays anonymous and becomes a configuration
-//   error that names the code and nothing else.
+//   unmapped or duplicated code stays anonymous either way, but the two are
+//   reported differently. A duplicated code is ambiguous — two Actions claim
+//   it — so it is a configuration error. An unmapped code is normally an old
+//   link, a retired test, or a forwarded link, so it is a neutral diagnostic
+//   (`unmappedCampaigns`) that names the code and nothing else.
 //
 // Attribution language: a campaign code identifies the Action a link was
 // assigned to, not the person who opened it. Findings say "Activity from
@@ -1015,6 +1018,18 @@ export function buildPortfolioIntelligence({
     identity === null
       ? []
       : unique(coded.map((journey) => /** @type {string} */ (journey.campaignCode)).filter((code) => !duplicates.has(code))).sort();
+  // Busiest first, so the note names the stale link that is actually costing
+  // attribution; the code breaks a tie so the order never depends on input order.
+  const unmappedCampaigns = unmappedCampaignCodes
+    .map((code) => {
+      const matching = coded.filter((journey) => journey.campaignCode === code);
+      return {
+        code,
+        sessions: matching.length,
+        events: matching.reduce((total, journey) => total + journey.events.length, 0),
+      };
+    })
+    .sort((left, right) => right.sessions - left.sessions || right.events - left.events || left.code.localeCompare(right.code));
 
   const assignedLinks = [...byCode.values()]
     .map((assignment) => ({
@@ -1064,12 +1079,12 @@ export function buildPortfolioIntelligence({
       identityResolution: identity === null ? "unavailable" : "available",
       duplicateCampaignCodes: [...duplicates].sort(),
       unmappedCampaignCodes,
+      unmappedCampaigns,
       unmappedCampaignSessions: identity === null ? 0 : coded.filter((journey) => !duplicates.has(/** @type {string} */ (journey.campaignCode))).length,
       unresolvedCampaignSessions: identity === null ? coded.length : 0,
-      configurationErrors: [
-        ...[...duplicates].sort().map((code) => `duplicate campaign code: ${code}`),
-        ...unmappedCampaignCodes.map((code) => `unmapped campaign code: ${code}`),
-      ],
+      // Only an ambiguous code is an error. An unmapped one is reported by
+      // `unmappedCampaigns` instead: nothing is misconfigured, the link is old.
+      configurationErrors: [...duplicates].sort().map((code) => `duplicate campaign code: ${code}`),
       sources: { clarity: clarityState.status, cloudflare: cloudflareState.status },
       thresholds: {
         minPatternSessions: MIN_PATTERN_SESSIONS,

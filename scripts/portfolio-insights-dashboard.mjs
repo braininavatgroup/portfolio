@@ -888,8 +888,28 @@ const FINDING_KINDS = {
   performance: "Performance",
 };
 
+/**
+ * The neutral one-liner for codes Analytics Engine still carries but no
+ * Airtable Action owns: an old link, a retired test, or a forwarded one. It
+ * is not a configuration error, so it never joins the alert block. Codes are
+ * opaque and local, so naming them is safe.
+ *
+ * Kept in step with `formatLead` in portfolio-insights-report.mjs, which says
+ * the same sentence in the terminal; both modules stay import-free by design.
+ *
+ * @param {Array<{ code: string, sessions: number, events?: number }>} rows
+ * @returns {string} "" when there is nothing to say
+ */
+export function unmappedCampaignNote(rows) {
+  const codes = rows.map((row) => row.code);
+  if (codes.length === 0) return "";
+  const sessions = rows.reduce((total, row) => total + (Number(row.sessions) || 0), 0);
+  const link = codes.length === 1 ? "a link that is not in Airtable" : "links that are not in Airtable";
+  return `${plural(sessions, "tab session")} came from ${link}, kept anonymous: ${codes.join(", ")}`;
+}
+
 function whatChanged(context) {
-  const { intelligence, configurationErrors, truncated } = context;
+  const { intelligence, configurationErrors, truncated, unmappedCampaigns } = context;
   const parts = [];
   if (configurationErrors.length) {
     parts.push(
@@ -904,6 +924,7 @@ function whatChanged(context) {
         `Analytics Engine returned its 10,000-row cap for this window, so journeys and content measures cover only the earliest events.</div>`,
     );
   }
+  if (unmappedCampaigns.length) parts.push(note(unmappedCampaignNote(unmappedCampaigns)));
   // Defensive floor: a finding needs five eligible sessions. Assigned-link
   // findings describe one link, so their small denominators are expected.
   const findings = list(intelligence?.findings).filter(
@@ -1435,6 +1456,9 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
       ...list(intelligence?.diagnostics?.configurationErrors).filter((problem) => typeof problem === "string" && problem),
     ]),
   ];
+  const unmappedCampaigns = list(intelligence?.diagnostics?.unmappedCampaigns)
+    .filter((row) => row && typeof row.code === "string" && row.code !== "")
+    .map((row) => ({ code: row.code, sessions: Number(row.sessions) || 0, events: Number(row.events) || 0 }));
   const context = {
     snapshot,
     sources,
@@ -1447,6 +1471,7 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
     eventsKnown: insights !== null,
     truncated: insights?.raw?.truncated === true,
     configurationErrors,
+    unmappedCampaigns,
     labelFor: (/** @type {string} */ id) => labels.get(id) ?? id,
   };
   const window = windowLabel(snapshot?.window) ?? "no snapshot yet";
