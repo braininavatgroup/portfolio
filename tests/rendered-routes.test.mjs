@@ -58,7 +58,7 @@ test("all canonical record and theme URLs return their own crawler-readable prev
 });
 
 test("every supporting HTML page has its own canonical, Open Graph and Twitter preview", async () => {
-  for (const [path, image] of [["/", "home"], ["/privacy", "privacy"], ["/design", "design"], ["/copy-deck", "copy-deck"], ["/demos/touring", "demo-touring"], ["/demos/quarterly-dashboard", "demo-quarterly-dashboard"]]) {
+  for (const [path, image] of [["/", "home"], ["/privacy", "privacy"], ["/demos/touring", "demo-touring"], ["/demos/quarterly-dashboard", "demo-quarterly-dashboard"]]) {
     const response = await render(path);
     assert.equal(response.status, 200, path);
     const head = (await response.text()).split("</head>")[0];
@@ -127,29 +127,15 @@ test("the privacy route discloses analytics, replay masking, and opt-out", async
   assert.match(html, /mailto:bradley@bradleyberkman\.com/i);
 });
 
-test("the copy deck is served as a zip of notes and from its export page", async () => {
-  const content = JSON.parse(
-    await readFile(new URL("../content/portfolio-content.json", import.meta.url), "utf8"),
-  );
-
-  const zip = await render("/copy-deck.zip");
-  assert.equal(zip.status, 200);
-  assert.equal(zip.headers.get("content-type"), "application/zip");
-  assert.match(zip.headers.get("content-disposition"), /Portfolio copy\.zip/);
-  const bytes = new Uint8Array(await zip.arrayBuffer());
-  assert.deepEqual(Array.from(bytes.slice(0, 4)), [0x50, 0x4b, 0x03, 0x04]);
-  const text = new TextDecoder().decode(bytes);
-  assert.ok(text.includes("Portfolio copy/Bradley Berkman.md"));
-  assert.ok(text.includes(`Portfolio copy/${content.interface["index.section.threads"]}/Making Work Playable.md`));
-  assert.ok(text.includes("Portfolio copy/Site text.md"));
-  assert.ok(text.includes(content.records.bradley.paragraphs.p1));
-
-  const page = await render("/copy-deck");
-  assert.equal(page.status, 200);
-  const html = await page.text();
-  assert.match(html, /<h1>Copy deck<\/h1>/);
-  assert.match(html, /href="\/copy-deck\.zip"/);
-  assert.match(html, /noindex/);
+// PER-16 deleted the stale copy deck and made the design gallery dev-only.
+// Both used to answer 200 behind the main-preview password; the built Worker
+// must now 404 them outright, with no redirect to a login that no longer exists.
+test("the retired copy deck and the dev-only design gallery are not served", async () => {
+  for (const path of ["/copy-deck", "/copy-deck.zip", "/design"]) {
+    const response = await render(path);
+    assert.equal(response.status, 404, path);
+    assert.equal(response.headers.get("location"), null, path);
+  }
 });
 
 test("the retired design-system snapshot is no longer shipped", async () => {

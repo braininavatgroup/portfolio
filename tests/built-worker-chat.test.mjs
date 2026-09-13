@@ -103,9 +103,7 @@ async function fetchBuiltWorker(request, environment = {}) {
   );
 }
 
-const protectedEnvironment = {
-  PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "true",
-  PORTFOLIO_MAIN_PREVIEW_PASSWORD: "correct horse battery staple",
+const deployedEnvironment = {
   PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET:
     "a-long-independent-session-signing-secret-for-preview-only",
 };
@@ -163,53 +161,23 @@ test("the built Worker preserves local development without an asset binding", as
   assert.match(await response.text(), /class=["'][^"']*portfolio-reader[^"']*["']/i);
 });
 
-test("the built Worker gates static assets before touching the asset binding", async () => {
+// The gate these two tests used to prove is gone (PER-16). This pins the
+// contract that replaced it: a static asset is served on its first request,
+// with no redirect and no login round trip.
+//
+// It is NOT a regression guard against the gate itself — under this env a
+// restored gate would find no password configured and pass through, so the
+// assertion would still hold. The routes that actually needed protecting are
+// covered where it counts: worker/design-gallery.test.ts pins /design closed,
+// and tests/rendered-routes.test.mjs pins the built Worker 404ing it.
+test("the built Worker serves bound static assets with no gate in front", async () => {
   let assetCalls = 0;
   const response = await fetchBuiltWorker(
     new Request("https://preview.example/protected.css", {
       headers: { accept: "text/css,*/*;q=0.1" },
     }),
     {
-      ...protectedEnvironment,
-      ASSETS: {
-        fetch: async () => {
-          assetCalls += 1;
-          return new Response("protected asset");
-        },
-      },
-    },
-  );
-
-  assert.equal(response.status, 303);
-  assert.equal(assetCalls, 0);
-  assert.match(
-    response.headers.get("location") ?? "",
-    /^\/_portfolio-preview\/login\?next=/,
-  );
-});
-
-test("the built Worker serves bound static assets after password authentication", async () => {
-  const login = await fetchBuiltWorker(
-    new Request("https://preview.example/_portfolio-preview/login?next=%2Fprotected.css", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        password: protectedEnvironment.PORTFOLIO_MAIN_PREVIEW_PASSWORD,
-      }),
-    }),
-    protectedEnvironment,
-  );
-  const cookie = login.headers.get("set-cookie")?.split(";", 1)[0];
-  assert.equal(login.status, 303);
-  assert.ok(cookie);
-
-  let assetCalls = 0;
-  const response = await fetchBuiltWorker(
-    new Request("https://preview.example/protected.css", {
-      headers: { cookie },
-    }),
-    {
-      ...protectedEnvironment,
+      ...deployedEnvironment,
       ASSETS: {
         fetch: async () => {
           assetCalls += 1;
@@ -223,10 +191,6 @@ test("the built Worker serves bound static assets after password authentication"
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), "protected asset");
-  assert.equal(
-    response.headers.get("x-robots-tag"),
-    "noindex, nofollow, noarchive",
-  );
   assert.equal(assetCalls, 1);
 });
 

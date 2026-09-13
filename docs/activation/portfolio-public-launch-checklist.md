@@ -49,9 +49,13 @@ the launch work; it does not authorize deployment or changes to live controls.
   Done: the candidate sets `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED=false`,
   which drops the login redirect and the blanket `noindex` in one move.
   `worker/public-portfolio.ts` now owns what replaced it — public portfolio
-  pages carry no crawler exclusion, and `/copy-deck`, `/copy-deck.zip`,
-  `/design`, `/_portfolio-feedback/*` and `/_portfolio-preview/*` keep
-  `noindex, nofollow, noarchive` in both modes. Tests:
+  pages carry no crawler exclusion, and the supporting routes keep
+  `noindex, nofollow, noarchive`.
+  Superseded by PER-16: the gate is gone entirely, so "both modes" no longer
+  describes anything. `/copy-deck` and `/copy-deck.zip` were deleted as stale,
+  and `/design` is dev-only — the deployed Worker 404s it
+  (`worker/design-gallery.ts`). `/_portfolio-feedback/*` still carries the
+  exclusion. Tests:
   `worker/public-portfolio.test.ts` and the updated
   `tests/main-preview-worker-config.test.mjs`.
   Chat protections are independent of the password gate and unchanged: the
@@ -78,11 +82,12 @@ the launch work; it does not authorize deployment or changes to live controls.
 - [x] Prepare public analytics. Eligible public HTML must carry
   `data-portfolio-analytics-context="external"`. Keep local development and
   private previews excluded, and preserve personal browser opt-outs.
-  Done: `worker/public-portfolio.ts` writes the `external` marker only when
-  the password gate is off *and* the request host is `bradleyberkman.com` or
-  `www.bradleyberkman.com`. Local development, `workers.dev`, non-HTML
-  responses and supporting routes stay unmarked, and the password-gated
-  preview keeps writing `preview`. No build carries the marker by itself, so
+  Done: `worker/public-portfolio.ts` writes the `external` marker only when the
+  request host is `bradleyberkman.com` or `www.bradleyberkman.com`. Local
+  development, `workers.dev`, non-HTML responses and supporting routes stay
+  unmarked. (Before PER-16 this was also conditioned on the password gate being
+  off, and the gated preview wrote `preview`; that gate is gone.) No build
+  carries the marker by itself, so
   the marker is emitted by a deployment, not by this change. `?analytics=off`
   and the `/privacy` control are untouched.
 - [x] Clarity's cookie setting checked and aligned with the Privacy notice.

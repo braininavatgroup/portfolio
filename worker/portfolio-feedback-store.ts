@@ -1,5 +1,5 @@
 // The reviewer feedback ledger: one Durable Object holds every note left on
-// the password-protected preview. Reviewers only ever read back what they
+// the deployed site. Reviewers only ever read back what they
 // sent in the current visit (the client keeps that list in memory), so the
 // object needs no per-reviewer read path beyond ownership checks on delete.
 // Bradley reads everything through the worker's admin route.

@@ -22,7 +22,6 @@ export const sharePages: readonly SharePage[] = [
   }),
   { id: "privacy", path: "/privacy", title: "Privacy", description: "How this portfolio handles analytics, privacy preferences, and messages sent to the Guide.", kind: "Portfolio" },
   { id: "design", path: "/design", title: "Design gallery", description: "Every design token and portfolio component in its meaningful states, in light and dark.", kind: "Design system" },
-  { id: "copy-deck", path: "/copy-deck", title: "Copy deck", description: "Export the portfolio's copy as editable Markdown notes.", kind: "Portfolio" },
   { id: "demo-touring", path: "/demos/touring", title: "Tour advancing demo", description: "Follow one show from outstanding details to a completed advance and artist day sheet.", kind: "Interactive demo" },
   { id: "demo-quarterly-dashboard", path: "/demos/quarterly-dashboard", title: "Quarterly pitch conversion", description: "An interactive quarterly pitch-conversion dashboard for a real-estate operations workflow.", kind: "Interactive demo" },
 ];

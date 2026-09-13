@@ -29,7 +29,6 @@
     "eval:chat": "tsx scripts/run-portfolio-chat-eval.ts",
     "deadcode": "knip --include files,dependencies",
     "feedback": "node scripts/portfolio-feedback.mjs",
-    "copy-deck": "tsx scripts/portfolio-copy-deck.ts",
     "media:studio": "node scripts/media-studio/server.mjs",
     "media:scan": "tsx scripts/media-studio/scan.mjs",
     "test:media-studio": "node --test scripts/media-studio/*.test.mjs",

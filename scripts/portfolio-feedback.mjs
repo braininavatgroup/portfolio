@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Pull reviewer notes off the password-protected preview, or mint a reviewer link.
+// Pull reviewer notes off the deployed site, or mint a reviewer link.
 //
 //   node scripts/portfolio-feedback.mjs                 # markdown digest
 //   node scripts/portfolio-feedback.mjs --json          # raw notes
@@ -8,8 +8,8 @@
 // The admin token comes from PORTFOLIO_FEEDBACK_ADMIN_TOKEN if set, otherwise
 // from the macOS login Keychain entry `scripts/setup-portfolio-feedback.sh`
 // writes. `--site <origin>` overrides the default https://bradleyberkman.com.
-// The admin route sits outside the password gate and authenticates with the
-// token alone, so this never needs the preview password.
+// The admin route sits outside the reviewer cookie check and authenticates with
+// the token alone.
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
