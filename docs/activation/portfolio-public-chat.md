@@ -2,7 +2,7 @@
 
 Status: prepared for review; public activation is not authorized by this change.
 The current target is `bradley-portfolio-main-preview`, configured by
-`wrangler.main-preview.jsonc`. Its password gate is disabled in the checked-in configuration, the chat session
+`wrangler.main-preview.jsonc`. Its password gate was removed in PER-16, the chat session
 token is required, and the shared allowance is 1,000 model requests per UTC day.
 
 ## Proposed public settings
