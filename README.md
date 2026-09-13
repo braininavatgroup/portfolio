@@ -110,7 +110,10 @@ front of the zone's existing proxied web records. It declares `OPENAI_API_KEY`
 as a required encrypted Worker secret. The password form the Worker's name
 refers to is off — `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is `false`, so the
 name is historical and the site is open. Its CI deployment job consumes the
-exact `dist/` artifact already proven by CI.
+exact `dist/` artifact already proven by CI; first deployment to the custom
+domain stays dormant unless the repository variable
+`PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to
+`true`.
 
 The local Vite Worker supplies the same model, budget, and Durable Object
 bindings while `npm run dev` injects the separate Keychain-backed development
@@ -120,13 +123,14 @@ The earlier single-operator `bradley-portfolio-preview` Worker and its
 `wrangler.preview.jsonc` were removed under PER-12 once this surface superseded
 them.
 
-Before public launch, removing the preview login, or enabling public analytics,
-follow the [public launch checklist](docs/activation/portfolio-public-launch-checklist.md).
+Public launch, login removal, and public analytics have all happened. The
+[public launch checklist](docs/activation/portfolio-public-launch-checklist.md)
+is the record of that, not a pending prerequisite.
 
 Microsoft Clarity project `yatoiqtrjm` provides privacy-safe behavioral
 analytics only when an eligible public document carries the explicit
-`external` analytics context. Missing context, local pages, the
-password-protected preview, and opted-out browsers stay dormant. The public
+`external` analytics context. Missing context, local pages, and opted-out
+browsers stay dormant. The public
 tag ID is committed with the integration; it is not a credential. The
 integration denies advertising storage whenever an explicit preference is
 applied, masks the entire chat dock, and supports first-load personal-device
@@ -161,15 +165,14 @@ tested `main` pushes still deploy automatically while the gate remains armed.
 
 ### Reviewer feedback on the preview
 
-Design partners leave notes on the password-protected preview without seeing
-each other's, and without a note ever persisting into their own later visits.
+Design partners leave notes on the live site without seeing each other's, and without a note ever persisting into their own later visits.
 Any link with `?r=<code>` works; codes are not predefined. Type one by hand when
 you send the site to someone (`https://bradleyberkman.com/?r=Sarah Smith` counts
 as `sarah-smith`: the worker lowercases, hyphenates, and trims to 32
 characters), or mint the canonical form with `npm run feedback -- --link alice`.
 A link sent with its placeholder still in it (`?r=[name]`) lands as the code
 `name`; the panel then asks the reviewer for their name and every note carries
-it, so the digest still tells people apart. Opening it (after the shared password) sets a signed,
+it, so the digest still tells people apart. Opening it sets a signed,
 90-day `portfolio_reviewer` cookie and redirects to a URL carrying the
 normalized reviewer name. Only that named URL shows the "Leave a note"
 control in the bottom-left corner; ordinary site URLs remain public-facing
@@ -184,9 +187,10 @@ token, sets it as the required Worker secret `PORTFOLIO_FEEDBACK_ADMIN_TOKEN`
 through your Wrangler login, and stores it in your login Keychain. Re-running
 rotates it. Then `npm run feedback` prints the digest (add `-- --json` for raw
 notes), reading the token from the Keychain or from
-`PORTFOLIO_FEEDBACK_ADMIN_TOKEN` if set. The admin route sits outside the
-password gate and accepts only that bearer token, so it never needs the
-preview password. The whole feature is dormant unless
+`PORTFOLIO_FEEDBACK_ADMIN_TOKEN` if set. The admin route accepts only that
+bearer token. Note that nothing else gates the reviewer surface: the site is
+public, so any `?r=` link works for whoever holds it. The whole feature is
+dormant unless
 `PORTFOLIO_FEEDBACK_ENABLED` is `"true"`, which only the main preview sets.
 
 `lib/server/portfolio-chat-eval.ts` provides the offline comparison engine. Callers supply named provider implementations and a fixed question set with explicit expected-answer anchors. The engine cannot discover credentials or create a live provider. It accepts uncited conversational language, validates any citations the answer does contain, enforces evidence required by individual reference cases, and reports answer accuracy, average and p95 latency, usage totals, and optional cost estimates from explicit pricing snapshots. `lib/server/portfolio-chat-eval.test.ts` is the deterministic example and never calls an external service. `npm run eval:chat -- --model <id>` runs it against a live provider — real, billable calls, so it is deliberately not in CI.
@@ -203,12 +207,10 @@ npm run test:rendered
 
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
-This repository configures `bradleyberkman.com` and `www.bradleyberkman.com`
-as password-protected Worker Routes on the permanent main preview. The bounded
-single-operator Workers.dev site preview remains tracked in BIV-317, while the
-public-domain deployment remains false-gated until its activation packet is
-approved. Chat-specific preview
-access was retired by BIV-321.
+This repository serves `bradleyberkman.com` and `www.bradleyberkman.com` from
+the `bradley-portfolio-main-preview` Worker, configured above. The password gate
+its name refers to is off. Chat-specific preview access was retired by BIV-321,
+and the bounded single-operator Workers.dev preview was deleted under PER-12.
 
 ## Media redaction
 
