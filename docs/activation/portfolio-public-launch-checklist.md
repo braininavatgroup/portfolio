@@ -82,11 +82,12 @@ the launch work; it does not authorize deployment or changes to live controls.
 - [x] Prepare public analytics. Eligible public HTML must carry
   `data-portfolio-analytics-context="external"`. Keep local development and
   private previews excluded, and preserve personal browser opt-outs.
-  Done: `worker/public-portfolio.ts` writes the `external` marker only when
-  the password gate is off *and* the request host is `bradleyberkman.com` or
-  `www.bradleyberkman.com`. Local development, `workers.dev`, non-HTML
-  responses and supporting routes stay unmarked, and the password-gated
-  preview keeps writing `preview`. No build carries the marker by itself, so
+  Done: `worker/public-portfolio.ts` writes the `external` marker only when the
+  request host is `bradleyberkman.com` or `www.bradleyberkman.com`. Local
+  development, `workers.dev`, non-HTML responses and supporting routes stay
+  unmarked. (Before PER-16 this was also conditioned on the password gate being
+  off, and the gated preview wrote `preview`; that gate is gone.) No build
+  carries the marker by itself, so
   the marker is emitted by a deployment, not by this change. `?analytics=off`
   and the `/privacy` control are untouched.
 - [x] Clarity's cookie setting checked and aligned with the Privacy notice.

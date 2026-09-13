@@ -217,32 +217,6 @@ body {
   text-underline-offset: 3px;
 }
 
-/* Copy deck export page: the privacy page's frame with a row of actions. */
-.copy-deck-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  margin: 26px 0;
-}
-
-.copy-deck-actions button,
-.copy-deck-actions a {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  font: 500 13px/1.3 var(--font-reader);
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.copy-deck-status {
-  flex-basis: 100%;
-  min-height: 1.65em;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -3892,7 +3866,7 @@ body:has(.portfolio-reading-room-mobile) {
   }
 }
 
-/* Design gallery (work package 3): the public /design showroom. The gallery
+/* Design gallery (work package 3): the dev-only /design showroom. The gallery
    drives the accepted composition tokens from [data-theme] so one page can
    show both modes. The descendant selectors are wrapped in :where() so a
    fixture that carries its own [data-theme] still wins over the gallery root. */
