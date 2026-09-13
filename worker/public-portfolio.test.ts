@@ -73,9 +73,6 @@ describe("public portfolio search and analytics policy", () => {
 
   it("keeps supporting routes excluded from search and from analytics", async () => {
     for (const pathname of [
-      "/copy-deck",
-      "/copy-deck/",
-      "/copy-deck.zip",
       "/design",
       "/_portfolio-feedback/notes",
       "/_portfolio-preview/login",

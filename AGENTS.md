@@ -14,10 +14,8 @@ Global policy: read [global AGENTS.md](https://github.com/braininavatgroup/dotfi
   `docs/components/README.md` is the index. `/design` renders the same
   components in their states.
 - After creating a Git worktree manually, run `bash scripts/bootstrap-worktree.sh` inside it before any package-dependent command. The repository hook normally does this automatically after Conductor has activated it; the command is an idempotent fallback.
-- Copy edits arrive as an edited copy deck (a folder of Markdown notes exported from `/copy-deck`
-  on the live site). Read `docs/content/copy-deck.md` before applying one: it
-  says how to diff the deck against a fresh export and where each key lives in
-  `content/portfolio-content.json`.
+- Copy lives in `content/portfolio-content.json`. The `/copy-deck` export route
+  and its Markdown deck were deleted as stale in PER-16; edit the JSON directly.
 - Social video for the portfolio is authored as a JSON spec under
   `scripts/clip-studio/specs/` and rendered with `npm run clip:render`. Read
   `docs/clip-studio.md` before changing a spec or the renderer; `--still` gives

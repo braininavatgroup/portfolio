@@ -7,8 +7,6 @@ User-agent: *
 Disallow: /_portfolio-feedback/
 Disallow: /_portfolio-preview/
 Disallow: /api/
-Disallow: /copy-deck
-Disallow: /copy-deck.zip
 Disallow: /design
 
 Sitemap: https://bradleyberkman.com/sitemap.xml

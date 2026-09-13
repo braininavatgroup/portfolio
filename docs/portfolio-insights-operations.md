@@ -583,12 +583,11 @@ Clarity do not already answer.
 
 Analytics fails closed. Clarity starts only when an eligible public document
 has `data-portfolio-analytics-context="external"` on its root element. A
-missing marker and the main preview's `preview` marker keep it dormant.
+missing marker keeps it dormant.
 
-`worker/public-portfolio.ts` writes the `external` marker, and only when
-`PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is not `true` and the request host
-is `bradleyberkman.com` or `www.bradleyberkman.com`. Local development,
-`workers.dev` previews, supporting routes, and the password-gated preview are
-all excluded by that rule, so no build carries the marker by itself. Emitting
-it in production still requires an approved deployment of a candidate with the
-gate off; the code alone activates nothing.
+`worker/public-portfolio.ts` writes the `external` marker, and only when the
+request host is `bradleyberkman.com` or `www.bradleyberkman.com`. Local
+development, `workers.dev` previews, and supporting routes are all excluded by
+that rule, so no build carries the marker by itself. (Before PER-16 this was
+also conditioned on `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED`; that gate no
+longer exists.)

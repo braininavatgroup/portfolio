@@ -161,10 +161,15 @@ test("the built Worker preserves local development without an asset binding", as
   assert.match(await response.text(), /class=["'][^"']*portfolio-reader[^"']*["']/i);
 });
 
-// The gate these two tests used to prove is gone (PER-16). What replaces them is
-// the contract that actually holds now: a static asset is served on its first
-// request, with no redirect and no login round trip. If a gate is ever
-// reintroduced in front of the asset binding, this fails on the 303.
+// The gate these two tests used to prove is gone (PER-16). This pins the
+// contract that replaced it: a static asset is served on its first request,
+// with no redirect and no login round trip.
+//
+// It is NOT a regression guard against the gate itself — under this env a
+// restored gate would find no password configured and pass through, so the
+// assertion would still hold. The routes that actually needed protecting are
+// covered where it counts: worker/design-gallery.test.ts pins /design closed,
+// and tests/rendered-routes.test.mjs pins the built Worker 404ing it.
 test("the built Worker serves bound static assets with no gate in front", async () => {
   let assetCalls = 0;
   const response = await fetchBuiltWorker(

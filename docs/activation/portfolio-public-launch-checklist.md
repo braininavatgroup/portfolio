@@ -49,9 +49,13 @@ the launch work; it does not authorize deployment or changes to live controls.
   Done: the candidate sets `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED=false`,
   which drops the login redirect and the blanket `noindex` in one move.
   `worker/public-portfolio.ts` now owns what replaced it — public portfolio
-  pages carry no crawler exclusion, and `/copy-deck`, `/copy-deck.zip`,
-  `/design`, `/_portfolio-feedback/*` and `/_portfolio-preview/*` keep
-  `noindex, nofollow, noarchive` in both modes. Tests:
+  pages carry no crawler exclusion, and the supporting routes keep
+  `noindex, nofollow, noarchive`.
+  Superseded by PER-16: the gate is gone entirely, so "both modes" no longer
+  describes anything. `/copy-deck` and `/copy-deck.zip` were deleted as stale,
+  and `/design` is dev-only — the deployed Worker 404s it
+  (`worker/design-gallery.ts`). `/_portfolio-feedback/*` still carries the
+  exclusion. Tests:
   `worker/public-portfolio.test.ts` and the updated
   `tests/main-preview-worker-config.test.mjs`.
   Chat protections are independent of the password gate and unchanged: the

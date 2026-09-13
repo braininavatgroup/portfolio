@@ -4,6 +4,10 @@ import handler from "vinext/server/app-router-entry";
 import { withoutPhantomBody } from "./inbound-request";
 import { withPublicPortfolio } from "./public-portfolio";
 import {
+  withDesignGallery,
+  type DesignGalleryEnv,
+} from "./design-gallery";
+import {
   handlePortfolioFeedbackAdmin,
   withPortfolioFeedback,
   type PortfolioFeedbackEnv,
@@ -14,7 +18,8 @@ export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
-  PortfolioFeedbackEnv;
+  PortfolioFeedbackEnv &
+  DesignGalleryEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 // Image security config. SVG sources with .svg extension auto-skip the
@@ -72,7 +77,9 @@ const worker = {
     if (admin) return admin;
     return withPortfolioFeedback(request, env, () =>
       withPublicPortfolio(request, () =>
-        serveApplication(request, env, ctx),
+        withDesignGallery(request, env, () =>
+          serveApplication(request, env, ctx),
+        ),
       ),
     );
   },
