@@ -1,14 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
-import {
-  withMainPreviewPassword,
-  type MainPreviewAuthEnv,
-} from "./main-preview-auth";
-import {
-  withPublicPortfolio,
-  type PublicPortfolioEnv,
-} from "./public-portfolio";
+import { withPublicPortfolio } from "./public-portfolio";
 import {
   handlePortfolioFeedbackAdmin,
   withPortfolioFeedback,
@@ -20,9 +13,7 @@ export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
-  MainPreviewAuthEnv &
-  PortfolioFeedbackEnv &
-  PublicPortfolioEnv;
+  PortfolioFeedbackEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 // Image security config. SVG sources with .svg extension auto-skip the
@@ -66,15 +57,13 @@ async function serveApplication(
 
 const worker = {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
-    // Bradley's feedback digest authenticates with its own token, outside the
-    // password gate. Reviewer links and note routes stay inside it.
+    // The feedback digest authenticates with its own bearer token; every other
+    // route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);
     if (admin) return admin;
-    return withMainPreviewPassword(request, env, () =>
-      withPortfolioFeedback(request, env, () =>
-        withPublicPortfolio(request, env, () =>
-          serveApplication(request, env, ctx),
-        ),
+    return withPortfolioFeedback(request, env, () =>
+      withPublicPortfolio(request, () =>
+        serveApplication(request, env, ctx),
       ),
     );
   },

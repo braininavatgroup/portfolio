@@ -28,7 +28,6 @@ test("the public candidate serves the apex and www routes without a login", asyn
   assert.equal(config.no_bundle, true);
 
   assert.deepEqual(config.vars, {
-    PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false",
     PORTFOLIO_CHAT_SESSION_REQUIRED: "true",
     PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT: "1000",
     OPENAI_PORTFOLIO_MODEL: "gpt-5.6-sol",
@@ -59,7 +58,6 @@ test("the public candidate serves the apex and www routes without a login", asyn
   assert.deepEqual(config.secrets, {
     required: [
       "OPENAI_API_KEY",
-      "PORTFOLIO_MAIN_PREVIEW_PASSWORD",
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET",
       "PORTFOLIO_FEEDBACK_ADMIN_TOKEN",
       "PORTFOLIO_CHAT_IDENTIFIER_SECRET",

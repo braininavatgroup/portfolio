@@ -241,7 +241,6 @@ TEMP_ROOT="${TEMP_ROOT%/}"
 ARTIFACT_ROOT=""
 
 cleanup_main_preview_secrets() {
-  unset MAIN_PREVIEW_PASSWORD MAIN_PREVIEW_PASSWORD_CONFIRMATION
   unset MAIN_PREVIEW_SESSION_SECRET OPENAI_PRODUCTION_KEY
   unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
   if [[ -n "$ARTIFACT_ROOT" &&
@@ -316,26 +315,14 @@ if [[ "$POST_MERGE_MAIN" == "false" ]]; then
   else
     PR_URL=$(gh pr create \
       --base main \
-      --title "Add password-protected main preview" \
-      --body "Adds a password-protected permanent preview of the latest tested main build on the apex, www, and Workers.dev hostnames. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
+      --title "Add the permanent main preview" \
+      --body "Adds a permanent deployment of the latest tested main build on the apex, www, and Workers.dev hostnames. Deployment remains false-gated until the setup wizard explicitly arms it. Includes deterministic auth, Worker, and workflow coverage plus the activation and rollback packet.")
     say "Created pull request: $PR_URL"
   fi
 fi
 
 stage "Worker secrets"
-say "The shared password and signing secret stay in memory and stream directly to Cloudflare."
-ask_secret MAIN_PREVIEW_PASSWORD "Choose a shared draft password:"
-ask_secret MAIN_PREVIEW_PASSWORD_CONFIRMATION "Enter the shared password again:"
-if [[ -z "$MAIN_PREVIEW_PASSWORD" ]]; then
-  printf 'The shared password cannot be empty.\n' >&2
-  exit 1
-fi
-if [[ "$MAIN_PREVIEW_PASSWORD" != "$MAIN_PREVIEW_PASSWORD_CONFIRMATION" ]]; then
-  printf 'The two password entries did not match. No Worker secret was uploaded.\n' >&2
-  exit 1
-fi
-unset MAIN_PREVIEW_PASSWORD_CONFIRMATION
-
+say "The signing secret stays in memory and streams directly to Cloudflare."
 ask_secret OPENAI_PRODUCTION_KEY "Paste the production OpenAI service-account key:"
 say "Validating the OpenAI key before upload…"
 printf '%s' "$OPENAI_PRODUCTION_KEY" | \
@@ -346,23 +333,21 @@ if (( ${#MAIN_PREVIEW_SESSION_SECRET} < 32 )); then
   exit 1
 fi
 
-warn "Uploading these secrets can create or update the dedicated Cloudflare Worker. Rotating the signing secret ends existing sessions."
-if ! confirm "Upload the three encrypted secrets to bradley-portfolio-main-preview?"; then
+warn "Uploading these secrets can create or update the dedicated Cloudflare Worker. Rotating the signing secret ends existing reviewer sessions."
+if ! confirm "Upload the two encrypted secrets to bradley-portfolio-main-preview?"; then
   SKIPPED+=("Worker secret upload (rerun npm run setup:main-preview)")
-  unset MAIN_PREVIEW_PASSWORD MAIN_PREVIEW_SESSION_SECRET OPENAI_PRODUCTION_KEY
+  unset MAIN_PREVIEW_SESSION_SECRET OPENAI_PRODUCTION_KEY
 else
   if ! npx wrangler whoami >/dev/null 2>&1; then
     say "Cloudflare needs authentication; opening its login flow."
     npx wrangler login
   fi
-  printf '%s\n' "$MAIN_PREVIEW_PASSWORD" | \
-    npx wrangler secret put PORTFOLIO_MAIN_PREVIEW_PASSWORD --config wrangler.main-preview.jsonc
   printf '%s\n' "$MAIN_PREVIEW_SESSION_SECRET" | \
     npx wrangler secret put PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET --config wrangler.main-preview.jsonc
   printf '%s\n' "$OPENAI_PRODUCTION_KEY" | \
     npx wrangler secret put OPENAI_API_KEY --config wrangler.main-preview.jsonc
-  say "Cloudflare received all three encrypted Worker secrets."
-  unset MAIN_PREVIEW_PASSWORD MAIN_PREVIEW_SESSION_SECRET OPENAI_PRODUCTION_KEY
+  say "Cloudflare received both encrypted Worker secrets."
+  unset MAIN_PREVIEW_SESSION_SECRET OPENAI_PRODUCTION_KEY
 fi
 
 stage "GitHub deployment environment"
@@ -458,7 +443,7 @@ else
     say "The manual first-deployment workflow will download this existing artifact and verify this digest without rebuilding it."
   fi
 
-  say "Type ACTIVATE only if every successfully tested main push should update the password-protected Worker."
+  say "Type ACTIVATE only if every successfully tested main push should update the live Worker."
   ask ACTIVATION_CONFIRMATION "Type ACTIVATE to arm deployment, or press Enter to leave it disabled:"
   if [[ "$ACTIVATION_CONFIRMATION" == "ACTIVATE" ]]; then
     if ! arm_deployment_gate; then
@@ -493,4 +478,4 @@ if [[ -n "$PR_URL" ]]; then
 elif [[ -n "$SUCCESSFUL_PUSH_RUN_ID" ]]; then
   note "Source CI workflow: https://github.com/$REPOSITORY/actions/runs/$SUCCESSFUL_PUSH_RUN_ID"
 fi
-note "No password, signing secret, provider key, or Cloudflare token was written to this repository or shell history."
+note "No signing secret, provider key, or Cloudflare token was written to this repository or shell history."
