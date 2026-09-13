@@ -1,5 +1,7 @@
 # Portfolio repository instructions
 
+Global policy: read [global AGENTS.md](https://github.com/braininavatgroup/dotfiles/blob/main/agents/AGENTS.md) (installed at `~/.codex/AGENTS.md`; source checkout `~/Spaces/dotfiles/agents/AGENTS.md`). This file owns only repository-specific instructions.
+
 - Before any UI or styling work, read `docs/design-conventions.md`. It states
   the house style as enumerable rules: the token families, the two typographic
   voices, exactly how light and dark are implemented, class naming, and the
