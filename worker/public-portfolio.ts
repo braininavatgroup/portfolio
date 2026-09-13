@@ -17,8 +17,6 @@ const ROBOTS_EXCLUSION = "noindex, nofollow, noarchive";
 
 /** Supporting surfaces, excluded deliberately and permanently. */
 const SUPPORTING_ROUTES = new Set([
-  "/copy-deck",
-  "/copy-deck.zip",
   "/design",
 ]);
 
