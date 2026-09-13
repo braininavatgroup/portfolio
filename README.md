@@ -83,7 +83,7 @@ deployed environment, submitting a message reaches the provider. A missing key,
 model, request budget, or Durable Object binding is reported as a configuration
 error before provider construction rather than silently disabling chat.
 
-During pre-launch, access to the portfolio is a deployment-boundary concern rather than a second authentication flow inside chat. The dedicated site-preview Worker is reachable only at the generated `bradley-portfolio-preview.<account-subdomain>.workers.dev` hostname. Chat still retains the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, session cookies, IP addresses, provider keys, upstream bodies, and exception messages.
+The site is public. Chat retains the global Durable Object request budget, bounded request bodies, a 15-second provider timeout, and privacy-safe telemetry. Telemetry contains result codes, timing, evidence IDs, answer length, model label, and token usage. It excludes raw questions, answers, session cookies, IP addresses, provider keys, upstream bodies, and exception messages.
 
 Public chat uses `PORTFOLIO_CHAT_SESSION_REQUIRED=true` for an invisible, signed 30-minute session cookie, a Cloudflare route limiter, and a server-only `PORTFOLIO_CHAT_IDENTIFIER_SECRET`. The Guide opens its session on mount and silently renews expired sessions. The daily request budget is 1,000; the per-IP throttle is unchanged. The runtime HMAC-pseudonymizes the trusted Cloudflare connecting IP before using it as a limiter key or OpenAI `safety_identifier`; raw IPs are never forwarded or logged. The session flag controls only cookie verification; configured rate limiting still applies when it is false.
 
@@ -102,22 +102,23 @@ retention contract. The SDK's optional MCP packages remain installed for future
 agent tools; local Vite development only excludes their browser-only PKCE helper
 from Workerd's eager dependency optimizer.
 
-`wrangler.preview.jsonc` owns the site-preview Worker's non-secret
-configuration: model `gpt-5.6-terra` with medium reasoning, a 200-request
-UTC-day Durable Object budget, its SQLite migration, dormant public controls,
-and no custom-domain route. It declares `OPENAI_API_KEY` as a required encrypted
-Worker secret. The local Vite Worker supplies the same model, budget, and
-Durable Object bindings while `npm run dev` injects the separate Keychain-backed
-development key.
+`wrangler.main-preview.jsonc` owns the deployed Worker's non-secret
+configuration: model `gpt-5.6-sol` with low reasoning and low verbosity, a
+1,000-request UTC-day Durable Object budget, its SQLite migrations, and the
+`bradleyberkman.com` plus `www.bradleyberkman.com` Cloudflare Worker Routes in
+front of the zone's existing proxied web records. It declares `OPENAI_API_KEY`
+as a required encrypted Worker secret. The password form the Worker's name
+refers to is off — `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is `false`, so the
+name is historical and the site is open. Its CI deployment job consumes the
+exact `dist/` artifact already proven by CI.
 
-The separate permanent preview of tested `main` is defined by
-`wrangler.main-preview.jsonc`. It uses a normal password form and a signed
-seven-day browser cookie, gates static assets as well as application routes,
-and serves `bradleyberkman.com` plus `www.bradleyberkman.com` as Cloudflare
-Worker Routes in front of the zone's existing proxied web records. Its CI
-deployment job consumes the exact `dist/`
-artifact already proven by CI and remains dormant unless the repository
-variable `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to `true`.
+The local Vite Worker supplies the same model, budget, and Durable Object
+bindings while `npm run dev` injects the separate Keychain-backed development
+key.
+
+The earlier single-operator `bradley-portfolio-preview` Worker and its
+`wrangler.preview.jsonc` were removed under PER-12 once this surface superseded
+them.
 
 Before public launch, removing the preview login, or enabling public analytics,
 follow the [public launch checklist](docs/activation/portfolio-public-launch-checklist.md).
