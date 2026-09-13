@@ -1,4 +1,4 @@
-# Password-protected main preview activation packet
+# Main preview activation packet
 
 Status: active. This packet defines the approval, deployment, smoke, and
 rollback procedure for the permanent preview of the latest successfully tested
@@ -7,9 +7,10 @@ rollback procedure for the permanent preview of the latest successfully tested
 ## Bound release
 
 - Target Worker: `bradley-portfolio-main-preview`.
-- Access boundary: `bradleyberkman.com`, `www.bradleyberkman.com`, and the
-  generated `bradley-portfolio-main-preview.<account-subdomain>.workers.dev`
-  hostname, all behind the same shared portfolio-preview password.
+- Hostnames: `bradleyberkman.com`, `www.bradleyberkman.com`, and the generated
+  `bradley-portfolio-main-preview.<account-subdomain>.workers.dev` hostname. All
+  are public; the password gate this packet once described was removed in
+  PER-16, and the Worker's name is historical.
 - Routes: Cloudflare Worker Routes for the apex and `www`, plus Workers.dev.
   No other hostname or zone route is authorized.
 - Artifact: the exact `dist/` uploaded by the successful `ci` job for a push to
@@ -51,33 +52,26 @@ deploys without rebuilding. The wizard otherwise keeps deployment false-gated.
 Provision these only as encrypted secrets on the dedicated Worker:
 
 - `OPENAI_API_KEY`
-- `PORTFOLIO_MAIN_PREVIEW_PASSWORD`
 - `PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET`
 - `PORTFOLIO_FEEDBACK_ADMIN_TOKEN` — the bearer token for the reviewer
   feedback digest (`npm run feedback`); at least 32 characters, held only by
   Bradley. Missing or short, the admin route answers 404 while reviewer notes
   still record.
 
-Use a strong shared passphrase for the password and an independently generated
-high-entropy signing secret. Never place either value in GitHub source,
+Use an independently generated high-entropy signing secret. Never place it in
+GitHub source,
 repository variables, workflow files, command arguments, chat, or logs. The
 GitHub environment separately holds the least-privilege
 `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` used by Wrangler. The token
 must include Account · Workers Scripts · Edit for the intended account and
 Zone · Workers Routes · Edit scoped only to `bradleyberkman.com`.
 
-`wrangler.main-preview.jsonc` requires the password gate, sends every static
-asset through the Worker, and retains the 200-request UTC-day chat budget. A
-missing password or missing/undersized signing secret fails closed with a
-redacted 503.
-Successful login creates a seven-day `HttpOnly`, `Secure`, `SameSite=Lax`
-cookie. There is intentionally no logout route or failed-login throttle in this
-version.
+`wrangler.main-preview.jsonc` sends every static asset through the Worker and
+sets the 1,000-request UTC-day chat budget.
 
-Changing the shared password controls new logins but does not invalidate an
-already signed browser session. Rotate the session secret whenever all existing
-sessions must end; this invalidates every current cookie. Rotate both secrets
-when replacing access completely.
+`PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET` now signs only the reviewer-feedback
+cookie — the name is left over from the password gate. Rotating it invalidates
+every current reviewer cookie, which is the only reason to rotate it.
 
 ## Activation approval
 
@@ -117,16 +111,14 @@ over cellular rather than home Wi-Fi:
 
 | Check | Expected result |
 | --- | --- |
-| Signed-out apex | `https://bradleyberkman.com/` redirects to `/_portfolio-preview/login` and is marked `noindex, nofollow, noarchive` |
-| Signed-out `www` | `https://www.bradleyberkman.com/` reaches the same password boundary |
+| Apex | `https://bradleyberkman.com/` serves the portfolio with no redirect and no login |
+| `www` | `https://www.bradleyberkman.com/` serves the same, with no login |
 | TLS | Both public hostnames present valid Cloudflare-managed certificates |
-| Wrong password | Generic 401, no session cookie, and no configuration detail |
-| Correct password | Redirects to the requested same-origin path and sets the seven-day secure cookie |
-| Protected asset | Loads only after authentication and retains the `noindex, nofollow, noarchive` response header |
-| iPhone over cellular | Password form, map, HTML index, and a record in the map reader load outside the home network |
-| Chat | One grounded question reaches `/api/portfolio-chat` after login and remains within the 1,000/day budget |
-| Session | Reload works; a different unsigned browser remains locked out |
-| Secret isolation | No password, signing secret, provider key, question, answer, or IP address appears in client assets or telemetry |
+| Static asset | Loads on first request, with no redirect in front of it |
+| Crawler markers | Portfolio pages carry no exclusion; supporting routes still carry `noindex, nofollow, noarchive` |
+| iPhone over cellular | Map, HTML index, and a record in the map reader load outside the home network |
+| Chat | One grounded question reaches `/api/portfolio-chat` and remains within the 1,000/day budget |
+| Secret isolation | No signing secret, provider key, question, answer, or IP address appears in client assets or telemetry |
 
 Use deterministic local proof for forced budget exhaustion and provider errors;
 do not consume live requests solely to manufacture failure evidence.
@@ -135,7 +127,7 @@ do not consume live requests solely to manufacture failure evidence.
 
 Before deployment, record the currently healthy Worker version as
 `STABLE_VERSION_ID`. If the new version is unhealthy, roll back the dedicated
-Worker and verify both the password boundary and a known-good page:
+Worker and verify a known-good page:
 
 ```sh
 npx wrangler rollback "$STABLE_VERSION_ID" \

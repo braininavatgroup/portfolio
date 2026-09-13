@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Pull reviewer notes off the password-protected preview, or mint a reviewer link.
+// Pull reviewer notes off the deployed site, or mint a reviewer link.
 //
 //   node scripts/portfolio-feedback.mjs                 # markdown digest
 //   node scripts/portfolio-feedback.mjs --json          # raw notes

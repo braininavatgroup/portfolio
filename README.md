@@ -107,9 +107,9 @@ configuration: model `gpt-5.6-sol` with low reasoning and low verbosity, a
 1,000-request UTC-day Durable Object budget, its SQLite migrations, and the
 `bradleyberkman.com` plus `www.bradleyberkman.com` Cloudflare Worker Routes in
 front of the zone's existing proxied web records. It declares `OPENAI_API_KEY`
-as a required encrypted Worker secret. The password form the Worker's name
-refers to is off — `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is `false`, so the
-name is historical and the site is open. Its CI deployment job consumes the
+as a required encrypted Worker secret. The Worker's name is historical: the
+password gate it refers to was removed in PER-16, and the site is open. Its CI
+deployment job consumes the
 exact `dist/` artifact already proven by CI; that deployment job stays dormant
 unless the repository variable
 `PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED` is explicitly set to
@@ -215,9 +215,10 @@ npm run test:rendered
 The code lowers scene complexity, caps device pixel ratio, and removes ambient motion before dropping the 3D scene. Final performance proof still requires representative physical devices.
 
 This repository serves `bradleyberkman.com` and `www.bradleyberkman.com` from
-the `bradley-portfolio-main-preview` Worker, configured above. The password gate
-its name refers to is off. Chat-specific preview access was retired by BIV-321,
-and the bounded single-operator Workers.dev preview was deleted under PER-12.
+the `bradley-portfolio-main-preview` Worker, configured above. Nothing gates it.
+Chat-specific preview access was retired by BIV-321, the bounded single-operator
+Workers.dev preview was deleted under PER-12, and the main-preview password gate
+was removed under PER-16.
 
 ## Media redaction
 

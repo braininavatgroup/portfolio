@@ -42,9 +42,7 @@ function marker(response: Response) {
 describe("public portfolio search and analytics policy", () => {
   it("marks public portfolio documents external once the login is removed", async () => {
     for (const host of ["bradleyberkman.com", "www.bradleyberkman.com"]) {
-      const response = await withPublicPortfolio(
-        new Request(`https://${host}/privacy`),
-        { PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false" },
+      const response = await withPublicPortfolio(new Request(`https://${host}/privacy`),
         html,
       );
 
@@ -53,30 +51,19 @@ describe("public portfolio search and analytics policy", () => {
     }
   });
 
-  it("leaves the marker to the password gate while the login is required", async () => {
-    const response = await withPublicPortfolio(
-      new Request("https://bradleyberkman.com/"),
-      { PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "true" },
-      html,
-    );
-
-    expect(marker(response)).toBeNull();
-  });
 
   it("keeps local development and workers.dev previews unmarked", async () => {
     for (const url of [
       "http://localhost:5173/",
       "https://bradley-portfolio-main-preview.workers.dev/",
     ]) {
-      const response = await withPublicPortfolio(new Request(url), {}, html);
+      const response = await withPublicPortfolio(new Request(url), html);
       expect(marker(response)).toBeNull();
     }
   });
 
   it("does not rewrite a non-HTML public response", async () => {
-    const response = await withPublicPortfolio(
-      new Request("https://bradleyberkman.com/api/portfolio-chat"),
-      {},
+    const response = await withPublicPortfolio(new Request("https://bradleyberkman.com/api/portfolio-chat"),
       async () => Response.json({ ok: true }),
     );
 
@@ -93,9 +80,7 @@ describe("public portfolio search and analytics policy", () => {
       "/_portfolio-feedback/notes",
       "/_portfolio-preview/login",
     ]) {
-      const response = await withPublicPortfolio(
-        new Request(`https://bradleyberkman.com${pathname}`),
-        { PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED: "false" },
+      const response = await withPublicPortfolio(new Request(`https://bradleyberkman.com${pathname}`),
         html,
       );
 

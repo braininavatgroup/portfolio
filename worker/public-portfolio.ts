@@ -1,19 +1,12 @@
 // What the public portfolio exposes to search engines and to Clarity.
 //
-// While `PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED` is `true`, the password
-// gate marks every response `noindex` and every document `preview`, so this
-// layer has nothing to add. Once the gate is off, the portfolio pages are
-// public: they carry no crawler exclusion, and eligible documents on the
-// public hostnames carry the `external` marker that lets Clarity start.
+// The portfolio pages are public: they carry no crawler exclusion, and eligible
+// documents on the public hostnames carry the `external` marker that lets
+// Clarity start.
 //
-// Supporting routes keep their exclusion in both modes. They are Bradley's
-// working surfaces, not portfolio pages, so they stay out of search results
-// and out of the visitor dataset whether or not a password gate is in front
-// of them.
-
-export interface PublicPortfolioEnv {
-  PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED?: string;
-}
+// Supporting routes keep their exclusion. They are Bradley's working surfaces,
+// not portfolio pages, so they stay out of search results and out of the
+// visitor dataset.
 
 export const PUBLIC_PORTFOLIO_HOSTS = new Set([
   "bradleyberkman.com",
@@ -29,6 +22,9 @@ const SUPPORTING_ROUTES = new Set([
   "/design",
 ]);
 
+// `/_portfolio-preview/` served the retired password gate (PER-16). It stays
+// listed because historical analytics rows still carry those paths, and a
+// prefix that matches nothing costs nothing.
 const SUPPORTING_PREFIXES = ["/_portfolio-feedback/", "/_portfolio-preview/"];
 
 export function isSupportingRoute(pathname: string) {
@@ -70,9 +66,11 @@ export function excludeFromSearch(response: Response) {
   });
 }
 
+// No env parameter: what this layer decided from the environment was whether the
+// password gate owned the crawler markers. The gate is gone (PER-16), so the
+// decision is now purely about the hostname.
 export async function withPublicPortfolio(
   request: Request,
-  env: PublicPortfolioEnv,
   next: () => Promise<Response>,
 ): Promise<Response> {
   const url = new URL(request.url);
@@ -82,12 +80,8 @@ export async function withPublicPortfolio(
     return excludeFromSearch(response);
   }
 
-  // The password gate owns both markers while it is on, and local development
-  // and workers.dev previews are never the public portfolio.
-  if (
-    env.PORTFOLIO_MAIN_PREVIEW_PASSWORD_REQUIRED === "true" ||
-    !PUBLIC_PORTFOLIO_HOSTS.has(url.hostname.toLowerCase())
-  ) {
+  // Local development and workers.dev previews are never the public portfolio.
+  if (!PUBLIC_PORTFOLIO_HOSTS.has(url.hostname.toLowerCase())) {
     return response;
   }
 
