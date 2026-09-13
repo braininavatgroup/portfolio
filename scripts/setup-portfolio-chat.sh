@@ -235,13 +235,13 @@ if confirm "Configure the deployed site now?"; then
   printf '%s' "$OPENAI_PRODUCTION_KEY" | \
     node "$SCRIPT_DIR/portfolio-chat-setup-helper.mjs" validate-openai-key
   warn "Uploading the secret creates and deploys a new Worker version immediately."
-  if confirm "Upload this key to the bradley-portfolio-preview Worker?"; then
+  if confirm "Upload this key to the bradley-portfolio-main-preview Worker?"; then
     if ! (cd "$REPO_ROOT" && npx wrangler whoami); then
       say "Cloudflare needs authentication; opening its login flow."
       (cd "$REPO_ROOT" && npx wrangler login)
     fi
     printf '%s\n' "$OPENAI_PRODUCTION_KEY" | \
-      (cd "$REPO_ROOT" && npx wrangler secret put OPENAI_API_KEY --config wrangler.preview.jsonc)
+      (cd "$REPO_ROOT" && npx wrangler secret put OPENAI_API_KEY --config wrangler.main-preview.jsonc)
     PRODUCTION_CONFIGURED=1
   else
     SKIPPED+=("production Worker key upload (rerun npm run setup:chat)")
@@ -254,5 +254,5 @@ fi
 finish
 note "Development: every workspace on this Mac can now run npm run dev."
 if (( PRODUCTION_CONFIGURED )); then
-  note "Production: the deployed preview Worker now has its isolated key."
+  note "Production: the deployed Worker now has its isolated key."
 fi
