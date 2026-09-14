@@ -193,19 +193,35 @@ export function createPortfolioChatRuntime({
           message: "Ask the portfolio is not configured.",
         });
       }
-      const actorKey = await deriveActorKey(
-        config.identifierSecret,
-        connectingIp,
-      );
-      const session = await mintSession({
-        secret: config.identifierSecret!,
-        actorKey,
-        now: now(),
-      });
-      return withSession(
-        jsonResponse(200, { required: true, expiresAt: session.expiresAt }),
-        session,
-      );
+      // The Guide calls this before anyone types, so an unexpected failure here
+      // is the visitor's first impression. Contained, it is the same designed
+      // 503 the chat guard returns; uncontained, it escapes the Worker and
+      // Cloudflare answers with its own error page instead.
+      try {
+        const actorKey = await deriveActorKey(
+          config.identifierSecret,
+          connectingIp,
+        );
+        const session = await mintSession({
+          secret: config.identifierSecret!,
+          actorKey,
+          now: now(),
+        });
+        return withSession(
+          jsonResponse(200, { required: true, expiresAt: session.expiresAt }),
+          session,
+        );
+      } catch {
+        safeRecord({
+          event: "portfolio_chat_preflight",
+          requestId: randomId(),
+          outcome: "misconfigured",
+        });
+        return jsonResponse(503, {
+          code: "misconfigured",
+          message: "Ask the portfolio is not configured.",
+        });
+      }
     },
 
     async handleChat(request: Request) {
