@@ -72,9 +72,12 @@ describe("portfolio chat runtime", () => {
       code: "misconfigured",
       message: "Ask the portfolio is not configured.",
     });
+    // The class, so an operator can tell a clock failure from a crypto one;
+    // never the message, which this path could quote the secret into.
     expect(record).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: "misconfigured" }),
+      expect.objectContaining({ outcome: "misconfigured", cause: "Error" }),
     );
+    expect(JSON.stringify(record.mock.calls)).not.toContain("clock unavailable");
   });
 
   it("fails closed without provider configuration", async () => {

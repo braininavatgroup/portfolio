@@ -19,6 +19,12 @@ export type PortfolioChatLaunchEvent = {
     | "rate_limited"
     | "budget_exhausted"
     | "misconfigured";
+  /**
+   * The thrown error's class, when the outcome came from a caught failure
+   * rather than a decision. The class alone, never the message: a message can
+   * quote its input, and this path handles the identifier secret.
+   */
+  cause?: string;
 };
 
 type LaunchGuardOptions = {

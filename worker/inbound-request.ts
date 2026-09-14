@@ -17,6 +17,12 @@ const PHANTOM_BODY_HEADERS = ["content-length", "transfer-encoding"];
 /**
  * `request` with any phantom body declaration removed. Bodied methods keep
  * their headers untouched, because there the declaration is true.
+ *
+ * Everything else about the request has to survive the rebuild. `new Request()`
+ * copies neither the redirect mode — the runtime hands in `manual`, and the
+ * constructor default `follow` would swallow a redirect the visitor should
+ * receive — nor the abort signal, nor the Cloudflare `cf` metadata that insight
+ * geo reads and deliberately never takes from headers.
  */
 export function withoutPhantomBody(request: Request) {
   if (request.method !== "GET" && request.method !== "HEAD") return request;
@@ -25,5 +31,19 @@ export function withoutPhantomBody(request: Request) {
   }
   const headers = new Headers(request.headers);
   for (const header of PHANTOM_BODY_HEADERS) headers.delete(header);
-  return new Request(request.url, { method: request.method, headers });
+  const repaired = new Request(request.url, {
+    method: request.method,
+    headers,
+    redirect: request.redirect,
+    signal: request.signal,
+  });
+  const cf = (request as { cf?: unknown }).cf;
+  if (cf !== undefined) {
+    Object.defineProperty(repaired, "cf", {
+      value: cf,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  return repaired;
 }
