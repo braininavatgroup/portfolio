@@ -47,6 +47,36 @@ function budgetNamespace(
 }
 
 describe("portfolio chat runtime", () => {
+  // The session route is the one surface a visitor reaches before typing. An
+  // unhandled throw there escaped the Worker and became Cloudflare's own 1101
+  // page, so the designed failure never reached the Guide.
+  it("contains an unexpected session failure instead of throwing", async () => {
+    const record = vi.fn();
+    const runtime = createPortfolioChatRuntime({
+      env: {
+        PORTFOLIO_CHAT_SESSION_REQUIRED: "true",
+        PORTFOLIO_CHAT_IDENTIFIER_SECRET:
+          "privacy-safe-identifier-secret-32-chars",
+      },
+      now: () => {
+        throw new Error("clock unavailable");
+      },
+      randomId: () => "session-request",
+      record,
+    });
+
+    const response = await runtime.handleSession(sessionRequest());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      code: "misconfigured",
+      message: "Ask the portfolio is not configured.",
+    });
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "misconfigured" }),
+    );
+  });
+
   it("fails closed without provider configuration", async () => {
     const getProvider = vi.fn(() => {
       throw new Error("provider must stay dormant");

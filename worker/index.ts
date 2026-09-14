@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { withoutPhantomBody } from "./inbound-request";
 import {
   withMainPreviewPassword,
   type MainPreviewAuthEnv,
@@ -65,7 +66,15 @@ async function serveApplication(
 }
 
 const worker = {
-  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    inbound: Request,
+    env: WorkerEnv,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
+    // A bodyless GET or HEAD that still declares Content-Length made the app
+    // router throw, which Cloudflare answered with its own error page. Dropping
+    // the claim here keeps every layer below working on a coherent request.
+    const request = withoutPhantomBody(inbound);
     // Bradley's feedback digest authenticates with its own token, outside the
     // password gate. Reviewer links and note routes stay inside it.
     const admin = await handlePortfolioFeedbackAdmin(request, env);
