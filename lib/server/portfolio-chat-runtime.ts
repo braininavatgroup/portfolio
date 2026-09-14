@@ -211,11 +211,12 @@ export function createPortfolioChatRuntime({
           jsonResponse(200, { required: true, expiresAt: session.expiresAt }),
           session,
         );
-      } catch {
+      } catch (error) {
         safeRecord({
           event: "portfolio_chat_preflight",
           requestId: randomId(),
           outcome: "misconfigured",
+          cause: error instanceof Error ? error.name : "unknown",
         });
         return jsonResponse(503, {
           code: "misconfigured",

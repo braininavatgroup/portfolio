@@ -54,6 +54,59 @@ describe("withoutPhantomBody", () => {
     expect(shaped.headers.get("cookie")).toBe("pc_session=v1");
   });
 
+  // `new Request()` copies none of these, and the repaired request is the only
+  // one the rest of the Worker ever sees.
+  it("keeps the redirect mode the Workers runtime hands in", () => {
+    const shaped = withoutPhantomBody(
+      new Request("https://bradleyberkman.com/privacy", {
+        method: "GET",
+        headers: { "content-length": "0" },
+        redirect: "manual",
+      }),
+    );
+
+    expect(shaped.redirect).toBe("manual");
+  });
+
+  it("keeps the abort signal so a disconnect still cancels the render", () => {
+    const controller = new AbortController();
+    const shaped = withoutPhantomBody(
+      inbound({ headers: { "content-length": "0" }, signal: controller.signal }),
+    );
+
+    expect(shaped.signal.aborted).toBe(false);
+    controller.abort();
+    expect(shaped.signal.aborted).toBe(true);
+  });
+
+  // No GET-path reader depends on this today; it is pinned so a repaired
+  // request stays indistinguishable from every other one.
+  it("re-attaches the Cloudflare request metadata", () => {
+    const request = inbound({ headers: { "content-length": "0" } });
+    Object.defineProperty(request, "cf", {
+      value: { city: "New York City", region: "New York", metroCode: "501" },
+      enumerable: true,
+      configurable: true,
+    });
+
+    const shaped = withoutPhantomBody(request);
+
+    expect((shaped as { cf?: unknown }).cf).toEqual({
+      city: "New York City",
+      region: "New York",
+      metroCode: "501",
+    });
+  });
+
+  it("repairs a request that carries no cf metadata", () => {
+    const shaped = withoutPhantomBody(
+      inbound({ headers: { "content-length": "0" } }),
+    );
+
+    expect((shaped as { cf?: unknown }).cf).toBeUndefined();
+    expect(shaped.headers.get("content-length")).toBeNull();
+  });
+
   it("leaves an untouched request as the same object", () => {
     const request = inbound();
 
