@@ -79,8 +79,8 @@ describe("withoutPhantomBody", () => {
     expect(shaped.signal.aborted).toBe(true);
   });
 
-  // Insight geo reads `request.cf` alone and never the headers, so losing it
-  // silently blanks region, city and metro for every repaired request.
+  // No GET-path reader depends on this today; it is pinned so a repaired
+  // request stays indistinguishable from every other one.
   it("re-attaches the Cloudflare request metadata", () => {
     const request = inbound({ headers: { "content-length": "0" } });
     Object.defineProperty(request, "cf", {
