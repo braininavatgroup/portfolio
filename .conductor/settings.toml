@@ -1,8 +1,16 @@
 "$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
 
+# BIV-348: this repo had no archive hook, so its archived workspaces
+# accumulated 20 GB of dead node_modules with no cleanup at all.
+
+[git]
+archive_on_merge = true
+delete_branch_on_archive = true
+
 [scripts]
 setup = "bash scripts/bootstrap-worktree.sh"
 run_mode = "concurrent"
+archive = "./scripts/conductor-archive.sh"
 
 [scripts.run.dev]
 available_in = [ "local" ]

@@ -29,6 +29,7 @@ jobs:
       - run: npm test
       - run: npm run test:dev-start
       - run: npm run test:worktree-bootstrap
+      - run: npm run test:conductor-archive
       # test:rendered runs the full build, and that build is the artifact the
       # deploy workflow ships. The Turnstile site key is public and compiled
       # into the client bundle, so it has to be present here. Empty until the
