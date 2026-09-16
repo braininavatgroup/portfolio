@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit",
     "test:dev-start": "node --test tests/dev-server-start.test.mjs",
     "test:worktree-bootstrap": "node --test tests/worktree-bootstrap.test.mjs",
+    "test:conductor-archive": "bash scripts/conductor-archive.test.sh",
     "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/main-preview-worker-config.test.mjs tests/main-preview-workflow.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern worker-configuration.main-preview.d.ts",
     "eval:chat": "tsx scripts/run-portfolio-chat-eval.ts",
