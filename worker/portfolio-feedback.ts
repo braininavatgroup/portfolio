@@ -1,4 +1,4 @@
-// Reviewer feedback on the password-protected preview.
+// Reviewer feedback on the deployed site.
 //
 // A design partner opens the site through a link carrying `?r=<code>`. The
 // worker turns that into a signed, readable `portfolio_reviewer` cookie and
@@ -8,9 +8,12 @@
 // later session, and no other reviewer, ever sees a note. Bradley reads the
 // whole ledger through the bearer-protected admin route.
 //
-// `withPortfolioFeedback` runs inside the password gate: the reviewer routes
-// require both the preview session and the reviewer cookie. The admin route
-// runs outside it, authenticated by its own token, so a script can pull notes.
+// There is NO second layer in front of these routes. PER-16 removed the
+// main-preview password gate, so the reviewer routes are protected by exactly
+// two things: `PORTFOLIO_FEEDBACK_ENABLED` must be "true" (it is "false" on the
+// deployed Worker, which 404s them outright), and a valid signed reviewer
+// cookie. The admin route is authenticated by its own bearer token, so a script
+// can pull notes. Do not assume a preview session is also required.
 
 import {
   feedbackNotesToMarkdown,
@@ -137,7 +140,8 @@ async function handleReviewerLink(url: URL, secret: string) {
 }
 
 /**
- * Reviewer-facing half. Mount inside the password gate.
+ * Reviewer-facing half. Nothing gates this but the signed reviewer cookie and
+ * `PORTFOLIO_FEEDBACK_ENABLED`.
  */
 export async function withPortfolioFeedback(
   request: Request,

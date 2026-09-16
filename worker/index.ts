@@ -2,14 +2,11 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { withoutPhantomBody } from "./inbound-request";
+import { withPublicPortfolio } from "./public-portfolio";
 import {
-  withMainPreviewPassword,
-  type MainPreviewAuthEnv,
-} from "./main-preview-auth";
-import {
-  withPublicPortfolio,
-  type PublicPortfolioEnv,
-} from "./public-portfolio";
+  withDesignGallery,
+  type DesignGalleryEnv,
+} from "./design-gallery";
 import {
   handlePortfolioFeedbackAdmin,
   withPortfolioFeedback,
@@ -21,9 +18,8 @@ export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
-  MainPreviewAuthEnv &
   PortfolioFeedbackEnv &
-  PublicPortfolioEnv;
+  DesignGalleryEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 // Image security config. SVG sources with .svg extension auto-skip the
@@ -75,13 +71,13 @@ const worker = {
     // router throw, which Cloudflare answered with its own error page. Dropping
     // the claim here keeps every layer below working on a coherent request.
     const request = withoutPhantomBody(inbound);
-    // Bradley's feedback digest authenticates with its own token, outside the
-    // password gate. Reviewer links and note routes stay inside it.
+    // The feedback digest authenticates with its own bearer token; every other
+    // route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);
     if (admin) return admin;
-    return withMainPreviewPassword(request, env, () =>
-      withPortfolioFeedback(request, env, () =>
-        withPublicPortfolio(request, env, () =>
+    return withPortfolioFeedback(request, env, () =>
+      withPublicPortfolio(request, () =>
+        withDesignGallery(request, env, () =>
           serveApplication(request, env, ctx),
         ),
       ),

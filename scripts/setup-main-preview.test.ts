@@ -241,15 +241,12 @@ describe("main preview setup wizard", () => {
   });
 
   it("reuses GitHub auth, streams secrets, and stays dormant by default", async () => {
-    const password = "owl7";
     const openAiKey = "sk-production-secret-value";
     const cloudflareToken = "cloudflare-token-secret-value";
     const accountId = "0123456789abcdef0123456789abcdef";
     const { calls, stdout, stderr } = await runWizard(
       [
         "",
-        password,
-        password,
         openAiKey,
         "y",
         accountId,
@@ -264,7 +261,7 @@ describe("main preview setup wizard", () => {
     expect(calls).not.toContain("gh auth login");
     expect(calls).not.toContain("gh auth setup-git");
     expect(calls).toContain("git push -u origin HEAD");
-    expect(calls).toContain("wrangler secret put PORTFOLIO_MAIN_PREVIEW_PASSWORD");
+    expect(calls).not.toContain("PORTFOLIO_MAIN_PREVIEW_PASSWORD");
     expect(calls).toContain("wrangler secret put PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET");
     expect(calls).toContain("wrangler secret put OPENAI_API_KEY");
     expect(calls).toContain(
@@ -281,7 +278,7 @@ describe("main preview setup wizard", () => {
     );
 
     const observableOutput = `${stdout}\n${stderr}\n${calls}`;
-    for (const secret of [password, openAiKey, cloudflareToken]) {
+    for (const secret of [openAiKey, cloudflareToken]) {
       expect(observableOutput).not.toContain(secret);
     }
   });
@@ -290,8 +287,6 @@ describe("main preview setup wizard", () => {
     const { calls } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",
@@ -317,8 +312,6 @@ describe("main preview setup wizard", () => {
     const { calls, stdout } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",
@@ -388,8 +381,6 @@ describe("main preview setup wizard", () => {
     const { calls, stderr, exitCode } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",
@@ -413,8 +404,6 @@ describe("main preview setup wizard", () => {
     const { calls, gateState, stdout, stderr, exitCode } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",
@@ -446,8 +435,6 @@ describe("main preview setup wizard", () => {
     const { calls, gateState, stdout, stderr, exitCode } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",
@@ -477,8 +464,6 @@ describe("main preview setup wizard", () => {
     const { stderr, exitCode } = await runWizard(
       [
         "",
-        "draft-password-123456789",
-        "draft-password-123456789",
         "sk-production-secret-value",
         "y",
         "0123456789abcdef0123456789abcdef",

@@ -3,7 +3,7 @@
 Source: [`components/PortfolioFeedback.tsx`](../../components/PortfolioFeedback.tsx) ·
 No `/design` section (see Pitfalls) · Tests: `components/PortfolioFeedback.test.tsx`
 
-Reviewer notes for Bradley on the password-protected preview. Mounted once at the end of
+Reviewer notes for Bradley on the deployed site. Mounted once at the end of
 `PortfolioExperience`, it renders only when the worker cookie and URL name match.
 A `?r=<code>` link creates both ([worker](../../worker/portfolio-feedback.ts)); an
 ordinary site URL stays clean even when the browser retains an older cookie.

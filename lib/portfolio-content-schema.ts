@@ -1,8 +1,8 @@
 // Canonical schema for content/portfolio-content.json — the single store for
 // every user-facing string on the public portfolio. This module owns the
 // document types and validation. It has no browser, filesystem, or Git
-// dependency. Edits to the document are made by hand (see
-// docs/content/copy-deck.md); validation runs before anything renders.
+// dependency. Edits to the document are made by hand in
+// content/portfolio-content.json; validation runs before anything renders.
 
 import {
   portfolioContactStructure,

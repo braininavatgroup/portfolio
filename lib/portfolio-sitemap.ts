@@ -3,7 +3,7 @@ import { isSupportingRoute } from "../worker/public-portfolio";
 
 // The sitemap lists the pages the site wants found: the home page, every
 // record and theme, the privacy notice, and the demos. Supporting surfaces
-// (design gallery, copy deck, feedback and preview routes) are excluded here
+// (design gallery, feedback and preview routes) are excluded here
 // and also carry `x-robots-tag: noindex` from the worker, so the two rules
 // cannot disagree about a page.
 

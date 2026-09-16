@@ -15,9 +15,9 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const TAILSCALE_DEV_HOST = "bradleys-macbook-air.tail847e36.ts.net";
 
 // Reviewer feedback runs locally so the `?r=<code>` flow can be previewed.
-// These two values sign and read local cookies and the local digest only;
-// the password gate is off in development and the real Worker holds its own
-// secrets. Override either through the environment when needed.
+// These two values sign and read local cookies and the local digest only; the
+// real Worker holds its own secrets. Override either through the environment
+// when needed.
 const LOCAL_FEEDBACK_SESSION_SECRET =
   process.env.PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET ??
   "local-development-only-reviewer-cookie-signing-secret";
@@ -35,6 +35,7 @@ const localBindingConfig = {
     OPENAI_PORTFOLIO_REASONING_EFFORT: "low",
     OPENAI_PORTFOLIO_VERBOSITY: "low",
     PORTFOLIO_FEEDBACK_ENABLED: "true",
+    PORTFOLIO_DESIGN_GALLERY_ENABLED: "true",
     PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET: LOCAL_FEEDBACK_SESSION_SECRET,
     PORTFOLIO_FEEDBACK_ADMIN_TOKEN: LOCAL_FEEDBACK_ADMIN_TOKEN,
   },
