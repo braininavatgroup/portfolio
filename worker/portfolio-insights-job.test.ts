@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { handlePortfolioInsights } from "./portfolio-insights-job";
+import { describeRun } from "./portfolio-insights-job";
 import { INSIGHTS_PREFIX } from "./portfolio-insights-store";
+
+type Route = typeof import("./portfolio-insights-job").handlePortfolioInsights;
+type Run = Parameters<typeof import("./portfolio-insights-job").describeRun>[0];
 
 // Failure this pins: the dashboard names the person behind every assigned
 // campaign code. Before BIV-527 that join ran only on Bradley's Mac; it now
@@ -98,10 +101,14 @@ function stubCerts(keys: Array<JsonWebKey & { kid: string }> = [{ ...jwk, kid: "
 let team: string;
 let environment: Record<string, unknown>;
 let store: ReturnType<typeof fakeBucket>;
+let handlePortfolioInsights: Route;
 
-beforeEach(() => {
-  // A fresh team per test: the module caches signing keys by team, so a shared
-  // one would let an earlier test's keys answer a later test's request.
+beforeEach(async () => {
+  // The module caches signing keys, and throttles refetching them, in module
+  // state. Each test gets its own copy of that state, so one test's cache and
+  // throttle can never answer or block the next one's request.
+  vi.resetModules();
+  ({ handlePortfolioInsights } = await import("./portfolio-insights-job"));
   team = `team-${crypto.randomUUID()}.cloudflareaccess.com`;
   store = fakeBucket({ [`${INSIGHTS_PREFIX}dashboard.html`]: DASHBOARD });
   environment = {
@@ -116,8 +123,7 @@ beforeEach(() => {
 const request = (url: string, headers: Record<string, string> = {}, method = "GET") =>
   new Request(url, { method, headers });
 
-const call = (input: Request) =>
-  handlePortfolioInsights(input, environment as Parameters<typeof handlePortfolioInsights>[1]);
+const call = (input: Request) => handlePortfolioInsights(input, environment as Parameters<Route>[1]);
 
 describe("insights dashboard route", () => {
   it("serves the dashboard to a valid assertion from an allowed identity", async () => {
@@ -291,11 +297,99 @@ describe("insights dashboard route", () => {
 
   // A failed certs fetch must not become a cached refusal for the isolate's life.
   it("retries the signing keys after a failed fetch", async () => {
-    const failing = vi.fn(async () => new Response("down", { status: 500 }));
-    vi.stubGlobal("fetch", failing);
-    const headers = { "cf-access-jwt-assertion": await assertion({ team, aud: "aud-tag" }) };
-    expect((await call(request("https://insights.braininavat.dance/", headers)))?.status).toBe(403);
-    stubCerts();
-    expect((await call(request("https://insights.braininavat.dance/", headers)))?.status).toBe(200);
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("down", { status: 500 })));
+      const headers = { "cf-access-jwt-assertion": await assertion({ team, aud: "aud-tag" }) };
+      expect((await call(request("https://insights.braininavat.dance/", headers)))?.status).toBe(403);
+      stubCerts();
+      vi.advanceTimersByTime(60_000);
+      expect((await call(request("https://insights.braininavat.dance/", headers)))?.status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The route must assume unauthenticated requests reach it, so a token naming
+  // a `kid` the cache does not hold cannot cost one outbound fetch each: that
+  // would be a request amplifier anyone could drive. A rotation is still picked
+  // up on the next attempt the throttle allows, not only when the TTL expires.
+  it("does not refetch the signing keys for every unknown kid", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetched = stubCerts();
+      // One fetch to warm the cache with a request that succeeds.
+      expect(
+        (await call(
+          request("https://insights.braininavat.dance/", {
+            "cf-access-jwt-assertion": await assertion({ team, aud: "aud-tag" }),
+          }),
+        ))?.status,
+      ).toBe(200);
+      expect(fetched).toHaveBeenCalledTimes(1);
+
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const response = await call(
+          request("https://insights.braininavat.dance/", {
+            "cf-access-jwt-assertion": await assertion({ team, aud: "aud-tag", kid: `invented-${attempt}` }),
+          }),
+        );
+        expect(response?.status).toBe(403);
+      }
+      expect(fetched).toHaveBeenCalledTimes(1);
+
+      // Past the throttle, one more attempt is allowed through.
+      vi.advanceTimersByTime(60_000);
+      await call(
+        request("https://insights.braininavat.dance/", {
+          "cf-access-jwt-assertion": await assertion({ team, aud: "aud-tag", kid: "invented-again" }),
+        }),
+      );
+      expect(fetched).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+// Failure this pins: the scheduled run's log is the only record of what the
+// edge read, and the report it summarizes names the people behind assigned
+// campaign codes. An Airtable configuration error quotes the codes that are
+// duplicated or malformed, and a campaign code is the identifier the whole
+// boundary exists to keep out of shared places — including a Worker log.
+//
+// Owner: worker/portfolio-insights-job.ts. Retire when the run stops reading
+// Airtable.
+describe("the scheduled run's log", () => {
+  const run = (sources: Record<string, unknown>, exitCode = 0) =>
+    describeRun({ exitCode, snapshot: { sources } } as unknown as Run);
+
+  it("says why each source is not fresh", () => {
+    expect(
+      run({
+        cloudflare: { status: "fresh" },
+        clarity: { status: "stale", error: "Clarity returned 429" },
+        insights: { status: "unavailable", error: "Analytics Engine unavailable" },
+      }),
+    ).toEqual({
+      exitCode: 0,
+      sources: {
+        cloudflare: "fresh",
+        clarity: "stale: Clarity returned 429",
+        insights: "unavailable: Analytics Engine unavailable",
+      },
+    });
+  });
+
+  it("keeps an Airtable configuration error's campaign codes out of the log", () => {
+    const logged = run({
+      airtable: { status: "unavailable", error: "duplicate Portfolio Campaign Code: alexcode01" },
+    });
+    expect(logged.sources.airtable).toBe("unavailable");
+    expect(JSON.stringify(logged)).not.toContain("alexcode01");
+  });
+
+  it("carries the exit code a run that filled nothing returns", () => {
+    expect(run({}, 1).exitCode).toBe(1);
   });
 });

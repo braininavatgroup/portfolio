@@ -45,9 +45,18 @@ const ACCESS_JWT_HEADER = "cf-access-jwt-assertion";
 const ACCESS_JWT_COOKIE = "CF_Authorization";
 /** Access publishes signing keys here and rotates them; a short cache absorbs a day of requests. */
 const CERTS_TTL_MS = 3_600_000;
+/**
+ * The shortest gap between two fetches prompted by a `kid` the cache does not
+ * hold. Without it, any request naming an unknown `kid` would cost one
+ * outbound fetch — and this route must assume unauthenticated requests reach
+ * it, so that is a 1:1 amplifier anyone could drive. A rotation is still
+ * picked up within this gap rather than waiting out the full TTL.
+ */
+const CERTS_MISS_REFETCH_MS = 60_000;
 
 type CachedCerts = { at: number; keys: Map<string, CryptoKey> };
-let certsCache: { team: string; value: Promise<CachedCerts> } | null = null;
+let certsCache: { team: string; keys: Map<string, CryptoKey>; at: number } | null = null;
+let certsAttemptedAt = 0;
 
 function base64UrlToBytes(value: string) {
   if (!/^[A-Za-z0-9_-]*$/u.test(value)) return null;
@@ -83,21 +92,19 @@ async function loadCerts(team: string): Promise<CachedCerts> {
 }
 
 async function signingKey(team: string, kid: string) {
-  const cached = certsCache?.team === team ? certsCache.value : null;
-  if (cached) {
-    const certs = await cached.catch(() => null);
-    if (certs && Date.now() - certs.at < CERTS_TTL_MS && certs.keys.has(kid)) return certs.keys.get(kid) ?? null;
-  }
-  // A key this isolate has not seen — a rotation, or a first request — is worth
-  // one fetch; a failed fetch must not poison the cache for the next request.
-  const pending = loadCerts(team);
-  certsCache = { team, value: pending };
-  try {
-    return (await pending).keys.get(kid) ?? null;
-  } catch (error) {
-    certsCache = null;
-    throw error;
-  }
+  const cached = certsCache?.team === team && Date.now() - certsCache.at < CERTS_TTL_MS ? certsCache : null;
+  if (cached?.keys.has(kid)) return cached.keys.get(kid) ?? null;
+  // A `kid` the cache does not hold is either a rotation or a forgery, and
+  // nothing in the token says which. Refetching settles it, but only as often
+  // as CERTS_MISS_REFETCH_MS allows, so a stream of invented `kid`s cannot turn
+  // into a stream of outbound requests.
+  if (Date.now() - certsAttemptedAt < CERTS_MISS_REFETCH_MS) return null;
+  certsAttemptedAt = Date.now();
+  // A failed fetch leaves the previous keys in place rather than clearing them:
+  // they are still the right answer for every token signed before the outage.
+  const fresh = await loadCerts(team);
+  certsCache = { team, keys: fresh.keys, at: fresh.at };
+  return fresh.keys.get(kid) ?? null;
 }
 
 function assertionFrom(request: Request) {
@@ -219,6 +226,23 @@ export async function handlePortfolioInsights(
   return new Response(request.method === "HEAD" ? null : page.body, {
     headers: privateHeaders("text/html; charset=utf-8"),
   });
+}
+
+/**
+ * What a run's log may say. The report itself names assigned links and the
+ * people they were sent to, so the log carries each source's state and why it
+ * is not fresh — never its value. The Airtable source is the exception: its
+ * configuration errors quote the campaign codes that are duplicated or
+ * malformed, and a campaign code is the identifier the whole privacy boundary
+ * is about, so that one reports its status alone.
+ */
+export function describeRun(result: Awaited<ReturnType<typeof runScheduledInsights>>) {
+  const sources = Object.entries(result.snapshot?.sources ?? {}).map(([name, value]) => {
+    const state = value as { status?: string; error?: string };
+    const reason = name === "airtable" ? undefined : state.error;
+    return [name, reason ? `${state.status ?? "unknown"}: ${reason}` : (state.status ?? "unknown")];
+  });
+  return { exitCode: result.exitCode, sources: Object.fromEntries(sources) };
 }
 
 /** How many days a scheduled run reads. The report accepts 1 to 30. */

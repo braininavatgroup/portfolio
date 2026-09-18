@@ -13,6 +13,7 @@ import {
   type PortfolioFeedbackEnv,
 } from "./portfolio-feedback";
 import {
+  describeRun,
   handlePortfolioInsights,
   runScheduledInsights,
   type PortfolioInsightsEnv,
@@ -95,27 +96,17 @@ const worker = {
     );
   },
 
-  // The daily insights run. A failure is this run's failure: the previous
-  // dashboard stays served, and each source keeps its own last-known-good
-  // value, so tomorrow's run starts from the same place this one did.
-  async scheduled(_controller: ScheduledController, env: WorkerEnv, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(
-      runScheduledInsights(env).then((result) => {
-        // The report names assigned links, so only the run's shape is logged.
-        console.log(
-          JSON.stringify({
-            job: "portfolio-insights",
-            exitCode: result.exitCode,
-            sources: Object.fromEntries(
-              Object.entries(result.snapshot?.sources ?? {}).map(([name, state]) => [
-                name,
-                (state as { status?: string }).status ?? "unknown",
-              ]),
-            ),
-          }),
-        );
-      }),
-    );
+  // The daily insights run. A partial run is a successful run — each source
+  // keeps its own last-known-good value, and the dashboard says which sections
+  // are stale — but a run that could not fill a dashboard at all is a failure,
+  // and has to surface as one: the route would go on serving yesterday's page
+  // while Cron Triggers showed green.
+  async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
+    const result = await runScheduledInsights(env);
+    console.log(JSON.stringify({ job: "portfolio-insights", ...describeRun(result) }));
+    if (result.exitCode !== 0) {
+      throw new Error("portfolio-insights: no source, current or saved, could fill a dashboard");
+    }
   },
 };
 

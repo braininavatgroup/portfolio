@@ -297,7 +297,31 @@ without its team, audience or allowed identity serves nothing at all.
 Nothing about the run is installed on a machine. The launchd job
 `com.biv.portfolio-insights` and its installer were retired in BIV-527;
 `npm run insights` is now a manual read, not the thing that keeps history
-going.
+going. If that agent turns up still installed somewhere — it would spend 4 of
+Clarity's 10 daily requests alongside the Worker's 4 — unload it by hand, since
+the installer that knew how to is gone:
+
+```sh
+launchctl bootout "gui/$(id -u)/com.biv.portfolio-insights"
+rm -f ~/Library/LaunchAgents/com.biv.portfolio-insights.plist
+```
+
+### What a deploy expects to already exist
+
+`wrangler.main-preview.jsonc` names four things the deploy does not create. A
+missing one fails the whole portfolio deploy, not just the dashboard, so
+provision them before the first candidate that carries this config:
+
+| Thing | Create it with |
+| --- | --- |
+| R2 bucket `biv-portfolio-insights` | `wrangler r2 bucket create biv-portfolio-insights`. Give it no public `r2.dev` URL and no custom domain — the Worker's Access gate would stop being the only way in |
+| DNS record for `insights.braininavat.dance` | A proxied record on zone `braininavat.dance`, landing with its Access application so the hostname is never briefly public |
+| Cloudflare Access application on that hostname | Self-hosted, allow `bradley@braininavat.dance`. Its audience tag becomes `PORTFOLIO_INSIGHTS_ACCESS_AUD` |
+| The four Worker secrets | `wrangler secret put`, as above |
+
+The deploy credential also needs `Workers Routes: Edit` on `braininavat.dance`,
+not only on `bradleyberkman.com`: the Worker now has a route on both zones, and
+a token scoped to one fails on the other.
 
 Set or rotate the Worker's tokens with `wrangler secret put <NAME> --config
 wrangler.main-preview.jsonc`: `CLOUDFLARE_API_TOKEN` (Account Analytics Read
