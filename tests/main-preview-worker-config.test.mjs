@@ -41,7 +41,7 @@ test("the public candidate serves the apex and www routes without a login", asyn
     PORTFOLIO_FEEDBACK_ENABLED: "false",
     PORTFOLIO_INSIGHT_EVENTS_SINK: "analytics-engine",
     PORTFOLIO_INSIGHTS_HOST: "insights.braininavat.dance",
-    PORTFOLIO_INSIGHTS_ACCESS_TEAM: "biv.cloudflareaccess.com",
+    PORTFOLIO_INSIGHTS_ACCESS_TEAM: "maintain-dashboard.cloudflareaccess.com",
     PORTFOLIO_INSIGHTS_ACCESS_EMAILS: "bradley@braininavat.dance",
     PORTFOLIO_INSIGHTS_DAYS: "7",
   });
