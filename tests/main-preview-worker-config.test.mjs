@@ -23,6 +23,11 @@ test("the public candidate serves the apex and www routes without a login", asyn
   assert.deepEqual(config.routes, [
     { pattern: "bradleyberkman.com/*", zone_name: "bradleyberkman.com" },
     { pattern: "www.bradleyberkman.com/*", zone_name: "bradleyberkman.com" },
+    // BIV-527. The insights dashboard answers on a BiV operator hostname, so
+    // the Cloudflare Access application covering it covers nothing a visitor
+    // reaches. Adding an insights path to a bradleyberkman.com route instead
+    // would put an identity-bearing page on an ungated hostname.
+    { pattern: "insights.braininavat.dance/*", zone_name: "braininavat.dance" },
   ]);
   assert.equal(config.domains, undefined);
   assert.equal(config.no_bundle, true);
@@ -35,6 +40,10 @@ test("the public candidate serves the apex and www routes without a login", asyn
     OPENAI_PORTFOLIO_VERBOSITY: "low",
     PORTFOLIO_FEEDBACK_ENABLED: "false",
     PORTFOLIO_INSIGHT_EVENTS_SINK: "analytics-engine",
+    PORTFOLIO_INSIGHTS_HOST: "insights.braininavat.dance",
+    PORTFOLIO_INSIGHTS_ACCESS_TEAM: "maintain-dashboard.cloudflareaccess.com",
+    PORTFOLIO_INSIGHTS_ACCESS_EMAILS: "bradley@braininavat.dance",
+    PORTFOLIO_INSIGHTS_DAYS: "7",
   });
   // BIV-421 activated the first-party insight sink. Rollback is this one value
   // back to "off" with the pin restored; the endpoint then answers 204 and
@@ -61,8 +70,20 @@ test("the public candidate serves the apex and www routes without a login", asyn
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET",
       "PORTFOLIO_FEEDBACK_ADMIN_TOKEN",
       "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
+      "CLOUDFLARE_API_TOKEN",
+      "CLARITY_API_TOKEN",
+      "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
+      "PORTFOLIO_INSIGHTS_ACCESS_AUD",
     ],
   });
+
+  // BIV-527: the daily run that replaced `com.biv.portfolio-insights`, and the
+  // private bucket it keeps its records in. A missing cron leaves the dashboard
+  // frozen at whatever the last run produced, with no error anywhere.
+  assert.deepEqual(config.triggers, { crons: ["10 11 * * *"] });
+  assert.deepEqual(config.r2_buckets, [
+    { binding: "PORTFOLIO_INSIGHTS_STORE", bucket_name: "biv-portfolio-insights" },
+  ]);
   assert.deepEqual(config.durable_objects, {
     bindings: [
       {

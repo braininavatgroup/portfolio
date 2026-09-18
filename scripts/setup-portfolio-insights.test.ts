@@ -12,7 +12,6 @@ import { afterAll, describe, expect, it } from "vitest";
 const scriptUrl = new URL("./setup-portfolio-insights.sh", import.meta.url);
 const feedbackUrl = new URL("./setup-portfolio-feedback.sh", import.meta.url);
 const writerUrl = new URL("./store-keychain-secret.swift", import.meta.url);
-const scheduleUrl = new URL("./schedule-portfolio-insights.sh", import.meta.url);
 const packageUrl = new URL("../package.json", import.meta.url);
 
 async function airtableStage() {
@@ -69,17 +68,6 @@ describe("portfolio insights setup: Airtable stage", () => {
       if (/\bprintf\b/u.test(line)) expect(line).toMatch(/\|\s*curl\b.*-H @-/u);
     }
     expect(stage).toMatch(/\nunset AIRTABLE_TOKEN\n/u);
-  });
-
-  it("keeps the token out of the launchd job definition", async () => {
-    const schedule = await readFile(scheduleUrl, "utf8");
-    const start = schedule.indexOf('cat > "$PLIST" <<PLIST');
-    const end = schedule.indexOf("\nPLIST\n", start);
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-    const plist = schedule.slice(start, end);
-    expect(plist).toContain("EnvironmentVariables");
-    expect(plist).not.toMatch(/token|airtable|security\s+find/iu);
   });
 });
 

@@ -12,6 +12,12 @@ import {
   withPortfolioFeedback,
   type PortfolioFeedbackEnv,
 } from "./portfolio-feedback";
+import {
+  describeRun,
+  handlePortfolioInsights,
+  runScheduledInsights,
+  type PortfolioInsightsEnv,
+} from "./portfolio-insights-job";
 
 export { PortfolioChatBudgetObject } from "./portfolio-chat-budget";
 export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
@@ -19,6 +25,7 @@ export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
   PortfolioFeedbackEnv &
+  PortfolioInsightsEnv &
   DesignGalleryEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
@@ -71,6 +78,11 @@ const worker = {
     // router throw, which Cloudflare answered with its own error page. Dropping
     // the claim here keeps every layer below working on a coherent request.
     const request = withoutPhantomBody(inbound);
+    // The insights dashboard is a different site on a different hostname, with
+    // its own Cloudflare Access gate. It answers before every portfolio handler
+    // so none of them can route around that gate.
+    const insights = await handlePortfolioInsights(request, env);
+    if (insights) return insights;
     // The feedback digest authenticates with its own bearer token; every other
     // route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);
@@ -82,6 +94,19 @@ const worker = {
         ),
       ),
     );
+  },
+
+  // The daily insights run. A partial run is a successful run — each source
+  // keeps its own last-known-good value, and the dashboard says which sections
+  // are stale — but a run that could not fill a dashboard at all is a failure,
+  // and has to surface as one: the route would go on serving yesterday's page
+  // while Cron Triggers showed green.
+  async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
+    const result = await runScheduledInsights(env);
+    console.log(JSON.stringify({ job: "portfolio-insights", ...describeRun(result) }));
+    if (result.exitCode !== 0) {
+      throw new Error("portfolio-insights: no source, current or saved, could fill a dashboard");
+    }
   },
 };
 

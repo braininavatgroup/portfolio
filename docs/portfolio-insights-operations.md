@@ -51,16 +51,28 @@ Generate the code with `openssl rand -hex 8`. Never use a company name,
 person's name, email address, job title, or recognizable abbreviation. One
 Action is one link, so two recipients for the same job get two codes. The
 Action's own links to Person, Job, and Company supply the context, and
-Airtable stays the only place the code meets a name or an outcome.
+Airtable stays the only place the code is *stored* beside a name or an
+outcome.
+
+Until BIV-527 that was a stronger claim: the join ran only on Bradley's Mac,
+so Airtable was the only place the two ever met. Bradley decided on
+2026-09-18 that a laptop-resident privacy boundary was not worth its cost and
+accepted a logical one instead. The scheduled Worker now reads the same
+read-only Airtable projection and renders the joined dashboard at the edge,
+where it is kept in a private R2 bucket and served only through Cloudflare
+Access — the control already guarding `canvas.braininavat.dance` and
+`studio.braininavat.dance`. Production still stores nothing but the opaque
+code; what changed is that the dashboard built from it now lives somewhere
+other than one laptop.
 
 The browser removes the parameter from the visible URL, keeps it for the
 current tab, and adds it to later portfolio insight signals. Clarity and the
 Analytics Engine row see only the code. The name is joined to it only in the
-local report (see [Assigned-link attribution](#assigned-link-attribution)).
+report (see [Assigned-link attribution](#assigned-link-attribution)).
 
 ## Read the signals
 
-Use the local dashboard for portfolio actions: entries, content opens and
+Use the dashboard for portfolio actions: entries, content opens and
 their selection source, active Reader time, maximum Reader completion,
 evidence opens, Guide evidence navigation, and contact-action kinds. It reads
 them from the first-party sink as anonymous tab journeys and joins them to
@@ -87,7 +99,6 @@ npm run setup:insights      # once, per machine: mint and store the three tokens
 npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
 npm run insights -- --history   # one row per past run, oldest first
 npm run insights -- --no-airtable   # render without assigned-link identity
-npm run schedule:insights   # once, per machine: run it daily at 07:10
 npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
 npm run test:insights       # every insights test, no network or token
 ```
@@ -268,22 +279,57 @@ Clarity](#observe-in-clarity)).
 
 ### The scheduled run
 
-`npm run schedule:insights` installs a launchd user agent,
-`com.biv.portfolio-insights`, that runs the report daily at 07:10 local time
-from the checkout it was installed for and appends to
-`~/Library/Application Support/biv/portfolio-insights/history.jsonl`, a
-location that outlives any single worktree. A manual run uses the same
-directory unless `PORTFOLIO_INSIGHTS_DIR` points elsewhere. It logs to `~/Library/Logs/biv/portfolio-insights.log`.
-`--now` also kicks off a run immediately; `--remove` unloads and deletes the
-job and keeps the history. The installer creates the history directory as
-mode `0700` and refuses to install the job if `stat` reports anything else.
-The log repeats the terminal report, which names assigned links, so the job
-runs with umask `077`, the installer creates the log as mode `0600` and checks
-it the same way, and each run starts the log over once it passes 1 MB.
-No token is written into the job's property list. The installer refuses an ephemeral Conductor
-worktree; set `PORTFOLIO_INSIGHTS_REPO` to the canonical clone when installing
-from one. The job runs whatever that clone has checked out, so keep it on
-`main`.
+The run is a cron trigger on the `bradley-portfolio-main-preview` Worker —
+`triggers.crons` in `wrangler.main-preview.jsonc`, `10 11 * * *` UTC. It calls
+the same `runInsights` the CLI calls, from the same modules, with its records
+in the private R2 bucket `biv-portfolio-insights` under the `runs/` prefix and
+its three read-only tokens as Worker secrets. Cron triggers are UTC only, so
+the run drifts an hour against local clocks across daylight saving; nothing
+downstream reads the hour.
+
+Read the result at **<https://insights.braininavat.dance>**, behind Cloudflare
+Access. The Worker verifies the Access assertion itself — signature, audience,
+expiry, and identity — rather than trusting that the edge applied the gate,
+because the same Worker also answers on `workers.dev` and on the portfolio's
+own hostnames, which no Access application covers. A hostname configured
+without its team, audience or allowed identity serves nothing at all.
+
+Nothing about the run is installed on a machine. The launchd job
+`com.biv.portfolio-insights` and its installer were retired in BIV-527;
+`npm run insights` is now a manual read, not the thing that keeps history
+going. If that agent turns up still installed somewhere — it would spend 4 of
+Clarity's 10 daily requests alongside the Worker's 4 — unload it by hand, since
+the installer that knew how to is gone:
+
+```sh
+launchctl bootout "gui/$(id -u)/com.biv.portfolio-insights"
+rm -f ~/Library/LaunchAgents/com.biv.portfolio-insights.plist
+```
+
+### What a deploy expects to already exist
+
+`wrangler.main-preview.jsonc` names four things the deploy does not create. A
+missing one fails the whole portfolio deploy, not just the dashboard, so
+provision them before the first candidate that carries this config:
+
+| Thing | Create it with |
+| --- | --- |
+| R2 bucket `biv-portfolio-insights` | `wrangler r2 bucket create biv-portfolio-insights`. Give it no public `r2.dev` URL and no custom domain — the Worker's Access gate would stop being the only way in |
+| DNS record for `insights.braininavat.dance` | A proxied record on zone `braininavat.dance`, landing with its Access application so the hostname is never briefly public |
+| Cloudflare Access application on that hostname | Self-hosted, allow `bradley@braininavat.dance`. Its audience tag becomes `PORTFOLIO_INSIGHTS_ACCESS_AUD` |
+| The four Worker secrets | `wrangler secret put`, as above |
+
+The deploy credential also needs `Workers Routes: Edit` on `braininavat.dance`,
+not only on `bradleyberkman.com`: the Worker now has a route on both zones, and
+a token scoped to one fails on the other.
+
+Set or rotate the Worker's tokens with `wrangler secret put <NAME> --config
+wrangler.main-preview.jsonc`: `CLOUDFLARE_API_TOKEN` (Account Analytics Read
+plus Zone Analytics Read), `CLARITY_API_TOKEN`,
+`PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN`, and `PORTFOLIO_INSIGHTS_ACCESS_AUD`, the
+Access application's audience tag. `npm run setup:insights` still mints the
+same three tokens into the login Keychain for local runs; the Worker does not
+read them.
 
 The first-party sink below exists to close exactly this gap. Until it is
 activated, the report marks those sections unavailable rather than printing
@@ -399,13 +445,24 @@ months. Local raw copies follow the 180-day rule below.
   That file is the only durable record of the launch curve, so run it on a
   rhythm rather than only when curious.
 
-### Local files and retention
+### Where records are kept, and for how long
 
-The scheduled job keeps everything in
-`~/Library/Application Support/biv/portfolio-insights/`. Manual runs use the
-same directory unless `PORTFOLIO_INSIGHTS_DIR` is set, so every run shares one
-history and one prune. The directory is mode `0700`. Every file in it is mode
-`0600`, written to a temporary name and renamed into place.
+A run keeps the same set of records wherever it runs; only the place differs.
+The scheduled Worker keeps them as objects in the private R2 bucket
+`biv-portfolio-insights` under `runs/`, readable only through that Worker's
+binding — the bucket has no public and no custom domain. A local
+`npm run insights` keeps them in
+`~/Library/Application Support/biv/portfolio-insights/` unless
+`PORTFOLIO_INSIGHTS_DIR` is set, so every local run shares one history and one
+prune. That directory is mode `0700`, and every file in it is mode `0600`,
+written to a temporary name and renamed into place.
+
+The two sets are separate. A local run does not append to the Worker's history
+and cannot see it; the Worker's history is the durable one.
+
+What the records are, what each one holds, and when it is deleted lives in
+`scripts/portfolio-insights-records.mjs`, which both backends share, so the
+180-day raw-event boundary has one owner rather than a copy per runtime.
 
 Manual runs used to write to `<checkout>/.context/insights/`. Nothing writes
 there now, and nothing prunes it. Earlier runs left only aggregate history,
@@ -427,8 +484,9 @@ has been copied.
 | `dashboard.html` | The latest dashboard | Replaced by each run |
 
 `source-airtable.json` and `dashboard.html` contain recipient names and
-companies, and the scheduled job's log names assigned links. Do not commit,
-copy, or upload them.
+companies. Do not commit, copy, or upload them, and do not give the R2 bucket
+a public or custom domain: the Worker's Access gate would no longer be the
+only way in.
 
 Each dashboard section shows its source's state:
 
@@ -476,9 +534,10 @@ only `raw-events-*.json` files whose window began more than 180 days ago, and
 the stale fallback never reads such a file or any event older than 180 days.
 Source snapshots and aggregate history are never pruned.
 
-The launchd job runs as Bradley's user and reads its tokens from the login
-Keychain. It needs no permission beyond the three read-only tokens above and
-write access to its own directory.
+The scheduled run holds nothing beyond the three read-only tokens above and
+write access to its own R2 prefix. It makes no request that mutates anything
+remote. A local run holds the same three, from the login Keychain, and writes
+only inside its own directory.
 
 ### Assigned-link attribution
 
