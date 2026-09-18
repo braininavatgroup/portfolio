@@ -18,10 +18,13 @@ import { INSIGHTS_PREFIX, r2InsightStorage } from "./portfolio-insights-store";
 /** R2's get/put/list/delete, with a page size small enough to force paging. */
 function fakeBucket(pageSize = 2) {
   const objects = new Map<string, string>();
+  const reads: string[] = [];
   return {
     objects,
+    reads,
     bucket: {
       get: async (key: string) => {
+        reads.push(key);
         const body = objects.get(key);
         return body === undefined ? null : { text: async () => body };
       },
@@ -102,6 +105,25 @@ describe("R2 insight storage", () => {
     const remaining = await store.pruneRawSnapshots(INSIGHTS_PREFIX, new Date(NOW));
     expect(remaining).toEqual([]);
     expect(await store.readLatestRawEvents(INSIGHTS_PREFIX, NOW)).toMatchObject({ capturedAt: ago(1) });
+  });
+
+  // Each raw entry holds up to 10,000 event rows, and at steady state there is
+  // one per day inside the 180-day retention. Opening them all to decide which
+  // to delete would be ~180 serial round trips on every scheduled run, inside a
+  // Worker's CPU budget, to delete nothing.
+  it("prunes without opening an entry whose name already settles its age", async () => {
+    const { bucket, reads } = fakeBucket(50);
+    const store = r2InsightStorage(bucket);
+    for (const days of [170, 100, 40, 5, 1]) {
+      const capturedAt = ago(days);
+      await store.writeRawEvents(INSIGHTS_PREFIX, [], capturedAt, { windowStart: capturedAt });
+    }
+
+    reads.length = 0;
+    expect(await store.pruneRawSnapshots(INSIGHTS_PREFIX, new Date(NOW))).toEqual([]);
+    // Only the entry close enough to the boundary that its window could reach
+    // past it — captured 170 days ago, against a 30-day longest window.
+    expect(reads).toEqual([`${INSIGHTS_PREFIX}raw-events-${ago(170).replace(/[:.]/gu, "-")}.json`]);
   });
 
   // A truncated listing must not hide a newer raw entry behind an older one,

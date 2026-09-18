@@ -71,6 +71,13 @@
 
 export const SOURCE_NAMES = Object.freeze(["clarity", "cloudflare", "insights", "airtable"]);
 export const RAW_EVENTS_RETENTION_DAYS = 180;
+// The longest window a run can read (`--days` is capped at 30), so an entry's
+// recorded `windowStart` is never more than this before its capture. Pruning
+// uses it to tell, from the name alone, which entries could possibly be
+// expired: at steady state that is none, so the daily prune opens nothing.
+// That matters most at the edge, where each read is a round trip inside a
+// scheduled Worker's CPU budget rather than a local file read.
+const MAX_WINDOW_DAYS = 30;
 export const HISTORY_ENTRY = "history.jsonl";
 export const DASHBOARD_ENTRY = "dashboard.html";
 const ERROR_MESSAGE_LIMIT = 300;
@@ -274,7 +281,12 @@ export function recordStore(backend) {
     for (const name of (await backend.list(location)).sort()) {
       const capturedMs = rawEventsTime(name);
       if (capturedMs === null) continue;
-      // The window never starts after the capture, so an old capture needs no read.
+      // The name alone settles both ends. A capture that is itself expired goes
+      // without a read, because the window never starts after the capture; a
+      // capture newer than the cutoff by more than the longest possible window
+      // also goes without one, because no `windowStart` it could carry reaches
+      // back past the cutoff. Only the band between them is opened.
+      if (capturedMs - MAX_WINDOW_DAYS * DAY_MS >= cutoff) continue;
       if (capturedMs >= cutoff && retentionAnchor(await readObject(location, name), capturedMs) >= cutoff) continue;
       await backend.remove(location, name);
       deleted.push(backend.describe(location, name));

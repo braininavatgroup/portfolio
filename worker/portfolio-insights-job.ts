@@ -26,7 +26,7 @@ import { INSIGHTS_PREFIX, r2InsightStorage } from "./portfolio-insights-store";
 export type PortfolioInsightsEnv = {
   /** The hostname the dashboard answers on. Unset disables the route entirely. */
   PORTFOLIO_INSIGHTS_HOST?: string;
-  /** The Access team domain, e.g. `braininavat.cloudflareaccess.com`. */
+  /** The Access team domain. BiV's is `biv.cloudflareaccess.com`. */
   PORTFOLIO_INSIGHTS_ACCESS_TEAM?: string;
   /** The Access application's AUD tag. A token for another application is not for this one. */
   PORTFOLIO_INSIGHTS_ACCESS_AUD?: string;
