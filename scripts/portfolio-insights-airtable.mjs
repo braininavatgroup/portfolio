@@ -10,11 +10,10 @@
 // activity by guessing. The token comes from PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN
 // or the Keychain entry `scripts/setup-portfolio-insights.sh` writes, and is
 // never included in an error message.
-
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+//
+// Nothing here imports a Node builtin, so the scheduled Worker runs this exact
+// adapter. That is also why `resolveAirtableToken` takes its Keychain reader
+// rather than owning one: only the CLI has a Keychain to read.
 
 export const JOB_SEARCH_BASE_ID = "app0LM9NfGL4ZHi3j";
 
@@ -109,10 +108,7 @@ export class AirtableConfigurationError extends Error {
  * }} [options]
  * @returns {Promise<string | null>}
  */
-export async function resolveAirtableToken({
-  env = process.env,
-  readKeychain = readKeychainPassword,
-} = {}) {
+export async function resolveAirtableToken({ env = {}, readKeychain = noKeychain } = {}) {
   const fromEnvironment = env[AIRTABLE_TOKEN_ENV]?.trim();
   if (fromEnvironment) return fromEnvironment;
   try {
@@ -123,20 +119,9 @@ export async function resolveAirtableToken({
   }
 }
 
-/**
- * @param {string} service
- * @param {string} account
- */
-async function readKeychainPassword(service, account) {
-  const { stdout } = await execFileAsync("/usr/bin/security", [
-    "find-generic-password",
-    "-s",
-    service,
-    "-a",
-    account,
-    "-w",
-  ]);
-  return stdout;
+/** A caller that passed no reader has no Keychain, so the environment is all there is. */
+async function noKeychain() {
+  throw new Error("no Keychain reader was supplied");
 }
 
 /**

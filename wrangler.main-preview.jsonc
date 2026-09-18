@@ -14,8 +14,15 @@
     {
       "pattern": "www.bradleyberkman.com/*",
       "zone_name": "bradleyberkman.com"
+    },
+    {
+      "pattern": "insights.braininavat.dance/*",
+      "zone_name": "braininavat.dance"
     }
   ],
+  "triggers": {
+    "crons": ["10 11 * * *"]
+  },
   "vars": {
     "PORTFOLIO_CHAT_SESSION_REQUIRED": "true",
     "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT": "1000",
@@ -23,14 +30,22 @@
     "OPENAI_PORTFOLIO_REASONING_EFFORT": "low",
     "OPENAI_PORTFOLIO_VERBOSITY": "low",
     "PORTFOLIO_FEEDBACK_ENABLED": "false",
-    "PORTFOLIO_INSIGHT_EVENTS_SINK": "analytics-engine"
+    "PORTFOLIO_INSIGHT_EVENTS_SINK": "analytics-engine",
+    "PORTFOLIO_INSIGHTS_HOST": "insights.braininavat.dance",
+    "PORTFOLIO_INSIGHTS_ACCESS_TEAM": "maintain-dashboard.cloudflareaccess.com",
+    "PORTFOLIO_INSIGHTS_ACCESS_EMAILS": "bradley@braininavat.dance",
+    "PORTFOLIO_INSIGHTS_DAYS": "7"
   },
   "secrets": {
     "required": [
       "OPENAI_API_KEY",
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET",
       "PORTFOLIO_FEEDBACK_ADMIN_TOKEN",
-      "PORTFOLIO_CHAT_IDENTIFIER_SECRET"
+      "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
+      "CLOUDFLARE_API_TOKEN",
+      "CLARITY_API_TOKEN",
+      "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
+      "PORTFOLIO_INSIGHTS_ACCESS_AUD"
     ]
   },
   "ratelimits": [
@@ -43,6 +58,12 @@
       "name": "PORTFOLIO_INSIGHT_RATE_LIMITER",
       "namespace_id": "1002",
       "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PORTFOLIO_INSIGHTS_STORE",
+      "bucket_name": "biv-portfolio-insights"
     }
   ],
   "analytics_engine_datasets": [
