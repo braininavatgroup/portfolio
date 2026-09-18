@@ -6,11 +6,9 @@
 // identity stay out of history and aggregate snapshots; the terminal leads with
 // the dashboard's findings; and the launchd installer checks the directory
 // mode before installing. Retire with the scheduled job.
-import { execFileSync } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -438,9 +436,13 @@ describe("local files", () => {
         calls.push("raw-events");
         return storage.writeRawEvents(...args);
       },
-      writePrivateFile: async (...args: Parameters<typeof storage.writePrivateFile>) => {
-        calls.push(`file:${basename(String(args[0]))}`);
-        return storage.writePrivateFile(...args);
+      appendHistoryRow: async (...args: Parameters<typeof storage.appendHistoryRow>) => {
+        calls.push("file:history.jsonl");
+        return storage.appendHistoryRow(...args);
+      },
+      writeDashboard: async (...args: Parameters<typeof storage.writeDashboard>) => {
+        calls.push("file:dashboard.html");
+        return storage.writeDashboard(...args);
       },
       pruneRawSnapshots: async (...args: Parameters<typeof storage.pruneRawSnapshots>) => {
         calls.push("prune");
@@ -469,9 +471,8 @@ describe("local files", () => {
     const failing = {
       ...storage,
       pruneRawSnapshots: prune,
-      writePrivateFile: async (...args: Parameters<typeof storage.writePrivateFile>) => {
-        if (String(args[0]).endsWith("dashboard.html")) throw new Error("disk full");
-        return storage.writePrivateFile(...args);
+      writeDashboard: async () => {
+        throw new Error("disk full");
       },
     };
 
@@ -526,42 +527,14 @@ describe("local files", () => {
   });
 });
 
-describe("scheduled job", () => {
-  const scheduleUrl = new URL("./schedule-portfolio-insights.sh", import.meta.url);
-
-  it("keeps 07:10, makes the history directory 0700, and checks it with stat before installing", async () => {
-    const script = await readFile(scheduleUrl, "utf8");
-    expect(() => execFileSync("bash", ["-n", fileURLToPath(scheduleUrl)])).not.toThrow();
-    expect(script).toMatch(/^HOUR=7$/mu);
-    expect(script).toMatch(/^MINUTE=10$/mu);
-    const create = script.indexOf('chmod 700 "$HISTORY_DIR"');
-    const check = script.indexOf("stat -f '%Lp' \"$HISTORY_DIR\"");
-    const install = script.indexOf('launchctl bootstrap "gui/$uid" "$PLIST"');
-    expect(create).toBeGreaterThan(-1);
-    expect(check).toBeGreaterThan(create);
-    expect(install).toBeGreaterThan(check);
-    expect(script).not.toMatch(/TOKEN/u);
-  });
-
-  it("defaults manual runs to the scheduled job's directory", async () => {
-    const script = await readFile(scheduleUrl, "utf8");
-    expect(script).toContain('HISTORY_DIR="$HOME/Library/Application Support/biv/portfolio-insights"');
+describe("the local run", () => {
+  it("keeps its records where every run shares one history and one prune", async () => {
     expect(defaultInsightsDirectory({ HOME: "/Users/example" })).toBe(
       "/Users/example/Library/Application Support/biv/portfolio-insights",
     );
-    expect(defaultInsightsDirectory({ HOME: "/Users/example", PORTFOLIO_INSIGHTS_DIR: "/tmp/elsewhere/" })).toBe("/tmp/elsewhere");
-  });
-
-  it("runs with umask 077 and a 0600 log checked with stat before installing", async () => {
-    const script = await readFile(scheduleUrl, "utf8");
-    expect(script).toMatch(/<key>Umask<\/key>\s*<integer>63<\/integer>/u);
-    expect(script).toMatch(/<key>PORTFOLIO_INSIGHTS_LOG<\/key>\s*<string>\$LOG<\/string>/u);
-    const create = script.indexOf('chmod 600 "$LOG"');
-    const check = script.indexOf("stat -f '%Lp' \"$LOG\"");
-    const install = script.indexOf('launchctl bootstrap "gui/$uid" "$PLIST"');
-    expect(create).toBeGreaterThan(-1);
-    expect(check).toBeGreaterThan(create);
-    expect(install).toBeGreaterThan(check);
+    expect(defaultInsightsDirectory({ HOME: "/Users/example", PORTFOLIO_INSIGHTS_DIR: "/tmp/elsewhere/" })).toBe(
+      "/tmp/elsewhere",
+    );
   });
 
   it("starts the log over once it passes the cap, keeping it 0600", async () => {
@@ -586,5 +559,8 @@ describe("scheduled job", () => {
     expect(scripts["test:insights"]).toBe("vitest run scripts/portfolio-insights scripts/setup-portfolio-insights.test.ts");
     expect(scripts.test).toBe("vitest run && npm run test:media-studio && npm run test:clip-studio");
     expect(scripts["insights:dashboard"]).toBe("node scripts/portfolio-insights.mjs --dashboard --no-cloudflare --no-clarity");
+    // BIV-527 retired the launchd job; the schedule now lives in the Worker's
+    // `triggers.crons`, so an installer entry point coming back is a mistake.
+    expect(scripts).not.toHaveProperty("schedule:insights");
   });
 });

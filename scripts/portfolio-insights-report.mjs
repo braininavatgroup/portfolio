@@ -17,6 +17,14 @@
  * @typedef {{ date: string, pageloads: number, visits: number }} DailyRow
  * @typedef {{ value: string, pageloads: number, visits: number, share: number }} DimensionRow
  * @typedef {Record<string, Array<Record<string, string | number>>>} ClarityMetrics
+ *
+ * One run's requested shape. The CLI parses it from argv; the scheduled Worker
+ * builds it directly, since it has no command line.
+ * @typedef {{
+ *   days: number, json: boolean, clarity: boolean, cloudflare: boolean,
+ *   insights: boolean, airtable: boolean, snapshot: boolean, history: boolean,
+ *   dashboard: boolean,
+ * }} InsightOptions
  */
 
 /** Navigation types Cloudflare reports for in-app route changes, not entries. */
@@ -26,6 +34,7 @@ const SOFT_NAVIGATION_TYPES = new Set([
   "unknown",
 ]);
 
+/** @param {string[]} argv @returns {InsightOptions} */
 export function parseArguments(argv) {
   const options = {
     days: 7,

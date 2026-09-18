@@ -14,8 +14,21 @@
     {
       "pattern": "www.bradleyberkman.com/*",
       "zone_name": "bradleyberkman.com"
+    },
+    // The insights dashboard, on a BiV operator hostname rather than the
+    // portfolio's, so the Cloudflare Access application covering it covers
+    // nothing a visitor reaches. BIV-527.
+    {
+      "pattern": "insights.braininavat.dance/*",
+      "zone_name": "braininavat.dance"
     }
   ],
+  // 11:10 UTC — the 07:10 the retired `com.biv.portfolio-insights` job fired,
+  // in the operator's summer time. Cron triggers are UTC only, so the run
+  // drifts an hour against local clocks; nothing downstream reads the hour.
+  "triggers": {
+    "crons": ["10 11 * * *"]
+  },
   "vars": {
     "PORTFOLIO_CHAT_SESSION_REQUIRED": "true",
     "PORTFOLIO_CHAT_DAILY_REQUEST_LIMIT": "1000",
@@ -23,14 +36,25 @@
     "OPENAI_PORTFOLIO_REASONING_EFFORT": "low",
     "OPENAI_PORTFOLIO_VERBOSITY": "low",
     "PORTFOLIO_FEEDBACK_ENABLED": "false",
-    "PORTFOLIO_INSIGHT_EVENTS_SINK": "analytics-engine"
+    "PORTFOLIO_INSIGHT_EVENTS_SINK": "analytics-engine",
+    "PORTFOLIO_INSIGHTS_HOST": "insights.braininavat.dance",
+    "PORTFOLIO_INSIGHTS_ACCESS_TEAM": "braininavat.cloudflareaccess.com",
+    "PORTFOLIO_INSIGHTS_ACCESS_EMAILS": "bradley@braininavat.dance",
+    "PORTFOLIO_INSIGHTS_DAYS": "7"
   },
   "secrets": {
     "required": [
       "OPENAI_API_KEY",
       "PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET",
       "PORTFOLIO_FEEDBACK_ADMIN_TOKEN",
-      "PORTFOLIO_CHAT_IDENTIFIER_SECRET"
+      "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
+      // The insights run's three read-only source tokens, and the Access
+      // application's AUD tag. The AUD is not a credential, but it is minted
+      // with the application rather than checked in, so it lives beside them.
+      "CLOUDFLARE_API_TOKEN",
+      "CLARITY_API_TOKEN",
+      "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
+      "PORTFOLIO_INSIGHTS_ACCESS_AUD"
     ]
   },
   "ratelimits": [
@@ -43,6 +67,14 @@
       "name": "PORTFOLIO_INSIGHT_RATE_LIMITER",
       "namespace_id": "1002",
       "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+  // Where a run keeps its records. The bucket has no public or custom domain,
+  // so this Worker's binding is its only reader.
+  "r2_buckets": [
+    {
+      "binding": "PORTFOLIO_INSIGHTS_STORE",
+      "bucket_name": "biv-portfolio-insights"
     }
   ],
   "analytics_engine_datasets": [
