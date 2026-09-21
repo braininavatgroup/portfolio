@@ -14,6 +14,7 @@ import {
   historySeries,
   renderDashboard,
   safeExternalLink,
+  SCHEDULED_DASHBOARD_HOST,
   sourceBadge,
 } from "./portfolio-insights-dashboard.mjs";
 import { buildPortfolioIntelligence } from "./portfolio-insights-intelligence.mjs";
@@ -367,6 +368,12 @@ describe("renderDashboard decision sections", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
+  it("names the scheduled run in its header, so a saved copy says where the current one is", () => {
+    const header = html.slice(html.indexOf("<header>"), html.indexOf("</header>"));
+    expect(header).toContain("generated 2026-09-11 16:30 UTC");
+    expect(header).toContain(`href="https://${SCHEDULED_DASHBOARD_HOST}/"`);
+  });
+
   it("carries one freshness strip at the top and a short badge in each section", () => {
     const strip = html.slice(html.indexOf('<ul class="freshness">'), html.indexOf("</ul>"));
     for (const label of ["Analytics Engine events", "Airtable assignments", "Clarity", "Cloudflare Web Analytics"]) {
@@ -381,15 +388,16 @@ describe("renderDashboard decision sections", () => {
     for (const title of ["What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity"]) {
       expect(sectionOf(html, title)).toMatch(/class="badges"/u);
     }
-    // A same-day capture reads as a clock; an older one keeps its date.
-    expect(sectionOf(html, "Journeys")).toContain("Events · Fresh 16:00");
+    // Every badge carries its capture date, so a saved page cannot read as
+    // fresh without saying which day it meant.
+    expect(sectionOf(html, "Journeys")).toContain("Events · Fresh 09-11 16:00");
     expect(sectionOf(html, "Observe in Clarity")).toContain("Clarity · Stale 09-10 07:10");
   });
 
   it("repeats a source's reason under a heading only when it is not fresh", () => {
     // Journeys names only the fresh Analytics Engine source: no grey line at all.
     const journeys = sectionOf(html, "Journeys");
-    expect(journeys).toContain("Events · Fresh 16:00");
+    expect(journeys).toContain("Events · Fresh 09-11 16:00");
     expect(count(journeys, 'class="source-note"')).toBe(0);
     // Observe in Clarity names the stale Clarity source, so it says why once.
     const observe = sectionOf(html, "Observe in Clarity");
@@ -498,7 +506,11 @@ describe("renderDashboard decision sections", () => {
     const hrefs = [...html.matchAll(/href="([^"]*)"/gu)].map((match) => match[1]);
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of hrefs) {
-      expect(href.startsWith(CLARITY_PROJECT_URL) || href.startsWith("https://airtable.com/app0LM9NfGL4ZHi3j/")).toBe(true);
+      expect(
+        href.startsWith(CLARITY_PROJECT_URL) ||
+          href.startsWith("https://airtable.com/app0LM9NfGL4ZHi3j/") ||
+          href === `https://${SCHEDULED_DASHBOARD_HOST}/`,
+      ).toBe(true);
     }
     const anchors = html.match(/<a\s[^>]*>/gu) ?? [];
     for (const anchor of anchors) expect(anchor).toMatch(/target="_blank" rel="noreferrer"/u);
@@ -962,11 +974,10 @@ describe("what the page opens on", () => {
 });
 
 describe("sourceBadge", () => {
-  it("reads as a clock on the same day and keeps the date otherwise", () => {
-    const now = "2026-09-11T16:30:00.000Z";
-    expect(sourceBadge({ status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z" }, now)).toBe("Fresh 16:00");
-    expect(sourceBadge({ status: "stale", capturedAt: "2026-09-10T07:10:00.000Z" }, now)).toBe("Stale 09-10 07:10");
-    expect(sourceBadge({ status: "unavailable", capturedAt: null }, now)).toBe("Unavailable");
+  it("always keeps the capture date, so a saved page cannot read as fresh today", () => {
+    expect(sourceBadge({ status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z" })).toBe("Fresh 09-11 16:00");
+    expect(sourceBadge({ status: "stale", capturedAt: "2026-09-10T07:10:00.000Z" })).toBe("Stale 09-10 07:10");
+    expect(sourceBadge({ status: "unavailable", capturedAt: null })).toBe("Unavailable");
   });
 });
 

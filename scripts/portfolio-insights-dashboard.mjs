@@ -90,6 +90,15 @@ const number = (value) =>
 const plural = (count, singular, pluralForm = `${singular}s`) =>
   `${number(count)} ${Number(count) === 1 ? singular : pluralForm}`;
 
+/**
+ * Where the scheduled run publishes. Every rendered page names it, because a
+ * page is a file and a file outlives the run that wrote it: a copy saved on a
+ * disk keeps answering long after the run stopped, and its own timestamps are
+ * the only thing that says so. `tests/main-preview-worker-config.test.mjs`
+ * pins this to `PORTFOLIO_INSIGHTS_HOST`, so the two cannot drift apart.
+ */
+export const SCHEDULED_DASHBOARD_HOST = "insights.braininavat.dance";
+
 /** @param {unknown} value @returns {string | null} "YYYY-MM-DD HH:MM UTC" */
 function stamp(value) {
   if (typeof value !== "string" || value === "") return null;
@@ -426,20 +435,23 @@ function freshness(state) {
 }
 
 /**
- * The short form that rides beside a heading: "Fresh 16:00", "Stale 09-10 07:10",
- * "Unavailable". The clock alone would be ambiguous for data captured on an
- * earlier day, so a stale snapshot from another day keeps its date.
+ * The short form that rides beside a heading: "Fresh 09-11 16:00",
+ * "Stale 09-10 07:10", "Unavailable".
+ *
+ * "Fresh" is a claim about the run, not about the moment someone reads the
+ * page. A page saved to disk repeats the badge it was rendered with, so one
+ * left over from a retired run reads as fresh forever. The capture date is
+ * therefore always carried, never dropped for a same-day capture: the badge
+ * that says fresh also says which day it meant.
  * @param {{ status: string, capturedAt: string | null }} state
- * @param {string} [now]
  */
-export function sourceBadge(state, now = "") {
+export function sourceBadge(state) {
   if (state.status === "unavailable") return "Unavailable";
   const label = state.status === "fresh" ? "Fresh" : "Stale";
   const at = state.capturedAt ? new Date(state.capturedAt) : null;
   if (!at || Number.isNaN(at.getTime())) return `${label} — time unknown`;
   const iso = at.toISOString();
-  const sameDay = String(now).slice(0, 10) === iso.slice(0, 10);
-  return `${label} ${sameDay ? iso.slice(11, 16) : `${iso.slice(5, 10)} ${iso.slice(11, 16)}`}`;
+  return `${label} ${iso.slice(5, 10)} ${iso.slice(11, 16)}`;
 }
 
 function sourceWindow(name, state, snapshot) {
@@ -454,7 +466,7 @@ function freshnessStrip(context) {
     const state = context.sources[name];
     return (
       `<li data-status="${state.status}">` +
-      `<span class="badge" data-status="${state.status}">${escapeHtml(sourceBadge(state, context.generatedAt))}</span>` +
+      `<span class="badge" data-status="${state.status}">${escapeHtml(sourceBadge(state))}</span>` +
       `<span class="strip-name">${escapeHtml(SOURCE_LABELS[name])}</span>` +
       `<span class="strip-note">${escapeHtml(sourceWindow(name, state, context.snapshot))} · ${escapeHtml(freshness(state))}</span>` +
       `</li>`
@@ -477,7 +489,7 @@ function sectionSources(names, context) {
       const state = context.sources[name];
       return (
         `<span class="badge" data-status="${state.status}">` +
-        `${escapeHtml(SOURCE_BADGE_LABELS[name])} · ${escapeHtml(sourceBadge(state, context.generatedAt))}</span>`
+        `${escapeHtml(SOURCE_BADGE_LABELS[name])} · ${escapeHtml(sourceBadge(state))}</span>`
       );
     })
     .join("");
@@ -1691,7 +1703,7 @@ details { margin-top: 8px; } summary { color: var(--text-secondary); cursor: poi
 </style>
 </head>
 <body>
-<header><h1>Portfolio intelligence</h1><span class="note">${escapeHtml(window)} · generated ${escapeHtml(generated)}</span></header>
+<header><h1>Portfolio intelligence</h1><span class="note">${escapeHtml(window)} · generated ${escapeHtml(generated)} · current run at <a href="https://${escapeHtml(SCHEDULED_DASHBOARD_HOST)}/" target="_blank" rel="noreferrer">${escapeHtml(SCHEDULED_DASHBOARD_HOST)}</a></span></header>
 ${freshnessStrip(context)}
 ${decisionStrip(context)}
 ${body}
