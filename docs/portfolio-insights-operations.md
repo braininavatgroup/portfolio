@@ -467,7 +467,7 @@ Before that, nothing about a chat turn outlived the request except a sampled
 | `answer` | The answer as it streamed, cut at 16,000 characters (`answerTruncated` says when) |
 | `mode` | `portfolio`, `social`, `general`, or `none` when no answer was attempted |
 | `outcome` | `answered`, `partial_answer`, `insufficient_evidence`, `provider_unavailable`, `aborted` |
-| `evidenceIds` | The grounding the answer drew on: `node:<id>`, `thread:<id>`, `entity:…` |
+| `citedEvidenceIds` | What the answer cited with `[E#]`: `node:<id>`, `thread:<id>`, `entity:…`. Not the grounding set, which is usually the whole portfolio |
 | `sessionId` | The tab id the insight sink uses, so a conversation joins its journey |
 | `country`, `regionCode`, `city`, `device` | The same coarse values the sink keeps |
 | `capturedAt`, `requestId`, `durationMs` | When, which request, how long |
@@ -498,11 +498,42 @@ as the answer is done. To stop keeping transcripts, remove the value and deploy.
 what is already kept, delete the `chat/` prefix in the bucket.
 
 **Reading them.** The dashboard's **Chat** section, between Journeys and
-Audience, shows counts, modes, outcomes, the content answers drew on, and
+Audience, shows counts, modes, outcomes, the content answers cited, and
 each conversation with its questions and folded answers. A local
 `npm run insights` has no access to the bucket, so its Chat section says
 transcripts are unavailable and points at the dashboard. `history.jsonl`
 keeps only the count (`chatTurns`), never text.
+
+### The Guide's log events
+
+Each Guide request also writes one structured log line: `portfolio_chat_stream`
+when it finishes, or `portfolio_chat_preflight` when it is refused before
+answering. The line holds the outcome, the duration, the answer's length, and
+`citedEvidenceIds`. It holds no question or answer text, so it is for
+operations, not for reading what was asked; the transcripts above are for that.
+Workers Logs keeps them for seven days, and nothing samples them on the way in
+(the Worker's head sampling rate is 1).
+
+Read them with:
+
+```sh
+npm run chat:logs              # last 7 days, one line per event
+npm run chat:logs -- --days 2 --json
+```
+
+Don't read them with one wide query. The Workers Logs query API samples its
+*answer* when a window holds many rows, and reports how hard in
+`statistics.abr_level`: 1 means every row, 10 means one in ten, 100 means one
+in a hundred. A seven-day query on 2026-09-21 came back at 100 and returned 3
+of about 100 chat requests, which read as though the chat was never logging.
+`chat:logs` asks in six-hour slices and splits any slice that still comes back
+sampled. It warns about any slice it could not get unsampled rather than
+dropping it silently. The dashboard's query builder samples the same way, so
+narrow the time range there before concluding something is missing.
+
+It reads a read-only Workers Observability token from
+`CLOUDFLARE_OBSERVABILITY_TOKEN` or the Keychain entry
+`biv-cloudflare-observability` / `read-token`.
 
 ### Where records are kept, and for how long
 

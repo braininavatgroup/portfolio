@@ -48,7 +48,7 @@ const turn: FinishedChatTurn = {
   outcome: "answered",
   question: "What is Writ?",
   answer: "Writ is a product Bradley built. [E1]",
-  evidenceIds: ["node:writ"],
+  citedEvidenceIds: ["node:writ"],
   durationMs: 1200,
 };
 
@@ -87,7 +87,7 @@ describe("chat transcript keeper", () => {
       question: "What is Writ?",
       answer: turn.answer,
       answerTruncated: false,
-      evidenceIds: ["node:writ"],
+      citedEvidenceIds: ["node:writ"],
       durationMs: 1200,
       country: "US",
       regionCode: "NY",
@@ -177,7 +177,38 @@ describe("the chat handler's finished turn", () => {
       question: "What does Bradley do?",
       answer: "His [pitching workflow][E1] keeps approval human.\n\n",
     });
-    expect(kept[0].evidenceIds.length).toBeGreaterThan(0);
+    // Only what the answer cited: [E1] is the first grounding item.
+    expect(kept[0].citedEvidenceIds).toHaveLength(1);
+  });
+
+  it("records what the answer cited, in first-cited order, not the whole grounding set", async () => {
+    const kept: FinishedChatTurn[] = [];
+    const logged: string[][] = [];
+    const handler = createPortfolioChatHandler({
+      getProvider: () => ({
+        async *streamAnswer({ onMode }) {
+          onMode?.("portfolio");
+          yield "Human approval stays explicit. [E2]\n\n";
+          yield "Research leads into it. [E1] It stays human. [E2]\n\n";
+        },
+      }),
+      getRequestContext: context,
+      record: (event) => logged.push(event.citedEvidenceIds),
+      waitUntil,
+      keepTranscript: async (value) => {
+        kept.push(value);
+      },
+    });
+    const body = await (await handler(request({ question: "What does Bradley do?", sessionId: SESSION }))).text();
+    await settle();
+    const evidence = body
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+      .find((event) => event.type === "evidence").evidence as Array<{ id: string }>;
+    expect(evidence.length).toBeGreaterThan(2);
+    expect(kept[0].citedEvidenceIds).toEqual([evidence[1].id, evidence[0].id]);
+    expect(logged).toEqual([[evidence[1].id, evidence[0].id]]);
   });
 
   it("keeps a question the portfolio could not answer, with no mode", async () => {

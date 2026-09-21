@@ -1059,7 +1059,7 @@ describe("the Chat section", () => {
     question: "What is Writ?",
     answer: "Writ is a product. [E1]",
     answerTruncated: false,
-    evidenceIds: ["node:record-9q"],
+    citedEvidenceIds: ["node:record-9q"],
     durationMs: 900,
     country: "US",
     regionCode: "NY",
@@ -1080,8 +1080,8 @@ describe("the Chat section", () => {
   it("groups questions by tab, newest conversation first, and escapes what visitors typed", () => {
     const page = withChat([
       turn({ requestId: "r1", sessionId: "tab-aaaaaa", question: "<script>alert(1)</script> hire?" }),
-      turn({ requestId: "r2", sessionId: "tab-aaaaaa", capturedAt: "2026-09-11T15:01:00.000Z", mode: "general", outcome: "answered", evidenceIds: [] }),
-      turn({ requestId: "r3", sessionId: "tab-bbbbbb", capturedAt: "2026-09-11T15:30:00.000Z", outcome: "insufficient_evidence", mode: "none", answer: "", evidenceIds: [] }),
+      turn({ requestId: "r2", sessionId: "tab-aaaaaa", capturedAt: "2026-09-11T15:01:00.000Z", mode: "general", outcome: "answered", citedEvidenceIds: [] }),
+      turn({ requestId: "r3", sessionId: "tab-bbbbbb", capturedAt: "2026-09-11T15:30:00.000Z", outcome: "insufficient_evidence", mode: "none", answer: "", citedEvidenceIds: [] }),
     ]);
     const chat = sectionOf(page, "Chat");
     expect(summaryOf(page, "chat")).toContain("3 questions in 2 conversations");
@@ -1092,7 +1092,7 @@ describe("the Chat section", () => {
     expect(chat.indexOf("Conversation 1 · 2026-09-11 15:30 UTC")).toBeGreaterThan(-1);
     expect(chat).toContain("Conversation 2 · 2026-09-11 15:00 UTC · New York City, NY, US · mobile · 2 questions");
     // Evidence ids resolve to content labels, and unanswered turns say so.
-    expect(chat).toContain("Content the answers drew on");
+    expect(chat).toContain("Content the answers cited");
     expect(chat).toContain("No answer was streamed.");
     expect(chat).toContain("insufficient evidence");
   });

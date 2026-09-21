@@ -41,7 +41,10 @@ export type PortfolioChatStreamEvent = {
     | "provider_unavailable"
     | "aborted";
   evidenceCount: number;
+  /** Everything the answer was grounded on — often the whole portfolio. */
   evidenceIds: string[];
+  /** What the answer actually cited with `[E#]`, in first-cited order. */
+  citedEvidenceIds: string[];
   durationMs: number;
   answerCharacters: number;
   providerModel: string;
@@ -520,7 +523,18 @@ export function createPortfolioChatHandler({
       // the cap so the keeper can tell the answer was longer.
       let answerText = "";
       let transcriptMode: FinishedChatTurn["mode"] = "none";
+      // Grounding is frequently the whole portfolio, so it says nothing about
+      // what a question was about. The citations the answer carried do.
+      const citedIndexes = new Set<number>();
+      const noteCitations = (delta: string) => {
+        for (const [, label] of delta.matchAll(/\[E([1-9]\d*)\]/g)) {
+          const index = Number(label) - 1;
+          if (index < grounding.evidence.length) citedIndexes.add(index);
+        }
+      };
+      const citedEvidenceIds = () => [...citedIndexes].map((index) => grounding.evidence[index].id);
       const appendAnswer = (delta: string) => {
+        noteCitations(delta);
         if (!keepTranscript || answerText.length > MAX_TRANSCRIPT_ANSWER_CHARACTERS) return;
         answerText += delta.slice(0, MAX_TRANSCRIPT_ANSWER_CHARACTERS + 1 - answerText.length);
       };
@@ -570,7 +584,7 @@ export function createPortfolioChatHandler({
                 outcome,
                 question,
                 answer: answerText,
-                evidenceIds: grounding.evidence.map(({ id }) => id),
+                citedEvidenceIds: citedEvidenceIds(),
                 durationMs,
               }),
             )
@@ -584,6 +598,7 @@ export function createPortfolioChatHandler({
           outcome,
           evidenceCount: grounding.evidence.length,
           evidenceIds: grounding.evidence.map(({ id }) => id),
+          citedEvidenceIds: citedEvidenceIds(),
           durationMs,
           answerCharacters,
           providerModel: context.providerModel,

@@ -556,7 +556,9 @@ describe("the local run", () => {
 
   it("runs every insights suite from test:insights without changing npm test", async () => {
     const { scripts } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-    expect(scripts["test:insights"]).toBe("vitest run scripts/portfolio-insights scripts/setup-portfolio-insights.test.ts");
+    expect(scripts["test:insights"]).toBe(
+      "vitest run scripts/portfolio-insights scripts/portfolio-chat-logs.test.ts scripts/setup-portfolio-insights.test.ts",
+    );
     expect(scripts.test).toBe("vitest run && npm run test:media-studio && npm run test:clip-studio");
     expect(scripts["insights:dashboard"]).toBe("node scripts/portfolio-insights.mjs --dashboard --no-cloudflare --no-clarity");
     // BIV-527 retired the launchd job; the schedule now lives in the Worker's
@@ -575,7 +577,7 @@ describe("Guide transcripts in a run", () => {
     outcome: "answered",
     question: "What is Writ?",
     answer: "A product.",
-    evidenceIds: [],
+    citedEvidenceIds: [],
   };
 
   it("reads the window through the port, records the count, and prunes after the dashboard", async () => {

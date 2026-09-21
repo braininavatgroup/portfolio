@@ -1253,12 +1253,12 @@ function chatTally(values) {
 }
 
 function chatTurnHtml(turn, labelFor) {
-  const evidence = list(turn.evidenceIds).map((id) => chatEvidenceLabel(id, labelFor));
+  const evidence = list(turn.citedEvidenceIds).map((id) => chatEvidenceLabel(id, labelFor));
   const meta = [
     stamp(turn.capturedAt) ?? "unknown time",
     CHAT_MODE_LABELS[turn.mode] ?? String(turn.mode ?? "unknown"),
     String(turn.outcome ?? "unknown").replace(/_/gu, " "),
-    ...(evidence.length ? [`drew on ${evidence.join(", ")}`] : []),
+    ...(evidence.length ? [`cited ${evidence.join(", ")}`] : []),
   ].join(" · ");
   const answer = String(turn.answer ?? "");
   return (
@@ -1306,8 +1306,8 @@ function chatSection(context) {
     `<h3>Outcomes</h3>` +
       dataTable(["Outcome", "Questions"], chatTally(turns.map((turn) => String(turn.outcome ?? "unknown").replace(/_/gu, " ")))),
   ];
-  const drawnOn = chatTally(turns.flatMap((turn) => list(turn.evidenceIds).map((id) => chatEvidenceLabel(id, labelFor))));
-  parts.push(`<h3>Content the answers drew on</h3>` + (drawnOn.length ? dataTable(["Content", "Answers"], drawnOn) : empty("None in this window.")));
+  const cited = chatTally(turns.flatMap((turn) => list(turn.citedEvidenceIds).map((id) => chatEvidenceLabel(id, labelFor))));
+  parts.push(`<h3>Content the answers cited</h3>` + (cited.length ? dataTable(["Content", "Answers"], cited) : empty("No answer cited portfolio content in this window.")));
   const newest = [...conversations.values()]
     .map((group) => group.slice().sort((a, b) => String(a.capturedAt).localeCompare(String(b.capturedAt))))
     .sort((a, b) => String(b.at(-1).capturedAt).localeCompare(String(a.at(-1).capturedAt)));

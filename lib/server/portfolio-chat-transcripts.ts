@@ -19,7 +19,7 @@
 //   - the turn reached the provider or was refused for lack of evidence.
 //
 // Kept: the question, the answer as streamed, the turn mode, the outcome, the
-// evidence IDs the answer was grounded on, its duration, the tab session id,
+// evidence IDs the answer cited, its duration, the tab session id,
 // and the same coarse network location and device class the insight sink
 // keeps. Not kept: the address, the user agent string, cookies, the chat
 // identifier, or the earlier turns the client re-sent as context (each of
@@ -53,7 +53,8 @@ export type ChatTranscriptTurn = {
   question: string;
   answer: string;
   answerTruncated: boolean;
-  evidenceIds: string[];
+  /** Evidence the answer cited, not everything it was grounded on. */
+  citedEvidenceIds: string[];
   durationMs: number;
   country: string;
   regionCode: string;
@@ -64,7 +65,7 @@ export type ChatTranscriptTurn = {
 /** What the handler knows about a turn when it finishes. */
 export type FinishedChatTurn = Pick<
   ChatTranscriptTurn,
-  "requestId" | "mode" | "outcome" | "question" | "evidenceIds" | "durationMs"
+  "requestId" | "mode" | "outcome" | "question" | "citedEvidenceIds" | "durationMs"
 > & { answer: string; sessionId?: string };
 
 export type ChatTranscriptBucket = {
@@ -106,7 +107,7 @@ export function transcriptTurn(
     question: turn.question,
     answer: truncated ? turn.answer.slice(0, MAX_TRANSCRIPT_ANSWER_CHARACTERS) : turn.answer,
     answerTruncated: truncated,
-    evidenceIds: turn.evidenceIds,
+    citedEvidenceIds: turn.citedEvidenceIds,
     durationMs: turn.durationMs,
     country,
     regionCode,
