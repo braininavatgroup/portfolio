@@ -451,6 +451,90 @@ months. Local raw copies follow the 180-day rule below.
   That file is the only durable record of the launch curve, so run it on a
   rhythm rather than only when curious.
 
+### Guide transcripts
+
+Since BIV-544 the Worker keeps every Guide question and its answer, so the
+dashboard can show what visitors ask. Bradley decided this on 2026-09-21.
+Before that, nothing about a chat turn outlived the request except a sampled
+`portfolio_chat_stream` log line. That line records no question text, and the
+09-17 and 09-18 turns it should have covered were never kept.
+
+**What one turn holds.** One JSON object per finished turn:
+
+| Field | Value |
+| --- | --- |
+| `question` | What the visitor typed, trimmed, at most 600 characters |
+| `answer` | The answer as it streamed, cut at 16,000 characters (`answerTruncated` says when) |
+| `mode` | `portfolio`, `social`, `general`, or `none` when no answer was attempted |
+| `outcome` | `answered`, `partial_answer`, `insufficient_evidence`, `provider_unavailable`, `aborted` |
+| `citedEvidenceIds` | What the answer cited with `[E#]`: `node:<id>`, `thread:<id>`, `entity:…`. Not the grounding set, which is usually the whole portfolio |
+| `sessionId` | The tab id the insight sink uses, so a conversation joins its journey |
+| `country`, `regionCode`, `city`, `device` | The same coarse values the sink keeps |
+| `capturedAt`, `requestId`, `durationMs` | When, which request, how long |
+
+The record holds no address, user agent string, cookie, or chat identifier,
+and not the earlier turns the Guide re-sends as context: each of those is
+already its own record.
+
+**Who is kept.** A turn is kept only when the Guide sends a tab id. It sends
+one only for a visit the analytics consent allows, the same decision that
+gates Clarity and the sink. So a browser enrolled with `?analytics=off`, one
+that opted out on `/privacy`, a preview page, and a non-public hostname are
+never kept. Bradley's own enrolled browsers therefore never show up here.
+
+**Where and how long.** In the private bucket `biv-portfolio-insights` under
+`chat/YYYY-MM-DD/`, beside the run records under `runs/`. The only reader is
+the Access-gated insights dashboard. After writing the dashboard, the daily
+run deletes whole days by prefix, without opening a record. It deletes each day
+once that day is more than 88 days old, so no turn reaches 90 days whenever in
+the day the run fires. `/privacy` says all of this.
+
+**The gate.** `PORTFOLIO_CHAT_TRANSCRIPTS` in `wrangler.main-preview.jsonc` is
+`"r2"`. Any other value, or no `PORTFOLIO_INSIGHTS_STORE` binding, turns
+keeping off without touching the chat itself. The write is handed to the
+Worker's `waitUntil` and never awaited by the stream, so a failed, slow, or
+stalled write never affects the visitor's answer: the stream closes as soon
+as the answer is done. To stop keeping transcripts, remove the value and deploy. To delete
+what is already kept, delete the `chat/` prefix in the bucket.
+
+**Reading them.** The dashboard's **Chat** section, between Journeys and
+Audience, shows counts, modes, outcomes, the content answers cited, and
+each conversation with its questions and folded answers. A local
+`npm run insights` has no access to the bucket, so its Chat section says
+transcripts are unavailable and points at the dashboard. `history.jsonl`
+keeps only the count (`chatTurns`), never text.
+
+### The Guide's log events
+
+Each Guide request also writes one structured log line: `portfolio_chat_stream`
+when it finishes, or `portfolio_chat_preflight` when it is refused before
+answering. The line holds the outcome, the duration, the answer's length, and
+`citedEvidenceIds`. It holds no question or answer text, so it is for
+operations, not for reading what was asked; the transcripts above are for that.
+Workers Logs keeps them for seven days, and nothing samples them on the way in
+(the Worker's head sampling rate is 1).
+
+Read them with:
+
+```sh
+npm run chat:logs              # last 7 days, one line per event
+npm run chat:logs -- --days 2 --json
+```
+
+Don't read them with one wide query. The Workers Logs query API samples its
+*answer* when a window holds many rows, and reports how hard in
+`statistics.abr_level`: 1 means every row, 10 means one in ten, 100 means one
+in a hundred. A seven-day query on 2026-09-21 came back at 100 and returned 3
+of about 100 chat requests, which read as though the chat was never logging.
+`chat:logs` asks in six-hour slices and splits any slice that still comes back
+sampled. It warns about any slice it could not get unsampled rather than
+dropping it silently. The dashboard's query builder samples the same way, so
+narrow the time range there before concluding something is missing.
+
+It reads a read-only Workers Observability token from
+`CLOUDFLARE_OBSERVABILITY_TOKEN` or the Keychain entry
+`biv-cloudflare-observability` / `read-token`.
+
 ### Where records are kept, and for how long
 
 A run keeps the same set of records wherever it runs; only the place differs.

@@ -81,6 +81,27 @@ const ANALYTICS_ENGINE_CAPABILITY =
   "Analytics Engine unavailable (needs Account Analytics Read on the Cloudflare token " +
   "and a deployment with PORTFOLIO_INSIGHT_EVENTS_SINK=analytics-engine)";
 
+const CHAT_UNAVAILABLE_LOCALLY = "Guide transcripts are kept in the scheduled run's private bucket; read them at the insights dashboard";
+
+/**
+ * The Guide transcripts for this window, as a source state. Unlike the other
+ * sources there is no last-known-good copy: transcripts are the store itself,
+ * so a failed read is simply unavailable.
+ * @param {{ read: (range: { start: string, end: string }) => Promise<Array<Record<string, any>>> } | undefined} port
+ * @param {{ start: string, end: string }} range
+ * @param {string} capturedAt
+ * @param {boolean} offline
+ */
+async function resolveChatState(port, range, capturedAt, offline) {
+  if (!port || offline) return { status: "unavailable", capturedAt: null, value: null, error: CHAT_UNAVAILABLE_LOCALLY };
+  try {
+    const turns = await port.read(range);
+    return { status: "fresh", capturedAt, value: { turns } };
+  } catch (error) {
+    return { status: "unavailable", capturedAt: null, value: null, error: `transcripts: ${messageOf(error)}` };
+  }
+}
+
 /** @param {unknown} error */
 function messageOf(error) {
   return error instanceof Error ? error.message : String(error);
@@ -221,6 +242,10 @@ const measured = (state) => (state.status === "fresh" ? state.value : null);
  *   readContent: () => Promise<unknown>,
  *   now?: () => Date,
  *   fetchers?: Partial<typeof liveFetchers>,
+ *   chatTranscripts?: {
+ *     read: (range: { start: string, end: string }) => Promise<Array<Record<string, any>>>,
+ *     prune: (now: Date) => Promise<void>,
+ *   },
  * }} dependencies
  */
 export async function runInsights(options, dependencies) {
@@ -298,6 +323,10 @@ export async function runInsights(options, dependencies) {
     fetch: readInsights ? async () => fetchers.insightEvents(await cloudflareToken(), range) : null,
   });
 
+  // Guide transcripts live only in the Worker's bucket, so a local run has no
+  // port and says so rather than reporting an empty window.
+  const chat = await resolveChatState(dependencies.chatTranscripts, range, capturedAt, offline);
+
   const history = await storage.readHistory(directory);
   let catalog = {};
   try {
@@ -351,6 +380,7 @@ export async function runInsights(options, dependencies) {
         ...(insightsError ? { error: insightsError } : {}),
       },
       airtable,
+      chat,
     },
     clarity: legacy(clarity),
     cloudflare: legacy(cloudflare),
@@ -391,7 +421,9 @@ export async function runInsights(options, dependencies) {
       insights: insights.status,
       journeys: events.status,
       airtable: airtable.status,
+      chat: chat.status,
     },
+    ...(chat.status === "fresh" ? { chatTurns: chat.value.turns.length } : {}),
     intelligence: summarizeForHistory(recordedIntelligence),
   };
 
@@ -412,6 +444,10 @@ export async function runInsights(options, dependencies) {
   // Only after history and the dashboard both landed: an aborted run keeps
   // every raw file it may not have summarised yet.
   if (record) await storage.pruneRawSnapshots(directory, started);
+  if (record && dependencies.chatTranscripts) {
+    // Retention holds even when today's read failed.
+    await dependencies.chatTranscripts.prune(started).catch(() => {});
+  }
 
   const useful =
     [clarity, cloudflare, insights].some((state) => state.status !== "unavailable") || events.status !== "unavailable";

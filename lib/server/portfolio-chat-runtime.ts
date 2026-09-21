@@ -17,6 +17,10 @@ import {
   type PortfolioChatStreamEvent,
 } from "./portfolio-chat-handler";
 import type { PortfolioChatProvider } from "./portfolio-chat-provider";
+import {
+  createChatTranscriptKeeper,
+  type ChatTranscriptEnv,
+} from "./portfolio-chat-transcripts";
 import { groundPortfolioQuestion } from "../portfolio-grounding";
 
 export type PortfolioChatBudgetStub = {
@@ -37,7 +41,7 @@ export type PortfolioChatRuntimeEnv = {
   OPENAI_PORTFOLIO_VERBOSITY?: string;
   PORTFOLIO_CHAT_RATE_LIMITER?: PortfolioChatRateLimiter;
   PORTFOLIO_CHAT_BUDGET?: PortfolioChatBudgetNamespace;
-};
+} & ChatTranscriptEnv;
 
 type RuntimeEvent = PortfolioChatLaunchEvent | PortfolioChatStreamEvent;
 
@@ -48,6 +52,8 @@ type PortfolioChatRuntimeOptions = {
   now?: () => number;
   randomId?: () => string;
   record?: (event: RuntimeEvent) => void;
+  /** The Worker's `waitUntil`, so a transcript write outlives the response. */
+  waitUntil?: (work: Promise<unknown>) => void;
 };
 
 const reasoningEfforts = new Set([
@@ -159,6 +165,7 @@ export function createPortfolioChatRuntime({
   now = Date.now,
   randomId = () => crypto.randomUUID(),
   record = (event) => console.info(JSON.stringify(event)),
+  waitUntil,
 }: PortfolioChatRuntimeOptions) {
   const config = runtimeConfig(env);
   const safeRecord = (event: RuntimeEvent) => {
@@ -291,6 +298,8 @@ export function createPortfolioChatRuntime({
         }),
         now,
         record: safeRecord,
+        keepTranscript: createChatTranscriptKeeper({ env, request, now }),
+        waitUntil,
       });
       return withSession(
         await handler(request, { ...parsed.value, grounding }),

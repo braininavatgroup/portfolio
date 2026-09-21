@@ -41,7 +41,8 @@
     "clip:setup": "npx --yes playwright@1.58.2 install chromium",
     "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs",
     "insights": "node scripts/portfolio-insights.mjs",
-    "test:insights": "vitest run scripts/portfolio-insights scripts/setup-portfolio-insights.test.ts"
+    "chat:logs": "node scripts/portfolio-chat-logs.mjs",
+    "test:insights": "vitest run scripts/portfolio-insights scripts/portfolio-chat-logs.test.ts scripts/setup-portfolio-insights.test.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",

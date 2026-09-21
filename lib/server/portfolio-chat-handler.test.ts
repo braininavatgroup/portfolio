@@ -797,6 +797,8 @@ describe("portfolio chat route handler", () => {
       outcome: "answered",
       evidenceCount: expect.any(Number),
       evidenceIds: expect.any(Array),
+      // IDs only, and only the one [E1] the answer cited.
+      citedEvidenceIds: [expect.any(String)],
       durationMs: 25,
       answerCharacters: 35,
       providerModel: "portfolio-model",

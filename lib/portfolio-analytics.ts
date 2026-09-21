@@ -185,6 +185,21 @@ function currentTabSessionId() {
 }
 
 /**
+ * The tab id to send with a Guide question, or undefined when this visit is
+ * not eligible for insights. The worker keeps a chat transcript only for a
+ * turn that carries one, so the same consent that gates Clarity and the sink
+ * decides whether a conversation is kept.
+ */
+export function portfolioChatTranscriptSessionId() {
+  if (!insightEventsEnabled) return undefined;
+  try {
+    return currentTabSessionId();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Fire-and-forget copy of the event to the worker's own sink. A beacon
  * survives the page unloading, which is when the last attention snapshot is
  * sent; the keepalive fetch is the fallback where beacons are unavailable or

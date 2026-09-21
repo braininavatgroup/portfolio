@@ -556,11 +556,67 @@ describe("the local run", () => {
 
   it("runs every insights suite from test:insights without changing npm test", async () => {
     const { scripts } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-    expect(scripts["test:insights"]).toBe("vitest run scripts/portfolio-insights scripts/setup-portfolio-insights.test.ts");
+    expect(scripts["test:insights"]).toBe(
+      "vitest run scripts/portfolio-insights scripts/portfolio-chat-logs.test.ts scripts/setup-portfolio-insights.test.ts",
+    );
     expect(scripts.test).toBe("vitest run && npm run test:media-studio && npm run test:clip-studio");
     expect(scripts["insights:dashboard"]).toBe("node scripts/portfolio-insights.mjs --dashboard --no-cloudflare --no-clarity");
     // BIV-527 retired the launchd job; the schedule now lives in the Worker's
     // `triggers.crons`, so an installer entry point coming back is a mistake.
     expect(scripts).not.toHaveProperty("schedule:insights");
+  });
+});
+
+describe("Guide transcripts in a run", () => {
+  const kept = {
+    version: 1,
+    capturedAt: "2026-09-11T09:00:00.000Z",
+    requestId: "r1",
+    sessionId: "tab-aaaaaa",
+    mode: "portfolio",
+    outcome: "answered",
+    question: "What is Writ?",
+    answer: "A product.",
+    citedEvidenceIds: [],
+  };
+
+  it("reads the window through the port, records the count, and prunes after the dashboard", async () => {
+    const calls: string[] = [];
+    const chatTranscripts = {
+      read: vi.fn(async () => {
+        calls.push("read");
+        return [kept];
+      }),
+      prune: vi.fn(async () => {
+        calls.push(`prune:${(await readdir(directory)).includes("dashboard.html")}`);
+      }),
+    };
+    const result = await runFixture([], { directory, now: NOW, chatTranscripts });
+    expect(result.snapshot.sources.chat).toMatchObject({ status: "fresh", value: { turns: [kept] } });
+    expect(chatTranscripts.read).toHaveBeenCalledWith(expect.objectContaining({ end: expect.any(String), start: expect.any(String) }));
+    expect(calls).toEqual(["read", "prune:true"]);
+    const rows = (await text("history.jsonl")).trim().split("\n").map((line) => JSON.parse(line));
+    expect(rows.at(-1)).toMatchObject({ chatTurns: 1, sources: { chat: "fresh" } });
+    // History keeps the count only, never what anyone asked.
+    expect(await text("history.jsonl")).not.toContain("What is Writ?");
+    expect(await text("dashboard.html")).toContain("What is Writ?");
+  });
+
+  it("marks transcripts unavailable when the read fails, and still prunes", async () => {
+    const chatTranscripts = {
+      read: async () => {
+        throw new Error("R2 list failed");
+      },
+      prune: vi.fn(async () => {}),
+    };
+    const result = await runFixture([], { directory, now: NOW, chatTranscripts });
+    expect(result.snapshot.sources.chat).toMatchObject({ status: "unavailable", error: "transcripts: R2 list failed" });
+    expect(chatTranscripts.prune).toHaveBeenCalledOnce();
+  });
+
+  it("says a local run cannot read them rather than reporting an empty window", async () => {
+    const result = await runFixture([], { directory, now: NOW });
+    expect(result.snapshot.sources.chat.status).toBe("unavailable");
+    expect(result.snapshot.sources.chat.error).toMatch(/insights dashboard/u);
   });
 });

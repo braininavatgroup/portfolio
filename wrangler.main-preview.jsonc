@@ -34,7 +34,8 @@
     "PORTFOLIO_INSIGHTS_HOST": "insights.braininavat.dance",
     "PORTFOLIO_INSIGHTS_ACCESS_TEAM": "maintain-dashboard.cloudflareaccess.com",
     "PORTFOLIO_INSIGHTS_ACCESS_EMAILS": "bradley@braininavat.dance",
-    "PORTFOLIO_INSIGHTS_DAYS": "7"
+    "PORTFOLIO_INSIGHTS_DAYS": "7",
+    "PORTFOLIO_CHAT_TRANSCRIPTS": "r2"
   },
   "secrets": {
     "required": [

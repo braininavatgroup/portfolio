@@ -19,6 +19,11 @@ import {
   type PortfolioChatMessage,
 } from "../portfolio-chat-conversation";
 import type { PortfolioResponseEffects } from "../avatar/contracts";
+import { SESSION_ID_PATTERN } from "./portfolio-insight-sink";
+import {
+  MAX_TRANSCRIPT_ANSWER_CHARACTERS,
+  type FinishedChatTurn,
+} from "./portfolio-chat-transcripts";
 
 export type PortfolioChatRequestContext = {
   requestId: string;
@@ -36,7 +41,10 @@ export type PortfolioChatStreamEvent = {
     | "provider_unavailable"
     | "aborted";
   evidenceCount: number;
+  /** Everything the answer was grounded on — often the whole portfolio. */
   evidenceIds: string[];
+  /** What the answer actually cited with `[E#]`, in first-cited order. */
+  citedEvidenceIds: string[];
   durationMs: number;
   answerCharacters: number;
   providerModel: string;
@@ -48,6 +56,13 @@ type PortfolioChatHandlerDependencies = {
   getProvider(): PortfolioChatProvider;
   getRequestContext?(request: Request): PortfolioChatRequestContext;
   record?(event: PortfolioChatStreamEvent): void;
+  /** Keeps the finished turn's transcript. Never awaited by the stream. */
+  keepTranscript?(turn: FinishedChatTurn): Promise<void>;
+  /**
+   * Extends the request past the response for work the visitor must not wait
+   * on — the Worker's `waitUntil`. Without it the keeper still runs, unawaited.
+   */
+  waitUntil?(work: Promise<unknown>): void;
   now?(): number;
   providerTimeoutMs?: number;
 };
@@ -63,6 +78,8 @@ export type ParsedPortfolioChatRequest = {
   conversation?: PortfolioChatMessage[];
   visitState?: PortfolioChatVisitState;
   grounding?: PortfolioGrounding;
+  /** The Guide's tab session id, sent only for an analytics-eligible visit. */
+  sessionId?: string;
 };
 
 class InvalidAttributionError extends Error {}
@@ -395,10 +412,21 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
     }
     visitState = { generalTurns, portfolioNudgeShown };
   }
+  // A malformed tab id is ignored rather than rejected: it only decides
+  // whether the turn is kept, never whether the visitor gets an answer.
+  const rawSessionId =
+    parsed && typeof parsed === "object" && "sessionId" in parsed
+      ? Reflect.get(parsed, "sessionId")
+      : undefined;
+  const sessionId =
+    typeof rawSessionId === "string" && SESSION_ID_PATTERN.test(rawSessionId)
+      ? rawSessionId
+      : undefined;
   return {
     question: question.trim(),
     ...(conversation?.length ? { conversation } : {}),
     ...(visitState ? { visitState } : {}),
+    ...(sessionId ? { sessionId } : {}),
   };
 }
 
@@ -463,6 +491,8 @@ export function createPortfolioChatHandler({
   getProvider,
   getRequestContext,
   record,
+  keepTranscript,
+  waitUntil,
   now = Date.now,
   providerTimeoutMs = 15_000,
 }: PortfolioChatHandlerDependencies) {
@@ -474,7 +504,7 @@ export function createPortfolioChatHandler({
       ? { ok: true as const, value: prepared }
       : await parsePortfolioChatRequest(request);
     if (!parsed.ok) return parsed.response;
-    const { question, conversation, visitState } = parsed.value;
+    const { question, conversation, visitState, sessionId } = parsed.value;
 
     const grounding = parsed.value.grounding ?? groundPortfolioQuestion(question);
     const context = getRequestContext?.(request);
@@ -489,6 +519,25 @@ export function createPortfolioChatHandler({
     return streamResponse(async (send) => {
       let outcome: PortfolioChatStreamEvent["outcome"] = "answered";
       let answerCharacters = 0;
+      // The answer as streamed, held only for the transcript and cut one past
+      // the cap so the keeper can tell the answer was longer.
+      let answerText = "";
+      let transcriptMode: FinishedChatTurn["mode"] = "none";
+      // Grounding is frequently the whole portfolio, so it says nothing about
+      // what a question was about. The citations the answer carried do.
+      const citedIndexes = new Set<number>();
+      const noteCitations = (delta: string) => {
+        for (const [, label] of delta.matchAll(/\[E([1-9]\d*)\]/g)) {
+          const index = Number(label) - 1;
+          if (index < grounding.evidence.length) citedIndexes.add(index);
+        }
+      };
+      const citedEvidenceIds = () => [...citedIndexes].map((index) => grounding.evidence[index].id);
+      const appendAnswer = (delta: string) => {
+        noteCitations(delta);
+        if (!keepTranscript || answerText.length > MAX_TRANSCRIPT_ANSWER_CHARACTERS) return;
+        answerText += delta.slice(0, MAX_TRANSCRIPT_ANSWER_CHARACTERS + 1 - answerText.length);
+      };
       let usage: PortfolioChatProviderUsage | undefined;
       let providerFailureKind: PortfolioChatProviderFailureKind | undefined;
       let pendingEffects: PortfolioResponseEffects | undefined;
@@ -521,6 +570,27 @@ export function createPortfolioChatHandler({
       const finish = () => {
         if (finished) return;
         finished = true;
+        const durationMs = Math.max(0, now() - startedAt);
+        // Scheduled, never awaited: the stream closes as soon as the answer is
+        // done, so a slow or stalled write can't hold the visitor's composer
+        // open or trip the client's stall timer.
+        if (keepTranscript && context) {
+          const kept = Promise.resolve()
+            .then(() =>
+              keepTranscript({
+                requestId: context.requestId,
+                ...(sessionId ? { sessionId } : {}),
+                mode: transcriptMode,
+                outcome,
+                question,
+                answer: answerText,
+                citedEvidenceIds: citedEvidenceIds(),
+                durationMs,
+              }),
+            )
+            .catch(() => {});
+          waitUntil?.(kept);
+        }
         if (!context || !record) return;
         record({
           event: "portfolio_chat_stream",
@@ -528,7 +598,8 @@ export function createPortfolioChatHandler({
           outcome,
           evidenceCount: grounding.evidence.length,
           evidenceIds: grounding.evidence.map(({ id }) => id),
-          durationMs: Math.max(0, now() - startedAt),
+          citedEvidenceIds: citedEvidenceIds(),
+          durationMs,
           answerCharacters,
           providerModel: context.providerModel,
           ...(usage ? { usage } : {}),
@@ -587,6 +658,7 @@ export function createPortfolioChatHandler({
           requiresPortfolioMode(question, conversation, grounding)
             ? "portfolio"
             : (proposedMode ?? "portfolio");
+        transcriptMode = effectiveMode;
         if (proposedMode) send({ type: "turn_mode", mode: effectiveMode });
 
         if (effectiveMode === "portfolio") {
@@ -596,6 +668,7 @@ export function createPortfolioChatHandler({
           )) {
             if (delta) {
               answerCharacters += delta.length;
+              appendAnswer(delta);
               sendPendingEffects();
               send({ type: "answer_delta", delta });
             }
@@ -611,6 +684,7 @@ export function createPortfolioChatHandler({
             appendNudge,
           )) {
             answerCharacters += delta.length;
+            appendAnswer(delta);
             sendPendingEffects();
             send({ type: "answer_delta", delta });
           }

@@ -53,7 +53,7 @@ const MAX_INSIGHT_DIMENSIONS = 8;
 const SCHEMA_VERSION = "v2";
 const ACTION_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;
 const VALUE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
-const SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/u;
+export const SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/u;
 const COUNTRY_PATTERN = /^[A-Z]{2}$|^T1$/u;
 const REGION_CODE_PATTERN = /^[A-Za-z0-9-]{1,16}$/u;
 const CITY_PATTERN = /^[\p{L}\p{M}\p{N} .'-]{1,96}$/u;
@@ -240,7 +240,7 @@ function shaped(value: unknown, pattern: RegExp) {
  * `request.cf` alone. Each property is named, so nothing else on `cf` can reach
  * the row.
  */
-function geographyOf(request: Request): InsightGeography {
+export function geographyOf(request: Request): InsightGeography {
   const cf = Reflect.get(request, "cf") as unknown;
   const edge: Record<string, unknown> = isRecord(cf) ? cf : {};
   const country =

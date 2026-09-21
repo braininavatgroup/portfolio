@@ -4,6 +4,7 @@ import type {
 } from "./portfolio-chat-protocol";
 import type { PortfolioChatMessage } from "./portfolio-chat-conversation";
 import { parsePortfolioResponseEffects } from "./avatar/validation";
+import { portfolioChatTranscriptSessionId } from "./portfolio-analytics";
 
 export type AskPortfolioOptions = {
   signal?: AbortSignal;
@@ -123,10 +124,12 @@ export const streamPortfolioAnswer: AskPortfolio = async (
   question,
   { signal, conversation, visitState, onEvent, fetchImplementation = fetch },
 ) => {
+  const sessionId = portfolioChatTranscriptSessionId();
   const body = {
     question,
     ...(conversation?.length ? { conversation } : {}),
     ...(visitState ? { visitState } : {}),
+    ...(sessionId ? { sessionId } : {}),
   };
   const send = () =>
     fetchImplementation("/api/portfolio-chat", {

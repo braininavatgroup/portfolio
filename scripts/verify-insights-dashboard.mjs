@@ -44,6 +44,7 @@ export const SECTION_HEADINGS = Object.freeze([
   "Assigned links",
   "Content resonance",
   "Journeys",
+  "Chat",
   "Audience",
   "Observe in Clarity",
   "Diagnostics",

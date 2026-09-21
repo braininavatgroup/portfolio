@@ -329,11 +329,12 @@ const summaryOf = (page: string, id: string) => {
 
 describe("renderDashboard decision sections", () => {
   it("orders the decision sections and collapses diagnostics last", () => {
-    expect(headings(html).slice(0, 7)).toEqual([
+    expect(headings(html).slice(0, 8)).toEqual([
       "What changed",
       "Assigned links",
       "Content resonance",
       "Journeys",
+      "Chat",
       "Audience",
       "Observe in Clarity",
       "Diagnostics",
@@ -403,8 +404,9 @@ describe("renderDashboard decision sections", () => {
     const observe = sectionOf(html, "Observe in Clarity");
     expect(count(observe, 'class="source-note"')).toBe(1);
     expect(observe).toContain("Clarity returned 429");
-    // What changed names all four, and only the two stale ones explain.
-    expect(count(sectionOf(html, "What changed"), 'class="source-note"')).toBe(2);
+    // What changed names all five, and only the ones not fresh explain: two
+    // stale, and Guide transcripts, which a fixture run never reads.
+    expect(count(sectionOf(html, "What changed"), 'class="source-note"')).toBe(3);
   });
 
   it("puts configuration errors and truncation on the first screen", () => {
@@ -571,8 +573,8 @@ describe("renderDashboard empty and unavailable states", () => {
   const page = renderDashboard({ snapshot: unavailable, history: [], generatedAt: "2026-09-11T16:30:00.000Z" });
 
   it("keeps every section, says why each source is missing, and never prints zero", () => {
-    expect(headings(page).slice(0, 7)).toEqual([
-      "What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity", "Diagnostics",
+    expect(headings(page).slice(0, 8)).toEqual([
+      "What changed", "Assigned links", "Content resonance", "Journeys", "Chat", "Audience", "Observe in Clarity", "Diagnostics",
     ]);
     expect(page).toContain("Unavailable — dataset not activated");
     expect(page).toContain("Unavailable — Airtable Actions request failed: HTTP 401");
@@ -719,8 +721,8 @@ describe("renderDashboard with the real journey reducer", () => {
       event("2026-09-10T15:01:00.000Z", "content_open", { campaign: "alex-code-01", contentId: "record-9q" }),
     ];
     const page = render(build(events), { status: "fresh", capturedAt, value: { raw: { events, truncated: false } } });
-    expect(headings(page).slice(0, 7)).toEqual([
-      "What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity", "Diagnostics",
+    expect(headings(page).slice(0, 8)).toEqual([
+      "What changed", "Assigned links", "Content resonance", "Journeys", "Chat", "Audience", "Observe in Clarity", "Diagnostics",
     ]);
     const assigned = sectionOf(page, "Assigned links");
     expect(assigned).toContain("Activity from &lt;Alex &amp; Co&gt;&#39;s assigned link");
@@ -880,8 +882,8 @@ describe("what the page opens on", () => {
       expect(panel.slice(0, panel.indexOf("<summary>")), id).not.toMatch(/\bopen\b/u);
     }
     // Folding moves nothing between sections: the order contract still holds.
-    expect(headings(html).slice(0, 7)).toEqual([
-      "What changed", "Assigned links", "Content resonance", "Journeys", "Audience", "Observe in Clarity", "Diagnostics",
+    expect(headings(html).slice(0, 8)).toEqual([
+      "What changed", "Assigned links", "Content resonance", "Journeys", "Chat", "Audience", "Observe in Clarity", "Diagnostics",
     ]);
   });
 
@@ -890,7 +892,7 @@ describe("what the page opens on", () => {
     expect(summaryOf(html, "journeys")).toContain("7 tab sessions, 1 path reached contact");
     expect(summaryOf(html, "audience")).toContain("7 sessions from 2 locations, 2 devices");
     expect(summaryOf(html, "observe-in-clarity")).toContain("1 assigned link, 2 content items, 1 location");
-    expect(summaryOf(html, "diagnostics")).toContain("2 sources not fresh, 310 crawler requests, 9 server errors");
+    expect(summaryOf(html, "diagnostics")).toContain("3 sources not fresh, 310 crawler requests, 9 server errors");
     for (const id of FOLDED) expect(summaryOf(html, id), id).toMatch(/<h2>/u);
   });
 
@@ -921,7 +923,7 @@ describe("what the page opens on", () => {
       expect(summaryOf(down, id), id).toContain("Unavailable — dataset not activated");
       expect(summaryOf(down, id), id).toContain("event data unavailable — dataset not activated");
     }
-    expect(summaryOf(down, "diagnostics")).toContain("4 sources not fresh");
+    expect(summaryOf(down, "diagnostics")).toContain("5 sources not fresh");
     // Never a fabricated zero in a summary that stands in for missing data.
     for (const id of FOLDED) expect(summaryOf(down, id), id).not.toMatch(/>0(%|\s*<)/u);
   });
@@ -1043,5 +1045,66 @@ describe("historySeries", () => {
     ]);
     expect(points.map((p) => p.x)).toEqual(["2026-09-10", "2026-09-11"]);
     expect(points[1]).toMatchObject({ believableSessions: 437, believableVisits: 38 });
+  });
+});
+
+describe("the Chat section", () => {
+  const turn = (overrides: Record<string, unknown>) => ({
+    version: 1,
+    capturedAt: "2026-09-11T15:00:00.000Z",
+    requestId: "r1",
+    sessionId: "tab-aaaaaa",
+    mode: "portfolio",
+    outcome: "answered",
+    question: "What is Writ?",
+    answer: "Writ is a product. [E1]",
+    answerTruncated: false,
+    citedEvidenceIds: ["node:record-9q"],
+    durationMs: 900,
+    country: "US",
+    regionCode: "NY",
+    city: "New York City",
+    device: "mobile",
+    ...overrides,
+  });
+  const withChat = (turns: unknown[]) =>
+    renderDashboard({
+      snapshot: {
+        ...hostile,
+        sources: { ...hostile.sources, chat: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z", value: { turns } } },
+      },
+      history,
+      generatedAt: "2026-09-11T16:30:00.000Z",
+    });
+
+  it("groups questions by tab, newest conversation first, and escapes what visitors typed", () => {
+    const page = withChat([
+      turn({ requestId: "r1", sessionId: "tab-aaaaaa", question: "<script>alert(1)</script> hire?" }),
+      turn({ requestId: "r2", sessionId: "tab-aaaaaa", capturedAt: "2026-09-11T15:01:00.000Z", mode: "general", outcome: "answered", citedEvidenceIds: [] }),
+      turn({ requestId: "r3", sessionId: "tab-bbbbbb", capturedAt: "2026-09-11T15:30:00.000Z", outcome: "insufficient_evidence", mode: "none", answer: "", citedEvidenceIds: [] }),
+    ]);
+    const chat = sectionOf(page, "Chat");
+    expect(summaryOf(page, "chat")).toContain("3 questions in 2 conversations");
+    expect(summaryOf(page, "chat")).toContain("Chat · Fresh 09-11 16:00");
+    expect(chat).not.toContain("<script>alert(1)</script>");
+    expect(chat).toContain("&lt;script&gt;alert(1)&lt;/script&gt; hire?");
+    // Newest conversation (tab-bbbbbb, 15:30) is listed first.
+    expect(chat.indexOf("Conversation 1 · 2026-09-11 15:30 UTC")).toBeGreaterThan(-1);
+    expect(chat).toContain("Conversation 2 · 2026-09-11 15:00 UTC · New York City, NY, US · mobile · 2 questions");
+    // Evidence ids resolve to content labels, and unanswered turns say so.
+    expect(chat).toContain("Content the answers cited");
+    expect(chat).toContain("No answer was streamed.");
+    expect(chat).toContain("insufficient evidence");
+  });
+
+  it("says the window was empty rather than unavailable", () => {
+    const page = withChat([]);
+    expect(summaryOf(page, "chat")).toContain("no questions in this window");
+    expect(sectionOf(page, "Chat")).toContain("Nobody asked the Guide anything in this window.");
+  });
+
+  it("says why transcripts are missing on a run that cannot read them", () => {
+    expect(summaryOf(html, "chat")).toContain("transcripts unavailable");
+    expect(summaryOf(html, "chat")).toContain("Chat · Unavailable");
   });
 });
