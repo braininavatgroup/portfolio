@@ -484,15 +484,17 @@ never kept. Bradley's own enrolled browsers therefore never show up here.
 
 **Where and how long.** In the private bucket `biv-portfolio-insights` under
 `chat/YYYY-MM-DD/`, beside the run records under `runs/`. The only reader is
-the Access-gated insights dashboard. The daily run deletes every day older
-than 90 days, by prefix and without opening a record, after it has written the
-dashboard. `/privacy` says all of this.
+the Access-gated insights dashboard. After writing the dashboard, the daily
+run deletes whole days by prefix, without opening a record. It deletes each day
+once that day is more than 88 days old, so no turn reaches 90 days whenever in
+the day the run fires. `/privacy` says all of this.
 
 **The gate.** `PORTFOLIO_CHAT_TRANSCRIPTS` in `wrangler.main-preview.jsonc` is
 `"r2"`. Any other value, or no `PORTFOLIO_INSIGHTS_STORE` binding, turns
-keeping off without touching the chat itself. A failed write never affects the
-visitor's answer: the keeper swallows it, and the stream still ends with
-`done`. To stop keeping transcripts, remove the value and deploy. To delete
+keeping off without touching the chat itself. The write is handed to the
+Worker's `waitUntil` and never awaited by the stream, so a failed, slow, or
+stalled write never affects the visitor's answer: the stream closes as soon
+as the answer is done. To stop keeping transcripts, remove the value and deploy. To delete
 what is already kept, delete the `chat/` prefix in the bucket.
 
 **Reading them.** The dashboard's **Chat** section, between Journeys and

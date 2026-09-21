@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import {
   createPortfolioChatRuntime,
   type PortfolioChatRuntimeEnv,
@@ -7,5 +7,6 @@ import {
 export async function POST(request: Request) {
   return createPortfolioChatRuntime({
     env: env as unknown as PortfolioChatRuntimeEnv,
+    waitUntil,
   }).handleChat(request);
 }

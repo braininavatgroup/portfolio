@@ -34,6 +34,12 @@ import {
 export const CHAT_TRANSCRIPTS_R2 = "r2";
 export const CHAT_TRANSCRIPT_PREFIX = "chat/";
 export const CHAT_TRANSCRIPT_RETENTION_DAYS = 90;
+/**
+ * Retention deletes whole UTC days, once a day. A day is therefore deleted two
+ * days early, so its last turn is gone before it is 90 days old, whenever in the
+ * day the daily run fires.
+ */
+export const CHAT_TRANSCRIPT_PRUNE_AFTER_DAYS = CHAT_TRANSCRIPT_RETENTION_DAYS - 2;
 /** Generous for a Guide answer; a runaway stream is cut here, not stored whole. */
 export const MAX_TRANSCRIPT_ANSWER_CHARACTERS = 16_000;
 

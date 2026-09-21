@@ -53,11 +53,13 @@ type PortfolioChatHandlerDependencies = {
   getProvider(): PortfolioChatProvider;
   getRequestContext?(request: Request): PortfolioChatRequestContext;
   record?(event: PortfolioChatStreamEvent): void;
-  /**
-   * Keeps the finished turn's transcript. Awaited before the stream closes, so
-   * the write completes while the Worker is still serving this request.
-   */
+  /** Keeps the finished turn's transcript. Never awaited by the stream. */
   keepTranscript?(turn: FinishedChatTurn): Promise<void>;
+  /**
+   * Extends the request past the response for work the visitor must not wait
+   * on — the Worker's `waitUntil`. Without it the keeper still runs, unawaited.
+   */
+  waitUntil?(work: Promise<unknown>): void;
   now?(): number;
   providerTimeoutMs?: number;
 };
@@ -487,6 +489,7 @@ export function createPortfolioChatHandler({
   getRequestContext,
   record,
   keepTranscript,
+  waitUntil,
   now = Date.now,
   providerTimeoutMs = 15_000,
 }: PortfolioChatHandlerDependencies) {
@@ -550,21 +553,29 @@ export function createPortfolioChatHandler({
         send({ type: "effects", effects: pendingEffects });
         pendingEffects = undefined;
       };
-      const finish = async () => {
+      const finish = () => {
         if (finished) return;
         finished = true;
         const durationMs = Math.max(0, now() - startedAt);
+        // Scheduled, never awaited: the stream closes as soon as the answer is
+        // done, so a slow or stalled write can't hold the visitor's composer
+        // open or trip the client's stall timer.
         if (keepTranscript && context) {
-          await keepTranscript({
-            requestId: context.requestId,
-            ...(sessionId ? { sessionId } : {}),
-            mode: transcriptMode,
-            outcome,
-            question,
-            answer: answerText,
-            evidenceIds: grounding.evidence.map(({ id }) => id),
-            durationMs,
-          }).catch(() => {});
+          const kept = Promise.resolve()
+            .then(() =>
+              keepTranscript({
+                requestId: context.requestId,
+                ...(sessionId ? { sessionId } : {}),
+                mode: transcriptMode,
+                outcome,
+                question,
+                answer: answerText,
+                evidenceIds: grounding.evidence.map(({ id }) => id),
+                durationMs,
+              }),
+            )
+            .catch(() => {});
+          waitUntil?.(kept);
         }
         if (!context || !record) return;
         record({
@@ -589,7 +600,7 @@ export function createPortfolioChatHandler({
           message: INSUFFICIENT_EVIDENCE_MESSAGE,
         });
         send({ type: "done" });
-        await finish();
+        finish();
         return;
       }
 
@@ -680,7 +691,7 @@ export function createPortfolioChatHandler({
       if (!request.signal.aborted && !streamCancellation.signal.aborted) {
         send({ type: "done" });
       }
-      await finish();
+      finish();
     }, () => streamCancellation.abort());
   };
 }

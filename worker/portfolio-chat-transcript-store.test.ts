@@ -56,16 +56,19 @@ describe("r2ChatTranscripts", () => {
     expect(turns.map((value) => value.capturedAt)).toEqual(["2026-09-14T09:00:00.000Z", "2026-09-14T12:00:00.000Z"]);
   });
 
-  it("deletes whole days past 90 days and nothing else", async () => {
+  it("deletes each day before any of its turns reaches 90 days, and nothing else", async () => {
+    // Run at 2026-09-21 11:10: 06-24 ends 89 days 11 hours earlier, so tomorrow's
+    // run would be too late for it; 06-25's turns are all under 89 days old.
     const { bucket, objects } = fakeBucket({
-      "chat/2026-06-22/old.json": turn("2026-06-22T00:00:00.000Z"),
-      "chat/2026-06-23/edge.json": turn("2026-06-23T00:00:00.000Z"),
+      "chat/2026-06-23/old.json": turn("2026-06-23T00:00:00.000Z"),
+      "chat/2026-06-24/near.json": turn("2026-06-24T23:59:00.000Z"),
+      "chat/2026-06-25/edge.json": turn("2026-06-25T00:00:00.000Z"),
       "chat/2026-09-20/new.json": turn("2026-09-20T00:00:00.000Z"),
       "runs/raw-events-2026-01-01T00-00-00-000Z.json": "{}",
     });
     await r2ChatTranscripts(bucket).prune(new Date("2026-09-21T11:10:00.000Z"));
     expect([...objects.keys()].sort()).toEqual([
-      "chat/2026-06-23/edge.json",
+      "chat/2026-06-25/edge.json",
       "chat/2026-09-20/new.json",
       "runs/raw-events-2026-01-01T00-00-00-000Z.json",
     ]);

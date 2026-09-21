@@ -7,7 +7,7 @@
 
 import {
   CHAT_TRANSCRIPT_PREFIX,
-  CHAT_TRANSCRIPT_RETENTION_DAYS,
+  CHAT_TRANSCRIPT_PRUNE_AFTER_DAYS,
   type ChatTranscriptTurn,
 } from "../lib/server/portfolio-chat-transcripts";
 
@@ -85,9 +85,9 @@ export function r2ChatTranscripts(bucket: R2Bucket) {
       }
       return turns.sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
     },
-    /** Deletes every day older than the retention boundary. */
+    /** Deletes every day that could hold a turn near the 90-day limit. */
     async prune(now: Date) {
-      const cutoff = new Date(now.getTime() - CHAT_TRANSCRIPT_RETENTION_DAYS * DAY_MS).toISOString().slice(0, 10);
+      const cutoff = new Date(now.getTime() - CHAT_TRANSCRIPT_PRUNE_AFTER_DAYS * DAY_MS).toISOString().slice(0, 10);
       for (const day of await listDayPrefixes(bucket)) {
         if (day >= cutoff) continue;
         const keys = await listKeys(bucket, `${CHAT_TRANSCRIPT_PREFIX}${day}/`);

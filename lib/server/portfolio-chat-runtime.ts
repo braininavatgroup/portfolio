@@ -52,6 +52,8 @@ type PortfolioChatRuntimeOptions = {
   now?: () => number;
   randomId?: () => string;
   record?: (event: RuntimeEvent) => void;
+  /** The Worker's `waitUntil`, so a transcript write outlives the response. */
+  waitUntil?: (work: Promise<unknown>) => void;
 };
 
 const reasoningEfforts = new Set([
@@ -163,6 +165,7 @@ export function createPortfolioChatRuntime({
   now = Date.now,
   randomId = () => crypto.randomUUID(),
   record = (event) => console.info(JSON.stringify(event)),
+  waitUntil,
 }: PortfolioChatRuntimeOptions) {
   const config = runtimeConfig(env);
   const safeRecord = (event: RuntimeEvent) => {
@@ -296,6 +299,7 @@ export function createPortfolioChatRuntime({
         now,
         record: safeRecord,
         keepTranscript: createChatTranscriptKeeper({ env, request, now }),
+        waitUntil,
       });
       return withSession(
         await handler(request, { ...parsed.value, grounding }),

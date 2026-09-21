@@ -140,6 +140,14 @@ describe("chat transcript keeper", () => {
 
 describe("the chat handler's finished turn", () => {
   const context = () => ({ requestId: turn.requestId, providerModel: "test-model" });
+  // The handler schedules the keeper through waitUntil; tests await what it scheduled.
+  let scheduled: Promise<unknown>[] = [];
+  const waitUntil = (work: Promise<unknown>) => {
+    scheduled.push(work);
+  };
+  const settle = () => Promise.all(scheduled).finally(() => {
+    scheduled = [];
+  });
 
   it("hands the keeper the question, the streamed answer, the mode, and the tab id", async () => {
     const kept: FinishedChatTurn[] = [];
@@ -151,12 +159,14 @@ describe("the chat handler's finished turn", () => {
         },
       }),
       getRequestContext: context,
+      waitUntil,
       keepTranscript: async (value) => {
         kept.push(value);
       },
     });
     const response = await handler(request({ question: "What does Bradley do?", sessionId: SESSION }));
     await response.text();
+    await settle();
 
     expect(kept).toHaveLength(1);
     expect(kept[0]).toMatchObject({
@@ -177,6 +187,7 @@ describe("the chat handler's finished turn", () => {
         throw new Error("the provider is never reached without evidence");
       },
       getRequestContext: context,
+      waitUntil,
       keepTranscript: async (value) => {
         kept.push(value);
       },
@@ -187,6 +198,7 @@ describe("the chat handler's finished turn", () => {
       grounding: { evidence: [] } as never,
     });
     await response.text();
+    await settle();
     expect(kept).toEqual([
       expect.objectContaining({ outcome: "insufficient_evidence", mode: "none", question: "zzqx vbnm", answer: "" }),
     ]);
@@ -202,6 +214,7 @@ describe("the chat handler's finished turn", () => {
         },
       }),
       getRequestContext: context,
+      waitUntil,
       keepTranscript: async (value) => {
         kept.push(value);
       },
@@ -209,6 +222,7 @@ describe("the chat handler's finished turn", () => {
     const response = await handler(request({ question: "What does Bradley do?", sessionId: "bad id!" }));
     expect(response.status).toBe(200);
     await response.text();
+    await settle();
     expect(kept[0].sessionId).toBeUndefined();
   });
 
@@ -221,6 +235,7 @@ describe("the chat handler's finished turn", () => {
         },
       }),
       getRequestContext: context,
+      waitUntil,
       keepTranscript: async () => {
         throw new Error("R2 down");
       },
@@ -228,5 +243,35 @@ describe("the chat handler's finished turn", () => {
     const body = await (await handler(request({ question: "What does Bradley do?", sessionId: SESSION }))).text();
     expect(body).toContain("keeps approval human");
     expect(body).toContain('"type":"done"');
+    await settle();
+  });
+
+  it("closes the stream after done while a transcript write never finishes", async () => {
+    const recorded: string[] = [];
+    const handler = createPortfolioChatHandler({
+      getProvider: () => ({
+        async *streamAnswer({ onMode }) {
+          onMode?.("portfolio");
+          yield "His [pitching workflow][E1] keeps approval human.\n\n";
+        },
+      }),
+      getRequestContext: context,
+      record: (event) => recorded.push(event.event),
+      waitUntil,
+      keepTranscript: () => new Promise<void>(() => {}),
+    });
+    const response = await handler(request({ question: "What does Bradley do?", sessionId: SESSION }));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const body = await Promise.race([
+      response.text(),
+      new Promise<string>((resolve) => {
+        timer = setTimeout(() => resolve("stream never closed"), 1000);
+      }),
+    ]).finally(() => clearTimeout(timer));
+    expect(body).toContain('"type":"done"');
+    // The operational event does not wait on the write either.
+    expect(recorded).toEqual(["portfolio_chat_stream"]);
+    expect(scheduled).toHaveLength(1);
+    scheduled = [];
   });
 });
