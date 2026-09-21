@@ -19,6 +19,11 @@ import {
   type PortfolioChatMessage,
 } from "../portfolio-chat-conversation";
 import type { PortfolioResponseEffects } from "../avatar/contracts";
+import { SESSION_ID_PATTERN } from "./portfolio-insight-sink";
+import {
+  MAX_TRANSCRIPT_ANSWER_CHARACTERS,
+  type FinishedChatTurn,
+} from "./portfolio-chat-transcripts";
 
 export type PortfolioChatRequestContext = {
   requestId: string;
@@ -48,6 +53,11 @@ type PortfolioChatHandlerDependencies = {
   getProvider(): PortfolioChatProvider;
   getRequestContext?(request: Request): PortfolioChatRequestContext;
   record?(event: PortfolioChatStreamEvent): void;
+  /**
+   * Keeps the finished turn's transcript. Awaited before the stream closes, so
+   * the write completes while the Worker is still serving this request.
+   */
+  keepTranscript?(turn: FinishedChatTurn): Promise<void>;
   now?(): number;
   providerTimeoutMs?: number;
 };
@@ -63,6 +73,8 @@ export type ParsedPortfolioChatRequest = {
   conversation?: PortfolioChatMessage[];
   visitState?: PortfolioChatVisitState;
   grounding?: PortfolioGrounding;
+  /** The Guide's tab session id, sent only for an analytics-eligible visit. */
+  sessionId?: string;
 };
 
 class InvalidAttributionError extends Error {}
@@ -395,10 +407,21 @@ async function readRequest(request: Request): Promise<ParsedPortfolioChatRequest
     }
     visitState = { generalTurns, portfolioNudgeShown };
   }
+  // A malformed tab id is ignored rather than rejected: it only decides
+  // whether the turn is kept, never whether the visitor gets an answer.
+  const rawSessionId =
+    parsed && typeof parsed === "object" && "sessionId" in parsed
+      ? Reflect.get(parsed, "sessionId")
+      : undefined;
+  const sessionId =
+    typeof rawSessionId === "string" && SESSION_ID_PATTERN.test(rawSessionId)
+      ? rawSessionId
+      : undefined;
   return {
     question: question.trim(),
     ...(conversation?.length ? { conversation } : {}),
     ...(visitState ? { visitState } : {}),
+    ...(sessionId ? { sessionId } : {}),
   };
 }
 
@@ -463,6 +486,7 @@ export function createPortfolioChatHandler({
   getProvider,
   getRequestContext,
   record,
+  keepTranscript,
   now = Date.now,
   providerTimeoutMs = 15_000,
 }: PortfolioChatHandlerDependencies) {
@@ -474,7 +498,7 @@ export function createPortfolioChatHandler({
       ? { ok: true as const, value: prepared }
       : await parsePortfolioChatRequest(request);
     if (!parsed.ok) return parsed.response;
-    const { question, conversation, visitState } = parsed.value;
+    const { question, conversation, visitState, sessionId } = parsed.value;
 
     const grounding = parsed.value.grounding ?? groundPortfolioQuestion(question);
     const context = getRequestContext?.(request);
@@ -489,6 +513,14 @@ export function createPortfolioChatHandler({
     return streamResponse(async (send) => {
       let outcome: PortfolioChatStreamEvent["outcome"] = "answered";
       let answerCharacters = 0;
+      // The answer as streamed, held only for the transcript and cut one past
+      // the cap so the keeper can tell the answer was longer.
+      let answerText = "";
+      let transcriptMode: FinishedChatTurn["mode"] = "none";
+      const appendAnswer = (delta: string) => {
+        if (!keepTranscript || answerText.length > MAX_TRANSCRIPT_ANSWER_CHARACTERS) return;
+        answerText += delta.slice(0, MAX_TRANSCRIPT_ANSWER_CHARACTERS + 1 - answerText.length);
+      };
       let usage: PortfolioChatProviderUsage | undefined;
       let providerFailureKind: PortfolioChatProviderFailureKind | undefined;
       let pendingEffects: PortfolioResponseEffects | undefined;
@@ -518,9 +550,22 @@ export function createPortfolioChatHandler({
         send({ type: "effects", effects: pendingEffects });
         pendingEffects = undefined;
       };
-      const finish = () => {
+      const finish = async () => {
         if (finished) return;
         finished = true;
+        const durationMs = Math.max(0, now() - startedAt);
+        if (keepTranscript && context) {
+          await keepTranscript({
+            requestId: context.requestId,
+            ...(sessionId ? { sessionId } : {}),
+            mode: transcriptMode,
+            outcome,
+            question,
+            answer: answerText,
+            evidenceIds: grounding.evidence.map(({ id }) => id),
+            durationMs,
+          }).catch(() => {});
+        }
         if (!context || !record) return;
         record({
           event: "portfolio_chat_stream",
@@ -528,7 +573,7 @@ export function createPortfolioChatHandler({
           outcome,
           evidenceCount: grounding.evidence.length,
           evidenceIds: grounding.evidence.map(({ id }) => id),
-          durationMs: Math.max(0, now() - startedAt),
+          durationMs,
           answerCharacters,
           providerModel: context.providerModel,
           ...(usage ? { usage } : {}),
@@ -544,7 +589,7 @@ export function createPortfolioChatHandler({
           message: INSUFFICIENT_EVIDENCE_MESSAGE,
         });
         send({ type: "done" });
-        finish();
+        await finish();
         return;
       }
 
@@ -587,6 +632,7 @@ export function createPortfolioChatHandler({
           requiresPortfolioMode(question, conversation, grounding)
             ? "portfolio"
             : (proposedMode ?? "portfolio");
+        transcriptMode = effectiveMode;
         if (proposedMode) send({ type: "turn_mode", mode: effectiveMode });
 
         if (effectiveMode === "portfolio") {
@@ -596,6 +642,7 @@ export function createPortfolioChatHandler({
           )) {
             if (delta) {
               answerCharacters += delta.length;
+              appendAnswer(delta);
               sendPendingEffects();
               send({ type: "answer_delta", delta });
             }
@@ -611,6 +658,7 @@ export function createPortfolioChatHandler({
             appendNudge,
           )) {
             answerCharacters += delta.length;
+            appendAnswer(delta);
             sendPendingEffects();
             send({ type: "answer_delta", delta });
           }
@@ -632,7 +680,7 @@ export function createPortfolioChatHandler({
       if (!request.signal.aborted && !streamCancellation.signal.aborted) {
         send({ type: "done" });
       }
-      finish();
+      await finish();
     }, () => streamCancellation.abort());
   };
 }

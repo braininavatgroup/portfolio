@@ -56,13 +56,14 @@ const ANONYMOUS_JOURNEY_LIMIT = 25;
 /** A sparkline reads as a shape, not a series of points, past about a dozen runs. */
 const SPARK_RUNS = 12;
 
-const SOURCE_ORDER = ["insights", "airtable", "clarity", "cloudflare"];
+const SOURCE_ORDER = ["insights", "airtable", "clarity", "cloudflare", "chat"];
 
 const SOURCE_LABELS = {
   insights: "Analytics Engine events",
   airtable: "Airtable assignments",
   clarity: "Clarity",
   cloudflare: "Cloudflare Web Analytics",
+  chat: "Guide transcripts",
 };
 
 /** The badge voice: short enough to sit beside a heading. */
@@ -71,6 +72,7 @@ const SOURCE_BADGE_LABELS = {
   airtable: "Airtable",
   clarity: "Clarity",
   cloudflare: "Cloudflare",
+  chat: "Chat",
 };
 
 const CONFIGURATION_ERROR = /duplicate campaign code|malformed campaign code|has a malformed \w+ link|expected at most one/iu;
@@ -1231,6 +1233,99 @@ function journeysSection(context) {
   return section("journeys", "Journeys", ["insights"], parts.join(""), context, { gist: journeysGist(context) });
 }
 
+// -------------------------------------------------------------------- chat
+
+/** How many conversations the Chat section lists in full, newest first. */
+const CHAT_CONVERSATION_LIMIT = 40;
+
+const CHAT_MODE_LABELS = { portfolio: "Portfolio", social: "Social", general: "General", none: "No answer" };
+
+/** "node:writ" and "thread:philosophy" name content; anything else keeps its id. */
+function chatEvidenceLabel(id, labelFor) {
+  const match = /^(?:node|thread):(.+)$/u.exec(String(id));
+  return match ? labelFor(match[1]) : String(id);
+}
+
+function chatTally(values) {
+  const counts = new Map();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+}
+
+function chatTurnHtml(turn, labelFor) {
+  const evidence = list(turn.evidenceIds).map((id) => chatEvidenceLabel(id, labelFor));
+  const meta = [
+    stamp(turn.capturedAt) ?? "unknown time",
+    CHAT_MODE_LABELS[turn.mode] ?? String(turn.mode ?? "unknown"),
+    String(turn.outcome ?? "unknown").replace(/_/gu, " "),
+    ...(evidence.length ? [`drew on ${evidence.join(", ")}`] : []),
+  ].join(" · ");
+  const answer = String(turn.answer ?? "");
+  return (
+    `<li class="chat-turn"><p class="note">${escapeHtml(meta)}</p>` +
+    `<p class="chat-question">${escapeHtml(String(turn.question ?? ""))}</p>` +
+    (answer
+      ? `<details class="chat-answer"><summary>Answer · ${escapeHtml(plural(answer.length, "character"))}${turn.answerTruncated ? " (cut at the cap)" : ""}</summary><p class="chat-answer-text">${escapeHtml(answer)}</p></details>`
+      : empty("No answer was streamed.")) +
+    `</li>`
+  );
+}
+
+function chatSection(context) {
+  const state = context.sources.chat;
+  const turns = list(usable(state)?.turns).filter((turn) => turn && typeof turn === "object");
+  if (state.status === "unavailable") {
+    return section("chat", "Chat", ["chat"], empty(`Guide transcripts unavailable — ${unavailableReason(state)}.`), context, {
+      gist: "transcripts unavailable",
+    });
+  }
+  const conversations = new Map();
+  for (const turn of turns) {
+    const key = String(turn.sessionId ?? "");
+    if (!conversations.has(key)) conversations.set(key, []);
+    conversations.get(key).push(turn);
+  }
+  const gist =
+    turns.length === 0
+      ? "no questions in this window"
+      : `${plural(turns.length, "question")} in ${plural(conversations.size, "conversation")}`;
+  if (turns.length === 0) {
+    return section("chat", "Chat", ["chat"], empty("Nobody asked the Guide anything in this window."), context, { gist });
+  }
+  const { labelFor } = context;
+  const parts = [
+    note("Kept for 90 days from analytics-eligible visits only. A conversation is one browser tab; it is not a person."),
+    `<div class="cells">` +
+      cell("Questions", number(turns.length)) +
+      cell("Conversations", number(conversations.size)) +
+      cell("Answered", number(turns.filter((turn) => turn.outcome === "answered").length)) +
+      cell("Not answered", number(turns.filter((turn) => turn.outcome !== "answered").length)) +
+      `</div>`,
+    `<h3>Modes</h3>` +
+      dataTable(["Mode", "Questions"], chatTally(turns.map((turn) => CHAT_MODE_LABELS[turn.mode] ?? String(turn.mode)))),
+    `<h3>Outcomes</h3>` +
+      dataTable(["Outcome", "Questions"], chatTally(turns.map((turn) => String(turn.outcome ?? "unknown").replace(/_/gu, " ")))),
+  ];
+  const drawnOn = chatTally(turns.flatMap((turn) => list(turn.evidenceIds).map((id) => chatEvidenceLabel(id, labelFor))));
+  parts.push(`<h3>Content the answers drew on</h3>` + (drawnOn.length ? dataTable(["Content", "Answers"], drawnOn) : empty("None in this window.")));
+  const newest = [...conversations.values()]
+    .map((group) => group.slice().sort((a, b) => String(a.capturedAt).localeCompare(String(b.capturedAt))))
+    .sort((a, b) => String(b.at(-1).capturedAt).localeCompare(String(a.at(-1).capturedAt)));
+  parts.push(
+    `<h3>Conversations</h3>` +
+      (newest.length > CHAT_CONVERSATION_LIMIT ? note(`Newest ${number(CHAT_CONVERSATION_LIMIT)} of ${number(newest.length)}.`) : "") +
+      newest
+        .slice(0, CHAT_CONVERSATION_LIMIT)
+        .map((group, index) => {
+          const first = group[0];
+          const heading = `Conversation ${index + 1} · ${stamp(first.capturedAt) ?? "unknown time"} · ${geoLabel({ country: first.country, regionCode: first.regionCode, city: first.city })} · ${first.device || "unknown device"} · ${plural(group.length, "question")}`;
+          return `<details class="journey"><summary>${escapeHtml(heading)}</summary><ol class="chat-turns">${group.map((turn) => chatTurnHtml(turn, labelFor)).join("")}</ol></details>`;
+        })
+        .join(""),
+  );
+  return section("chat", "Chat", ["chat"], parts.join(""), context, { gist });
+}
+
 function audience(context) {
   const { intelligence, clarity } = context;
   const parts = [];
@@ -1501,6 +1596,7 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
     airtable: sourceState(snapshot, "airtable"),
     clarity: sourceState(snapshot, "clarity"),
     cloudflare: sourceState(snapshot, "cloudflare"),
+    chat: sourceState(snapshot, "chat"),
   };
   const intelligence = snapshot?.intelligence && typeof snapshot.intelligence === "object" ? snapshot.intelligence : null;
   const insights = usable(sources.insights);
@@ -1542,6 +1638,7 @@ export function renderDashboard({ snapshot, history = [], generatedAt = new Date
     assignedLinks(context),
     contentResonance(context),
     journeysSection(context),
+    chatSection(context),
     audience(context),
     observeInClarity(context),
     diagnostics(context, history),
@@ -1584,6 +1681,10 @@ code { font-size: 12px; }
 header { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
 
 /* The one freshness strip. */
+.chat-turns { list-style: none; margin: 8px 0 0; padding: 0; }
+.chat-turn { border-top: 1px solid var(--border); padding: 8px 0; }
+.chat-question { font-weight: 600; margin: 4px 0; overflow-wrap: anywhere; }
+.chat-answer-text { margin: 6px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .freshness { display: grid; gap: 8px 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); list-style: none; margin: 0 0 20px; padding: 0; }
 .freshness li { border-top: 2px solid var(--grid); padding-top: 6px; }
 .freshness li[data-status="stale"] { border-top-color: var(--series2); }

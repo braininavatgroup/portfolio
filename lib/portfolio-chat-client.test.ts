@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as analytics from "./portfolio-analytics";
 import {
   PortfolioChatClientError,
   streamPortfolioAnswer,
@@ -23,6 +24,23 @@ function chunkedResponse(chunks: string[]) {
 }
 
 describe("portfolio chat client", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends the tab id only when the visit is eligible for insights", async () => {
+    const fetchImplementation = vi.fn(async () => chunkedResponse(['{"type":"done"}\n']));
+    vi.spyOn(analytics, "portfolioChatTranscriptSessionId").mockReturnValueOnce("tab-aaaaaa");
+    await streamPortfolioAnswer("What is Writ?", { fetchImplementation, onEvent: () => {} });
+    vi.spyOn(analytics, "portfolioChatTranscriptSessionId").mockReturnValueOnce(undefined);
+    await streamPortfolioAnswer("What is Writ?", { fetchImplementation, onEvent: () => {} });
+    const bodies = fetchImplementation.mock.calls.map((call) => JSON.parse(String((call as unknown[])[1] && ((call as unknown[])[1] as RequestInit).body)));
+    expect(bodies).toEqual([
+      { question: "What is Writ?", sessionId: "tab-aaaaaa" },
+      { question: "What is Writ?" },
+    ]);
+  });
+
   it("preserves the session error when reopening fails", async () => {
     const fetchImplementation = vi.fn(async (url: RequestInfo | URL) =>
       url === "/api/portfolio-chat/session"

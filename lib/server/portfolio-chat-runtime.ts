@@ -17,6 +17,10 @@ import {
   type PortfolioChatStreamEvent,
 } from "./portfolio-chat-handler";
 import type { PortfolioChatProvider } from "./portfolio-chat-provider";
+import {
+  createChatTranscriptKeeper,
+  type ChatTranscriptEnv,
+} from "./portfolio-chat-transcripts";
 import { groundPortfolioQuestion } from "../portfolio-grounding";
 
 export type PortfolioChatBudgetStub = {
@@ -37,7 +41,7 @@ export type PortfolioChatRuntimeEnv = {
   OPENAI_PORTFOLIO_VERBOSITY?: string;
   PORTFOLIO_CHAT_RATE_LIMITER?: PortfolioChatRateLimiter;
   PORTFOLIO_CHAT_BUDGET?: PortfolioChatBudgetNamespace;
-};
+} & ChatTranscriptEnv;
 
 type RuntimeEvent = PortfolioChatLaunchEvent | PortfolioChatStreamEvent;
 
@@ -291,6 +295,7 @@ export function createPortfolioChatRuntime({
         }),
         now,
         record: safeRecord,
+        keepTranscript: createChatTranscriptKeeper({ env, request, now }),
       });
       return withSession(
         await handler(request, { ...parsed.value, grounding }),

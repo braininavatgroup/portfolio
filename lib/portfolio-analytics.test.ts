@@ -486,3 +486,14 @@ describe("first-party insight sink", () => {
     expect(() => trackPortfolioInsight("entry", { entry_source: "direct" })).not.toThrow();
   });
 });
+
+describe("portfolioChatTranscriptSessionId", () => {
+  it("returns the tab id for an eligible visit and nothing for one that is not", () => {
+    startPrivacySafeReplay({ context: "external", hostname: "bradleyberkman.com", projectId: "abc123" });
+    const id = portfolioAnalytics.portfolioChatTranscriptSessionId();
+    expect(id).toMatch(/^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/u);
+
+    startPrivacySafeReplay({ context: "preview", hostname: "bradleyberkman.com", projectId: "abc123" });
+    expect(portfolioAnalytics.portfolioChatTranscriptSessionId()).toBeUndefined();
+  });
+});

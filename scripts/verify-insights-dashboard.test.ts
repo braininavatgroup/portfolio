@@ -104,7 +104,7 @@ describe("section order", () => {
     const swapped = [...SECTION_HEADINGS];
     [swapped[1], swapped[2]] = [swapped[2], swapped[1]];
     expect(headingOrderFailure(swapped)).toMatch(/first missing "Content resonance"/);
-    expect(headingOrderFailure(SECTION_HEADINGS.slice(0, 6))).toMatch(/first missing "Diagnostics"/);
+    expect(headingOrderFailure(SECTION_HEADINGS.slice(0, 7))).toMatch(/first missing "Diagnostics"/);
   });
 });
 

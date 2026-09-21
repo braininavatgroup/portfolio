@@ -21,6 +21,7 @@
 // read nothing from R2.
 
 import { runInsights } from "../scripts/portfolio-insights-core.mjs";
+import { r2ChatTranscripts } from "./portfolio-chat-transcript-store";
 import { INSIGHTS_PREFIX, r2InsightStorage } from "./portfolio-insights-store";
 
 export type PortfolioInsightsEnv = {
@@ -286,6 +287,7 @@ export async function runScheduledInsights(env: PortfolioInsightsEnv, now = () =
       },
       readContent: async () => (await import("../content/portfolio-content.json")).default,
       now,
+      chatTranscripts: r2ChatTranscripts(bucket),
     },
   );
 }

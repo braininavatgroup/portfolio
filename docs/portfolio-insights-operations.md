@@ -451,6 +451,57 @@ months. Local raw copies follow the 180-day rule below.
   That file is the only durable record of the launch curve, so run it on a
   rhythm rather than only when curious.
 
+### Guide transcripts
+
+Since BIV-544 the Worker keeps every Guide question and its answer, so the
+dashboard can show what visitors ask. Bradley decided this on 2026-09-21.
+Before that, nothing about a chat turn outlived the request except a sampled
+`portfolio_chat_stream` log line. That line records no question text, and the
+09-17 and 09-18 turns it should have covered were never kept.
+
+**What one turn holds.** One JSON object per finished turn:
+
+| Field | Value |
+| --- | --- |
+| `question` | What the visitor typed, trimmed, at most 600 characters |
+| `answer` | The answer as it streamed, cut at 16,000 characters (`answerTruncated` says when) |
+| `mode` | `portfolio`, `social`, `general`, or `none` when no answer was attempted |
+| `outcome` | `answered`, `partial_answer`, `insufficient_evidence`, `provider_unavailable`, `aborted` |
+| `evidenceIds` | The grounding the answer drew on: `node:<id>`, `thread:<id>`, `entity:…` |
+| `sessionId` | The tab id the insight sink uses, so a conversation joins its journey |
+| `country`, `regionCode`, `city`, `device` | The same coarse values the sink keeps |
+| `capturedAt`, `requestId`, `durationMs` | When, which request, how long |
+
+The record holds no address, user agent string, cookie, or chat identifier,
+and not the earlier turns the Guide re-sends as context: each of those is
+already its own record.
+
+**Who is kept.** A turn is kept only when the Guide sends a tab id. It sends
+one only for a visit the analytics consent allows, the same decision that
+gates Clarity and the sink. So a browser enrolled with `?analytics=off`, one
+that opted out on `/privacy`, a preview page, and a non-public hostname are
+never kept. Bradley's own enrolled browsers therefore never show up here.
+
+**Where and how long.** In the private bucket `biv-portfolio-insights` under
+`chat/YYYY-MM-DD/`, beside the run records under `runs/`. The only reader is
+the Access-gated insights dashboard. The daily run deletes every day older
+than 90 days, by prefix and without opening a record, after it has written the
+dashboard. `/privacy` says all of this.
+
+**The gate.** `PORTFOLIO_CHAT_TRANSCRIPTS` in `wrangler.main-preview.jsonc` is
+`"r2"`. Any other value, or no `PORTFOLIO_INSIGHTS_STORE` binding, turns
+keeping off without touching the chat itself. A failed write never affects the
+visitor's answer: the keeper swallows it, and the stream still ends with
+`done`. To stop keeping transcripts, remove the value and deploy. To delete
+what is already kept, delete the `chat/` prefix in the bucket.
+
+**Reading them.** The dashboard's **Chat** section, between Journeys and
+Audience, shows counts, modes, outcomes, the content answers drew on, and
+each conversation with its questions and folded answers. A local
+`npm run insights` has no access to the bucket, so its Chat section says
+transcripts are unavailable and points at the dashboard. `history.jsonl`
+keeps only the count (`chatTurns`), never text.
+
 ### Where records are kept, and for how long
 
 A run keeps the same set of records wherever it runs; only the place differs.

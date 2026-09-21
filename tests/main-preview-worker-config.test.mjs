@@ -46,6 +46,9 @@ test("the public candidate serves the apex and www routes without a login", asyn
     PORTFOLIO_INSIGHTS_ACCESS_TEAM: "maintain-dashboard.cloudflareaccess.com",
     PORTFOLIO_INSIGHTS_ACCESS_EMAILS: "bradley@braininavat.dance",
     PORTFOLIO_INSIGHTS_DAYS: "7",
+    // BIV-544. Guide transcripts land in the insights bucket under chat/.
+    // Rollback is removing this value; the keeper is then never created.
+    PORTFOLIO_CHAT_TRANSCRIPTS: "r2",
   });
   // BIV-421 activated the first-party insight sink. Rollback is this one value
   // back to "off" with the pin restored; the endpoint then answers 204 and
