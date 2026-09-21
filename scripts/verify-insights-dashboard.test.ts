@@ -15,6 +15,7 @@ import {
   defaultOutputDir,
   headingOrderFailure,
   isAllowedHref,
+  SCHEDULED_DASHBOARD_URL,
   layoutFailures,
   parseArguments,
   runIdFor,
@@ -75,10 +76,17 @@ describe("anchor allowlist", () => {
       "http://airtable.com/app0LM9NfGL4ZHi3j/",
       "#top",
       "javascript:alert(1)",
+      `${SCHEDULED_DASHBOARD_URL}runs/history.jsonl`,
+      "http://insights.braininavat.dance/",
       null,
     ]) {
       expect(isAllowedHref(href)).toBe(false);
     }
+  });
+
+  it("allows the scheduled dashboard's root and nothing else on that host", () => {
+    expect(SCHEDULED_DASHBOARD_URL).toBe("https://insights.braininavat.dance/");
+    expect(isAllowedHref(SCHEDULED_DASHBOARD_URL)).toBe(true);
   });
 
   it("reports a missing target or noreferrer", () => {
