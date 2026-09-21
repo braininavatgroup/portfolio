@@ -115,8 +115,8 @@ glance before it is read in full.
 
 It opens with two strips. The **freshness strip** names all four sources once,
 with each one's window, its state, and why it is not fresh; a section below
-then carries only a short badge per source (`Fresh 16:00`, `Stale 09-10 07:10`,
-`Unavailable`) and repeats a reason only when that source is not fresh, so a
+then carries only a short badge per source (`Fresh 09-11 16:00`,
+`Stale 09-10 07:10`, `Unavailable`) and repeats a reason only when that source is not fresh, so a
 healthy run shows no grey text under its headings. The **decision strip**
 leads with the counts worth acting on — assigned links active, link sessions,
 content opens, evidence opens, contact actions — each with its change against
@@ -133,10 +133,16 @@ there is no hover or tooltip channel: every value is direct-labelled, carried
 in the mark's accessible label, or reachable in a table view. Each chart has a
 table view and works in light and dark.
 `npm run insights -- --dashboard` opens it after a live run;
-`npm run insights:dashboard` opens it without spending any API budget. The
-scheduled run keeps the copy under
-`~/Library/Application Support/biv/portfolio-insights/dashboard.html`
-current every morning, so that file is the thing to bookmark.
+`npm run insights:dashboard` opens it without spending any API budget.
+
+Bookmark **<https://insights.braininavat.dance>**, which the scheduled run
+(below) rewrites every morning. The copy under
+`~/Library/Application Support/biv/portfolio-insights/dashboard.html` is only
+as current as the last manual run on that Mac: until BIV-527 a launchd job
+refreshed it daily, and a bookmark to it kept opening the 2026-09-18 page
+after that job was retired. "Fresh" on a badge describes the run that
+rendered the page, not the moment it is read, so every badge carries its
+capture date and every page's header links to the current run.
 
 The report opens with **believable humans**: Clarity human sessions minus
 localhost referrals, and Cloudflare visits minus the preview login page,

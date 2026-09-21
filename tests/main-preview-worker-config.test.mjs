@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { SCHEDULED_DASHBOARD_HOST } from "../scripts/portfolio-insights-dashboard.mjs";
+
 const projectRoot = new URL("..", import.meta.url);
 const configUrl = new URL("../wrangler.main-preview.jsonc", import.meta.url);
 
@@ -84,6 +86,9 @@ test("the public candidate serves the apex and www routes without a login", asyn
   assert.deepEqual(config.r2_buckets, [
     { binding: "PORTFOLIO_INSIGHTS_STORE", bucket_name: "biv-portfolio-insights" },
   ]);
+  // Every rendered dashboard links to the host it is served on; a saved copy
+  // uses that link to say where the current run lives.
+  assert.equal(config.vars.PORTFOLIO_INSIGHTS_HOST, SCHEDULED_DASHBOARD_HOST);
   assert.deepEqual(config.durable_objects, {
     bindings: [
       {
