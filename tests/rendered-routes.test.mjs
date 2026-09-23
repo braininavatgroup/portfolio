@@ -124,7 +124,7 @@ test("the privacy route discloses analytics, replay masking, and opt-out", async
   assert.match(html, /Microsoft Clarity/i);
   assert.match(html, /Form inputs and the portfolio chat are masked/i);
   assert.match(html, /opt out or back in/i);
-  assert.match(html, /mailto:bradley@bradleyberkman\.com/i);
+  assert.match(html, /mailto:bradley@braininavat\.dance/i);
 });
 
 // PER-16 deleted the stale copy deck and made the design gallery dev-only.
