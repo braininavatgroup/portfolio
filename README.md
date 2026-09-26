@@ -123,10 +123,7 @@ The earlier single-operator `bradley-portfolio-preview` Worker and its
 `wrangler.preview.jsonc` were removed under PER-12 once this surface superseded
 them.
 
-The site is already public with analytics enabled. The
-[public launch checklist](docs/activation/portfolio-public-launch-checklist.md)
-still tracks the remaining sign-off and post-deployment verification items;
-closing them is Bradley's, not a prerequisite this repository can retire.
+The site is public with analytics enabled.
 
 Microsoft Clarity project `yatoiqtrjm` provides privacy-safe behavioral
 analytics only when an eligible public document carries the explicit
@@ -147,9 +144,10 @@ leaves deployment disabled unless `ACTIVATE` is typed explicitly. Secret values
 are streamed directly to Cloudflare or GitHub and are never written to the
 repository, `.env`, command arguments, or shell history. Run the wizard from
 Apple Terminal or iTerm, not a Conductor agent terminal: agent credentials
-deliberately omit permission to change GitHub Actions workflows. See
-[the activation packet](docs/activation/portfolio-main-preview-activation-packet.md)
-for secret rotation, iPhone smoke, and rollback requirements.
+deliberately omit permission to change GitHub Actions workflows. To roll
+back, dispatch `deploy-main-preview.yml` with an earlier successful `ci` push
+run's ID, its SHA and the dist digest its deploy job logged; artifacts are
+kept 7 days.
 
 For initial setup, run the wizard from its prepared feature branch. After that
 change has merged, it can instead run from a clean `main` checkout whose local
