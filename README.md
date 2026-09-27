@@ -137,30 +137,9 @@ traffic analytics separately at the edge. See
 [`docs/portfolio-insights-operations.md`](docs/portfolio-insights-operations.md)
 for personal-device enrollment, opaque job-search links, private outcome
 tracking, and the citation-evidence boundary.
-Run `npm run setup:main-preview` for the repeatable four-stage setup wizard. It
-reuses an existing `gh` login, publishes the feature branch and PR, captures
-secrets through hidden prompts, creates the protected GitHub environment, and
-leaves deployment disabled unless `ACTIVATE` is typed explicitly. Secret values
-are streamed directly to Cloudflare or GitHub and are never written to the
-repository, `.env`, command arguments, or shell history. Run the wizard from
-Apple Terminal or iTerm, not a Conductor agent terminal: agent credentials
-deliberately omit permission to change GitHub Actions workflows. To roll
-back, dispatch `deploy-main-preview.yml` with an earlier successful `ci` push
-run's ID, its SHA and the dist digest its deploy job logged; artifacts are
+To roll back, dispatch `deploy-main-preview.yml` with an earlier successful `ci`
+push run's ID, its SHA and the dist digest its deploy job logged; artifacts are
 kept 7 days.
-
-For initial setup, run the wizard from its prepared feature branch. After that
-change has merged, it can instead run from a clean `main` checkout whose local
-`HEAD` equals freshly fetched `origin/main`. In this post-merge mode it creates
-neither a branch push nor a pull request. It finds the successful push CI run
-for that exact SHA, downloads the existing SHA-named `dist/` artifact, and
-shows its sorted SHA-256 digest before asking for exact `ACTIVATE`
-confirmation. After confirmation, it sets and verifies the deployment gate and
-dispatches the protected `deploy-main-preview.yml` workflow with only the
-source run ID, SHA, and digest. That workflow verifies and deploys the existing
-artifact without rebuilding or overwriting it. If gate readback or dispatch
-fails, the wizard verifies a compensating reset to `false`; ordinary later
-tested `main` pushes still deploy automatically while the gate remains armed.
 
 ### Reviewer feedback on the preview
 
@@ -232,4 +211,4 @@ The [license](LICENSE) grants MIT terms for source code and documentation subjec
 
 ## Local writing server
 
-`ops/launchd/com.bradleyberkman.portfolio.writing-server.plist` keeps a dev server for the `~/portfolio-writing` checkout on `127.0.0.1:5170` (BIV-567). `scripts/launchd/install-launchagents.sh` installs it as a plain copy for the current user, unloads any `com.bradleyberkman.portfolio.*` job that `ops/launchd/` no longer declares, and records its declaration for brain-in-a-vat-group's preflight verifier. Nothing runs it automatically; run it by hand, starting with `--dry-run`. Only one writing server can hold port 5170, so when replacing another launchd job that serves this checkout, boot that job out and remove its plist first, then install. `npm run test:launchagents` proves it against a fake `launchctl`.
+`ops/launchd/com.bradleyberkman.portfolio.writing-server.plist` keeps a dev server for the `~/portfolio-writing` checkout on `127.0.0.1:5170` (BIV-567). Nothing installs it automatically. To install it, copy it to `~/Library/LaunchAgents/` and run `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.bradleyberkman.portfolio.writing-server.plist`. Only one writing server can hold port 5170, so boot out any other job serving this checkout first.

@@ -1,7 +1,7 @@
 "$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
 
-# BIV-348: this repo had no archive hook, so its archived workspaces
-# accumulated 20 GB of dead node_modules with no cleanup at all.
+# BIV-348: without an archive hook, archived workspaces kept 20 GB of dead
+# node_modules. Agents create no nested worktrees, so the hook only removes those.
 
 [git]
 archive_on_merge = true
@@ -10,7 +10,7 @@ delete_branch_on_archive = true
 [scripts]
 setup = "bash scripts/bootstrap-worktree.sh"
 run_mode = "concurrent"
-archive = "./scripts/conductor-archive.sh"
+archive = "rm -rf node_modules"
 
 [scripts.run.dev]
 available_in = [ "local" ]
