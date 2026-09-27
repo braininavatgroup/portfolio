@@ -80,3 +80,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config wrangler.main-preview.jsonc --strict --message "main ${{ inputs.source_sha }}"
+      - name: Install the live check's browser
+        run: npx --yes playwright@1.58.2 install --with-deps chromium
+      - name: Live check against production
+        run: npm run live -- --dist dist

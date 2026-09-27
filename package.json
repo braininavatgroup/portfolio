@@ -37,7 +37,8 @@
     "test:clip-studio": "node --test scripts/clip-studio/*.test.mjs",
     "insights": "node scripts/portfolio-insights.mjs",
     "chat:logs": "node scripts/portfolio-chat-logs.mjs",
-    "test:insights": "vitest run scripts/portfolio-insights scripts/portfolio-chat-logs.test.ts scripts/setup-portfolio-insights.test.ts"
+    "test:insights": "vitest run scripts/portfolio-insights scripts/portfolio-chat-logs.test.ts scripts/setup-portfolio-insights.test.ts",
+    "live": "node scripts/live.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.17",
