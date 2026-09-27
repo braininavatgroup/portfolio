@@ -4,8 +4,7 @@
 // files are written sources → raw events → history → dashboard with pruning
 // last; the directory is 0700 and every file 0600; event-level rows and
 // identity stay out of history and aggregate snapshots; the terminal leads with
-// the dashboard's findings; and the launchd installer checks the directory
-// mode before installing. Retire with the scheduled job.
+// the dashboard's findings. Retire with the scheduled job.
 import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
