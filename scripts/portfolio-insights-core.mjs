@@ -35,14 +35,9 @@ import { CLARITY_PROJECT, liveFetchers, SITE_HOST } from "./portfolio-insights-s
 /** @typedef {import("./portfolio-insights-storage.mjs").InsightStorage} InsightStorage */
 
 export const KEYCHAIN_SERVICE = "biv-portfolio-insights";
-// Older entries written by hand before `setup:insights` existed. Read as a
-// fallback so a token that already works keeps working.
-const LEGACY_KEYCHAIN_ENTRIES = {
-  "cloudflare-api-token": [{ service: "biv-cloudflare-analytics", account: "api-token" }],
-};
 
 /**
- * One token: the environment first, then the Keychain entries the local setup
+ * One token: the environment first, then the Keychain entry the local setup
  * writes. A caller with no Keychain — the scheduled Worker — passes a reader
  * that throws, and every token then comes from its secrets through `env`.
  * @param {{ env: Record<string, string | undefined>, readKeychain: (service: string, account: string) => Promise<string> }} access
@@ -52,17 +47,11 @@ const LEGACY_KEYCHAIN_ENTRIES = {
 async function resolveToken({ env, readKeychain }, environmentVariable, account) {
   const fromEnvironment = env[environmentVariable]?.trim();
   if (fromEnvironment) return fromEnvironment;
-  const entries = [
-    { service: KEYCHAIN_SERVICE, account },
-    ...(LEGACY_KEYCHAIN_ENTRIES[account] ?? []),
-  ];
-  for (const entry of entries) {
-    try {
-      const stored = (await readKeychain(entry.service, entry.account)).trim();
-      if (stored) return stored;
-    } catch {
-      // Try the next entry; the missing-token message is the same either way.
-    }
+  try {
+    const stored = (await readKeychain(KEYCHAIN_SERVICE, account)).trim();
+    if (stored) return stored;
+  } catch {
+    // A missing entry and an unreadable one get the same missing-token message.
   }
   return null;
 }

@@ -7,8 +7,6 @@
 // the map; opening one reads one of two content types:
 //   - Record: the complete short piece for one thing, readable in the map reader.
 //   - Thread: a narrated path through the map — the only long-form type.
-// Draft copy and visual placeholders intentionally render on main while the
-// portfolio is being composed.
 
 import portfolioContentJson from "../content/portfolio-content.json";
 import {

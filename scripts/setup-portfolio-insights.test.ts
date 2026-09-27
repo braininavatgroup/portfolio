@@ -2,7 +2,7 @@
 // argument list — every Keychain write goes through
 // store-keychain-secret.swift on stdin, that writer rotates an existing item
 // instead of failing, the Airtable stage still verifies with one projected GET
-// before storing, and the launchd job never carries a token. Retire when the
+// before storing. Retire when the
 // report stops reading Airtable and stops storing tokens in the Keychain.
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";

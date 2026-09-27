@@ -60,8 +60,8 @@ async function readPortfolioContent() {
 
 /**
  * Where local runs keep their records: $PORTFOLIO_INSIGHTS_DIR when set,
- * otherwise the directory the retired launchd job used, so a manual run never
- * leaves raw events in a checkout where no prune reaches them.
+ * otherwise a private Application Support directory, so a run never leaves
+ * raw events in a checkout where no prune reaches them.
  * @param {Record<string, string | undefined>} [env]
  */
 export function defaultInsightsDirectory(env = process.env) {
