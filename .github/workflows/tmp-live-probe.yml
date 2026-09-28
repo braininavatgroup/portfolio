@@ -1,0 +1,24 @@
+name: tmp live probe (PER-67, removed before merge)
+on:
+  push:
+    branches: [per-67-verify-portfolio]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - run: npx --yes playwright@1.58.2 install --with-deps chromium
+      - run: npm run live -- --evidence live-evidence
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-evidence
+          path: live-evidence

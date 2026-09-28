@@ -7,7 +7,7 @@
  * Each of those is checked before any work starts, so a fresh machine is told
  * what to install rather than shown a spawn error twenty seconds in.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -42,19 +42,31 @@ export function npxPlaywrightModules(home = process.env.HOME ?? "") {
   }
 }
 
+/** The global npm install, and the copy inside the global playwright-cli the browser skill uses. */
+export function globalPlaywrightModules() {
+  try {
+    const root = execFileSync("npm", ["root", "-g"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return [path.join(root, "playwright"), path.join(root, "@playwright/cli/node_modules/playwright")].filter((module) =>
+      existsSync(module),
+    );
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Playwright, from wherever this machine has one: an explicit module, a
- * project-local install, the global one, or a copy npx unpacked.
+ * project-local install, a copy npx unpacked, or the global npm install.
  */
 export function loadPlaywright(require = createRequire(import.meta.url)) {
-  const home = process.env.HOME ?? "",
-    candidates = [
-      process.env.PLAYWRIGHT_MODULE,
-      "playwright",
-      path.join(home, ".npm-global/lib/node_modules/playwright"),
-      ...npxPlaywrightModules(home),
-    ].filter(Boolean);
-  for (const candidate of candidates) {
+  const home = process.env.HOME ?? "";
+  function* candidates() {
+    yield* [process.env.PLAYWRIGHT_MODULE, "playwright", path.join(home, ".npm-global/lib/node_modules/playwright")].filter(Boolean);
+    yield* npxPlaywrightModules(home);
+    // Asking npm for its global root is slow, so it is the last resort.
+    yield* globalPlaywrightModules();
+  }
+  for (const candidate of candidates()) {
     try {
       return require(candidate);
     } catch {
