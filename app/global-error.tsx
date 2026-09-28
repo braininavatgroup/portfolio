@@ -3,12 +3,20 @@
 // The last resort: this replaces the root layout, so it renders its own
 // <html>/<body> and cannot rely on globals.css having applied.
 
+import { useEffect } from "react";
+import { reportPageError } from "../lib/page-error-beacon";
+
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    reportPageError(error);
+  }, [error]);
+
   return (
     <html lang="en">
       <body

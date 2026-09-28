@@ -14,6 +14,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useState } from "react";
 import { CursorInstrument } from "../../components/CursorInstrument";
 import { MacMenuBar, MacPanelFrame } from "../../components/MacMenuBar";
+import { PageErrorBeacon } from "../../components/PageErrorBeacon";
 import {
   PortfolioAnalytics,
   PortfolioAnalyticsPreference,
@@ -104,6 +105,14 @@ export function PortfolioAnalyticsExample() {
       <PortfolioAnalyticsPreference storage={createMemoryStorage("granted")} />
     </>
   );
+}
+// #example-end
+
+// #example:PageErrorBeacon
+export function PageErrorBeaconExample() {
+  // Renders nothing. Mounted once in app/layout.tsx; it sends only on
+  // bradleyberkman.com and www, so here it listens and stays silent.
+  return <PageErrorBeacon />;
 }
 // #example-end
 

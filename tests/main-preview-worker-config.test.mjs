@@ -121,6 +121,10 @@ test("the public candidate serves the apex and www routes without a login", asyn
     run_worker_first: true,
   });
   assert.deepEqual(config.observability, { enabled: true });
+  // PER-75. Every uncaught exception, CPU or memory kill and rejected
+  // waitUntil goes to the shared error intake, which files one Linear issue
+  // per distinct error.
+  assert.deepEqual(config.tail_consumers, [{ service: "biv-errors" }]);
 
   for (const secretName of config.secrets.required) {
     assert.equal(Object.hasOwn(config.vars, secretName), false, secretName);
