@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { CursorInstrument } from "../components/CursorInstrument";
+import { PageErrorBeacon } from "../components/PageErrorBeacon";
 import { PortfolioAnalytics } from "../components/PortfolioAnalytics";
 import { portfolioInterfaceText } from "../lib/portfolio-world";
 import { shareMetadata } from "../lib/portfolio-sharing";
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PageErrorBeacon />
         <PortfolioAnalytics />
         <CursorInstrument />
         <div id="app-shell">

@@ -22,6 +22,7 @@ inventory, and `/design` for the same components rendered in their states.
 | [PortfolioNodeMark](./PortfolioNodeMark.md) | The register mark | `/design#marks` |
 | [CursorInstrument](./CursorInstrument.md) | The site cursor | `/design#cursor` |
 | [PortfolioAnalytics](./PortfolioAnalytics.md) | Replay consent and its control | `/design#analytics` |
+| [PageErrorBeacon](./PageErrorBeacon.md) | Sends page script errors to the error intake | none, see sheet |
 | [PortfolioFeedback](./PortfolioFeedback.md) | Reviewer notes for Bradley on the preview | none, see sheet |
 | [MacMenuBar](./MacMenuBar.md) | Live macOS menu bar over a captured panel | none, see sheet |
 | [ReaderCarousel](./ReaderCarousel.md) | Auto-scrolling strip of gallery assets | none, see sheet |

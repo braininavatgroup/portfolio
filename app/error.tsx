@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { reportPageError } from "../lib/page-error-beacon";
 
 export default function RouteError({
   error,
@@ -14,6 +15,7 @@ export default function RouteError({
   reset: () => void;
 }) {
   useEffect(() => {
+    reportPageError(error);
     if (process.env.NODE_ENV === "development") {
       console.error("Route error", error);
     }

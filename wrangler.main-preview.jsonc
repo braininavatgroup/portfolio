@@ -112,5 +112,6 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "tail_consumers": [{ "service": "biv-errors" }]
 }
