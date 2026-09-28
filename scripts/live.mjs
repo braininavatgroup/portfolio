@@ -30,11 +30,15 @@ const { values: args } = parseArgs({
     base: { type: "string", default: "https://bradleyberkman.com" },
     dist: { type: "string" },
     "expect-text": { type: "string" },
+    "map-only": { type: "boolean", default: false },
   },
 });
 const base = args.base.replace(/\/$/, "");
 const content = JSON.parse(readFileSync(new URL("../content/portfolio-content.json", import.meta.url), "utf8"));
 const records = Object.entries(content.records);
+const featureMapPath = process.env.PORTFOLIO_FEATURE_MAP
+  ?? new URL("../features/features.json", import.meta.url);
+const featureMap = JSON.parse(readFileSync(featureMapPath, "utf8"));
 
 let failures = 0;
 async function check(name, run) {
@@ -48,6 +52,25 @@ async function check(name, run) {
 }
 function expect(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+await check("feature map records match portfolio content", async () => {
+  const mapped = [...featureMap.records].sort();
+  const actual = records.map(([id]) => id).sort();
+  expect(JSON.stringify(mapped) === JSON.stringify(actual),
+    `mapped [${mapped.join(", ")}], content [${actual.join(", ")}]`);
+  return `${mapped.length} records`;
+});
+for (const control of featureMap.controls) {
+  await check(`map control ${control.id}`, async () => {
+    const source = readFileSync(new URL(`../${control.source}`, import.meta.url), "utf8");
+    expect(source.includes(control.marker), `${control.source} no longer contains ${JSON.stringify(control.marker)}`);
+    return control.source;
+  });
+}
+if (args["map-only"]) {
+  console.log(failures === 0 ? "live map: all checks passed" : `live map: ${failures} check(s) failed`);
+  process.exit(failures === 0 ? 0 : 1);
 }
 async function get(url, init = {}) {
   const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(20_000), ...init });
@@ -76,12 +99,7 @@ for (const [id, record] of records) {
     expect(body.includes(html(record.label)), `label "${record.label}" not rendered`);
   });
 }
-for (const [route, text] of [
-  ["/demos/touring", "<title>"],
-  ["/demos/quarterly-dashboard", "<title>"],
-  ["/privacy", "<title>"],
-  ["/robots.txt", "Sitemap:"],
-]) {
+for (const { path: route, contains: text } of featureMap.routes) {
   await check(`GET ${route} is 200`, async () => {
     const { response, body } = await get(`${base}${route}`);
     expect(response.status === 200, `status ${response.status}`);
@@ -168,7 +186,8 @@ try {
     if (response.status() >= 400) problems.push(`HTTP ${response.status()}: ${response.url()}`);
   });
 
-  const pages = ["/", ...records.map(([id]) => `/index/${id}`), "/demos/touring", "/demos/quarterly-dashboard", "/privacy"];
+  const pages = ["/", ...records.map(([id]) => `/index/${id}`),
+    ...featureMap.routes.filter((route) => route.browser).map((route) => route.path)];
   for (const route of pages) {
     await check(`browser ${route} loads with no errors`, async () => {
       problems = [];

@@ -1,0 +1,31 @@
+{
+  "records": [
+    "bradley", "infamous", "music-practice", "systems-consulting", "product-studio",
+    "kickoff", "pitching", "reporting", "real-estate", "touring", "dubs", "writ",
+    "thread-making-work-playable", "thread-philosophy"
+  ],
+  "routes": [
+    { "path": "/demos/touring", "contains": "<title>", "browser": true },
+    { "path": "/demos/quarterly-dashboard", "contains": "<title>", "browser": true },
+    { "path": "/privacy", "contains": "<title>", "browser": true },
+    { "path": "/robots.txt", "contains": "Sitemap:", "browser": false }
+  ],
+  "controls": [
+    { "id": "world-record-selection", "source": "components/PortfolioWorld.tsx", "marker": "aria-pressed={selectedId === node.id}" },
+    { "id": "contents-selection", "source": "components/PortfolioReadingRoom.tsx", "marker": "onSelect={selectFromContents}" },
+    { "id": "panel-resize", "source": "scripts/check-reading-room-interactions.mjs", "marker": "checkReadingRoomResize" },
+    { "id": "carousel-links", "source": "scripts/check-reading-room-interactions.mjs", "marker": "checkCarouselLinkFeedback" },
+    { "id": "toolbar-actions", "source": "scripts/check-toolbar-geometry.mjs", "marker": "checkToolbarGeometry" },
+    { "id": "guide", "source": "components/PortfolioChat.tsx", "marker": "onToggleAvatar" },
+    { "id": "guide-retry", "source": "components/PortfolioChat.tsx", "marker": "onClick={retry}" },
+    { "id": "analytics-preference", "source": "components/PortfolioAnalytics.tsx", "marker": "setPreference(!optedOut)" },
+    { "id": "touring-form", "source": "components/TouringDemo.tsx", "marker": "onSubmit={submit}" },
+    { "id": "touring-views", "source": "components/TouringDemo.tsx", "marker": "navigate(item.id)" },
+    { "id": "touring-reset", "source": "components/TouringDemo.tsx", "marker": "onClick={reset}" },
+    { "id": "quarterly-period", "source": "components/QuarterlyDashboard.tsx", "marker": "onSelect(period)" },
+    { "id": "quarterly-filters", "source": "components/QuarterlyDashboard.tsx", "marker": "onFiltersChange" },
+    { "id": "quarterly-detail", "source": "components/QuarterlyDashboard.tsx", "marker": "setView(\"detail\")" },
+    { "id": "quarterly-csv", "source": "components/QuarterlyDashboard.tsx", "marker": "downloadCsv(sorted)" },
+    { "id": "quarterly-print", "source": "components/QuarterlyDashboard.tsx", "marker": "window.print()" }
+  ]
+}
