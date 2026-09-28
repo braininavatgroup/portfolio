@@ -20,7 +20,7 @@ const KEYCHAIN_SERVICE = "biv-portfolio-feedback";
 const KEYCHAIN_ACCOUNT = "admin-token";
 const ADMIN_PATH = "/_portfolio-feedback/admin/notes";
 const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
-// Mirrors PLACEHOLDER_REVIEWER_CODES in worker/portfolio-feedback-store.ts.
+// Mirrors PLACEHOLDER_REVIEWER_CODES in lib/portfolio-feedback.ts.
 const PLACEHOLDER_CODES = new Set([
   "name", "your-name", "yourname", "first-name", "firstname", "their-name",
   "code", "reviewer", "reviewer-code", "person", "guest",

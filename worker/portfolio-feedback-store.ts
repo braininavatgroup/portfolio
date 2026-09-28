@@ -39,7 +39,6 @@ export const MAX_CONTEXT_LENGTH = 80;
 export const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 export const MAX_REVIEWER_NAME_LENGTH = 80;
 
-
 /**
  * Turns whatever Bradley typed into a link into a canonical reviewer code, so
  * `?r=Sarah Smith`, `?r=sarah.smith@acme.com`, or `?r=Élan` all count. Lowercase
