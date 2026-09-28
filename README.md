@@ -137,9 +137,10 @@ traffic analytics separately at the edge. See
 [`docs/portfolio-insights-operations.md`](docs/portfolio-insights-operations.md)
 for personal-device enrollment, opaque job-search links, private outcome
 tracking, and the citation-evidence boundary.
-To roll back, dispatch `deploy-main-preview.yml` with an earlier successful `ci`
-push run's ID, its SHA and the dist digest its deploy job logged; artifacts are
-kept 7 days.
+To redeploy main (for example after a rollback commit lands), dispatch
+`deploy-main-preview.yml`; it finds the latest successful `ci` push run for
+main's current commit itself and downloads that run's tested artifact, so it
+needs no run ID, SHA or digest typed in by hand. Artifacts are kept 7 days.
 
 ### Reviewer feedback on the preview
 
