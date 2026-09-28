@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the portfolio. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { throwIfErrorProbe, type ErrorProbeEnv } from "./error-probe";
 import { withoutPhantomBody } from "./inbound-request";
 import { withPublicPortfolio } from "./public-portfolio";
 import {
@@ -26,7 +27,8 @@ type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
   PortfolioFeedbackEnv &
   PortfolioInsightsEnv &
-  DesignGalleryEnv;
+  DesignGalleryEnv &
+  ErrorProbeEnv;
 type ImageOutputFormat = Parameters<ImageTransformer["output"]>[0]["format"];
 
 async function serveApplication(
@@ -68,6 +70,7 @@ const worker = {
     env: WorkerEnv,
     ctx: ExecutionContext,
   ): Promise<Response> {
+    throwIfErrorProbe(inbound, env);
     // A bodyless GET or HEAD that still declares Content-Length made the app
     // router throw, which Cloudflare answered with its own error page. Dropping
     // the claim here keeps every layer below working on a coherent request.
