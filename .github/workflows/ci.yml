@@ -35,35 +35,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Portfolio is a single app, so every push to main that passes ci is a
+  # candidate deploy; deploy-main-preview.yml owns the
+  # PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED and
+  # portfolio-main-preview environment gates, and deploys the exact artifact
+  # ci just built and tested in this run.
   deploy_main_preview:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED == 'true'
     needs: ci
-    environment: portfolio-main-preview
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.23.1
-          cache: npm
-      - run: npm ci
-      - name: Download tested main-preview artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: portfolio-main-preview-${{ github.sha }}
-          path: dist
-      - name: Record tested artifact digest
-        run: find dist -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256
-      - name: Deploy tested main-preview artifact
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.main-preview.jsonc --strict --message "main ${{ github.sha }}"
-      - name: Install the live check's browser
-        run: npx --yes playwright@1.58.2 install --with-deps chromium
-      - name: Live check against production
-        run: npm run live -- --dist dist
+      actions: read
+    uses: ./.github/workflows/deploy-main-preview.yml
+    secrets: inherit
