@@ -26,7 +26,7 @@ import {
   type FeedbackNoteInput,
   type FeedbackQuote,
   type FeedbackTarget,
-} from "../worker/portfolio-feedback-store";
+} from "../lib/portfolio-feedback";
 import { PortfolioControlMark } from "./PortfolioNodeMark";
 
 export type FeedbackDraft = Omit<FeedbackNoteInput, "reviewer">;

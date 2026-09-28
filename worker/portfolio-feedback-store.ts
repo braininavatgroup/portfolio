@@ -4,40 +4,20 @@
 // object needs no per-reviewer read path beyond ownership checks on delete.
 // Bradley reads everything through the worker's admin route.
 
-/** A selected run of text, with a little context so an agent can find the exact run. */
-export type FeedbackQuote = {
-  text: string;
-  prefix?: string;
-  suffix?: string;
-};
+import {
+  isPlaceholderReviewerCode,
+  type FeedbackNote,
+  type FeedbackNoteInput,
+  type FeedbackQuote,
+  type FeedbackTarget,
+} from "../lib/portfolio-feedback";
 
-export type FeedbackTarget = {
-  selector: string;
-  component?: string;
-  text?: string;
-  rect?: { x: number; y: number; width: number; height: number };
-  offset?: { x: number; y: number };
-  quote?: FeedbackQuote;
-};
-
-export type FeedbackNoteInput = {
-  reviewer: string;
-  /** What the reviewer typed when their link carried a placeholder code. */
-  reviewerName?: string;
-  path: string;
-  /** May be empty when `suggestion` carries the feedback. */
-  note: string;
-  /** A replacement for `target.quote.text`, in suggesting mode. */
-  suggestion?: string;
-  pageTitle?: string;
-  target?: FeedbackTarget;
-  viewport?: { width: number; height: number };
-  userAgent?: string;
-};
-
-export type FeedbackNote = FeedbackNoteInput & {
-  id: string;
-  createdAt: number;
+export {
+  isPlaceholderReviewerCode,
+  type FeedbackNote,
+  type FeedbackNoteInput,
+  type FeedbackQuote,
+  type FeedbackTarget,
 };
 
 type FeedbackStorage = {
@@ -58,29 +38,6 @@ export const MAX_QUOTE_LENGTH = 600;
 export const MAX_CONTEXT_LENGTH = 80;
 export const REVIEWER_CODE = /^[a-z0-9][a-z0-9-]{1,31}$/u;
 export const MAX_REVIEWER_NAME_LENGTH = 80;
-
-/**
- * Codes a link ends up with when a message template was sent unedited
- * (`?r=[name]`, `?r=<code>`). Such a link still works, but the widget asks the
- * reviewer for their name so the digest can tell people apart.
- */
-const PLACEHOLDER_REVIEWER_CODES = new Set([
-  "name",
-  "your-name",
-  "yourname",
-  "first-name",
-  "firstname",
-  "their-name",
-  "code",
-  "reviewer",
-  "reviewer-code",
-  "person",
-  "guest",
-]);
-
-export function isPlaceholderReviewerCode(code: string) {
-  return PLACEHOLDER_REVIEWER_CODES.has(code);
-}
 
 /**
  * Turns whatever Bradley typed into a link into a canonical reviewer code, so

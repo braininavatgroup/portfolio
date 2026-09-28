@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { FeedbackNote } from "../worker/portfolio-feedback-store";
+import type { FeedbackNote } from "../lib/portfolio-feedback";
 import {
   describeElement,
   describeSelection,

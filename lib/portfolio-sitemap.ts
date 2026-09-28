@@ -1,5 +1,5 @@
 import { portfolioOrigin, sharePages } from "./portfolio-sharing";
-import { isSupportingRoute } from "../worker/public-portfolio";
+import { isSupportingRoute } from "./portfolio-supporting-routes";
 
 // The sitemap lists the pages the site wants found: the home page, every
 // record and theme, the privacy notice, and the demos. Supporting surfaces
