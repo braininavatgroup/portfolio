@@ -7,6 +7,7 @@ import { SCHEDULED_DASHBOARD_HOST } from "../scripts/portfolio-insights-dashboar
 
 const projectRoot = new URL("..", import.meta.url);
 const configUrl = new URL("../wrangler.main-preview.jsonc", import.meta.url);
+const deployUrl = new URL("../.github/workflows/deploy-main-preview.yml", import.meta.url);
 
 async function mainPreviewConfig() {
   return JSON.parse(await readFile(configUrl, "utf8"));
@@ -79,6 +80,7 @@ test("the public candidate serves the apex and www routes without a login", asyn
       "CLARITY_API_TOKEN",
       "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
       "PORTFOLIO_INSIGHTS_ACCESS_AUD",
+      "ERROR_INTAKE_SECRET",
     ],
   });
 
@@ -131,6 +133,10 @@ test("the public candidate serves the apex and www routes without a login", asyn
   }
   assert.doesNotMatch(JSON.stringify(config), /sk-[A-Za-z0-9_-]+/);
   assert.doesNotMatch(JSON.stringify(config), /correct horse battery staple/i);
+
+  const deploy = await readFile(deployUrl, "utf8");
+  assert.match(deploy, /secrets\.ERROR_INTAKE_SECRET/);
+  assert.match(deploy, /wrangler secret put ERROR_INTAKE_SECRET --config wrangler\.main-preview\.jsonc/);
 });
 
 test("Wrangler accepts the built permanent main-preview contract", async () => {

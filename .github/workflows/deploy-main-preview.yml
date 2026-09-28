@@ -84,6 +84,13 @@ jobs:
       - name: Record deployed artifact digest
         run: find dist -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256
 
+      - name: Install the error-probe secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ERROR_INTAKE_SECRET: ${{ secrets.ERROR_INTAKE_SECRET }}
+        run: printf '%s' "$ERROR_INTAKE_SECRET" | npx wrangler secret put ERROR_INTAKE_SECRET --config wrangler.main-preview.jsonc
+
       - name: Deploy tested main-preview artifact
         uses: cloudflare/wrangler-action@v3
         with:
