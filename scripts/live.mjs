@@ -117,7 +117,9 @@ await check("GET /cv/bradley-berkman-cv.pdf is a PDF", async () => {
   const bytes = Buffer.from(await response.arrayBuffer());
   expect(response.status === 200, `status ${response.status}`);
   expect(bytes.subarray(0, 5).toString() === "%PDF-", "not a PDF");
-  return `${bytes.length} bytes`;
+  const expected = readFileSync(new URL("../public/cv/bradley-berkman-cv.pdf", import.meta.url));
+  expect(bytes.equals(expected), "live CV differs from the approved PDF in this revision");
+  return `${bytes.length} bytes, matching the approved PDF`;
 });
 await check("GET /index/not-a-project is 404", async () => {
   const { response } = await get(`${base}/index/not-a-project`);
