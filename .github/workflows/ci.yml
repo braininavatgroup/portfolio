@@ -36,7 +36,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Portfolio is a single app, so every push to main that passes ci is a
+# Portfolio is a single app, so every checked main run is a
   # candidate deploy; deploy-main-preview.yml owns the
   # PORTFOLIO_MAIN_PREVIEW_CUSTOM_DOMAIN_DEPLOY_ENABLED and
   # portfolio-main-preview environment gates, and deploys the exact artifact
@@ -48,4 +48,6 @@ jobs:
       contents: read
       actions: read
     uses: ./.github/workflows/deploy-main-preview.yml
+    with:
+      tested_run_id: ${{ format('{0}', github.run_id) }}
     secrets: inherit
