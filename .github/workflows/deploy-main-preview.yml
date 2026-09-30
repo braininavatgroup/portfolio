@@ -2,8 +2,8 @@ name: deploy main preview
 
 # The Worker `bradley-portfolio-main-preview` (bradleyberkman.com, www, and
 # insights.braininavat.dance) is production, not a preview. ci calls this
-# after its check passes on a push to main, deploying the exact `dist/`
-# artifact ci built and tested in that same run.
+# after its check passes on main, whether pushed or dispatched. It deploys
+# the exact `dist/` artifact ci built and tested in that same run.
 #
 # A dispatch redeploys main without a rebuild: it looks up the newest
 # unexpired `portfolio-main-preview-<sha>` artifact for main's current commit
@@ -17,7 +17,11 @@ name: deploy main preview
 # only what was tested" guarantee without a hand-typed run ID or digest.
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      tested_run_id:
+        type: string
+        required: true
   workflow_dispatch: {}
 
 permissions:
@@ -43,14 +47,14 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Only a manual redeploy needs to find its own run; a call from ci
-      # already knows the SHA and run it should use (its own). The artifact's
-      # existence is the proof ci tested it, so look that up directly instead
+      # A standalone redeploy needs to find a tested run; ci passes its own
+      # run ID. The artifact's existence is the proof ci tested it, so look
+      # that up directly instead
       # of the run's conclusion, which a later failed deploy or live check
       # would also mark failed even though the build and tests passed.
       - name: Find the latest tested artifact for main's current SHA
         id: resolve
-        if: github.event_name == 'workflow_dispatch'
+        if: inputs.tested_run_id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -67,7 +71,7 @@ jobs:
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
 
       - name: Download tested main-preview artifact (redeploy)
-        if: github.event_name == 'workflow_dispatch'
+        if: inputs.tested_run_id == ''
         uses: actions/download-artifact@v4
         with:
           name: portfolio-main-preview-${{ steps.resolve.outputs.sha }}
@@ -76,11 +80,13 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.resolve.outputs.run_id }}
       - name: Download tested main-preview artifact (this run)
-        if: github.event_name != 'workflow_dispatch'
+        if: inputs.tested_run_id != ''
         uses: actions/download-artifact@v4
         with:
           name: portfolio-main-preview-${{ github.sha }}
           path: dist
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.tested_run_id }}
       - name: Record deployed artifact digest
         run: find dist -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256
 
