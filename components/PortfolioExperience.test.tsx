@@ -288,6 +288,17 @@ describe("PortfolioExperience Reading Room integration", () => {
     expect(screen.getByRole("complementary", {name: "Dubs record"})).toBeTruthy();
   });
 
+  it("offers Play Brain Food from the mobile Guide and opens the Map for play", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => guideResponse({ avatarAction: "brain_food" })));
+    await renderExperience({ desktop: false });
+    fireEvent.click(screen.getByRole("button", { name: "Map tab" }));
+    const play = await screen.findByRole("button", { name: "Play Brain Food" });
+    expect(play).toBeTruthy();
+    fireEvent.click(play);
+    await waitFor(() => expect(screen.getByLabelText("Test avatar overlay").dataset.phase).toBe("brain-food"));
+    expect(document.querySelector('.portfolio-reading-room-mobile[data-game-mode="true"]')).toBeTruthy();
+  });
+
   it("runs Brain Food on the live Map and restores the selected Reader record on Escape", async () => {
     avatarLoading.defer = true;
     await renderExperience();

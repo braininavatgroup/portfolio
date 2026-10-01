@@ -8,9 +8,9 @@ Validated text appears as it arrives; `onNavigateEvidence` routes inline citatio
 
 ## Props
 
-No prop is required in production. `askPortfolio` and `openSession` are test/gallery seams. `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the narrow avatar runtime and layout callbacks. The avatar integration accepts only turn start, first rendered text, and the closed avatar/game effect contract. Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food requires desktop with a fine pointer.
+No prop is required in production. `askPortfolio` and `openSession` are test/gallery seams. `avatarIntegration`, `registerAvatarDock`, and `onLayoutChange` preserve the narrow avatar runtime and layout callbacks. The avatar integration accepts only turn start, first rendered text, and the closed avatar/game effect contract. Local play commands bypass model quota and the network. `actionAvailability` filters suggestions and explains unavailable commands; `onToggleAvatar` adds Hide/Show avatar. Brain Food is available on touch screens through Map drag controls.
 
-Starters and follow-ups show at most three prompts, or two when the Guide is at most 600px wide or the window is at most 1019px. Ordering and typed commands are unchanged. All prompts use the shared node mark, matching their evidence when available and falling back to Bradley's identity glyph. Labels use muted reader ink.
+Starters and follow-ups show at most three prompts. Narrow Guides keep both serious prompts and Play Brain Food available. Ordering and typed commands are unchanged. All prompts use the shared node mark, matching their evidence when available and falling back to Bradley's identity glyph. Labels use muted reader ink.
 
 The Reading Room uses three coordination props:
 

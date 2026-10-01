@@ -2,7 +2,6 @@ export type AvatarChatAction = "dance" | "wave" | "swim_lap" | "brain_food";
 export type GuideActionAvailability = {
   status: "ready" | "loading" | "hidden" | "unavailable";
   reducedMotion: boolean;
-  gameSupported: boolean;
 };
 
 // Exact, standalone requests are controls; broader conversation still goes to
@@ -27,12 +26,11 @@ export function actionUnavailableReason(action: string, availability: GuideActio
   if (availability.status === "hidden") return "The avatar is hidden. Choose Show avatar to play.";
   if (availability.status === "loading") return "The avatar is still loading. Try again in a moment.";
   if (availability.reducedMotion) return "Animation is paused to respect your reduced-motion preference. You can still explore the portfolio and chat.";
-  if (action === "brain_food" && !availability.gameSupported) return "Brain Food needs a keyboard and a larger window.";
   return null;
 }
 
 export function actionAcknowledgement(action: AvatarChatAction) {
   if (action === "wave") return "Hello there.";
-  if (action === "brain_food") return "Use Arrow keys or WASD to swim through every node. Escape brings you back.";
+  if (action === "brain_food") return "Drag on the Map, or use Arrow keys or WASD, to swim through every node. Escape or Exit brings you back.";
   return "Here we go.";
 }

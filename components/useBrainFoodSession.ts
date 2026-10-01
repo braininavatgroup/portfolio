@@ -25,6 +25,7 @@ const movementKeys = new Set([
 ]);
 const avatarCollisionRadius = 78;
 const avatarBoundsPadding = 96;
+const pointerDirections = ["pointerleft", "pointerright", "pointerup", "pointerdown"];
 
 function playBounds(): BrainFoodBounds {
   const world = document.querySelector<HTMLElement>(".portfolio-world");
@@ -34,18 +35,18 @@ function playBounds(): BrainFoodBounds {
     top: rect?.top ?? 0,
     width: rect && rect.width > 0 ? rect.width : window.innerWidth,
     height: rect && rect.height > 0 ? rect.height : window.innerHeight,
-    padding: avatarBoundsPadding,
+    padding: Math.min(avatarBoundsPadding, (rect?.width || window.innerWidth) * 0.15, (rect?.height || window.innerHeight) * 0.15),
   };
 }
 
 function directionFromHeld(held: ReadonlySet<string>) {
   return {
     x:
-      Number(held.has("arrowright") || held.has("d")) -
-      Number(held.has("arrowleft") || held.has("a")),
+      Number(held.has("arrowright") || held.has("d") || held.has("pointerright")) -
+      Number(held.has("arrowleft") || held.has("a") || held.has("pointerleft")),
     y:
-      Number(held.has("arrowdown") || held.has("s")) -
-      Number(held.has("arrowup") || held.has("w")),
+      Number(held.has("arrowdown") || held.has("s") || held.has("pointerdown")) -
+      Number(held.has("arrowup") || held.has("w") || held.has("pointerup")),
   };
 }
 
@@ -70,6 +71,7 @@ export function useBrainFoodSession({
   const completingRef = useRef(false);
   const wasVisibleRef = useRef(false);
   const heldRef = useRef(new Set<string>());
+  const pointerRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const bodyRef = useRef<BrainFoodBody>({
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
@@ -86,6 +88,7 @@ export function useBrainFoodSession({
     sessionId.current += 1;
     completingRef.current = false;
     heldRef.current.clear();
+    pointerRef.current = null;
     previousFrameRef.current = null;
     setActive(false);
     if (wasVisibleRef.current) avatarRuntime.show();
@@ -111,9 +114,7 @@ export function useBrainFoodSession({
     if (
       !enabled || reducedMotion ||
       activeRef.current ||
-      window.innerWidth < 1020 ||
-      avatarRuntime.getSnapshot().failed ||
-      (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)
+      avatarRuntime.getSnapshot().failed
     ) {
       restore();
       return;
@@ -143,7 +144,7 @@ export function useBrainFoodSession({
   }, [avatarRuntime, enabled, reducedMotion, restore]);
 
   const start = useCallback(() => {
-    if (!enabled || reducedMotion || activeRef.current || preparingRef.current || window.innerWidth < 1020 || avatarRuntime.getSnapshot().failed || (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches)) return false;
+    if (!enabled || reducedMotion || activeRef.current || preparingRef.current || avatarRuntime.getSnapshot().failed) return false;
     sessionId.current += 1;
     wasVisibleRef.current = avatarRuntime.getSnapshot().visible;
     focusBeforePlay.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -232,6 +233,46 @@ export function useBrainFoodSession({
   }, [active, avatarRuntime, collectAtCurrentPosition, reducedMotion]);
 
   useEffect(() => {
+    if (!active) return;
+    const world = document.querySelector<HTMLElement>(".portfolio-world");
+    if (!world) return;
+    const clearPointer = () => {
+      pointerRef.current = null;
+      for (const direction of pointerDirections) heldRef.current.delete(direction);
+    };
+    const down = (event: PointerEvent) => {
+      if (event.button !== 0 || pointerRef.current) return;
+      pointerRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      world.setPointerCapture?.(event.pointerId);
+    };
+    const move = (event: PointerEvent) => {
+      const pointer = pointerRef.current;
+      if (!pointer || pointer.id !== event.pointerId) return;
+      for (const direction of pointerDirections) heldRef.current.delete(direction);
+      const dx = event.clientX - pointer.x;
+      const dy = event.clientY - pointer.y;
+      if (Math.abs(dx) > 12) heldRef.current.add(dx > 0 ? "pointerright" : "pointerleft");
+      if (Math.abs(dy) > 12) heldRef.current.add(dy > 0 ? "pointerdown" : "pointerup");
+    };
+    const up = (event: PointerEvent) => {
+      if (pointerRef.current?.id === event.pointerId) clearPointer();
+    };
+    world.addEventListener("pointerdown", down);
+    world.addEventListener("pointermove", move);
+    world.addEventListener("pointerup", up);
+    world.addEventListener("pointercancel", up);
+    world.addEventListener("lostpointercapture", clearPointer);
+    return () => {
+      clearPointer();
+      world.removeEventListener("pointerdown", down);
+      world.removeEventListener("pointermove", move);
+      world.removeEventListener("pointerup", up);
+      world.removeEventListener("pointercancel", up);
+      world.removeEventListener("lostpointercapture", clearPointer);
+    };
+  }, [active]);
+
+  useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (preparingRef.current && event.key === "Escape") {
         event.preventDefault();
@@ -286,20 +327,15 @@ export function useBrainFoodSession({
         velocity: { x: 0, y: 0 },
       };
     };
-    const resize = () => {
-      if ((activeRef.current || preparingRef.current) && window.innerWidth < 1020) cancel();
-    };
     document.addEventListener("keydown", keydown);
     document.addEventListener("keyup", keyup);
     document.addEventListener("visibilitychange", clearInput);
     window.addEventListener("blur", clearInput);
-    window.addEventListener("resize", resize);
     return () => {
       document.removeEventListener("keydown", keydown);
       document.removeEventListener("keyup", keyup);
       document.removeEventListener("visibilitychange", clearInput);
       window.removeEventListener("blur", clearInput);
-      window.removeEventListener("resize", resize);
     };
   }, [avatarRuntime, cancel, collectAtCurrentPosition, reducedMotion, start]);
 

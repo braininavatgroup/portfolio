@@ -795,7 +795,7 @@ describe("docked portfolio Guide", () => {
     const askPortfolio = vi.fn<AskPortfolio>();
     const onEffects = vi.fn();
     render(<PortfolioChat askPortfolio={askPortfolio}
-      actionAvailability={{ status: "unavailable", reducedMotion: false, gameSupported: true }}
+      actionAvailability={{ status: "unavailable", reducedMotion: false }}
       avatarIntegration={{ onTurnStart() {}, onFirstText() {}, onEffects }} />);
     expect(screen.queryByRole("button", { name: "Can you dance?" })).toBeNull();
     submit("Can you dance?");

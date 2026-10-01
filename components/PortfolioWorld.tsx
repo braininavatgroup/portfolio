@@ -1090,7 +1090,7 @@ export function PortfolioWorld({
       </div>
       {brainFood?.active ? (
         <p aria-live="polite" className="portfolio-world-brain-food-status">
-          Brain Food · {brainFood.remaining} left · Arrows/WASD · Esc exits
+          Brain Food · {brainFood.remaining} left · Drag to steer or use Arrows/WASD · Exit to leave
         </p>
       ) : null}
       {portfolioWorldNodes.filter(
