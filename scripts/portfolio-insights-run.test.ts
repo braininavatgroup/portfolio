@@ -15,6 +15,7 @@ import { AirtableConfigurationError, AirtableRequestError } from "./portfolio-in
 import { escapeHtml } from "./portfolio-insights-dashboard.mjs";
 import {
   buildFixtureDashboard,
+  currentEventRows,
   eventRow,
   FIXTURE_TOKENS,
   fixtureAssignments,
@@ -337,6 +338,68 @@ describe("source failure behavior", () => {
     const cached = await run([], nothing);
     expect(cached.exitCode).toBe(0);
     expect(cached.snapshot.sources.cloudflare.status).toBe("stale");
+  });
+});
+
+// Owns: assigned links reading a 90-day lookback while the rest of the report
+// stays on its window, and falling back to the window when that read fails.
+// Retire with the scheduled job.
+describe("assigned-link lookback", () => {
+  // Alex's link opened 40 days before the run: outside the 7-day window.
+  const olderVisit = [
+    eventRow({ at: "2026-08-02 10:00:00", action: "entry", session: "tab-alex-old", campaign: "alexcode01", source: "email" }),
+    eventRow({ at: "2026-08-02 10:01:00", action: "content_open", session: "tab-alex-old", campaign: "alexcode01", content: "record-9q", kind: "record" }),
+  ];
+  type Link = { assignment: { campaignCode: string }; journeys: Array<{ sessionId: string }> };
+  const alexJourneys = (snapshot: Record<string, unknown>) =>
+    (snapshot as { intelligence: { assignedLinks: Link[] } }).intelligence.assignedLinks.find(
+      (row) => row.assignment.campaignCode === "alexcode01",
+    )?.journeys ?? [];
+
+  it("shows a link session older than the window without counting it anywhere else", async () => {
+    const ranges: Array<{ start: string; end: string }> = [];
+    const baseline = await run();
+    await rm(directory, { recursive: true, force: true });
+    const result = await run([], {
+      fetchers: {
+        insightLinkEvents: async (_token: string, range: { start: string; end: string }) => {
+          ranges.push(range);
+          return [...olderVisit, ...currentEventRows().filter((row) => row.campaign)];
+        },
+      },
+    });
+
+    expect(ranges).toEqual([{ start: "2026-06-14T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" }]);
+    expect(alexJourneys(result.snapshot).map((journey) => journey.sessionId)).toEqual(
+      expect.arrayContaining(["tab-alex-old", "tab-alex-1", "tab-alex-2"]),
+    );
+    expect(alexJourneys(baseline.snapshot)).toHaveLength(2);
+    // The window's own counts do not move.
+    expect(result.snapshot.intelligence.content).toEqual(baseline.snapshot.intelligence.content);
+    expect(result.snapshot.intelligence.journeyPatterns).toEqual(baseline.snapshot.intelligence.journeyPatterns);
+    const html = await readFile(result.dashboardPath, "utf8");
+    expect(html).toContain("assigned links with activity in the last 90 days");
+    expect(html).toContain("Link activity covers the last 90 days (since 2026-06-14)");
+  });
+
+  it("falls back to the window's link sessions when the lookback read fills its page", async () => {
+    const full = Array.from({ length: INSIGHT_EVENT_LIMIT }, (_, index) =>
+      eventRow({ at: "2026-08-02 10:00:00", action: "content_attention", session: `tab-old-${index}`, campaign: "alexcode01" }),
+    );
+    const result = await run([], { fetchers: { insightLinkEvents: async () => full } });
+
+    expect(alexJourneys(result.snapshot)).toHaveLength(2);
+    expect(await readFile(result.dashboardPath, "utf8")).not.toContain("last 90 days");
+  });
+
+  it("falls back to the window's link sessions when the lookback read fails", async () => {
+    const result = await run([], { fetchers: { insightLinkEvents: eventReadFails } });
+
+    expect(result.snapshot.sources.insights.status).toBe("fresh");
+    expect(alexJourneys(result.snapshot)).toHaveLength(2);
+    const html = await readFile(result.dashboardPath, "utf8");
+    expect(html).toContain("assigned links with activity in this window");
+    expect(html).not.toContain("last 90 days");
   });
 });
 

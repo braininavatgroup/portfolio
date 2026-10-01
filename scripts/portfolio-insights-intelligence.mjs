@@ -91,6 +91,7 @@
  * @typedef {{
  *   findings: Finding[],
  *   assignedLinks: Array<{ assignment: PortfolioAssignment, journeys: Journey[] }>,
+ *   assignedLinkWindow: ReportWindow,
  *   anonymousJourneys: Journey[],
  *   content: ContentSummary[],
  *   audience: AudienceSummary,
@@ -101,6 +102,7 @@
  * }} PortfolioIntelligence
  * @typedef {{
  *   window?: ReportWindow,
+ *   assignedLinkWindow?: ReportWindow,
  *   assignedLinks?: Array<{ assignment: PortfolioAssignment, journeys: Journey[] }>,
  *   content?: ContentSummary[],
  *   audience?: AudienceSummary,
@@ -790,7 +792,7 @@ export function deriveFindings(current, previous) {
   const labels = new Map((current.content ?? []).map((row) => [row.contentId, row.label]));
   const labelOf = (id) => labels.get(id) ?? current.journeyPatterns?.labels?.[id] ?? id;
   /** @type {Finding[]} */
-  const findings = [...assignedLinkFindings(current.assignedLinks, currentWindow)];
+  const findings = [...assignedLinkFindings(current.assignedLinks, current.assignedLinkWindow?.label ?? currentWindow)];
 
   if (previous) {
     const before = new Map((previous.content ?? []).map((row) => [row.contentId, row]));
@@ -976,6 +978,8 @@ export function deriveFindings(current, previous) {
 /**
  * @param {{
  *   events: InsightEvent[] | null | undefined,
+ *   linkEvents?: InsightEvent[] | null,
+ *   linkWindow?: ReportWindow | null,
  *   assignments: PortfolioAssignment[] | SourceState | null | undefined,
  *   contentCatalog?: ContentCatalog,
  *   clarity?: unknown,
@@ -987,6 +991,8 @@ export function deriveFindings(current, previous) {
  */
 export function buildPortfolioIntelligence({
   events,
+  linkEvents = null,
+  linkWindow = null,
   assignments,
   contentCatalog = {},
   clarity,
@@ -1031,10 +1037,20 @@ export function buildPortfolioIntelligence({
     })
     .sort((left, right) => right.sessions - left.sessions || right.events - left.events || left.code.localeCompare(right.code));
 
+  // Assigned links read their own, longer lookback when the run has one; the
+  // rest of the report stays on the window. Without it they use the window.
+  const lookback = Array.isArray(linkEvents) && linkWindow;
+  const linkJourneys = lookback
+    ? partitionJourneys(linkEvents).journeys.map((journey) => ({
+        ...journey,
+        assignment: journey.campaignCode ? (byCode.get(journey.campaignCode) ?? null) : null,
+      }))
+    : journeys;
+  const assignedLinkWindow = lookback ? linkWindow : reportWindow;
   const assignedLinks = [...byCode.values()]
     .map((assignment) => ({
       assignment,
-      journeys: journeys.filter((journey) => journey.assignment === assignment),
+      journeys: linkJourneys.filter((journey) => journey.assignment === assignment),
     }))
     .sort((left, right) => {
       const latest = (link) => (link.journeys.length ? Math.max(...link.journeys.map(lastEventAt)) : Number.NEGATIVE_INFINITY);
@@ -1052,6 +1068,7 @@ export function buildPortfolioIntelligence({
   const cloudflareState = resolveSource(cloudflare);
   const current = {
     window: reportWindow,
+    assignedLinkWindow,
     assignedLinks,
     content: summarizeContent(journeys, contentCatalog),
     audience: summarizeAudience(journeys),
@@ -1064,6 +1081,7 @@ export function buildPortfolioIntelligence({
   return {
     findings: deriveFindings(current, previous),
     assignedLinks,
+    assignedLinkWindow,
     anonymousJourneys: journeys.filter((journey) => journey.assignment === null),
     content: current.content,
     audience: current.audience,

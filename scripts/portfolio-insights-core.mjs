@@ -21,6 +21,7 @@ import {
   summarizeForHistory,
 } from "./portfolio-insights-intelligence.mjs";
 import {
+  ASSIGNED_LINK_LOOKBACK_DAYS,
   deriveBelievable,
   formatHistory,
   formatLead,
@@ -312,6 +313,24 @@ export async function runInsights(options, dependencies) {
     fetch: readInsights ? async () => fetchers.insightEvents(await cloudflareToken(), range) : null,
   });
 
+  // Assigned links read further back than the window. The read is fresh and
+  // complete or nothing: when it fails or fills its page (which would drop the
+  // newest rows), the links fall back to the window's journeys and the
+  // dashboard says which span it shows.
+  const linkRange = windowForDays(ASSIGNED_LINK_LOOKBACK_DAYS, started);
+  let linkEvents = null;
+  if (readInsights && events.status === "fresh") {
+    try {
+      const rows = await fetchers.insightLinkEvents(await cloudflareToken(), linkRange);
+      if (Array.isArray(rows)) {
+        const read = readInsightEventRows(rows);
+        if (!read.truncated) linkEvents = read.events;
+      }
+    } catch {
+      // The window's journeys stand in.
+    }
+  }
+
   // Guide transcripts live only in the Worker's bucket, so a local run has no
   // port and says so rather than reporting an empty window.
   const chat = await resolveChatState(dependencies.chatTranscripts, range, capturedAt, offline);
@@ -324,9 +343,14 @@ export async function runInsights(options, dependencies) {
     // Labels fall back to content IDs.
   }
   const reportWindow = { ...range, label: `${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}` };
-  const derive = (eventRows) =>
+  const linkWindow = linkEvents
+    ? { ...linkRange, label: `${linkRange.start.slice(0, 10)} → ${linkRange.end.slice(0, 10)}` }
+    : null;
+  const derive = (eventRows, linkRows = null) =>
     buildPortfolioIntelligence({
       events: eventRows,
+      linkEvents: linkRows,
+      linkWindow,
       assignments: airtable,
       contentCatalog: catalog,
       clarity,
@@ -334,7 +358,7 @@ export async function runInsights(options, dependencies) {
       previous: previousSummary(history),
       window: reportWindow,
     });
-  const intelligence = derive(events.events);
+  const intelligence = derive(events.events, linkEvents);
   // History records journeys only when this run read them; stale or missing
   // rows go in as `events: null`, which summarizes as unavailable, never zero.
   const recordedIntelligence = events.status === "fresh" ? intelligence : derive(null);

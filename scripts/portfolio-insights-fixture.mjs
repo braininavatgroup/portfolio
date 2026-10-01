@@ -366,6 +366,14 @@ export function fixtureAssignments() {
  * @param {{ directory: string, now: string } & Record<string, any>} options
  */
 export function fixtureDependencies({ directory, now, events = currentEventRows(), fetchers = {}, ...rest }) {
+  const sources = {
+    clarity: async () => fixtureClarity(),
+    cloudflare: async () => fixtureCloudflare(),
+    insightAggregates: async () => fixtureAggregates(),
+    insightEvents: async () => events,
+    airtable: async () => fixtureAssignments(),
+    ...fetchers,
+  };
   return {
     directory,
     now: () => new Date(now),
@@ -375,12 +383,11 @@ export function fixtureDependencies({ directory, now, events = currentEventRows(
     },
     readContent: async () => FIXTURE_CONTENT,
     fetchers: {
-      clarity: async () => fixtureClarity(),
-      cloudflare: async () => fixtureCloudflare(),
-      insightAggregates: async () => fixtureAggregates(),
-      insightEvents: async () => events,
-      airtable: async () => fixtureAssignments(),
-      ...fetchers,
+      // The lookback read answers like the window read unless a test replaces
+      // it, so a failing window read fails both.
+      insightLinkEvents: async (token, range) =>
+        (await sources.insightEvents(token, range)).filter((row) => row?.campaign),
+      ...sources,
     },
     ...rest,
   };

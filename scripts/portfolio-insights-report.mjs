@@ -1104,6 +1104,30 @@ export function insightEventQuery(range) {
 }
 
 /**
+ * How far back assigned links read. A link matters until Bradley has followed
+ * up on it, so it outlives the report's window; 90 days is also as far back as
+ * Analytics Engine keeps rows.
+ */
+export const ASSIGNED_LINK_LOOKBACK_DAYS = 90;
+
+/**
+ * Every campaign-coded event in `range`, oldest first. The page stamps one
+ * code on every event of a tab session, so these rows hold whole link
+ * sessions and nothing else.
+ * @param {{ start: string, end: string }} range
+ */
+export function insightLinkEventQuery(range) {
+  const columns = INSIGHT_EVENT_COLUMNS.map(([column, alias]) => `${column} AS ${alias}`);
+  return `
+      SELECT timestamp,
+        ${columns.join(",\n        ")}
+      FROM ${INSIGHT_DATASET}
+      WHERE ${insightWindowClause(range)} AND blob4 != ''
+      ORDER BY timestamp ASC
+      LIMIT ${INSIGHT_EVENT_LIMIT} FORMAT JSON`;
+}
+
+/**
  * @typedef {{
  *   timestamp: string, action: string, contentId: string, contentKind: string,
  *   campaign: string, contactKind: string, source: string, targetId: string,
