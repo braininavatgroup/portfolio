@@ -325,6 +325,7 @@ const contentOpensOf = (summary) =>
  */
 export function decisionTiles({ intelligence, eventsKnown, history = [], today = "", window = null }) {
   const links = list(intelligence?.assignedLinks);
+  const span = linkSpan(intelligence);
   const active = links.filter((row) => list(row?.journeys).length > 0).length;
   const linkSessions = links.reduce((sum, row) => sum + list(row?.journeys).length, 0);
   const patterns = intelligence?.journeyPatterns;
@@ -358,7 +359,7 @@ export function decisionTiles({ intelligence, eventsKnown, history = [], today =
       label: "Assigned links active",
       value: known(active),
       display: eventsKnown ? `${number(active)} of ${number(links.length)}` : null,
-      note: "assigned links with activity in this window",
+      note: `assigned links with activity ${span}`,
       delta: null,
       comparedWith: null,
       series: [],
@@ -366,7 +367,7 @@ export function decisionTiles({ intelligence, eventsKnown, history = [], today =
     {
       label: "Link sessions",
       value: known(linkSessions),
-      note: "tab sessions on an assigned link",
+      note: `tab sessions on an assigned link ${span}`,
       delta: null,
       comparedWith: null,
       series: [],
@@ -1005,6 +1006,20 @@ function whatChanged(context) {
   return section("what-changed", "What changed", SOURCE_ORDER, parts.join(""), context, { open: true });
 }
 
+const IN_WINDOW = "in this window";
+
+/**
+ * The span assigned-link activity covers: the run's longer lookback when it
+ * read one, otherwise the report window.
+ * @param {Record<string, any> | null | undefined} intelligence
+ */
+function linkSpan(intelligence) {
+  const lookback = intelligence?.assignedLinkWindow;
+  if (!lookback?.start || !lookback?.end || lookback.start === intelligence?.window?.start) return IN_WINDOW;
+  const days = Math.round((Date.parse(lookback.end) - Date.parse(lookback.start)) / 86_400_000);
+  return Number.isFinite(days) && days > 0 ? `in the last ${days} days` : IN_WINDOW;
+}
+
 function assignedLinks(context) {
   const { intelligence, sources, labelFor, configurationErrors } = context;
   const parts = [
@@ -1022,6 +1037,11 @@ function assignedLinks(context) {
   }
   const rows = list(intelligence.assignedLinks).filter((row) => row?.assignment);
   const { eventsKnown } = context;
+  const span = linkSpan(intelligence);
+  const since = String(intelligence.assignedLinkWindow?.start ?? "").slice(0, 10);
+  if (span !== IN_WINDOW && since) {
+    parts.push(note(`Link activity covers the ${span.replace(/^in the /u, "")} (since ${since}); the rest of this page covers its window.`));
+  }
   if (rows.length === 0 && sources.airtable.status !== "unavailable") parts.push(empty("No assigned links to show for this window."));
   for (const { assignment, journeys: rawJourneys } of rows) {
     const journeys = list(rawJourneys)
@@ -1042,7 +1062,7 @@ function assignedLinks(context) {
       cell("Content opened", activity(number(contentIds.length))),
       cell("Evidence opened", activity(number(evidenceIds.length))),
       cell("Contact actions", activity(contactKinds.length ? `${number(contactKinds.length)} (${[...new Set(contactKinds)].join(", ")})` : "0")),
-      cell("Latest activity", activity(latest ? stamp(latest) ?? latest : "No link activity in this window")),
+      cell("Latest activity", activity(latest ? stamp(latest) ?? latest : `No link activity ${span}`)),
     ].join("");
     // Who and where it came from: the grid behind the row's own disclosure.
     const identity = [
@@ -1063,7 +1083,7 @@ function assignedLinks(context) {
       evidenceIds.length ? `<p>Evidence: ${escapeHtml(evidenceIds.join(", "))}</p>` : "",
       journeys.length
         ? journeys.map((journey, index) => `<div class="journey"><h4>${escapeHtml(journeyHeading(journey, index))}</h4>${journeyEvents(journey, labelFor)}</div>`).join("")
-        : empty(eventsKnown ? "No link sessions in this window." : "Link sessions unavailable without Analytics Engine data."),
+        : empty(eventsKnown ? `No link sessions ${span}.` : "Link sessions unavailable without Analytics Engine data."),
     ].join("");
     parts.push(
       `<details class="assignment" data-state="${state}"><summary>` +

@@ -18,6 +18,7 @@ import {
   clarityTraffic,
   deriveTrafficShape,
   insightEventQuery,
+  insightLinkEventQuery,
   insightWindowClause,
   INSIGHT_DATASET,
   mergeDayGroups,
@@ -403,5 +404,7 @@ export const liveFetchers = Object.freeze({
   insightAggregates: (token, range) => fetchInsightAggregates(token, range),
   // Raw rows; the run decodes them with readInsightEventRows.
   insightEvents: (token, range) => analyticsEngineSql(token, insightEventQuery(range)),
+  // Campaign-coded rows only, over the longer assigned-link lookback.
+  insightLinkEvents: (token, range) => analyticsEngineSql(token, insightLinkEventQuery(range)),
   airtable: (token) => fetchPortfolioAssignments({ token }),
 });

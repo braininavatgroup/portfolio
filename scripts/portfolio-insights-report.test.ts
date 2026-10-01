@@ -22,6 +22,7 @@ import {
   historyRow,
   INSIGHT_EVENT_LIMIT,
   insightEventQuery,
+  insightLinkEventQuery,
   insightWindowClause,
   microsecondsToMilliseconds,
   normalizeInsightEvents,
@@ -948,6 +949,13 @@ describe("event-level insight rows", () => {
     expect(query).toMatch(/SELECT\s+timestamp,/u);
     expect(query).toMatch(/ORDER BY timestamp ASC\s+LIMIT 10000\s+FORMAT JSON/u);
     expect(INSIGHT_EVENT_LIMIT).toBe(10_000);
+  });
+
+  it("reads only campaign-coded rows, with the same columns, for the assigned-link lookback", () => {
+    const query = insightLinkEventQuery(range);
+    expect(query).toContain(`WHERE ${insightWindowClause(range)} AND blob4 != ''`);
+    expect(query).toContain("blob12 AS session_id");
+    expect(query).toMatch(/ORDER BY timestamp ASC\s+LIMIT 10000\s+FORMAT JSON/u);
   });
 
   it("escapes a quote that reaches the window", () => {
