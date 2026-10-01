@@ -106,8 +106,8 @@ animation blending, and final feel remain human walk items.
 
 ### Brain Food from the Guide
 
-“Play Brain Food” stays available in initial and follow-up suggestions on
-desktop. It is hidden below 1020px and on coarse-pointer devices. Direct
+“Play Brain Food” stays available in initial and follow-up suggestions at
+every width, including touch screens. Direct
 play/start requests emit `brain_food` without a model call. The Guide still uses
 the normal validated response lifecycle; the Experience owns starting the game.
 
@@ -118,5 +118,6 @@ the desktop transition, and selection, URL, Reader, and Guide thread survive.
 Two animation frames allow the Map to resize before the swimmer is placed.
 
 Escape, the Exit Brain Food control, and completion restore the layout, focus,
-and prior avatar visibility. Shift+G remains a keyboard shortcut. Play requires a keyboard, a fine pointer, and at least 1020px of width; an unavailable start shows
-a status message instead of changing the layout.
+and prior avatar visibility. Shift+G remains a keyboard shortcut. Arrow keys or WASD steer, and dragging on
+the Map steers on touch screens. Play requires Bradley ready and motion allowed;
+an unavailable start shows a status message instead of changing the layout.
