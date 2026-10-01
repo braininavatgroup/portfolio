@@ -108,7 +108,7 @@ describe("PortfolioWorld", () => {
     );
 
     expect(
-      screen.getByText("Brain Food · 15 left · Arrows/WASD · Esc exits"),
+      screen.getByText("Brain Food · 15 left · Drag to steer or use Arrows/WASD · Exit to leave"),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Dubs/ })).toBeNull();
     expect(

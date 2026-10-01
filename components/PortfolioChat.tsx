@@ -417,7 +417,7 @@ function GuideThreadStateReporter({
 
 export function PortfolioChat({
   avatarIntegration,
-  actionAvailability = { status: "ready", reducedMotion: false, gameSupported: true },
+  actionAvailability = { status: "ready", reducedMotion: false },
   onToggleAvatar,
   onLayoutChange,
   onNavigateEvidence,

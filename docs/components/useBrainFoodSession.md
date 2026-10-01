@@ -2,7 +2,7 @@
 
 Source: [`components/useBrainFoodSession.ts`](../../components/useBrainFoodSession.ts) · Tests: `components/useBrainFoodSession.test.tsx`
 
-Owns the visitor-triggered Brain Food session: chat `start()` and the exact Shift+G shortcut, Arrow/WASD movement, live-node collision state, completion celebration, Escape cancellation, and restoration of the avatar's prior visibility.
+Owns the visitor-triggered Brain Food session: chat `start()` and the exact Shift+G shortcut, Arrow/WASD or Map drag movement, live-node collision state, completion celebration, Escape cancellation, and restoration of the avatar's prior visibility.
 `gameMode` includes preparation: expand the Map, then spawn after two frames.
 It restores keyboard focus and avatar visibility on cancel or completion;
 collection starts only when the avatar moves.
@@ -42,7 +42,7 @@ export function UseBrainFoodSessionExample() {
 
 ## Pitfalls
 
-- It refuses to start below 1020px, on coarse pointers, or with reduced motion. Losing enabled status or enabling reduced motion cancels active and preparing games.
+- It refuses to start with reduced motion. Losing enabled status or enabling reduced motion cancels active and preparing games. Map drags steer on touch screens and release the direction at pointer up or cancellation.
 - Bradley is never edible; `edibleNodeCount` must exclude that identity node.
 - Escape restores the avatar visibility from before the game rather than assuming chat is open.
 - Collection uses the swimmer-sized swept path between frames, not only the

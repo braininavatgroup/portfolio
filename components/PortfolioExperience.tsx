@@ -96,16 +96,6 @@ export function PortfolioExperience({ initialNodeId = null }: { initialNodeId?: 
     () => avatarRuntime.getSnapshot().failed ? "unavailable" : avatarRuntime.getSnapshot().ready ? "ready" : "loading",
     () => "loading",
   );
-  const [gameSupported, setGameSupported] = useState(false);
-  useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 1020px)");
-    const coarse = window.matchMedia("(pointer: coarse)");
-    const update = () => setGameSupported(desktop.matches && !coarse.matches);
-    update();
-    desktop.addEventListener("change", update);
-    coarse.addEventListener("change", update);
-    return () => { desktop.removeEventListener("change", update); coarse.removeEventListener("change", update); };
-  }, []);
   const brainFood = useBrainFoodSession({
     avatarRuntime,
     edibleNodeCount: portfolioWorldNodes.length - 1,
@@ -258,7 +248,7 @@ export function PortfolioExperience({ initialNodeId = null }: { initialNodeId?: 
           void avatarRuntime.queueDance();
         } else if (effects.avatarAction === "brain_food") {
           const started = startBrainFood();
-          setGameNotice(started ? "" : "Brain Food needs a keyboard and a larger window, with Bradley ready to play.");
+          setGameNotice(started ? "" : "Brain Food needs Bradley ready to play.");
         } else if (effects.avatarAction === "turn") {
           void avatarRuntime.queueTurn();
         }
@@ -333,7 +323,7 @@ export function PortfolioExperience({ initialNodeId = null }: { initialNodeId?: 
   const guide = (
     <PortfolioChat
       avatarIntegration={avatarIntegration}
-      actionAvailability={{ status: avatarHidden ? "hidden" : avatarStatus, reducedMotion, gameSupported }}
+      actionAvailability={{ status: avatarHidden ? "hidden" : avatarStatus, reducedMotion }}
       onLayoutChange={refreshAvatarDock}
       onNavigateEvidence={navigateGuideEvidence}
       onThreadStateChange={setGuideHasThread}

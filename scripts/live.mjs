@@ -215,6 +215,44 @@ try {
     expect(rows.length > 0, "no toolbar rows painted");
     return `${rows.length} rows`;
   });
+  await check("Brain Food starts and steers at a 390px touch viewport", async () => {
+    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    try {
+      await mobile.route(/\/api\/portfolio-insight|\/cdn-cgi\/rum|clarity\.ms/, (route) =>
+        route.fulfill({ status: 204, body: "" }),
+      );
+      const touchPage = await mobile.newPage();
+      await touchPage.goto(`${base}/`, { waitUntil: "load", timeout: 45_000 });
+      await touchPage.getByRole("button", { name: "Map tab" }).click();
+      const play = touchPage.getByRole("button", { name: "Play Brain Food" });
+      await play.waitFor({ state: "visible" });
+      await play.click({ timeout: 20_000 });
+      const avatar = touchPage.locator('.avatar-overlay[data-avatar-state="brain-food"]');
+      await avatar.waitFor({ timeout: 20_000 });
+      const before = Number(await avatar.getAttribute("data-brain-food-x"));
+      expect(Number.isFinite(before), "no avatar play position");
+      const world = touchPage.locator('.portfolio-world[data-brain-food="true"]');
+      const box = await world.boundingBox();
+      expect(box && box.width >= 390 && box.height >= 600, `Map play bounds ${JSON.stringify(box)}`);
+      const direction = before > box.x + box.width / 2 ? -1 : 1;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      const cdp = await mobile.newCDPSession(touchPage);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + direction * 100, y, id: 1 }] });
+      await touchPage.waitForFunction(({ before, direction }) => {
+        const position = Number(document.querySelector('.avatar-overlay')?.getAttribute('data-brain-food-x'));
+        return (position - before) * direction > 3;
+      }, { before, direction }, { timeout: 5_000 });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      const after = Number(await avatar.getAttribute("data-brain-food-x"));
+      expect((after - before) * direction > 3, `avatar did not move: ${before} -> ${after}`);
+      await touchPage.getByRole("button", { name: "Exit Brain Food" }).click();
+      return `${before.toFixed(1)} -> ${after.toFixed(1)}`;
+    } finally {
+      await mobile.close();
+    }
+  });
 } finally {
   await browser.close();
 }

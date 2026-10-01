@@ -3170,7 +3170,7 @@ body:has(.portfolio-reading-room-mobile) {
     padding-top: 6px;
   }
 
-  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3):not([data-game-suggestion="true"]) {
     display: none;
   }
 
@@ -3378,7 +3378,7 @@ body:has(.portfolio-reading-room-mobile) {
 }
 
 @container portfolio-guide (max-width: 600px) {
-  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3) {
+  .portfolio-guide-suggestions > .portfolio-guide-suggestion:nth-child(n + 3):not([data-game-suggestion="true"]) {
     display: none;
   }
 }
@@ -4747,13 +4747,6 @@ body:has(.design-gallery[data-theme="dark"]) { background: var(--map-paper-dark)
   right: var(--reader-space-3);
   top: var(--reader-space-3);
   z-index: 7;
-}
-
-/* PER-56: Brain Food has no touch controls yet, so touch hides its prompt. */
-@media (max-width: 1019px), (pointer: coarse) {
-  .portfolio-guide-suggestion[data-game-suggestion="true"] {
-    display: none;
-  }
 }
 
 .portfolio-guide-avatar-toggle {

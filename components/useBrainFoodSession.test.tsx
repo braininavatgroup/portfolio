@@ -29,6 +29,12 @@ function shortcut(extras: KeyboardEventInit = {}) {
   );
 }
 
+function pointer(world: HTMLElement, type: string, x: number, y: number) {
+  const event = new Event(type, { bubbles: true });
+  Object.assign(event, { button: 0, clientX: x, clientY: y, pointerId: 1 });
+  world.dispatchEvent(event);
+}
+
 describe("useBrainFoodSession", () => {
   beforeEach(() => {
     frames.length = 0;
@@ -118,7 +124,7 @@ describe("useBrainFoodSession", () => {
     expect(avatar.getSnapshot().visible).toBe(false);
   });
 
-  it("rejects modified shortcuts and unavailable or mobile starts", () => {
+  it("rejects modified shortcuts and unavailable starts", () => {
     const avatar = runtime();
     const { result, rerender } = renderHook(
       ({ enabled }) =>
@@ -139,13 +145,9 @@ describe("useBrainFoodSession", () => {
     act(() => shortcut({ metaKey: true }));
     expect(result.current.active).toBe(false);
 
-    vi.stubGlobal("innerWidth", 900);
-    act(() => shortcut());
-    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
-    expect(result.current.active).toBe(false);
   });
 
-  it("ends a desktop game when resizing into the mobile panel layout", () => {
+  it("keeps a game active when the viewport becomes narrow", () => {
     const avatar = runtime(true);
     const {result} = renderHook(() => useBrainFoodSession({avatarRuntime: avatar, edibleNodeCount: 1, enabled: true, reducedMotion: false}));
     act(() => { result.current.start(); });
@@ -153,8 +155,36 @@ describe("useBrainFoodSession", () => {
     expect(result.current.active).toBe(true);
     vi.stubGlobal("innerWidth", 950);
     act(() => window.dispatchEvent(new Event("resize")));
+    expect(result.current.gameMode).toBe(true);
+    expect(avatar.getSnapshot().phase).toBe("brain-food");
+  });
+
+  it("starts on a 390px coarse-pointer viewport and steers with pointer events only", () => {
+    vi.stubGlobal("innerWidth", 390);
+    vi.stubGlobal("innerHeight", 844);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+    const world = document.createElement("div");
+    world.className = "portfolio-world";
+    world.getBoundingClientRect = () => ({ left: 0, top: 0, width: 390, height: 844 } as DOMRect);
+    document.body.appendChild(world);
+    const avatar = runtime();
+    const { result } = renderHook(() => useBrainFoodSession({ avatarRuntime: avatar, edibleNodeCount: 2, enabled: true, reducedMotion: false }));
+
+    act(() => { expect(result.current.start()).toBe(true); });
+    act(() => { frames.shift()?.(0); frames.shift()?.(16); });
+    expect(result.current.active).toBe(true);
+    const before = avatar.getSnapshot().position;
+    act(() => {
+      pointer(world, "pointerdown", 100, 400);
+      pointer(world, "pointermove", 170, 400);
+      frames.shift()?.(0);
+      frames.shift()?.(50);
+    });
+    expect(avatar.getSnapshot().position.x).toBeGreaterThan(before.x);
+    expect(avatar.getSnapshot().position.y).toBe(before.y);
+    act(() => pointer(world, "pointerup", 170, 400));
+    act(() => result.current.cancel());
     expect(result.current.gameMode).toBe(false);
-    expect(avatar.getSnapshot().phase).toBe("idle");
   });
 
   it("uses the original movement keys to steer the live avatar", () => {

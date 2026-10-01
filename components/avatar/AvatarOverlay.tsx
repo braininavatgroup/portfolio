@@ -117,6 +117,8 @@ export function AvatarOverlay({
     <div
       className="avatar-overlay"
       data-avatar-state={snapshot.phase}
+      data-brain-food-x={snapshot.phase === "brain-food" ? snapshot.position.x : undefined}
+      data-brain-food-y={snapshot.phase === "brain-food" ? snapshot.position.y : undefined}
       hidden={!snapshot.visible}
     >
       {renderAvatar ? (
