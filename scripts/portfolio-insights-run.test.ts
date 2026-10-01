@@ -382,6 +382,16 @@ describe("assigned-link lookback", () => {
     expect(html).toContain("Link activity covers the last 90 days (since 2026-06-14)");
   });
 
+  it("falls back to the window's link sessions when the lookback read fills its page", async () => {
+    const full = Array.from({ length: INSIGHT_EVENT_LIMIT }, (_, index) =>
+      eventRow({ at: "2026-08-02 10:00:00", action: "content_attention", session: `tab-old-${index}`, campaign: "alexcode01" }),
+    );
+    const result = await run([], { fetchers: { insightLinkEvents: async () => full } });
+
+    expect(alexJourneys(result.snapshot)).toHaveLength(2);
+    expect(await readFile(result.dashboardPath, "utf8")).not.toContain("last 90 days");
+  });
+
   it("falls back to the window's link sessions when the lookback read fails", async () => {
     const result = await run([], { fetchers: { insightLinkEvents: eventReadFails } });
 

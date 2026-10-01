@@ -313,15 +313,19 @@ export async function runInsights(options, dependencies) {
     fetch: readInsights ? async () => fetchers.insightEvents(await cloudflareToken(), range) : null,
   });
 
-  // Assigned links read further back than the window. The read is fresh or
-  // nothing: when it fails, the links fall back to the window's journeys and
-  // the dashboard says which span it shows.
+  // Assigned links read further back than the window. The read is fresh and
+  // complete or nothing: when it fails or fills its page (which would drop the
+  // newest rows), the links fall back to the window's journeys and the
+  // dashboard says which span it shows.
   const linkRange = windowForDays(ASSIGNED_LINK_LOOKBACK_DAYS, started);
   let linkEvents = null;
   if (readInsights && events.status === "fresh") {
     try {
       const rows = await fetchers.insightLinkEvents(await cloudflareToken(), linkRange);
-      if (Array.isArray(rows)) linkEvents = readInsightEventRows(rows).events;
+      if (Array.isArray(rows)) {
+        const read = readInsightEventRows(rows);
+        if (!read.truncated) linkEvents = read.events;
+      }
     } catch {
       // The window's journeys stand in.
     }
