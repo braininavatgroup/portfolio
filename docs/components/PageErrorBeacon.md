@@ -41,6 +41,6 @@ export function PageErrorBeaconExample() {
 - **The payload is the error and the path only.** Query strings and hashes are
   stripped from the stack and filename; never add the visitor id, chat text or
   anything else about the visitor.
-- **A new origin needs the intake's `BEACON_ORIGINS` first** (music-promo
-  `integrations/cloudflare/error-intake/wrangler.jsonc`), then
+- **A new origin needs the intake's `BEACON_ORIGINS` first** (agent-runtime
+  `workers/biv-errors/wrangler.jsonc`), then
   `PAGE_ERROR_ORIGINS` here.
