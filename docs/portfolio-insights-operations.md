@@ -638,6 +638,13 @@ The report matches each event's campaign code to the Action whose
 a shared device, so a code identifies the assignment, not the person holding
 the browser.
 
+Assigned links read the last 90 days of campaign-coded events, Analytics
+Engine's full retention, so a link keeps its activity until Bradley follows up.
+Only the Assigned links section and its two decision tiles use that span;
+everything else stays on the report window. When the 90-day read fails or fills
+its row cap, the links fall back to the window and the dashboard says which
+span it shows.
+
 - A code no Action carries stays anonymous and is not an error. Analytics
   Engine keeps events for three months, so a deleted test Action or an old
   link leaves its code behind that long. What changed says so in one line, for

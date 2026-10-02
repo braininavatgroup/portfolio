@@ -342,10 +342,9 @@ export async function runInsights(options, dependencies) {
   } catch {
     // Labels fall back to content IDs.
   }
-  const reportWindow = { ...range, label: `${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}` };
-  const linkWindow = linkEvents
-    ? { ...linkRange, label: `${linkRange.start.slice(0, 10)} → ${linkRange.end.slice(0, 10)}` }
-    : null;
+  const labeled = (span) => ({ ...span, label: `${span.start.slice(0, 10)} → ${span.end.slice(0, 10)}` });
+  const reportWindow = labeled(range);
+  const linkWindow = linkEvents ? labeled(linkRange) : null;
   const derive = (eventRows, linkRows = null) =>
     buildPortfolioIntelligence({
       events: eventRows,
