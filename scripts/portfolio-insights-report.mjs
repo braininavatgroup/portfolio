@@ -1093,12 +1093,17 @@ const INSIGHT_EVENT_COLUMNS = [
  * @param {{ start: string, end: string }} range
  */
 export function insightEventQuery(range) {
+  return eventRowQuery(insightWindowClause(range));
+}
+
+/** @param {string} where */
+function eventRowQuery(where) {
   const columns = INSIGHT_EVENT_COLUMNS.map(([column, alias]) => `${column} AS ${alias}`);
   return `
       SELECT timestamp,
         ${columns.join(",\n        ")}
       FROM ${INSIGHT_DATASET}
-      WHERE ${insightWindowClause(range)}
+      WHERE ${where}
       ORDER BY timestamp ASC
       LIMIT ${INSIGHT_EVENT_LIMIT} FORMAT JSON`;
 }
@@ -1117,14 +1122,7 @@ export const ASSIGNED_LINK_LOOKBACK_DAYS = 90;
  * @param {{ start: string, end: string }} range
  */
 export function insightLinkEventQuery(range) {
-  const columns = INSIGHT_EVENT_COLUMNS.map(([column, alias]) => `${column} AS ${alias}`);
-  return `
-      SELECT timestamp,
-        ${columns.join(",\n        ")}
-      FROM ${INSIGHT_DATASET}
-      WHERE ${insightWindowClause(range)} AND blob4 != ''
-      ORDER BY timestamp ASC
-      LIMIT ${INSIGHT_EVENT_LIMIT} FORMAT JSON`;
+  return eventRowQuery(`${insightWindowClause(range)} AND blob4 != ''`);
 }
 
 /**
