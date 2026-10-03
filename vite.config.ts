@@ -12,7 +12,9 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
-const TAILSCALE_DEV_HOST = "bradleys-macbook-air.tail847e36.ts.net";
+// Phone previews reach the dev server through tailscale serve on a Mac and
+// Conductor's preview URL in a cloud workspace (the preview skill).
+const PREVIEW_HOSTS = [".ts.net", ".conductor.show"];
 
 // Reviewer feedback runs locally so the `?r=<code>` flow can be previewed.
 // These two values sign and read local cookies and the local digest only; the
@@ -105,7 +107,7 @@ export default defineConfig(async () => {
       exclude: ["pkce-challenge"],
     },
     server: {
-      allowedHosts: [TAILSCALE_DEV_HOST],
+      allowedHosts: PREVIEW_HOSTS,
       ...(isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),

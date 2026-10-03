@@ -12,11 +12,16 @@ setup = "bash scripts/bootstrap-worktree.sh"
 run_mode = "concurrent"
 archive = "rm -rf node_modules"
 
+# Cloud workspaces have no CONDUCTOR_PORT, so the dev server falls back to 5173.
 [scripts.run.dev]
-available_in = [ "local" ]
-command = "npm run dev -- --host 127.0.0.1 --port $CONDUCTOR_PORT --strictPort"
+command = "npm run dev -- --host 127.0.0.1 --port ${CONDUCTOR_PORT:-5173} --strictPort"
 default = true
 icon = "play"
+
+# The dev server, shared to Bradley's phone or iPad (skills: preview).
+[scripts.run.phone]
+command = "~/.agents/skills/preview/preview.sh run ${CONDUCTOR_PORT:-5173} -- npm run dev -- --host 127.0.0.1 --port ${CONDUCTOR_PORT:-5173} --strictPort"
+icon = "smartphone"
 
 [scripts.run.test]
 command = "npm test"
