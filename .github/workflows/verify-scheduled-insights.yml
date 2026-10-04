@@ -1,0 +1,28 @@
+name: verify scheduled insights
+
+on:
+  schedule:
+    # The Worker runs at 11:10 UTC. Read its saved page after it has finished.
+    - cron: '40 11 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: portfolio-main-preview
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - name: Check the scheduled dashboard saved in R2
+        run: node scripts/verify-scheduled-insights.mjs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
