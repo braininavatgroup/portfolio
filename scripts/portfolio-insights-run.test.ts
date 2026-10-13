@@ -333,6 +333,10 @@ describe("source failure behavior", () => {
     expect(empty.exitCode).toBe(1);
     expect(empty.snapshot.sources.clarity.error).toMatch(/no token/u);
     expect(empty.snapshot.sources.airtable.error).toMatch(/no token/u);
+    expect(empty.snapshot.sources.airtable.error).toContain("reviewed assignment cutover");
+    expect(empty.snapshot.sources.airtable.error).toContain("docs/portfolio-insights-operations.md");
+    expect(empty.snapshot.sources.airtable.error).not.toContain("setup:insights");
+    expect(empty.snapshot.sources.airtable.error).not.toContain("Mint it at");
 
     await storage.writeSourceSnapshot(directory, "cloudflare", fixtureCloudflare(), EARLIER);
     const cached = await run([], nothing);

@@ -597,7 +597,7 @@ has been copied.
 
 | File | Holds | Kept |
 | --- | --- | --- |
-| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-assignments.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Supabase configuration error, `source-assignments.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
+| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-assignments.json` | `{ capturedAt, value }`: the last response from that source that parsed. After a Supabase configuration error, `source-assignments.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
 | `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, the window they cover, and whether the read hit its row cap | Until the window it covers began 180 days ago (files without a recorded window: the file-name timestamp) |
 | `history.jsonl` | One aggregate rollup per run, with no names or event sequences | Indefinitely |
 | `dashboard.html` | The latest dashboard | Replaced by each run |
@@ -624,8 +624,8 @@ not:
 - `--no-clarity`, `--no-cloudflare`, and `--no-insights` skip the request and
   show the saved value. `--no-assignments` is different: it renders with no
   identity at all and ignores the saved Supabase copy.
-- An Supabase configuration error (a duplicate or malformed code, or an Action
-  linked to more than one Person, Job, or Company) replaces the saved copy
+- A Supabase configuration error (a duplicate or malformed code, or an invalid
+  assignment projection) replaces the saved copy
   with the errors, so neither a rebuild nor a later Supabase outage can bring
   cached names back. Every link stays unattributed until a run reads Supabase
   cleanly, and the anonymous analytics still render.
@@ -653,15 +653,15 @@ only `raw-events-*.json` files whose window began more than 180 days ago, and
 the stale fallback never reads such a file or any event older than 180 days.
 Source snapshots and aggregate history are never pruned.
 
-The scheduled run holds nothing beyond the three read-only tokens above and
-write access to its own R2 prefix. It makes no request that mutates anything
-remote. A local run holds the same three, from the login Keychain, and writes
-only inside its own directory.
+The scheduled run holds the three read-only source tokens, the board service
+binding, and write access to its own R2 prefix. Source requests are read-only.
+A local run uses the same source tokens plus the existing board Access
+credentials described above, and writes only inside its own directory.
 
 ### Assigned-link attribution
 
 The report matches each event's campaign code to the Action whose
-`Portfolio Campaign Code` equals it. A matched row reads
+`portfolio_campaign_code` equals it. A matched row reads
 "Activity from <name>'s assigned link" and never "<name> visited" or
 "<name> read". A link can be forwarded, opened by a mail scanner, or used on
 a shared device, so a code identifies the assignment, not the person holding
@@ -685,14 +685,16 @@ row cap, the links fall back to the window's sessions.
   a configuration error. The report never guesses which Action a shared code
   belongs to, and no activity is attributed until the codes are fixed.
 
-To recover from a configuration error (a duplicate or malformed code, or an
-Action linked to more than one Person, Job, or Company — an unmapped code is
-not one and needs no recovery):
+To recover from a configuration error (a malformed or duplicate code, or an
+invalid assignment projection; an unmapped event code needs no recovery):
 
-1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
-   Supabase. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
-2. In the job-search repository, run
-   `python3 scripts/migrate_v2.py --portfolio-fields-only --verify`.
+1. Inspect the job-search assignment projection and its schema. Supabase
+   constrains `portfolio_campaign_code` to be unique and match
+   `[a-z0-9][a-z0-9_-]{5,63}`; each Action has at most one Person, Job and
+   Company foreign key. Repair the source of the invalid projection in
+   job-search rather than editing cached identities or reminting codes.
+2. In the job-search repository, run `npm run live -- portfolio-assignments`
+   with the dedicated read credential and existing local Access credentials.
 3. Run `npm run insights` again and confirm the Supabase source reads fresh.
 
 ### Observe in Clarity

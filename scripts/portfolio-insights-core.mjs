@@ -273,7 +273,7 @@ export async function runInsights(options, dependencies) {
     );
   const airtableToken = async () =>
     (await resolveAssignmentToken({ env, readKeychain })) ??
-    Promise.reject(missingToken("PORTFOLIO_ASSIGNMENTS_READ_TOKEN", "assignment-read-token", "https://bradley-job-board.bradley-d45.workers.dev"));
+    Promise.reject(new Error("no token. Provision PORTFOLIO_ASSIGNMENTS_READ_TOKEN through the reviewed assignment cutover in docs/portfolio-insights-operations.md; local reads use biv-portfolio-insights / assignment-read-token."));
 
   const shared = { directory, capturedAt, record, storage };
   const clarity = await resolveSourceState({
