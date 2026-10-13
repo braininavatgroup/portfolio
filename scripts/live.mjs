@@ -30,6 +30,7 @@ const { values: args } = parseArgs({
     base: { type: "string", default: "https://bradleyberkman.com" },
     dist: { type: "string" },
     "expect-text": { type: "string" },
+    assignments: { type: "boolean", default: false },
     "map-only": { type: "boolean", default: false },
   },
 });
@@ -52,6 +53,22 @@ async function check(name, run) {
 }
 function expect(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+if (args.assignments) {
+  await check("Supabase assignment reader", async () => {
+    const { readKeychainPassword } = await import('./portfolio-insights.mjs');
+    const { resolveAssignmentToken, fetchPortfolioAssignments } = await import('./portfolio-insights-assignments.mjs');
+    const token = await resolveAssignmentToken({ env: process.env, readKeychain: readKeychainPassword });
+    expect(token, 'assignment-read credential unavailable');
+    const client = process.env.BOARD_ACCESS_CLIENT_ID || (await readKeychainPassword('biv-job-board', 'access-client-id')).trim();
+    const secret = process.env.BOARD_ACCESS_CLIENT_SECRET || (await readKeychainPassword('biv-job-board', 'access-client-secret')).trim();
+    const rows = await fetchPortfolioAssignments({ token, accessHeaders: { 'CF-Access-Client-Id': client, 'CF-Access-Client-Secret': secret } });
+    const expected = process.env.PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT;
+    if (expected !== undefined) expect(rows.length === Number(expected), 'count differs from reviewed migration');
+    return `${rows.length} valid assignments; codes and identities omitted`;
+  });
+  process.exit(failures ? 1 : 0);
 }
 
 await check("feature map records match portfolio content", async () => {

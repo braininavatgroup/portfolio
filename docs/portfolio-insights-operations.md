@@ -36,34 +36,38 @@ and stays dormant.
 
 ## Use assigned job-search links
 
-Every link Bradley sends directly gets its own opaque code, stored on one
-Action in the Airtable `Job Search` base (`app0LM9NfGL4ZHi3j`). Actions have
-carried four portfolio fields since 2026-09-11T20:07Z (job-search PR #11):
+Every assigned link belongs to one Supabase `public.actions` row. Supabase is
+also authoritative for Actions and job stages. Four nullable fields hold its
+random opaque code (`portfolio_campaign_code`), sent timestamp
+(`portfolio_link_sent`), channel (`portfolio_link_channel`: Email, LinkedIn,
+Application, Referral, Other), and exact URL (`portfolio_url`,
+`https://bradleyberkman.com/?campaign=<code>`). A unique index rejects duplicate
+codes. Code, channel and URL must be present together; Sent stays null until
+Bradley actually sends the link. Creating an assignment is not an application.
 
-| Field | Holds |
-| --- | --- |
-| `Portfolio Campaign Code` | The code: random, lowercase, `[a-z0-9][a-z0-9_-]{5,63}`, unique across Actions |
-| `Portfolio Link Sent` | When the link went out |
-| `Portfolio Link Channel` | `Email`, `LinkedIn`, `Application`, `Referral`, or `Other` |
-| `Portfolio URL` | The portfolio URL carrying `?campaign=<code>` |
+Generate a code with `openssl rand -hex 8` only for a new assignment. Never use
+a company/person name, email, job title or recognizable abbreviation. One
+Action is one link; retries preserve its code, and separate recipients get
+separate assignments. Create/update through the job-search owning tools with
+explicit authorization; never put identity/code pairs in repository files,
+logs, public assets or broad analytics.
 
-Generate the code with `openssl rand -hex 8`. Never use a company name,
-person's name, email address, job title, or recognizable abbreviation. One
-Action is one link, so two recipients for the same job get two codes. The
-Action's own links to Person, Job, and Company supply the context, and
-Airtable stays the only place the code is *stored* beside a name or an
-outcome.
+The scheduled portfolio Worker reads a dedicated GET-only projection from the
+existing job-board Worker through service binding `JOB_SEARCH_ASSIGNMENTS`
+(`bradley-job-board`) and secret `PORTFOLIO_ASSIGNMENTS_READ_TOKEN`. It never
+holds the Supabase service key or the board's broad Access credential. The
+board joins current Supabase Person/Job/Company information and refuses all
+other routes to this credential. The token and binding are production-only;
+previews without them cannot read assignments. The former Airtable adapter is
+retired, not a fallback. The exact additive migration, two-assignment dry run,
+protected approval, activation order and rollback are in job-search's
+`docs/portfolio-assignments.md`.
 
-Until BIV-527 that was a stronger claim: the join ran only on Bradley's Mac,
-so Airtable was the only place the two ever met. Bradley decided on
-2026-09-18 that a laptop-resident privacy boundary was not worth its cost and
-accepted a logical one instead. The scheduled Worker now reads the same
-read-only Airtable projection and renders the joined dashboard at the edge,
-where it is kept in a private R2 bucket and served only through Cloudflare
-Access — the control already guarding `canvas.braininavat.dance` and
-`studio.braininavat.dance`. Production still stores nothing but the opaque
-code; what changed is that the dashboard built from it now lives somewhere
-other than one laptop.
+The identity-bearing dashboard and assignment source snapshot stay in the
+existing private R2 bucket, served only after verified Cloudflare Access.
+Public portfolio events and Clarity still receive only opaque codes. The
+Supabase assignment is authoritative; private report snapshots are derived
+copies, not another system of record.
 
 The browser removes the parameter from the visible URL, keeps it for the
 current tab, and adds it to later portfolio insight signals. Clarity and the
@@ -95,16 +99,16 @@ data policy, and operating record. No such monitor is activated by this work.
 ## Read them from the terminal
 
 ```sh
-npm run setup:insights      # once, per machine: mint and store the three tokens
+npm run setup:insights      # once, per machine: set up Cloudflare and Clarity tokens
 npm run insights            # last 7 days of Cloudflare, last 3 of Clarity
 npm run insights -- --history   # one row per past run, oldest first
-npm run insights -- --no-airtable   # render without assigned-link identity
+npm run insights -- --no-assignments   # render without assigned-link identity
 npm run insights:dashboard  # open the dashboard rebuilt from what is on disk
 npm run test:insights       # every insights test, no network or token
 ```
 
 The terminal report opens with the dashboard's own **What changed**: each
-source's freshness, any Airtable configuration error, the row-cap warning, and
+source's freshness, any assignment configuration error, the row-cap warning, and
 the findings with their counts and windows. The traffic detail follows.
 
 ### The dashboard
@@ -196,15 +200,28 @@ it.
 The toolchain is required, not optional: without `xcrun swift` the setup stops
 with an explicit message rather than storing a token the exposed way.
 
-Stage 3 stores a read-only Airtable token for the assigned-link join. Mint a
-personal access token at `https://airtable.com/create/tokens` with only the
-`data.records:read` scope and access to only the `Job Search` base. The setup
-verifies the token before storing it in Keychain as service
-`biv-portfolio-insights`, account `airtable-read-token`, and refuses the admin
-`AIRTABLE_API_TOKEN`. `PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN` in the environment
-overrides the stored one. The report never writes to Airtable. Without a
-token it renders anonymous analytics and marks identity resolution
-unavailable.
+Assignment access is provisioned during the reviewed cutover, not by asking
+Bradley to mint another Airtable PAT. The same random 32-byte read token is
+stored as `PORTFOLIO_ASSIGNMENTS_READ_TOKEN` in the board and production
+portfolio Workers, and through `store-keychain-secret.swift` stdin as
+`biv-portfolio-insights / assignment-read-token` locally. The CLI additionally
+uses existing `biv-job-board / access-client-id` and `access-client-secret`
+entries (or `BOARD_ACCESS_CLIENT_ID` / `BOARD_ACCESS_CLIENT_SECRET`) to pass
+Cloudflare Access. None belongs in arguments, logs or content. The setup wizard
+now covers only Cloudflare and Clarity.
+
+`npm run live -- --assignments` reads that exact adapter without recording a
+snapshot and prints only a count; set `PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT=2`
+for the reviewed initial cutover. The scheduled Worker uses the same adapter
+through its binding. Confirm its saved source is fresh via the existing
+scheduled-insights check; stale cached data is not cutover proof.
+
+The serialized history source key `airtable` and `--no-airtable` flag remain
+compatibility aliases only. The preferred flag is `--no-assignments`. New
+identity snapshots use `source-assignments.json`; old `source-airtable.json`
+files are never read as Supabase data. Legacy private history is retained,
+not rewritten. If the new source is unavailable before its first successful
+read, attribution is unavailable, not silently restored from Airtable.
 
 The Cloudflare token needs **two** permission rows, because they answer
 different questions:
@@ -280,7 +297,7 @@ local report reads them from there.
 `campaign=<code>` is stored as the custom tag `portfolio_campaign`, not as
 `utm_campaign`, so it does not reach the export API's Campaign dimension
 either. The report takes the code from the sink's `blob4` and joins it to
-Airtable locally. In Clarity it remains a filter value (see [Observe in
+the Supabase projection in the private report. In Clarity it remains a filter value (see [Observe in
 Clarity](#observe-in-clarity)).
 
 ### The scheduled run
@@ -343,10 +360,11 @@ a token scoped to one fails on the other.
 Set or rotate the Worker's tokens with `wrangler secret put <NAME> --config
 wrangler.main-preview.jsonc`: `CLOUDFLARE_API_TOKEN` (Account Analytics Read
 plus Zone Analytics Read), `CLARITY_API_TOKEN`,
-`PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN`, and `PORTFOLIO_INSIGHTS_ACCESS_AUD`, the
-Access application's audience tag. `npm run setup:insights` still mints the
-same three tokens into the login Keychain for local runs; the Worker does not
-read them.
+`PORTFOLIO_ASSIGNMENTS_READ_TOKEN` (dedicated assignment capability), and
+`PORTFOLIO_INSIGHTS_ACCESS_AUD`, the Access application's audience tag.
+`npm run setup:insights` sets up only Cloudflare and Clarity locally; the
+assignment credential follows the reviewed cutover above. The Worker does not
+read the Mac Keychain.
 
 The first-party sink below exists to close exactly this gap. Until it is
 activated, the report marks those sections unavailable rather than printing
@@ -579,12 +597,12 @@ has been copied.
 
 | File | Holds | Kept |
 | --- | --- | --- |
-| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-airtable.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Airtable configuration error, `source-airtable.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
+| `source-clarity.json`, `source-cloudflare.json`, `source-insights.json`, `source-assignments.json` | `{ capturedAt, value }`: the last response from that source that parsed. After an Supabase configuration error, `source-assignments.json` holds `{ capturedAt, value: null, configurationErrors }` instead | Until a later run parses a new one |
 | `raw-events-<timestamp>.json` | One run's event-level Analytics Engine rows, the window they cover, and whether the read hit its row cap | Until the window it covers began 180 days ago (files without a recorded window: the file-name timestamp) |
 | `history.jsonl` | One aggregate rollup per run, with no names or event sequences | Indefinitely |
 | `dashboard.html` | The latest dashboard | Replaced by each run |
 
-`source-airtable.json` and `dashboard.html` contain recipient names and
+`source-assignments.json` and `dashboard.html` contain recipient names and
 companies. Do not commit, copy, or upload them, and do not give the R2 bucket
 a public or custom domain: the Worker's Access gate would no longer be the
 only way in.
@@ -602,14 +620,14 @@ A run is partial rather than failed when some sources answer and others do
 not:
 
 - Each source resolves on its own. Clarity's `429`, a Cloudflare error, or an
-  Airtable outage shows that source's saved value as stale.
+  Supabase outage shows that source's saved value as stale.
 - `--no-clarity`, `--no-cloudflare`, and `--no-insights` skip the request and
-  show the saved value. `--no-airtable` is different: it renders with no
-  identity at all and ignores the saved Airtable copy.
-- An Airtable configuration error (a duplicate or malformed code, or an Action
+  show the saved value. `--no-assignments` is different: it renders with no
+  identity at all and ignores the saved Supabase copy.
+- An Supabase configuration error (a duplicate or malformed code, or an Action
   linked to more than one Person, Job, or Company) replaces the saved copy
-  with the errors, so neither a rebuild nor a later Airtable outage can bring
-  cached names back. Every link stays unattributed until a run reads Airtable
+  with the errors, so neither a rebuild nor a later Supabase outage can bring
+  cached names back. Every link stays unattributed until a run reads Supabase
   cleanly, and the anonymous analytics still render.
 - The aggregate Analytics Engine counts and the event-level read are
   separate. If only the event read fails, the counts survive and the journeys
@@ -659,11 +677,11 @@ row cap, the links fall back to the window's sessions.
 - A code no Action carries stays anonymous and is not an error. Analytics
   Engine keeps events for three months, so a deleted test Action or an old
   link leaves its code behind that long. What changed says so in one line, for
-  example "3 tab sessions came from a link that is not in Airtable, kept
+  example "3 tab sessions came from a link that is not in Supabase, kept
   anonymous: smoke-7de62efc", and the terminal lead says the same sentence.
   Nothing needs fixing; delete nothing to make it go away.
 - An Action with a code but no Person shows as unassigned outreach.
-- Duplicate or malformed codes in Airtable turn the whole Airtable source into
+- Duplicate or malformed codes in Supabase turn the whole Supabase source into
   a configuration error. The report never guesses which Action a shared code
   belongs to, and no activity is attributed until the codes are fixed.
 
@@ -672,10 +690,10 @@ Action linked to more than one Person, Job, or Company — an unmapped code is
 not one and needs no recovery):
 
 1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
-   Airtable. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
+   Supabase. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
 2. In the job-search repository, run
    `python3 scripts/migrate_v2.py --portfolio-fields-only --verify`.
-3. Run `npm run insights` again and confirm the Airtable source reads fresh.
+3. Run `npm run insights` again and confirm the Supabase source reads fresh.
 
 ### Observe in Clarity
 

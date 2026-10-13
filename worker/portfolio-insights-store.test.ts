@@ -64,7 +64,7 @@ describe("R2 insight storage", () => {
     expect([...objects.keys()].sort()).toEqual([
       "runs/dashboard.html",
       "runs/history.jsonl",
-      "runs/source-airtable.json",
+      "runs/source-assignments.json",
     ]);
     expect(await store.readSourceSnapshot(INSIGHTS_PREFIX, "airtable")).toEqual({
       capturedAt: NOW,

@@ -11,7 +11,7 @@
 // Every fetcher returns a parsed value or throws. None of them mutate anything
 // remote; each request is a GET or a read-only query.
 
-import { fetchPortfolioAssignments } from "./portfolio-insights-airtable.mjs";
+import { fetchPortfolioAssignments } from "./portfolio-insights-assignments.mjs";
 import {
   clarityBreakdowns,
   clarityFrustration,

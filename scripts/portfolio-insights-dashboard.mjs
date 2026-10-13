@@ -8,7 +8,7 @@
 // resonance, Journeys, Audience, Observe in Clarity, then collapsed
 // Diagnostics (crawler counts and infrastructure totals). Assigned-link copy
 // says "Activity from <name>'s assigned link" — a campaign code identifies an
-// Airtable Action, not the person who opened the link.
+// Supabase Action, not the person who opened the link.
 //
 // Information design, so the page can be read at a glance:
 //
@@ -60,7 +60,7 @@ const SOURCE_ORDER = ["insights", "airtable", "clarity", "cloudflare", "chat"];
 
 const SOURCE_LABELS = {
   insights: "Analytics Engine events",
-  airtable: "Airtable assignments",
+  airtable: "Supabase assignments",
   clarity: "Clarity",
   cloudflare: "Cloudflare Web Analytics",
   chat: "Guide transcripts",
@@ -69,7 +69,7 @@ const SOURCE_LABELS = {
 /** The badge voice: short enough to sit beside a heading. */
 const SOURCE_BADGE_LABELS = {
   insights: "Events",
-  airtable: "Airtable",
+  airtable: "Supabase",
   clarity: "Clarity",
   cloudflare: "Cloudflare",
   chat: "Chat",
@@ -947,7 +947,7 @@ const FINDING_KINDS = {
 
 /**
  * The neutral one-liner for codes Analytics Engine still carries but no
- * Airtable Action owns: an old link, a retired test, or a forwarded one. It
+ * Supabase Action owns: an old link, a retired test, or a forwarded one. It
  * is not a configuration error, so it never joins the alert block. Codes are
  * opaque and local, so naming them is safe.
  *
@@ -961,7 +961,7 @@ export function unmappedCampaignNote(rows) {
   const codes = rows.map((row) => row.code);
   if (codes.length === 0) return "";
   const sessions = rows.reduce((total, row) => total + (Number(row.sessions) || 0), 0);
-  const link = codes.length === 1 ? "a link that is not in Airtable" : "links that are not in Airtable";
+  const link = codes.length === 1 ? "a link that is not in Supabase" : "links that are not in Supabase";
   return `${plural(sessions, "tab session")} came from ${link}, kept anonymous: ${codes.join(", ")}`;
 }
 
@@ -972,7 +972,7 @@ function whatChanged(context) {
     parts.push(
       `<div class="alert" role="alert"><strong>Configuration error — affected links stay unattributed</strong>` +
         `<ul>${configurationErrors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>` +
-        `<p>Fix the campaign code on the Airtable Action. The dashboard never guesses which link owns an ambiguous code.</p></div>`,
+        `<p>Fix the campaign code on the Supabase Action. The dashboard never guesses which link owns an ambiguous code.</p></div>`,
     );
   }
   if (truncated) {
@@ -1024,7 +1024,7 @@ function assignedLinks(context) {
   const { intelligence, sources, labelFor, configurationErrors } = context;
   const parts = [
     note(
-      "A campaign code identifies the Airtable Action a link was assigned to, not the person who opened it. Links can be forwarded, opened by a security scanner, or used on a shared device.",
+      "A campaign code identifies the Supabase Action a link was assigned to, not the person who opened it. Links can be forwarded, opened by a security scanner, or used on a shared device.",
     ),
   ];
   if (configurationErrors.length) parts.push(note("The configuration errors under What changed keep some link activity unattributed."));

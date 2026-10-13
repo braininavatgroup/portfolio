@@ -1,9 +1,7 @@
 // Owns: `npm run setup:insights` never places a token in any process's
 // argument list — every Keychain write goes through
 // store-keychain-secret.swift on stdin, that writer rotates an existing item
-// instead of failing, the Airtable stage still verifies with one projected GET
-// before storing. Retire when the
-// report stops reading Airtable and stops storing tokens in the Keychain.
+// instead of failing. Retire when setup stops storing tokens in the Keychain.
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -14,60 +12,15 @@ const feedbackUrl = new URL("./setup-portfolio-feedback.sh", import.meta.url);
 const writerUrl = new URL("./store-keychain-secret.swift", import.meta.url);
 const packageUrl = new URL("../package.json", import.meta.url);
 
-async function airtableStage() {
-  const script = await readFile(scriptUrl, "utf8");
-  const start = script.indexOf("# ── Stage 3 · Airtable");
-  const end = script.indexOf('rule "Done"');
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return { script, stage: script.slice(start, end) };
-}
-
-describe("portfolio insights setup: Airtable stage", () => {
-  it("is valid bash behind the canonical npm entry point", async () => {
+describe("portfolio insights setup", () => {
+  it("is valid bash and no longer provisions an Airtable reader", async () => {
     const packageJson = JSON.parse(await readFile(packageUrl, "utf8"));
     expect(packageJson.scripts["setup:insights"]).toBe("bash scripts/setup-portfolio-insights.sh");
     expect(() => execFileSync("bash", ["-n", fileURLToPath(scriptUrl)])).not.toThrow();
-  });
-
-  it("asks for a records-read token scoped to the Job Search base only", async () => {
-    const { stage } = await airtableStage();
-    expect(stage).toContain("data.records:read");
-    expect(stage).toContain("Job Search");
-    expect(stage).toContain("read -rs AIRTABLE_TOKEN");
-  });
-
-  it("verifies one projected Actions GET before storing in the named Keychain entry", async () => {
-    const { script, stage } = await airtableStage();
-    expect(script).toContain('KEYCHAIN_SERVICE="biv-portfolio-insights"');
-    expect(script).toContain('AIRTABLE_BASE="app0LM9NfGL4ZHi3j"');
-    expect(script).toContain('AIRTABLE_ACTIONS_TABLE="tblheGY3pSKmWvAS9"');
-
-    const verify = stage.indexOf(
-      "https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_ACTIONS_TABLE}?pageSize=1&fields%5B%5D=Action",
-    );
-    const store = stage.indexOf('store "airtable-read-token"');
-    expect(verify).toBeGreaterThan(-1);
-    expect(store).toBeGreaterThan(verify);
-    // Only a 200 reaches the store call; every other status exits first.
-    expect(stage.slice(verify, store)).toMatch(/200\)[^\n]*done_/u);
-    expect(stage.slice(verify, store)).toMatch(/\*\)\s+fail /u);
-    // GET only: no method override or request body anywhere in the stage.
-    expect(stage).not.toMatch(/\s(?:-X|--request|-d|--data\S*)\s/u);
-  });
-
-  it("never echoes the token or passes it to curl as an argument", async () => {
-    const { stage } = await airtableStage();
-    const expansions = stage
-      .split("\n")
-      .filter((line) => /\$\{?AIRTABLE_TOKEN\b/u.test(line));
-    expect(expansions.length).toBeGreaterThan(0);
-    for (const line of expansions) {
-      expect(line).not.toMatch(/\becho\b/u);
-      expect(line).not.toMatch(/-H\s+["']Authorization/iu);
-      if (/\bprintf\b/u.test(line)) expect(line).toMatch(/\|\s*curl\b.*-H @-/u);
-    }
-    expect(stage).toMatch(/\nunset AIRTABLE_TOKEN\n/u);
+    const script = await readFile(scriptUrl, "utf8");
+    expect(script).not.toContain("api.airtable.com");
+    expect(script).not.toContain('store "airtable-read-token"');
+    expect(script).toContain("assignment-read-token");
   });
 });
 
@@ -231,12 +184,11 @@ describe("portfolio insights setup: Keychain writes", () => {
     );
   });
 
-  it("stores all three tokens through the same writer", async () => {
+  it("stores both vendor tokens through the same writer", async () => {
     const script = await readFile(scriptUrl, "utf8");
     for (const account of [
       "cloudflare-api-token",
       "clarity-api-token",
-      "airtable-read-token",
     ]) {
       expect(script).toContain(`store "${account}"`);
     }

@@ -1,5 +1,5 @@
 // Owns: the daily insights run. Each source resolves on its own and falls back
-// to its last-known-good snapshot; an Airtable configuration error never uses
+// to its last-known-good snapshot; an Supabase configuration error never uses
 // cached identity; the event-level read failing never erases aggregate counts;
 // files are written sources → raw events → history → dashboard with pruning
 // last; the directory is 0700 and every file 0600; event-level rows and
@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AirtableConfigurationError, AirtableRequestError } from "./portfolio-insights-airtable.mjs";
+import { AssignmentConfigurationError, AssignmentRequestError } from "./portfolio-insights-assignments.mjs";
 import { escapeHtml } from "./portfolio-insights-dashboard.mjs";
 import {
   buildFixtureDashboard,
@@ -54,7 +54,7 @@ const refuse = async () => {
   throw new Error("this source must not be called");
 };
 const configurationError = async () => {
-  throw new AirtableConfigurationError(["duplicate campaign code: alexcode01"]);
+  throw new AssignmentConfigurationError(["duplicate campaign code: alexcode01"]);
 };
 const eventReadFails = async () => {
   throw new Error("Analytics Engine returned 503");
@@ -95,13 +95,13 @@ describe("source failure behavior", () => {
     expect(row.cloudflareVisits).toBe(26);
   });
 
-  it("keeps attributing from the cached Airtable copy while Airtable is down", async () => {
+  it("keeps attributing from the cached Supabase copy while Supabase is down", async () => {
     await storage.writeSourceSnapshot(directory, "airtable", fixtureAssignments(), EARLIER);
 
     const result = await run([], {
       fetchers: {
         airtable: async () => {
-          throw new AirtableRequestError("Airtable People request failed: HTTP 503", 503);
+          throw new AssignmentRequestError("Supabase People request failed: HTTP 503");
         },
       },
     });
@@ -111,13 +111,13 @@ describe("source failure behavior", () => {
     expect(await readFile(result.dashboardPath, "utf8")).toContain("Activity from Alex Rivera&#39;s assigned link");
   });
 
-  it("refuses cached identity on an Airtable configuration error and renders everything unattributed", async () => {
+  it("refuses cached identity on an Supabase configuration error and renders everything unattributed", async () => {
     await storage.writeSourceSnapshot(directory, "airtable", fixtureAssignments(), EARLIER);
 
     const result = await run([], {
       fetchers: {
         airtable: async () => {
-          throw new AirtableConfigurationError(["duplicate campaign code: alexcode01"]);
+          throw new AssignmentConfigurationError(["duplicate campaign code: alexcode01"]);
         },
       },
     });
@@ -139,7 +139,7 @@ describe("source failure behavior", () => {
     expect(html).toContain(escapeHtml('Record <9Q> & "quotes"'));
     expect(result.output).toContain("duplicate campaign code: alexcode01");
     // The saved identity is replaced by the errors, so no later run can bring it back.
-    expect(await json("source-airtable.json")).toEqual({
+    expect(await json("source-assignments.json")).toEqual({
       capturedAt: NOW,
       value: null,
       configurationErrors: ["duplicate campaign code: alexcode01"],
@@ -162,14 +162,14 @@ describe("source failure behavior", () => {
     expect(html).toContain("duplicate campaign code: alexcode01");
   });
 
-  it("keeps identity off through an Airtable outage after a configuration error, until a clean read", async () => {
+  it("keeps identity off through an Supabase outage after a configuration error, until a clean read", async () => {
     await storage.writeSourceSnapshot(directory, "airtable", fixtureAssignments(), EARLIER);
     await run([], { now: EARLIER, fetchers: { airtable: configurationError } });
 
     const outage = await run([], {
       fetchers: {
         airtable: async () => {
-          throw new AirtableRequestError("Airtable People request failed: HTTP 503", 503);
+          throw new AssignmentRequestError("Supabase People request failed: HTTP 503");
         },
       },
     });
@@ -179,7 +179,7 @@ describe("source failure behavior", () => {
     expect(outage.snapshot.intelligence.diagnostics.identityResolution).toBe("unavailable");
     expect(await readFile(outage.dashboardPath, "utf8")).not.toContain("Alex Rivera");
     expect(outage.output).toContain("duplicate campaign code: alexcode01");
-    expect((await json("source-airtable.json")).configurationErrors).toEqual(["duplicate campaign code: alexcode01"]);
+    expect((await json("source-assignments.json")).configurationErrors).toEqual(["duplicate campaign code: alexcode01"]);
 
     const fixed = await run([], { now: "2026-09-11T12:00:00.000Z" });
     expect(fixed.snapshot.sources.airtable.status).toBe("fresh");
@@ -457,11 +457,11 @@ describe("run options", () => {
     expect(result.snapshot.intelligence.diagnostics.configurationErrors).toEqual(["duplicate campaign code: dupecode04"]);
 
     const html = await readFile(result.dashboardPath, "utf8");
-    expect(html).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: straycode9");
+    expect(html).toContain("1 tab session came from a link that is not in Supabase, kept anonymous: straycode9");
     expect(html).toContain("duplicate campaign code: dupecode04");
     expect(html).not.toContain("unmapped campaign code");
 
-    expect(result.output).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: straycode9");
+    expect(result.output).toContain("1 tab session came from a link that is not in Supabase, kept anonymous: straycode9");
     expect(result.output).toContain("Configuration error: affected links stay unattributed");
     expect(result.output).toContain("duplicate campaign code: dupecode04");
   });
@@ -558,7 +558,7 @@ describe("local files", () => {
       "dashboard.html",
       "history.jsonl",
       storage.rawEventsFileName(NOW),
-      "source-airtable.json",
+      "source-assignments.json",
       "source-clarity.json",
       "source-cloudflare.json",
       "source-insights.json",

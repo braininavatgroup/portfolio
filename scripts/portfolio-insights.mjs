@@ -36,6 +36,7 @@ import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 import { runInsights as runInsightsCore } from "./portfolio-insights-core.mjs";
+import { fetchPortfolioAssignments } from "./portfolio-insights-assignments.mjs";
 import { parseArguments } from "./portfolio-insights-report.mjs";
 import * as privateStorage from "./portfolio-insights-storage.mjs";
 
@@ -84,6 +85,15 @@ export function runInsights(options, dependencies = {}) {
     storage: privateStorage,
     directory: defaultInsightsDirectory(env),
     ...dependencies,
+    fetchers: {
+      airtable: async (token) => {
+        const read = dependencies.readKeychain ?? readKeychainPassword;
+        const client = env.BOARD_ACCESS_CLIENT_ID || (await read('biv-job-board', 'access-client-id')).trim();
+        const secret = env.BOARD_ACCESS_CLIENT_SECRET || (await read('biv-job-board', 'access-client-secret')).trim();
+        return fetchPortfolioAssignments({ token, accessHeaders: { 'CF-Access-Client-Id': client, 'CF-Access-Client-Secret': secret } });
+      },
+      ...dependencies.fetchers,
+    },
   });
 }
 
