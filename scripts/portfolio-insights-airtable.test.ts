@@ -187,6 +187,26 @@ describe("fetchPortfolioAssignments", () => {
     expect(unmapped).toMatchObject({ campaignCode: "deleted-links-1", person: null, company: null, job: null });
   });
 
+  it("resolves a new named assignment without a legacy Job record", async () => {
+    const { fetchImpl } = stubAirtable({
+      [TABLES.Actions]: [{ records: [action("recNewAssignment", {
+        Person: ["recNewPerson"],
+        "Portfolio Campaign Code": "new-link-12345",
+        "Portfolio Link Channel": "Application",
+        "Portfolio URL": "https://bradleyberkman.com/?campaign=new-link-12345",
+      })] }],
+      [TABLES.People]: [{ records: [{ id: "recNewPerson", fields: { Name: "New Recipient" } }] }],
+    });
+
+    const assignments = await fetchPortfolioAssignments({ token: TOKEN, fetchImpl });
+    expect(assignments).toMatchObject([{
+      campaignCode: "new-link-12345",
+      person: { name: "New Recipient" },
+      job: null,
+      channel: "Application",
+    }]);
+  });
+
   it("rejects an Action linked to more than one Person, Job, or Company", async () => {
     const { fetchImpl } = stubAirtable({
       [TABLES.Actions]: [

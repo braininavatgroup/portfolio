@@ -8,6 +8,7 @@ import {
   fetchPortfolioAssignments,
   resolveAirtableToken,
 } from "./portfolio-insights-airtable.mjs";
+import { checkPrivateAssignments } from "./portfolio-insights-private-check.mjs";
 
 const token = await resolveAirtableToken({
   env: process.env,
@@ -17,8 +18,5 @@ const token = await resolveAirtableToken({
 });
 if (!token) throw new Error(`Missing ${AIRTABLE_KEYCHAIN.service}/${AIRTABLE_KEYCHAIN.account} read credential`);
 
-const assignments = await fetchPortfolioAssignments({ token });
 const minimum = Number(process.argv[2] ?? 0);
-if (!Number.isSafeInteger(minimum) || minimum < 0) throw new Error("Minimum assignment count must be a nonnegative integer");
-if (assignments.length < minimum) throw new Error(`Assignment count ${assignments.length} is below ${minimum}`);
-console.log(`Private assignment read passed: ${assignments.length} assignments, ${assignments.filter((item) => item.person).length} named`);
+console.log(await checkPrivateAssignments(() => fetchPortfolioAssignments({ token }), minimum));

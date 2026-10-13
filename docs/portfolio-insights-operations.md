@@ -54,8 +54,15 @@ Generate the code with `openssl rand -hex 8`. Never use a company name,
 person's name, email address, job title, or recognizable abbreviation. One
 Action is one link, so two recipients for the same job get two codes. The
 legacy Action's links to Person, Job, and Company supply assignment-time
-labels. Airtable stays the only place the code is *stored* beside a name.
-A new Supabase Action alone does not feed this reader. Keep each assignment in
+labels. Airtable is the assignment register; the scheduled Worker also keeps
+its read-only Airtable source snapshot and the joined dashboard in private R2,
+behind Cloudflare Access. Public analytics carries only the opaque code.
+A new Supabase Action alone does not feed this reader. Before sending a new
+link, create or select a Person label in Airtable (name only if no legacy Person
+exists), then create one Airtable Action with a unique code, sent time, channel,
+portfolio URL and that Person link. Job and Company links are optional
+assignment-time labels. Record the actual work as a separate Supabase Action;
+do not synchronize stage, outcome or notes into Airtable. Keep each assignment in
 the register until a separately reviewed migration changes the reader and
 proves parity for every existing code. The portfolio report omits mutable
 Airtable Action state, job stage and outcome.
@@ -659,7 +666,9 @@ The private read-only register check is `npm run live:assignments -- 2` (the
 minimum of two was observed on 2026-10-13). It returns aggregate counts,
 never codes or names, and fails on missing credentials, invalid responses,
 ambiguous assignments or fewer rows than the stated floor. Use it before and
-after changing the reader or assignment storage.
+after changing the reader or assignment storage. It proves readability and
+parsing; the deterministic adapter test proves a new Person label resolves to
+the named assignment without a legacy Job.
 
 Assigned links read further back than the report's window: a second query
 reads every campaign-coded event from the last 90 days, as far back as
