@@ -42,7 +42,7 @@ import {
 export const FIXTURE_TOKENS = Object.freeze({
   CLOUDFLARE_API_TOKEN: "fixture-cloudflare-placeholder",
   CLARITY_API_TOKEN: "fixture-clarity-placeholder",
-  PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN: "fixture-airtable-placeholder",
+  PORTFOLIO_ASSIGNMENTS_READ_TOKEN: "fixture-airtable-placeholder",
 });
 
 export const FIXTURE_PRIOR_RUN = "2026-09-04T11:10:00.000Z";

@@ -20,6 +20,7 @@
       "zone_name": "braininavat.dance"
     }
   ],
+  "services": [{ "binding": "JOB_SEARCH_ASSIGNMENTS", "service": "bradley-job-board" }],
   "triggers": {
     "crons": ["10 11 * * *"]
   },
@@ -45,7 +46,7 @@
       "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
       "CLOUDFLARE_API_TOKEN",
       "CLARITY_API_TOKEN",
-      "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
+      "PORTFOLIO_ASSIGNMENTS_READ_TOKEN",
       "PORTFOLIO_INSIGHTS_ACCESS_AUD",
       "ERROR_INTAKE_SECRET"
     ]

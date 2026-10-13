@@ -6,7 +6,7 @@
 //   source-clarity.json      { capturedAt, value }   kept until replaced
 //   source-cloudflare.json   { capturedAt, value }   kept until replaced
 //   source-insights.json     { capturedAt, value }   kept until replaced
-//   source-airtable.json     { capturedAt, value }   identity-bearing
+//   source-assignments.json     { capturedAt, value }   identity-bearing
 //                            or { capturedAt, value: null, configurationErrors }
 //                            after a configuration error, until a clean read
 //   raw-events-YYYY-MM-DDTHH-MM-SS-sssZ.json         named by capture time
@@ -87,7 +87,8 @@ const RAW_EVENTS_PATTERN = /^raw-events-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-
 /** @param {string} source @returns {string} */
 export function sourceEntryName(source) {
   if (!SOURCE_NAMES.includes(source)) throw new Error(`unknown insight source: ${String(source)}`);
-  return `source-${source}.json`;
+  // Preserve the history source key, never fall back to an old Airtable identity cache.
+  return `source-${source === "airtable" ? "assignments" : source}.json`;
 }
 
 /** @param {string | Date} capturedAt @returns {string} canonical ISO time */

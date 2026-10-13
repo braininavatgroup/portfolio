@@ -384,7 +384,7 @@ describe("formatLead campaign diagnostics", () => {
       unmappedCampaigns: [{ code: "smoke-7de62efc", sessions: 3, events: 4 }],
     });
 
-    expect(lead).toContain("3 tab sessions came from a link that is not in Airtable, kept anonymous: smoke-7de62efc");
+    expect(lead).toContain("3 tab sessions came from a link that is not in Supabase, kept anonymous: smoke-7de62efc");
     expect(lead).not.toContain("Configuration error");
     expect(lead).not.toContain("unmapped campaign code");
   });
@@ -394,7 +394,7 @@ describe("formatLead campaign diagnostics", () => {
 
     expect(lead).toContain("Configuration error: affected links stay unattributed");
     expect(lead).toContain("duplicate campaign code: alexcode01");
-    expect(lead).not.toContain("not in Airtable");
+    expect(lead).not.toContain("not in Supabase");
   });
 
   it("says the unmapped sentence in exactly the dashboard's words", () => {
@@ -404,7 +404,7 @@ describe("formatLead campaign diagnostics", () => {
     ];
     expect(formatLead(snapshot, { unmappedCampaigns: rows })).toContain(unmappedCampaignNote(rows));
     expect(unmappedCampaignNote(rows)).toBe(
-      "4 tab sessions came from links that are not in Airtable, kept anonymous: smoke-7de62efc, old-code-0001",
+      "4 tab sessions came from links that are not in Supabase, kept anonymous: smoke-7de62efc, old-code-0001",
     );
   });
 });

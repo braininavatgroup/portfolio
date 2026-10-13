@@ -78,7 +78,7 @@ test("the public candidate serves the apex and www routes without a login", asyn
       "PORTFOLIO_CHAT_IDENTIFIER_SECRET",
       "CLOUDFLARE_API_TOKEN",
       "CLARITY_API_TOKEN",
-      "PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN",
+      "PORTFOLIO_ASSIGNMENTS_READ_TOKEN",
       "PORTFOLIO_INSIGHTS_ACCESS_AUD",
       "ERROR_INTAKE_SECRET",
     ],

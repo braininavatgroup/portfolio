@@ -117,7 +117,7 @@ describe("stored configuration errors", () => {
       value: null,
       configurationErrors: ["duplicate campaign code: abc123"],
     });
-    const path = join(directory, "source-airtable.json");
+    const path = join(directory, "source-assignments.json");
     expect(await readFile(path, "utf8")).not.toContain("Alex");
     expect(await mode(path)).toBe(0o600);
   });
@@ -253,7 +253,7 @@ describe("private files", () => {
 
     expect(await mode(directory)).toBe(0o700);
     expect(await mode(dashboard)).toBe(0o600);
-    expect(await mode(join(directory, "source-airtable.json"))).toBe(0o600);
+    expect(await mode(join(directory, "source-assignments.json"))).toBe(0o600);
     expect(await readFile(dashboard, "utf8")).toBe("<p>new</p>");
   });
 
@@ -314,7 +314,7 @@ describe("raw events and retention", () => {
         "source-clarity.json",
         "source-cloudflare.json",
         "source-insights.json",
-        "source-airtable.json",
+        "source-assignments.json",
         "history.jsonl",
         "dashboard.html",
         "2025-01-01T00-00-00-000Z.json",
@@ -335,4 +335,15 @@ describe("raw events and retention", () => {
     await expect(pruneRawSnapshots(directory, "not a date")).rejects.toThrow(/now/u);
     await expect(pruneRawSnapshots(directory, new Date(), 0)).rejects.toThrow(/retentionDays/u);
   });
+});
+
+// Owns: cutover cannot present legacy cached identity as the Supabase source.
+it("ignores an old Airtable identity snapshot and leaves it recoverable", async () => {
+  await ensurePrivateDirectory(directory);
+  const legacy = JSON.stringify({ capturedAt: "2026-10-12T00:00:00Z", value: [{ campaignCode: "legacy123" }] });
+  await writeFile(join(directory, "source-airtable.json"), legacy);
+  expect(await readSourceSnapshot(directory, "airtable")).toBeNull();
+  expect(await readFile(join(directory, "source-airtable.json"), "utf8")).toBe(legacy);
+  await writeSourceSnapshot(directory, "airtable", [], "2026-10-13T00:00:00Z");
+  expect((await readSourceSnapshot(directory, "airtable"))?.value).toEqual([]);
 });

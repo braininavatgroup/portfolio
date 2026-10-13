@@ -55,7 +55,7 @@ export function parseArguments(argv) {
     else if (argument === "--no-clarity") options.clarity = false;
     else if (argument === "--no-cloudflare") options.cloudflare = false;
     else if (argument === "--no-insights") options.insights = false;
-    else if (argument === "--no-airtable") options.airtable = false;
+    else if ((argument === "--no-assignments" || argument === "--no-airtable")) options.airtable = false;
     else if (argument === "--no-snapshot") options.snapshot = false;
     else if (argument === "--days") {
       const value = Number.parseInt(argv[(index += 1)] ?? "", 10);
@@ -418,7 +418,7 @@ function table(rows, { label, limit = 8 }) {
 
 const LEAD_SOURCES = [
   ["insights", "Analytics Engine events"],
-  ["airtable", "Airtable assignments"],
+  ["airtable", "Supabase assignments"],
   ["clarity", "Clarity"],
   ["cloudflare", "Cloudflare Web Analytics"],
 ];
@@ -473,14 +473,14 @@ export function formatLead(snapshot, { configurationErrors = [], unmappedCampaig
     lines.push(
       "  Configuration error: affected links stay unattributed",
       ...configurationErrors.map((problem) => `    ${problem}`),
-      "    Fix the campaign code on the Airtable Action. The report never guesses which link owns an ambiguous code.",
+      "    Fix the campaign code on the Supabase Action. The report never guesses which link owns an ambiguous code.",
       "",
     );
   }
   if (unmappedCampaigns.length > 0) {
     const codes = unmappedCampaigns.map((row) => row.code);
     const sessions = unmappedCampaigns.reduce((total, row) => total + (Number(row.sessions) || 0), 0);
-    const link = codes.length === 1 ? "a link that is not in Airtable" : "links that are not in Airtable";
+    const link = codes.length === 1 ? "a link that is not in Supabase" : "links that are not in Supabase";
     lines.push(
       `  ${sessions.toLocaleString("en-US")} tab session${sessions === 1 ? "" : "s"} came from ${link}, kept anonymous: ${codes.join(", ")}`,
       "",

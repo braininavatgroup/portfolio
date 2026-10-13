@@ -13,7 +13,7 @@
 // order snapshots → raw events → history → dashboard → prune — is described
 // where it is implemented below.
 
-import { AirtableConfigurationError, resolveAirtableToken } from "./portfolio-insights-airtable.mjs";
+import { AssignmentConfigurationError, resolveAssignmentToken } from "./portfolio-insights-assignments.mjs";
 import { renderDashboard } from "./portfolio-insights-dashboard.mjs";
 import {
   buildPortfolioIntelligence,
@@ -272,8 +272,8 @@ export async function runInsights(options, dependencies) {
       missingToken("CLARITY_API_TOKEN", "clarity-api-token", `https://clarity.microsoft.com/projects/view/${CLARITY_PROJECT}/settings`),
     );
   const airtableToken = async () =>
-    (await resolveAirtableToken({ env, readKeychain })) ??
-    Promise.reject(missingToken("PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN", "airtable-read-token", "https://airtable.com/create/tokens"));
+    (await resolveAssignmentToken({ env, readKeychain })) ??
+    Promise.reject(new Error("no token. Provision PORTFOLIO_ASSIGNMENTS_READ_TOKEN through the reviewed assignment cutover in docs/portfolio-insights-operations.md; local reads use biv-portfolio-insights / assignment-read-token."));
 
   const shared = { directory, capturedAt, record, storage };
   const clarity = await resolveSourceState({
@@ -303,7 +303,7 @@ export async function runInsights(options, dependencies) {
     // --no-airtable means no identity at all, not yesterday's identity.
     useSaved: options.airtable,
     // A duplicate or malformed code makes every saved join suspect too.
-    isConfigurationError: (error) => error instanceof AirtableConfigurationError,
+    isConfigurationError: (error) => error instanceof AssignmentConfigurationError,
     onConfigurationErrors: (problems) => {
       airtableProblems = problems;
     },

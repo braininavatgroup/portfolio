@@ -377,7 +377,7 @@ describe("renderDashboard decision sections", () => {
 
   it("carries one freshness strip at the top and a short badge in each section", () => {
     const strip = html.slice(html.indexOf('<ul class="freshness">'), html.indexOf("</ul>"));
-    for (const label of ["Analytics Engine events", "Airtable assignments", "Clarity", "Cloudflare Web Analytics"]) {
+    for (const label of ["Analytics Engine events", "Supabase assignments", "Clarity", "Cloudflare Web Analytics"]) {
       expect(strip).toContain(label);
     }
     // The strip is the one place that carries each window and full state.
@@ -421,13 +421,13 @@ describe("renderDashboard decision sections", () => {
   it("reports an unmapped campaign code as a neutral note, not a configuration error", () => {
     const first = sectionOf(html, "What changed");
     expect(first).toContain(
-      '<p class="note">3 tab sessions came from a link that is not in Airtable, kept anonymous: stray-code-9</p>',
+      '<p class="note">3 tab sessions came from a link that is not in Supabase, kept anonymous: stray-code-9</p>',
     );
     expect(first).not.toContain("unmapped campaign code");
     // The neutral note is outside the alert block, which still names only the duplicate.
     const alert = /<div class="alert" role="alert">[\s\S]*?<\/div>/u.exec(first)?.[0] ?? "";
     expect(alert).toContain("duplicate campaign code: dup-code-01");
-    expect(alert).not.toContain("not in Airtable");
+    expect(alert).not.toContain("not in Supabase");
   });
 
   it("prints findings with count, denominator, and both windows", () => {
@@ -567,7 +567,7 @@ describe("renderDashboard empty and unavailable states", () => {
       clarity: { status: "unavailable", capturedAt: null, value: null, error: "no token" },
       cloudflare: { status: "unavailable", capturedAt: null, value: null, error: "Cloudflare returned 403" },
       insights: { status: "unavailable", capturedAt: null, value: null, error: "dataset not activated" },
-      airtable: { status: "unavailable", capturedAt: null, value: null, error: "Airtable Actions request failed: HTTP 401" },
+      airtable: { status: "unavailable", capturedAt: null, value: null, error: "Supabase Actions request failed: HTTP 401" },
     },
   };
   const page = renderDashboard({ snapshot: unavailable, history: [], generatedAt: "2026-09-11T16:30:00.000Z" });
@@ -577,7 +577,7 @@ describe("renderDashboard empty and unavailable states", () => {
       "What changed", "Assigned links", "Content resonance", "Journeys", "Chat", "Audience", "Observe in Clarity", "Diagnostics",
     ]);
     expect(page).toContain("Unavailable — dataset not activated");
-    expect(page).toContain("Unavailable — Airtable Actions request failed: HTTP 401");
+    expect(page).toContain("Unavailable — Supabase Actions request failed: HTTP 401");
     expect(sectionOf(page, "Assigned links")).toContain("Identity resolution unavailable");
     expect(page).not.toMatch(/>0(%|\s*<)/u);
   });
@@ -678,7 +678,7 @@ describe("renderDashboard when event data is missing but intelligence exists", (
     expect(assigned).not.toContain("No link sessions in this window");
     // Nothing is misconfigured here, so the red block never renders.
     const changed = sectionOf(page, "What changed");
-    expect(changed).toContain("1 tab session came from a link that is not in Airtable, kept anonymous: stray-code-9");
+    expect(changed).toContain("1 tab session came from a link that is not in Supabase, kept anonymous: stray-code-9");
     expect(changed).not.toContain('role="alert"');
     expect(changed).not.toContain("Configuration error");
   });

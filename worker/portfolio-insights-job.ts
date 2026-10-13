@@ -20,6 +20,7 @@
 // issued to an allowed identity. A request without one is refused here, having
 // read nothing from R2.
 
+import { fetchPortfolioAssignments } from "../scripts/portfolio-insights-assignments.mjs";
 import { runInsights } from "../scripts/portfolio-insights-core.mjs";
 import { r2ChatTranscripts } from "./portfolio-chat-transcript-store";
 import { INSIGHTS_PREFIX, r2InsightStorage } from "./portfolio-insights-store";
@@ -39,7 +40,8 @@ export type PortfolioInsightsEnv = {
   /** Account Analytics Read plus Zone Analytics Read: Web Analytics, edge counts, Analytics Engine. */
   CLOUDFLARE_API_TOKEN?: string;
   CLARITY_API_TOKEN?: string;
-  PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN?: string;
+  PORTFOLIO_ASSIGNMENTS_READ_TOKEN?: string;
+  JOB_SEARCH_ASSIGNMENTS?: Fetcher;
 };
 
 const ACCESS_JWT_HEADER = "cf-access-jwt-assertion";
@@ -280,7 +282,13 @@ export async function runScheduledInsights(env: PortfolioInsightsEnv, now = () =
       env: {
         CLOUDFLARE_API_TOKEN: env.CLOUDFLARE_API_TOKEN,
         CLARITY_API_TOKEN: env.CLARITY_API_TOKEN,
-        PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN: env.PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN,
+        PORTFOLIO_ASSIGNMENTS_READ_TOKEN: env.PORTFOLIO_ASSIGNMENTS_READ_TOKEN,
+      },
+      fetchers: {
+        airtable: async (token: string) => {
+          if (!env.JOB_SEARCH_ASSIGNMENTS) throw new Error("Assignment service binding is not configured");
+          return fetchPortfolioAssignments({ token, fetchImpl: (input, init) => env.JOB_SEARCH_ASSIGNMENTS!.fetch(input, init) });
+        },
       },
       readKeychain: async () => {
         throw new Error("no Keychain at the edge");
