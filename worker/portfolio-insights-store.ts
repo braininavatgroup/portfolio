@@ -8,9 +8,8 @@
 // records sit.
 //
 // Nothing here makes the bucket readable: it has no public domain and no
-// custom domain, so R2's only reader is a Worker holding the binding, and the
-// only Worker route that renders any of it is the Access-gated one in
-// `portfolio-insights-job.ts`.
+// custom domain, so R2's only reader is a Worker holding the binding, and reads are restricted to the Access-gated
+// dashboard and the separate, token-gated activity projection.
 
 import { recordStore } from "../scripts/portfolio-insights-records.mjs";
 // Type-only: the local backend owns the port's shape, and the import is erased,
