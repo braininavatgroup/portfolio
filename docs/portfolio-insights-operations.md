@@ -74,9 +74,9 @@ accepted a logical one instead. The scheduled Worker now reads the same
 read-only assignment projection and renders the joined dashboard at the edge,
 where it is kept in a private R2 bucket and served only through Cloudflare
 Access — the control already guarding `canvas.braininavat.dance` and
-`studio.braininavat.dance`. Production still stores nothing but the opaque
-code; what changed is that the dashboard built from it now lives somewhere
-other than one laptop.
+`studio.braininavat.dance`. Public telemetry still stores nothing but the
+opaque code; the private Worker also keeps the joined Airtable snapshot and
+dashboard in R2.
 
 The browser removes the parameter from the visible URL, keeps it for the
 current tab, and adds it to later portfolio insight signals. Clarity and the

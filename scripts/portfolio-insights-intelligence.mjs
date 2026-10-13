@@ -37,10 +37,10 @@
  * }} InsightEvent
  * @typedef {{
  *   actionRecordId: string, campaignCode: string, sentAt: string | null,
- *   channel: string, portfolioUrl: string, action: string, state: string,
+ *   channel: string, portfolioUrl: string,
  *   person: { name: string, airtableUrl: string } | null,
  *   company: string | null,
- *   job: { title: string, stage: string, outcome: string | null } | null,
+ *   job: { title: string } | null,
  * }} PortfolioAssignment
  * @typedef {{ status: "fresh" | "stale" | "unavailable", capturedAt: string | null, value: unknown, error?: string }} SourceState
  * @typedef {{ start: string, end: string, label: string }} ReportWindow
