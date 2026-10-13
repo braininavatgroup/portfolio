@@ -69,11 +69,11 @@ describe("fetchPortfolioAssignments", () => {
 
     expect(FIELDS).toEqual({
       Actions: [
-        "Action", "State", "Person", "Job", "Company",
+        "Person", "Job", "Company",
         "Portfolio Campaign Code", "Portfolio Link Sent", "Portfolio Link Channel", "Portfolio URL",
       ],
       People: ["Name"],
-      Jobs: ["Job", "Stage", "Outcome Reason"],
+      Jobs: ["Job"],
       Companies: ["Company Name"],
     });
     expect(calls.length).toBeGreaterThan(0);
@@ -143,14 +143,12 @@ describe("fetchPortfolioAssignments", () => {
         sentAt: "2026-09-10T15:00:00.000Z",
         channel: "Email",
         portfolioUrl: "https://bradleyberkman.com/?campaign=grace-hopper-01",
-        action: "Send portfolio recAction1",
-        state: "Done",
         person: {
           name: "Grace Hopper",
           airtableUrl: "https://airtable.com/app0LM9NfGL4ZHi3j/tblrJTH1gruJDCAVx/recPersonB",
         },
         company: "Analytical Engines",
-        job: { title: "Staff Designer", stage: "Interviewing", outcome: "Chose another candidate" },
+        job: { title: "Staff Designer" },
       },
     ]);
   });
@@ -184,7 +182,7 @@ describe("fetchPortfolioAssignments", () => {
       sentAt: null,
       channel: "",
       portfolioUrl: "",
-      job: { title: "Design Lead", stage: "Applied", outcome: null },
+      job: { title: "Design Lead" },
     });
     expect(unmapped).toMatchObject({ campaignCode: "deleted-links-1", person: null, company: null, job: null });
   });

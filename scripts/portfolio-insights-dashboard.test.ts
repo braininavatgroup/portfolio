@@ -358,11 +358,12 @@ describe("renderDashboard decision sections", () => {
 
   it("renders an assigned row's fields and its event-ordered tab journey", () => {
     const section = sectionOf(html, "Assigned links");
-    for (const label of ["Recipient", "Assigned company", "Job", "Stage", "Sent", "Latest activity", "Link sessions", "Content opened", "Evidence opened", "Contact actions", "Outcome"]) {
+    for (const label of ["Recipient", "Assigned company", "Job", "Sent", "Latest activity", "Link sessions", "Content opened", "Evidence opened", "Contact actions"]) {
       expect(section).toContain(label);
     }
     expect(section).toContain("Acme &lt;b&gt;Labs&lt;/b&gt;");
-    expect(section).toContain("Interviewing");
+    expect(section).not.toContain("Interviewing");
+    expect(section).not.toContain("Action: Send portfolio");
     const journey = section.slice(section.indexOf("<ol"));
     const order = ["15:00", "15:01", "15:02", "15:04"].map((time) => journey.indexOf(time));
     expect(order.every((position) => position > -1)).toBe(true);
@@ -936,7 +937,7 @@ describe("what the page opens on", () => {
     for (const label of ["Link sessions", "Content opened", "Evidence opened", "Contact actions", "Latest activity"]) {
       expect(summary, label).toContain(label);
     }
-    for (const label of ["Recipient", "Assigned company", "Job", "Stage", "Sent", "Outcome"]) {
+    for (const label of ["Recipient", "Assigned company", "Job", "Sent"]) {
       expect(summary, label).not.toContain(label);
       expect(row, label).toContain(label);
     }

@@ -1,7 +1,9 @@
 // Read-only Airtable adapter for the portfolio insights report.
 //
-// Resolves which Job Search Action each assigned portfolio link belongs to,
-// plus the Person, Job, and Company around it. It issues GET requests only and
+// Resolves assigned portfolio links from the legacy Airtable attribution register,
+// plus their assignment-time Person, Job, and Company labels. Supabase owns
+// current job-search Actions and stages; this adapter must not read those
+// mutable Airtable fields. It issues GET requests only and
 // asks for exactly the fields in FIELDS. A campaign code identifies the Action
 // a link was assigned to; it never proves who opened the link.
 //
@@ -26,8 +28,6 @@ export const TABLES = Object.freeze({
 
 export const FIELDS = Object.freeze({
   Actions: [
-    "Action",
-    "State",
     "Person",
     "Job",
     "Company",
@@ -37,7 +37,7 @@ export const FIELDS = Object.freeze({
     "Portfolio URL",
   ],
   People: ["Name"],
-  Jobs: ["Job", "Stage", "Outcome Reason"],
+  Jobs: ["Job"],
   Companies: ["Company Name"],
 });
 
@@ -63,11 +63,9 @@ const MAX_PAGES = 500;
  *   sentAt: string | null;
  *   channel: string;
  *   portfolioUrl: string;
- *   action: string;
- *   state: string;
  *   person: { name: string; airtableUrl: string } | null;
  *   company: string | null;
- *   job: { title: string; stage: string; outcome: string | null } | null;
+ *   job: { title: string } | null;
  * }} PortfolioAssignment
  *
  * @typedef {{ id: string; fields: Record<string, unknown> }} AirtableRecord
@@ -184,8 +182,6 @@ export async function fetchPortfolioAssignments({
       sentAt: text(fields["Portfolio Link Sent"]) || null,
       channel: text(fields["Portfolio Link Channel"]),
       portfolioUrl: text(fields["Portfolio URL"]),
-      action: text(fields.Action),
-      state: text(fields.State),
       person: person
         ? {
             name: text(person.fields.Name),
@@ -196,8 +192,6 @@ export async function fetchPortfolioAssignments({
       job: job
         ? {
             title: text(job.fields.Job),
-            stage: text(job.fields.Stage),
-            outcome: text(job.fields["Outcome Reason"]) || null,
           }
         : null,
     });

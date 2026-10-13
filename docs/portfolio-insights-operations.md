@@ -37,8 +37,11 @@ and stays dormant.
 ## Use assigned job-search links
 
 Every link Bradley sends directly gets its own opaque code, stored on one
-Action in the Airtable `Job Search` base (`app0LM9NfGL4ZHi3j`). Actions have
-carried four portfolio fields since 2026-09-11T20:07Z (job-search PR #11):
+legacy Action in the Airtable `Job Search` base (`app0LM9NfGL4ZHi3j`). This is
+the private assignment register used by the deployed portfolio reader.
+Job-search's Supabase database owns current Actions, job stages, outcomes and
+Bradley's notes. The register has carried four portfolio fields since
+2026-09-11T20:07Z (job-search PR #11):
 
 | Field | Holds |
 | --- | --- |
@@ -50,15 +53,18 @@ carried four portfolio fields since 2026-09-11T20:07Z (job-search PR #11):
 Generate the code with `openssl rand -hex 8`. Never use a company name,
 person's name, email address, job title, or recognizable abbreviation. One
 Action is one link, so two recipients for the same job get two codes. The
-Action's own links to Person, Job, and Company supply the context, and
-Airtable stays the only place the code is *stored* beside a name or an
-outcome.
+legacy Action's links to Person, Job, and Company supply assignment-time
+labels. Airtable stays the only place the code is *stored* beside a name.
+A new Supabase Action alone does not feed this reader. Keep each assignment in
+the register until a separately reviewed migration changes the reader and
+proves parity for every existing code. The portfolio report omits mutable
+Airtable Action state, job stage and outcome.
 
 Until BIV-527 that was a stronger claim: the join ran only on Bradley's Mac,
 so Airtable was the only place the two ever met. Bradley decided on
 2026-09-18 that a laptop-resident privacy boundary was not worth its cost and
 accepted a logical one instead. The scheduled Worker now reads the same
-read-only Airtable projection and renders the joined dashboard at the edge,
+read-only assignment projection and renders the joined dashboard at the edge,
 where it is kept in a private R2 bucket and served only through Cloudflare
 Access — the control already guarding `canvas.braininavat.dance` and
 `studio.braininavat.dance`. Production still stores nothing but the opaque
@@ -649,6 +655,12 @@ The report matches each event's campaign code to the Action whose
 a shared device, so a code identifies the assignment, not the person holding
 the browser.
 
+The private read-only register check is `npm run live:assignments -- 2` (the
+minimum of two was observed on 2026-10-13). It returns aggregate counts,
+never codes or names, and fails on missing credentials, invalid responses,
+ambiguous assignments or fewer rows than the stated floor. Use it before and
+after changing the reader or assignment storage.
+
 Assigned links read further back than the report's window: a second query
 reads every campaign-coded event from the last 90 days, as far back as
 Analytics Engine keeps rows, so a link opened weeks ago still shows until
@@ -673,8 +685,7 @@ not one and needs no recovery):
 
 1. Fix the duplicate or malformed `Portfolio Campaign Code` values in
    Airtable. A malformed code does not match `[a-z0-9][a-z0-9_-]{5,63}`.
-2. In the job-search repository, run
-   `python3 scripts/migrate_v2.py --portfolio-fields-only --verify`.
+2. Run `npm run live:assignments -- 2` and confirm the private read succeeds.
 3. Run `npm run insights` again and confirm the Airtable source reads fresh.
 
 ### Observe in Clarity

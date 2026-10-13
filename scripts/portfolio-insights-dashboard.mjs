@@ -1069,16 +1069,14 @@ function assignedLinks(context) {
       cell("Recipient", name || "Unassigned outreach"),
       cell("Assigned company", assignment.company || "Not linked"),
       cell("Job", assignment.job?.title || "Not linked"),
-      cell("Stage", assignment.job?.stage || "–"),
       cell("Sent", sent ? `${sent}${assignment.channel ? ` · ${assignment.channel}` : ""}` : "Not recorded"),
-      cell("Outcome", assignment.job?.outcome || "None recorded"),
     ].join("");
     const state = !eventsKnown ? "unknown" : journeys.length > 0 ? "active" : "idle";
     const stateText = !eventsKnown ? "Activity unavailable" : journeys.length > 0 ? plural(journeys.length, "link session") : "No activity yet";
     const airtable = name ? externalLink(assignment.person?.airtableUrl, "airtable", "Open the Person in Airtable") : "";
     const detail = [
       `<div class="cells identity">${identity}</div>`,
-      `<p class="note">Campaign code <code>${escapeHtml(assignment.campaignCode)}</code>${assignment.action ? ` · Action: ${escapeHtml(assignment.action)}` : ""}${assignment.state ? ` · ${escapeHtml(assignment.state)}` : ""}${airtable ? ` · ${airtable}` : ""}</p>`,
+      `<p class="note">Campaign code <code>${escapeHtml(assignment.campaignCode)}</code>${airtable ? ` · ${airtable}` : ""}</p>`,
       contentIds.length ? `<p>Content: ${escapeHtml(contentIds.map(labelFor).join(", "))}</p>` : "",
       evidenceIds.length ? `<p>Evidence: ${escapeHtml(evidenceIds.join(", "))}</p>` : "",
       journeys.length
