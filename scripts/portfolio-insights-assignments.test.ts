@@ -16,7 +16,7 @@ describe('Supabase assignment reader', () => {
     expect(rows).toEqual([row]);
   });
   it('fails closed on duplicate or malformed assignments without echoing identities/codes', async () => {
-    for (const rows of [[row, row], [{ ...row, portfolioUrl: 'https://wrong.example' }], [{ ...row, person: { name: 'Name', airtableUrl: 'https://airtable.com/private' } }]]) {
+    for (const rows of [[row, row], [{ ...row, campaignCode: undefined, portfolioUrl: 'https://bradleyberkman.com/?campaign=undefined' }], [{ ...row, portfolioUrl: 'https://wrong.example' }], [{ ...row, person: { name: 'Name', airtableUrl: 'https://airtable.com/private' } }]]) {
       const error = await fetchPortfolioAssignments({ token, fetchImpl: answer(rows) }).catch(e => e);
       expect(error).toBeInstanceOf(AssignmentConfigurationError);
       expect(error.message).not.toContain('random123');

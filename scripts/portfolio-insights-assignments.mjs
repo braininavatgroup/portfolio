@@ -34,7 +34,7 @@ export async function fetchPortfolioAssignments({ token, fetchImpl = globalThis.
   if (body?.version !== 1 || !Array.isArray(body.assignments)) throw new AssignmentConfigurationError(['Unsupported assignment projection']);
   const codes = new Set();
   for (const row of body.assignments) {
-    if (!row || typeof row.actionRecordId !== 'string' || !/^[a-z0-9][a-z0-9_-]{5,63}$/.test(row.campaignCode)
+    if (!row || typeof row.actionRecordId !== 'string' || typeof row.campaignCode !== 'string' || !/^[a-z0-9][a-z0-9_-]{5,63}$/.test(row.campaignCode)
       || row.portfolioUrl !== `https://bradleyberkman.com/?campaign=${row.campaignCode}`
       || !['Email', 'LinkedIn', 'Application', 'Referral', 'Other'].includes(row.channel)
       || (row.sentAt !== null && (typeof row.sentAt !== 'string' || !Number.isFinite(Date.parse(row.sentAt))))
