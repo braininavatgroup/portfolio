@@ -155,6 +155,7 @@ test("the production build does not inline server secrets into artifacts", async
     "model-client-leak-sentinel",
     "identifier-secret-client-leak-sentinel",
     "assignment-secret-client-leak-sentinel",
+    "activity-secret-client-leak-sentinel",
   ]) {
     assert.doesNotMatch(builtArtifacts, new RegExp(sentinel));
   }

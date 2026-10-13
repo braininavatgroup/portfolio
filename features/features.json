@@ -11,6 +11,7 @@
     { "path": "/robots.txt", "contains": "Sitemap:", "browser": false }
   ],
   "controls": [
+    { "id": "private-activity-projection", "source": "worker/portfolio-activity.ts", "marker": "export async function handlePortfolioActivity" },
     { "id": "world-record-selection", "source": "components/PortfolioWorld.tsx", "marker": "aria-pressed={selectedId === node.id}" },
     { "id": "contents-selection", "source": "components/PortfolioReadingRoom.tsx", "marker": "onSelect={selectFromContents}" },
     { "id": "panel-resize", "source": "scripts/check-reading-room-interactions.mjs", "marker": "checkReadingRoomResize" },

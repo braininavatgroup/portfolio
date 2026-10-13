@@ -103,6 +103,21 @@ async function fetchBuiltWorker(request, environment = {}) {
   );
 }
 
+test("the built activity route is a separate, fail-closed read capability", async () => {
+  const url = "https://bradleyberkman.com/internal/portfolio-activity";
+  const secret = "a".repeat(64);
+  const env = { PORTFOLIO_ACTIVITY_READ_TOKEN: secret };
+  assert.equal((await fetchBuiltWorker(new Request(url), env)).status, 403);
+  const headers = { "x-portfolio-activity-token": secret };
+  const response = await fetchBuiltWorker(new Request(url, { headers }), env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), { version: 1, status: "unavailable", capturedAt: null, truncated: false, items: [] });
+  assert.equal((await fetchBuiltWorker(new Request(url + "?raw=true", { headers }), env)).status, 400);
+  assert.equal((await fetchBuiltWorker(new Request(url, { method: "POST", headers }), env)).status, 405);
+  assert.equal((await fetchBuiltWorker(new Request("https://insights.braininavat.dance/internal/portfolio-activity", { headers }), { ...env, PORTFOLIO_INSIGHTS_HOST: "insights.braininavat.dance" })).status, 403);
+});
+
 const deployedEnvironment = {
   PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET:
     "a-long-independent-session-signing-secret-for-preview-only",

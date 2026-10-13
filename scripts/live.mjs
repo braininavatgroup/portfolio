@@ -31,6 +31,7 @@ const { values: args } = parseArgs({
     dist: { type: "string" },
     "expect-text": { type: "string" },
     assignments: { type: "boolean", default: false },
+    activity: { type: "boolean", default: false },
     "map-only": { type: "boolean", default: false },
   },
 });
@@ -53,6 +54,24 @@ async function check(name, run) {
 }
 function expect(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+if (args.activity) {
+  await check("private activity projection capability", async () => {
+    const { readKeychainPassword } = await import('./portfolio-insights.mjs');
+    const token = process.env.PORTFOLIO_ACTIVITY_READ_TOKEN || (await readKeychainPassword('biv-portfolio-insights', 'activity-read-token')).trim();
+    expect(/^[a-f0-9]{64}$/.test(token), 'activity-read credential unavailable');
+    const url = new URL('/internal/portfolio-activity', args.base);
+    const refused = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    expect(refused.status === 403, 'unsigned activity projection was not refused');
+    const response = await fetch(url, { headers: { 'x-portfolio-activity-token': token }, signal: AbortSignal.timeout(30000) });
+    expect(response.status === 200 && response.headers.get('cache-control') === 'no-store', 'activity projection unavailable or cacheable');
+    const p = await response.json();
+    expect(p?.version === 1 && ['fresh', 'stale', 'unavailable'].includes(p.status) && Array.isArray(p.items) && p.items.length <= 100, 'invalid projection');
+    expect(p.items.every(i => /^[a-f0-9]{64}$/.test(i.id) && !('sessionId' in i) && !('events' in i)), 'raw identifiers or events in projection');
+    return `${p.status}; ${p.items.length} qualifying tabs; partial=${Boolean(p.truncated)}; no visits or writes simulated`;
+  });
+  process.exit(failures ? 1 : 0);
 }
 
 if (args.assignments) {

@@ -22,8 +22,10 @@ import {
 
 export { PortfolioChatBudgetObject } from "./portfolio-chat-budget";
 export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
+import { handlePortfolioActivity } from './portfolio-activity';
 
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
+  { PORTFOLIO_ACTIVITY_READ_TOKEN?: string } &
   Partial<Pick<Cloudflare.Env, "ASSETS" | "IMAGES">> &
   PortfolioFeedbackEnv &
   PortfolioInsightsEnv &
@@ -80,6 +82,8 @@ const worker = {
     // so none of them can route around that gate.
     const insights = await handlePortfolioInsights(request, env);
     if (insights) return insights;
+    const activity = await handlePortfolioActivity(request, env);
+    if (activity) return activity;
     // The feedback digest authenticates with its own bearer token; every other
     // route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);

@@ -36,6 +36,31 @@ and stays dormant.
 
 ## Use assigned job-search links
 
+The private job board's Portfolio tab reads only a narrow activity projection
+through its production-only service binding. The separate
+`PORTFOLIO_ACTIVITY_READ_TOKEN` permits the exact, uncached
+`GET /internal/portfolio-activity` route, not assignments, transcripts, raw events,
+the dashboard or writes. Missing or malformed credentials fail closed; queries
+and non-GET methods are refused. Do not provision this capability into previews.
+
+It uses the existing seven-day morning snapshot, with no new schedule or live
+analytics query. Fresh requires a matching successful first-party source snapshot
+less than 26 hours old. Failed reads are unavailable, old snapshots stale, and
+source truncation or the 100-card cap is explicitly partial. Qualifying tabs have
+a CV click, evidence/Guide navigation, or positive active reading in two distinct
+non-About projects. Cumulative attention uses per-content maxima. Hashed tab IDs
+deduplicate activity without sending raw session IDs or chat bodies to the board.
+The board matches opaque campaigns to existing Actions and labels context, not
+identity. An automated or forwarded link is not proof of employer interest.
+
+After reviewed code deployment, provision a new random 32-byte credential to
+the production board and portfolio via stdin and the existing Keychain writer
+(`biv-portfolio-insights / activity-read-token`). It is **not** the existing
+assignment reader token. Verify with `npm run live -- --activity` and the board's
+GET-only live walk. Removing either credential immediately contains access;
+no stored assignments or history should be deleted. The assignment cutover and
+its scheduled observer are separate and remain unchanged.
+
 Every assigned link belongs to one Supabase `public.actions` row. Supabase is
 also authoritative for Actions and job stages. Four nullable fields hold its
 random opaque code (`portfolio_campaign_code`), sent timestamp

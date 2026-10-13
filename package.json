@@ -20,7 +20,7 @@
     "insights:dashboard": "node scripts/portfolio-insights.mjs --dashboard --no-cloudflare --no-clarity",
     "test": "npm run typecheck && npm run lint && node --test tests/feature-map.test.mjs && vitest run && npm run test:media-studio && npm run test:clip-studio && npm run test:rendered",
     "typecheck": "tsc --noEmit",
-    "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel PORTFOLIO_ASSIGNMENTS_READ_TOKEN=assignment-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/main-preview-worker-config.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
+    "test:rendered": "OPENAI_API_KEY=sk-client-leak-sentinel OPENAI_PORTFOLIO_MODEL=model-client-leak-sentinel PORTFOLIO_CHAT_IDENTIFIER_SECRET=identifier-secret-client-leak-sentinel PORTFOLIO_ASSIGNMENTS_READ_TOKEN=assignment-secret-client-leak-sentinel PORTFOLIO_ACTIVITY_READ_TOKEN=activity-secret-client-leak-sentinel npm run build && node --test tests/built-worker-chat.test.mjs tests/main-preview-worker-config.test.mjs tests/rendered-html.test.mjs tests/rendered-routes.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern worker-configuration.main-preview.d.ts",
     "eval:chat": "tsx scripts/run-portfolio-chat-eval.ts",
     "feedback": "node scripts/portfolio-feedback.mjs",
