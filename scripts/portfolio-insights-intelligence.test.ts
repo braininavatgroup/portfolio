@@ -114,11 +114,9 @@ function assignment(code: string, name: string | null = "Alex Rivera"): Portfoli
     sentAt: "2026-09-09T15:00:00.000Z",
     channel: "Email",
     portfolioUrl: `https://bradleyberkman.com/?c=${code}`,
-    action: "Send portfolio link",
-    state: "Done",
     person: name ? { name, airtableUrl: "https://airtable.com/app0LM9NfGL4ZHi3j/tblPeople/recPerson" } : null,
     company: name ? "Acme Studio" : null,
-    job: name ? { title: "Product Designer", stage: "Applied", outcome: null } : null,
+    job: name ? { title: "Product Designer" } : null,
   };
 }
 
