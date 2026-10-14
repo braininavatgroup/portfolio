@@ -342,8 +342,10 @@ insights` (`.github/workflows/verify-scheduled-insights.yml`) runs
 `scripts/verify-scheduled-insights.mjs`. It reads `runs/dashboard.html` from
 the bucket through the Cloudflare API with the `portfolio-main-preview`
 environment's `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` and fails
-unless that morning's run wrote it, the assigned links show the 90-day
-lookback, and one known assigned link shows its six sessions. It prints only
+unless that morning's run wrote it, the assignment and event sources are
+fresh, the assigned links show the 90-day lookback, and each displayed link's
+activity state agrees with its session count. An empty or idle link is valid
+when no sessions fall in the rolling window. It prints only
 its own pass or fail line, never the page or the API's errors. If the Worker's
 cron moves, move this workflow's cron and the 11:10 the script checks against
 with it.
