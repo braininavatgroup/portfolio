@@ -32,8 +32,10 @@ describe('scheduled assignment reader health', () => {
 
   it('keeps failures private and distinguishes a response from a transport failure', async () => {
     const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: token, JOB_SEARCH_ASSIGNMENTS: { fetch: async () => new Response('private response', { status: 403 }) } as unknown as Fetcher };
-    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: 403 });
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: 403, transportCategory: 'other' });
     env.JOB_SEARCH_ASSIGNMENTS = { fetch: async () => { throw new Error('private error with code'); } } as unknown as Fetcher;
-    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null });
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'other' });
+    env.JOB_SEARCH_ASSIGNMENTS = { fetch: async () => { throw new TypeError('Redirect mode blocked'); } } as unknown as Fetcher;
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'redirect' });
   });
 });

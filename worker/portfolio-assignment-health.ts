@@ -22,12 +22,22 @@ export async function handlePortfolioAssignmentHealth(request: Request, env: Ass
   if (!env.JOB_SEARCH_ASSIGNMENTS) return answer({ version: 1, status: 'unavailable', reason: 'binding' }, 503);
 
   let upstreamStatus: number | null = null;
+  let transportError: unknown = null;
   try {
-    const assignments = await fetchBoundPortfolioAssignments(env.JOB_SEARCH_ASSIGNMENTS, secret, status => { upstreamStatus = status; });
+    const assignments = await fetchBoundPortfolioAssignments(env.JOB_SEARCH_ASSIGNMENTS, secret,
+      status => { upstreamStatus = status; }, error => { transportError = error; });
     return answer({ version: 1, status: 'fresh', count: assignments.length });
   } catch {
     // The projection contains private identities and codes; expose only the
-    // transport status to distinguish a refused read from a binding failure.
-    return answer({ version: 1, status: 'unavailable', upstreamStatus }, 503);
+    // transport class, never the exception message or upstream response body.
+    const message = transportError instanceof Error ? transportError.message.toLowerCase() : '';
+    const transportCategory = message.includes('redirect') ? 'redirect'
+      : message.includes('different request') ? 'request-context'
+      : message.includes('subrequest') ? 'subrequest'
+      : message.includes('service binding') ? 'service-binding'
+      : message.includes('network') ? 'network'
+      : message.includes('url') ? 'url'
+      : 'other';
+    return answer({ version: 1, status: 'unavailable', upstreamStatus, transportCategory }, 503);
   }
 }
