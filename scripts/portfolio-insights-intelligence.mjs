@@ -16,7 +16,7 @@
 //   A session whose events carry two different non-empty campaign codes is
 //   quarantined: it belongs to neither link and is counted, not shown.
 //
-//   An Airtable assignment attaches only on an exact campaign-code match. An
+//   An assignment attaches only on an exact campaign-code match. An
 //   unmapped or duplicated code stays anonymous either way, but the two are
 //   reported differently. A duplicated code is ambiguous — two Actions claim
 //   it — so it is a configuration error. An unmapped code is normally an old

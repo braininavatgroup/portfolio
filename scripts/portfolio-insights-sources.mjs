@@ -1,7 +1,7 @@
 // The live insight sources, as plain HTTPS reads: Cloudflare's GraphQL
 // analytics API (Web Analytics RUM and zone edge counts), Clarity's export
 // API, the Analytics Engine SQL API over the first-party `portfolio_insights`
-// dataset, and the read-only Airtable projection of assigned links.
+// dataset, and the read-only Supabase projection of assigned links.
 //
 // Nothing here touches a filesystem, a Keychain, or `process`: the caller
 // supplies each token. That is what lets the same fetchers run from the CLI on
