@@ -16,9 +16,10 @@ describe('scheduled assignment reader health', () => {
   });
 
   it('reads only the bound route and returns a count without identities or codes', async () => {
-    const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: token, JOB_SEARCH_ASSIGNMENTS: { fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-      expect(new URL(input instanceof Request ? input.url : input).pathname).toBe('/internal/portfolio-assignments');
-      expect(init?.headers).toEqual({ 'x-portfolio-assignments-token': token });
+    const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: token, JOB_SEARCH_ASSIGNMENTS: { fetch: async (request: Request) => {
+      expect(request).toBeInstanceOf(Request);
+      expect(new URL(request.url).pathname).toBe('/internal/portfolio-assignments');
+      expect(request.headers.get('x-portfolio-assignments-token')).toBe(token);
       return Response.json({ version: 1, assignments: [{ actionRecordId: 'private-action', campaignCode: 'opaque-code-1', portfolioUrl: 'https://bradleyberkman.com/?campaign=opaque-code-1', channel: 'Application', sentAt: null, action: 'private action', state: 'Suggested', person: null, company: 'private company', job: null }] });
     } } as unknown as Fetcher };
     const response = await handlePortfolioAssignmentHealth(authorized(), env);
