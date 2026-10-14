@@ -93,7 +93,7 @@ if (args.assignments) {
     });
     const status = await health.json();
     expect(health.ok && status?.version === 1 && status.status === 'fresh' && status.count === rows.length,
-      `scheduled Worker binding unavailable (HTTP ${health.status}; upstream ${status?.upstreamStatus ?? 'unknown'})`);
+      `scheduled Worker binding unavailable (HTTP ${health.status}; upstream ${status?.upstreamStatus ?? 'unknown'}; transport ${status?.transportCategory ?? 'unknown'})`);
     return `${rows.length} valid assignments through local and scheduled Worker readers; codes and identities omitted`;
   });
   process.exit(failures ? 1 : 0);
