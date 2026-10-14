@@ -1,6 +1,6 @@
 // Owns: section order, what the page opens on, the gist each folded section
 // puts in its summary, assigned-link attribution wording, per-source
-// freshness, empty and unavailable states, escaping, and the Clarity/Airtable
+// freshness, empty and unavailable states, escaping, and the Clarity
 // link allowlist of the local decision dashboard. Retire with the HTML
 // dashboard.
 import { describe, expect, it } from "vitest";
@@ -510,13 +510,12 @@ describe("renderDashboard decision sections", () => {
     for (const href of hrefs) {
       expect(
         href.startsWith(CLARITY_PROJECT_URL) ||
-          href.startsWith("https://airtable.com/app0LM9NfGL4ZHi3j/") ||
           href === `https://${SCHEDULED_DASHBOARD_HOST}/`,
       ).toBe(true);
     }
     const anchors = html.match(/<a\s[^>]*>/gu) ?? [];
     for (const anchor of anchors) expect(anchor).toMatch(/target="_blank" rel="noreferrer"/u);
-    expect(html).toContain('href="https://airtable.com/app0LM9NfGL4ZHi3j/tblPeople/recPerson1"');
+    expect(html).not.toContain('href="https://airtable.com/');
   });
 
   it("agrees count and noun wherever it prints a count", () => {
@@ -995,35 +994,28 @@ describe("the type scale", () => {
 });
 
 describe("safeExternalLink", () => {
-  it("accepts only the configured Clarity project and Airtable base", () => {
-    expect(safeExternalLink("https://clarity.microsoft.com/projects/view/yatoiqtrjm/", "clarity")).toBe(CLARITY_PROJECT_URL);
-    expect(safeExternalLink("https://airtable.com/app0LM9NfGL4ZHi3j/tblX/recY", "airtable")).toBe("https://airtable.com/app0LM9NfGL4ZHi3j/tblX/recY");
+  it("accepts only the configured Clarity project", () => {
+    expect(safeExternalLink("https://clarity.microsoft.com/projects/view/yatoiqtrjm/")).toBe(CLARITY_PROJECT_URL);
   });
 
   it.each([
-    ["http://clarity.microsoft.com/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://user:pw@clarity.microsoft.com/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://clarity.microsoft.com.evil.example/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://evil.example/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://clarity.microsoft.com:8443/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://clarity.microsoft.com%2eevil.example/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://evil.example%2F@clarity.microsoft.com/projects/view/yatoiqtrjm/", "clarity"],
-    ["https://clarity.microsoft.com/projects/view/otherproj/", "clarity"],
-    ["https://clarity.microsoft.com/projects/view/yatoiqtrjm/../otherproj/", "clarity"],
-    ["https://airtable.com/app0LM9NfGL4ZHi3j/%2e%2e/appOther/", "airtable"],
-    ["https://airtable.com/app0LM9NfGL4ZHi3jX/", "airtable"],
-    ["https:\\\\evil.example/app0LM9NfGL4ZHi3j/", "airtable"],
-    [" https://airtable.com/app0LM9NfGL4ZHi3j/rec", "airtable"],
-    ["javascript:alert(1)//https://airtable.com/app0LM9NfGL4ZHi3j/", "airtable"],
-    ["https://airtable.com/app0LM9NfGL4ZHi3j/rec", "clarity"],
-    ["https://clarity.microsoft.com/projects/view/yatoiqtrjm/", "other"],
-  ])("rejects %s as %s", (url, kind) => {
-    expect(safeExternalLink(url, kind as "clarity" | "airtable")).toBeNull();
+    "http://clarity.microsoft.com/projects/view/yatoiqtrjm/",
+    "https://user:pw@clarity.microsoft.com/projects/view/yatoiqtrjm/",
+    "https://clarity.microsoft.com.evil.example/projects/view/yatoiqtrjm/",
+    "https://evil.example/projects/view/yatoiqtrjm/",
+    "https://clarity.microsoft.com:8443/projects/view/yatoiqtrjm/",
+    "https://clarity.microsoft.com%2eevil.example/projects/view/yatoiqtrjm/",
+    "https://evil.example%2F@clarity.microsoft.com/projects/view/yatoiqtrjm/",
+    "https://clarity.microsoft.com/projects/view/otherproj/",
+    "https://clarity.microsoft.com/projects/view/yatoiqtrjm/../otherproj/",
+    "https://airtable.com/app0LM9NfGL4ZHi3j/rec",
+  ])("rejects %s", (url) => {
+    expect(safeExternalLink(url)).toBeNull();
   });
 
   it("rejects non-strings", () => {
-    expect(safeExternalLink(null as unknown as string, "clarity")).toBeNull();
-    expect(safeExternalLink(42 as unknown as string, "airtable")).toBeNull();
+    expect(safeExternalLink(null as unknown as string)).toBeNull();
+    expect(safeExternalLink(42 as unknown as string)).toBeNull();
   });
 });
 

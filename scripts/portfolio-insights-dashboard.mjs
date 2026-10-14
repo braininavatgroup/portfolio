@@ -1,13 +1,13 @@
 // Renders the private portfolio decision dashboard as one self-contained HTML
 // page: no scripts, no forms, no remote resources, no automatic requests.
 // Its only network behaviour is an explicit click on an allowlisted Clarity
-// or Airtable link. Pure functions so the layout can be tested without a
+// link. Pure functions so the layout can be tested without a
 // browser; `renderDashboard` is the entry.
 //
 // Section order is a product contract: What changed, Assigned links, Content
 // resonance, Journeys, Audience, Observe in Clarity, then collapsed
 // Diagnostics (crawler counts and infrastructure totals). Assigned-link copy
-// says "Activity from <name>'s assigned link" — a campaign code identifies an
+// says "Activity from <name>'s assigned link" — a campaign code identifies a
 // Supabase Action, not the person who opened the link.
 //
 // Information design, so the page can be read at a glance:
@@ -44,8 +44,6 @@ const PALETTE = {
 };
 
 export const CLARITY_PROJECT_URL = "https://clarity.microsoft.com/projects/view/yatoiqtrjm/";
-export const AIRTABLE_BASE_URL = "https://airtable.com/app0LM9NfGL4ZHi3j/";
-const LINK_PREFIXES = { clarity: CLARITY_PROJECT_URL, airtable: AIRTABLE_BASE_URL };
 
 /** Findings, content comparisons, and pattern tables need at least this many sessions. */
 const PATTERN_MINIMUM = 5;
@@ -139,16 +137,14 @@ const finite = (value) => (typeof value === "number" && Number.isFinite(value) ?
 
 /**
  * The href to print for an external link, or null. Only the configured
- * Clarity project and Airtable base are allowed, checked on the parsed URL so
+ * Clarity project is allowed, checked on the parsed URL so
  * credentials, ports, lookalike or percent-encoded hosts, and dot-segment
  * escapes out of the prefix all fail.
  * @param {string} url
- * @param {"clarity" | "airtable"} kind
  * @returns {string | null}
  */
-export function safeExternalLink(url, kind) {
-  const prefix = Object.hasOwn(LINK_PREFIXES, kind) ? LINK_PREFIXES[kind] : null;
-  if (!prefix || typeof url !== "string") return null;
+export function safeExternalLink(url) {
+  if (typeof url !== "string") return null;
   // new URL silently strips tabs and newlines and treats "\" as "/"; refuse them.
   if (/[\s\\\p{Cc}]/u.test(url)) return null;
   let parsed;
@@ -157,15 +153,15 @@ export function safeExternalLink(url, kind) {
   } catch {
     return null;
   }
-  const expected = new URL(prefix);
+  const expected = new URL(CLARITY_PROJECT_URL);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) return null;
-  if (parsed.origin !== expected.origin || !parsed.href.startsWith(prefix)) return null;
+  if (parsed.origin !== expected.origin || !parsed.href.startsWith(CLARITY_PROJECT_URL)) return null;
   return parsed.href;
 }
 
 /** An allowlisted anchor, or nothing when the URL is refused. */
-function externalLink(url, kind, text) {
-  const href = safeExternalLink(url, kind);
+function externalLink(url, text) {
+  const href = safeExternalLink(url);
   return href
     ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a>`
     : "";
@@ -1075,10 +1071,9 @@ function assignedLinks(context) {
     ].join("");
     const state = !eventsKnown ? "unknown" : journeys.length > 0 ? "active" : "idle";
     const stateText = !eventsKnown ? "Activity unavailable" : journeys.length > 0 ? plural(journeys.length, "link session") : "No activity yet";
-    const airtable = name ? externalLink(assignment.person?.airtableUrl, "airtable", "Open the Person in Airtable") : "";
     const detail = [
       `<div class="cells identity">${identity}</div>`,
-      `<p class="note">Campaign code <code>${escapeHtml(assignment.campaignCode)}</code>${assignment.action ? ` · Action: ${escapeHtml(assignment.action)}` : ""}${assignment.state ? ` · ${escapeHtml(assignment.state)}` : ""}${airtable ? ` · ${airtable}` : ""}</p>`,
+      `<p class="note">Campaign code <code>${escapeHtml(assignment.campaignCode)}</code>${assignment.action ? ` · Action: ${escapeHtml(assignment.action)}` : ""}${assignment.state ? ` · ${escapeHtml(assignment.state)}` : ""}</p>`,
       contentIds.length ? `<p>Content: ${escapeHtml(contentIds.map(labelFor).join(", "))}</p>` : "",
       evidenceIds.length ? `<p>Evidence: ${escapeHtml(evidenceIds.join(", "))}</p>` : "",
       journeys.length
@@ -1392,7 +1387,7 @@ function observationTable(rows) {
 
 function observeInClarity(context) {
   const { intelligence } = context;
-  const projectLink = externalLink(CLARITY_PROJECT_URL, "clarity", "Open the Clarity project");
+  const projectLink = externalLink(CLARITY_PROJECT_URL, "Open the Clarity project");
   const parts = [
     note("Clarity keeps the click, scroll, and attention maps and the recordings. No documented Clarity URL carries filters, so these steps are applied by hand, once, and each row below supplies only its own filter value."),
     `<div class="steps">${projectLink}<ol>${CLARITY_STEPS.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol></div>`,

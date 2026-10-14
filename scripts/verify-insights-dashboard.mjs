@@ -7,7 +7,7 @@
  * Opens the self-contained HTML file in headless Chromium at desktop and phone
  * sizes, in light and dark, each in a fresh browser context. It proves the page
  * makes no request beyond its own file, logs no errors, keeps its sections in
- * order, opens every disclosure, links only to Clarity, Airtable, and the
+ * order, opens every disclosure, links only to Clarity and the
  * scheduled dashboard in a new tab, keeps text legible, fits a phone without sideways scrolling, and
  * actually changes colour in dark mode. Screenshots and report.json land in a
  * workspace- and run-scoped directory under .context/verification/biv-421/.
@@ -32,7 +32,6 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 /** The only destinations a dashboard anchor may point at. */
 export const ALLOWED_LINK_PREFIXES = Object.freeze([
   "https://clarity.microsoft.com/projects/view/yatoiqtrjm/",
-  "https://airtable.com/app0LM9NfGL4ZHi3j/",
 ]);
 
 /** The header's link to the current run: its root only, matched exactly. */
@@ -104,7 +103,7 @@ export function isAllowedHref(href) {
 export function anchorFailures({ href, target, rel }) {
   const failures = [];
   const label = JSON.stringify(href ?? null);
-  if (!isAllowedHref(href)) failures.push(`anchor ${label} is not a Clarity, Airtable, or scheduled dashboard link`);
+  if (!isAllowedHref(href)) failures.push(`anchor ${label} is not a Clarity or scheduled dashboard link`);
   if (target !== "_blank") failures.push(`anchor ${label} has target=${JSON.stringify(target ?? null)}, not _blank`);
   const tokens = (rel ?? "").toLowerCase().split(/\s+/).filter(Boolean);
   if (!tokens.includes("noreferrer")) failures.push(`anchor ${label} rel=${JSON.stringify(rel ?? null)} lacks noreferrer`);

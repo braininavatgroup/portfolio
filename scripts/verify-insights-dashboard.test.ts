@@ -1,5 +1,5 @@
 // Owns: the pure decisions inside the managed dashboard browser check —
-// argument parsing, the run-scoped output path, the Clarity/Airtable anchor
+// argument parsing, the run-scoped output path, the Clarity anchor
 // allowlist, section order, the own-file-only request rule, and the phone
 // overflow and minimum text-size thresholds. The browser run itself is proven
 // by running the script, not here. Retire with the HTML dashboard.
@@ -61,11 +61,9 @@ describe("anchor allowlist", () => {
     rel: "noreferrer",
   };
 
-  it("accepts Clarity and Airtable links that open a new tab without a referrer", () => {
+  it("accepts Clarity links that open a new tab without a referrer", () => {
     expect(anchorFailures(good)).toEqual([]);
-    expect(
-      anchorFailures({ ...good, href: `${ALLOWED_LINK_PREFIXES[1]}tblPeople/rec1`, rel: "noopener NoReferrer" }),
-    ).toEqual([]);
+    expect(anchorFailures({ ...good, rel: "noopener NoReferrer" })).toEqual([]);
   });
 
   it("rejects look-alike hosts, other Clarity projects, relative, and script links", () => {
