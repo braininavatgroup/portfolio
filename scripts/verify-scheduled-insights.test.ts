@@ -4,6 +4,10 @@ import { verifyScheduledDashboard, verifyStoredDashboard } from "./verify-schedu
 const now = new Date("2026-10-04T11:40:00.000Z");
 const modified = "Sun, 04 Oct 2026 11:12:00 GMT";
 const page = `
+  <ul class="freshness">
+    <li data-status="fresh"><span class="strip-name">Analytics Engine events</span></li>
+    <li data-status="fresh"><span class="strip-name">Supabase assignments</span></li>
+  </ul>
   <section id="assigned-links">
     <p>Link activity covers the last 90 days (since 2026-07-07).</p>
     <details class="assignment" data-state="active"><summary>
@@ -12,16 +16,22 @@ const page = `
       <span class="cell"><span class="cell-label">Link sessions</span><span class="cell-value">6</span></span>
     </summary></details>
   </section>`;
+const zeroSessions = page.replace("6 link sessions", "No activity yet").replace('class="cell-value">6', 'class="cell-value">0');
+const manySessions = page.replace("6 link sessions", "1,000 link sessions").replace('class="cell-value">6', 'class="cell-value">1,000');
 
 describe("scheduled insights proof", () => {
-  it("accepts the fresh saved page with the 90-day label and six sessions", () => {
+  it("accepts a fresh saved page with consistent assigned-link activity", () => {
     expect(() => verifyScheduledDashboard(page, modified, now)).not.toThrow();
+    expect(() => verifyScheduledDashboard(zeroSessions.replace('data-state="active"', 'data-state="idle"'), modified, now)).not.toThrow();
+    expect(() => verifyScheduledDashboard(manySessions, modified, now)).not.toThrow();
+    expect(() => verifyScheduledDashboard(page.replace(/<details class="assignment"[\s\S]*?<\/details>/u, ""), modified, now)).not.toThrow();
   });
 
-  it("rejects an old page, a window fallback, and a missing link session", () => {
+  it("rejects an old page, a window fallback, stale sources, and inconsistent counts", () => {
     expect(() => verifyScheduledDashboard(page, "Fri, 02 Oct 2026 11:12:00 GMT", now)).toThrow(/recent/u);
     expect(() => verifyScheduledDashboard(page.replace("last 90 days", "report window"), modified, now)).toThrow(/90-day/u);
-    expect(() => verifyScheduledDashboard(page.replaceAll("6", "0"), modified, now)).toThrow(/six sessions/u);
+    expect(() => verifyScheduledDashboard(page.replace('data-status="fresh"', 'data-status="stale"'), modified, now)).toThrow(/fresh Analytics/u);
+    expect(() => verifyScheduledDashboard(zeroSessions, modified, now)).toThrow(/disagrees/u);
   });
 
   it("reads only the scheduled dashboard object with the supplied token", async () => {

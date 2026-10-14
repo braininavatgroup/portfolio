@@ -18,6 +18,7 @@ import {
   sourceBadge,
 } from "./portfolio-insights-dashboard.mjs";
 import { buildPortfolioIntelligence } from "./portfolio-insights-intelligence.mjs";
+import { verifyScheduledDashboard } from "./verify-scheduled-insights.mjs";
 
 const window = { start: "2026-09-04T00:00:00.000Z", end: "2026-09-11T23:59:59.000Z" };
 
@@ -297,6 +298,25 @@ const history = [
 ];
 
 const html = renderDashboard({ snapshot: hostile, history, generatedAt: "2026-09-11T16:30:00.000Z" });
+
+it("keeps the scheduled proof compatible with active and idle rows from the dashboard", () => {
+  const page = renderDashboard({
+    snapshot: {
+      ...hostile,
+      sources: {
+        ...hostile.sources,
+        airtable: { status: "fresh", capturedAt: "2026-09-11T16:00:00.000Z", value: [alex] },
+      },
+      intelligence: {
+        ...intelligence,
+        assignedLinkWindow: { start: "2026-06-13T00:00:00.000Z", end: "2026-09-11T00:00:00.000Z" },
+      },
+    },
+    history,
+    generatedAt: "2026-09-11T16:30:00.000Z",
+  });
+  expect(() => verifyScheduledDashboard(page, "Fri, 11 Sep 2026 16:30:00 GMT", new Date("2026-09-11T17:00:00.000Z"))).not.toThrow();
+});
 
 /** How many times a literal appears, for "say it once" contracts. */
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;

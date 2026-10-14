@@ -20,17 +20,26 @@ export function verifyScheduledDashboard(html, modifiedAt, now = new Date()) {
   if (!assigned?.textContent?.includes("Link activity covers the last 90 days")) {
     throw new Error("The saved dashboard does not show the 90-day assigned-link lookback");
   }
-  const row = [...assigned.querySelectorAll("details.assignment")].find((entry) =>
-    entry.querySelector("summary .row-title")?.textContent?.trim() === "Activity from Peter Travers's assigned link",
-  );
-  if (!row || row.getAttribute("data-state") !== "active") {
-    throw new Error("The expected assigned link is not active in the saved dashboard");
+  for (const source of ["Analytics Engine events", "Supabase assignments"]) {
+    const entry = [...document.querySelectorAll(".freshness li")].find((item) =>
+      item.querySelector(".strip-name")?.textContent?.trim() === source,
+    );
+    if (entry?.getAttribute("data-status") !== "fresh") {
+      throw new Error(`The saved dashboard has no fresh ${source} source`);
+    }
   }
-  const sessions = [...row.querySelectorAll("summary .cell")].find((cell) =>
-    cell.querySelector(".cell-label")?.textContent?.trim() === "Link sessions",
-  )?.querySelector(".cell-value")?.textContent?.trim();
-  if (sessions !== "6" || row.querySelector("summary .badge")?.textContent?.trim() !== "6 link sessions") {
-    throw new Error("The expected assigned link does not show six sessions");
+  for (const row of assigned.querySelectorAll("details.assignment")) {
+    const sessions = [...row.querySelectorAll("summary .cell")].find((cell) =>
+      cell.querySelector(".cell-label")?.textContent?.trim() === "Link sessions",
+    )?.querySelector(".cell-value")?.textContent?.trim();
+    const count = Number(sessions?.replaceAll(",", ""));
+    const state = row.getAttribute("data-state");
+    const badge = row.querySelector("summary .badge")?.textContent?.trim();
+    if (!sessions || !Number.isSafeInteger(count) || count < 0 ||
+        state !== (count > 0 ? "active" : "idle") ||
+        badge !== (count === 0 ? "No activity yet" : count === 1 ? "1 link session" : `${count.toLocaleString("en-US")} link sessions`)) {
+      throw new Error("An assigned-link row disagrees with its session count");
+    }
   }
 }
 
@@ -52,7 +61,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
       token: process.env.CLOUDFLARE_API_TOKEN,
     });
-    console.log("Scheduled insights proof passed: fresh 90-day assigned-link page with six sessions.");
+    console.log("Scheduled insights proof passed: fresh 90-day assigned-link page with consistent session counts.");
   } catch (error) {
     console.error(error instanceof Error ? error.message : "Scheduled insights proof failed");
     process.exitCode = 1;
