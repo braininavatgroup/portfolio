@@ -1,4 +1,4 @@
-import { fetchPortfolioAssignments } from '../scripts/portfolio-insights-assignments.mjs';
+import { fetchBoundPortfolioAssignments } from './portfolio-assignment-binding';
 
 type AssignmentHealthEnv = {
   JOB_SEARCH_ASSIGNMENTS?: Fetcher;
@@ -23,14 +23,7 @@ export async function handlePortfolioAssignmentHealth(request: Request, env: Ass
 
   let upstreamStatus: number | null = null;
   try {
-    const assignments = await fetchPortfolioAssignments({
-      token: secret,
-      fetchImpl: async (input, init) => {
-        const response = await env.JOB_SEARCH_ASSIGNMENTS!.fetch(input, init);
-        upstreamStatus = response.status;
-        return response;
-      },
-    });
+    const assignments = await fetchBoundPortfolioAssignments(env.JOB_SEARCH_ASSIGNMENTS, secret, status => { upstreamStatus = status; });
     return answer({ version: 1, status: 'fresh', count: assignments.length });
   } catch {
     // The projection contains private identities and codes; expose only the

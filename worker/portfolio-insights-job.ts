@@ -20,9 +20,9 @@
 // issued to an allowed identity. A request without one is refused here, having
 // read nothing from R2.
 
-import { fetchPortfolioAssignments } from "../scripts/portfolio-insights-assignments.mjs";
 import { runInsights } from "../scripts/portfolio-insights-core.mjs";
 import { r2ChatTranscripts } from "./portfolio-chat-transcript-store";
+import { fetchBoundPortfolioAssignments } from "./portfolio-assignment-binding";
 import { INSIGHTS_PREFIX, r2InsightStorage } from "./portfolio-insights-store";
 
 export type PortfolioInsightsEnv = {
@@ -287,7 +287,7 @@ export async function runScheduledInsights(env: PortfolioInsightsEnv, now = () =
       fetchers: {
         airtable: async (token: string) => {
           if (!env.JOB_SEARCH_ASSIGNMENTS) throw new Error("Assignment service binding is not configured");
-          return fetchPortfolioAssignments({ token, fetchImpl: (input, init) => env.JOB_SEARCH_ASSIGNMENTS!.fetch(input, init) });
+          return fetchBoundPortfolioAssignments(env.JOB_SEARCH_ASSIGNMENTS, token);
         },
       },
       readKeychain: async () => {
