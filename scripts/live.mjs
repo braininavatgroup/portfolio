@@ -85,7 +85,16 @@ if (args.assignments) {
     const rows = await fetchPortfolioAssignments({ token, accessHeaders: { 'CF-Access-Client-Id': client, 'CF-Access-Client-Secret': secret } });
     const expected = process.env.PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT;
     if (expected !== undefined) expect(rows.length === Number(expected), 'count differs from reviewed migration');
-    return `${rows.length} valid assignments; codes and identities omitted`;
+    const healthUrl = new URL('/internal/portfolio-assignment-health', args.base);
+    const refused = await fetch(healthUrl, { signal: AbortSignal.timeout(30000) });
+    expect(refused.status === 403, 'unsigned assignment health read was not refused');
+    const health = await fetch(healthUrl, {
+      headers: { 'x-portfolio-assignments-token': token }, signal: AbortSignal.timeout(30000),
+    });
+    const status = await health.json();
+    expect(health.ok && status?.version === 1 && status.status === 'fresh' && status.count === rows.length,
+      `scheduled Worker binding unavailable (HTTP ${health.status}; upstream ${status?.upstreamStatus ?? 'unknown'})`);
+    return `${rows.length} valid assignments through local and scheduled Worker readers; codes and identities omitted`;
   });
   process.exit(failures ? 1 : 0);
 }
