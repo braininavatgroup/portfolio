@@ -17,11 +17,13 @@ const page = `
     </summary></details>
   </section>`;
 const zeroSessions = page.replace("6 link sessions", "No activity yet").replace('class="cell-value">6', 'class="cell-value">0');
+const manySessions = page.replace("6 link sessions", "1,000 link sessions").replace('class="cell-value">6', 'class="cell-value">1,000');
 
 describe("scheduled insights proof", () => {
   it("accepts a fresh saved page with consistent assigned-link activity", () => {
     expect(() => verifyScheduledDashboard(page, modified, now)).not.toThrow();
     expect(() => verifyScheduledDashboard(zeroSessions.replace('data-state="active"', 'data-state="idle"'), modified, now)).not.toThrow();
+    expect(() => verifyScheduledDashboard(manySessions, modified, now)).not.toThrow();
     expect(() => verifyScheduledDashboard(page.replace(/<details class="assignment"[\s\S]*?<\/details>/u, ""), modified, now)).not.toThrow();
   });
 

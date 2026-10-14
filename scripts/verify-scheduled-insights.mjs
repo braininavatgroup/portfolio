@@ -37,7 +37,7 @@ export function verifyScheduledDashboard(html, modifiedAt, now = new Date()) {
     const badge = row.querySelector("summary .badge")?.textContent?.trim();
     if (!sessions || !Number.isSafeInteger(count) || count < 0 ||
         state !== (count > 0 ? "active" : "idle") ||
-        badge !== (count === 0 ? "No activity yet" : count === 1 ? "1 link session" : `${count} link sessions`)) {
+        badge !== (count === 0 ? "No activity yet" : count === 1 ? "1 link session" : `${count.toLocaleString("en-US")} link sessions`)) {
       throw new Error("An assigned-link row disagrees with its session count");
     }
   }
