@@ -23,6 +23,7 @@ import {
 export { PortfolioChatBudgetObject } from "./portfolio-chat-budget";
 export { PortfolioFeedbackObject } from "./portfolio-feedback-store";
 import { handlePortfolioActivity } from './portfolio-activity';
+import { handlePortfolioAssignmentHealth } from './portfolio-assignment-health';
 
 type WorkerEnv = Omit<Cloudflare.Env, "ASSETS" | "IMAGES"> &
   { PORTFOLIO_ACTIVITY_READ_TOKEN?: string } &
@@ -84,6 +85,8 @@ const worker = {
     if (insights) return insights;
     const activity = await handlePortfolioActivity(request, env);
     if (activity) return activity;
+    const assignmentHealth = await handlePortfolioAssignmentHealth(request, env);
+    if (assignmentHealth) return assignmentHealth;
     // The feedback digest authenticates with its own bearer token; every other
     // route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);

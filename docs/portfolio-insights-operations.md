@@ -235,11 +235,13 @@ entries (or `BOARD_ACCESS_CLIENT_ID` / `BOARD_ACCESS_CLIENT_SECRET`) to pass
 Cloudflare Access. None belongs in arguments, logs or content. The setup wizard
 now covers only Cloudflare and Clarity.
 
-`npm run live -- --assignments` reads that exact adapter without recording a
-snapshot and prints only a count; set `PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT=2`
-for the reviewed initial cutover. The scheduled Worker uses the same adapter
-through its binding. Confirm its saved source is fresh via the existing
-scheduled-insights check; stale cached data is not cutover proof.
+`npm run live -- --assignments` reads the local adapter and the scheduled
+Worker's service binding without recording a snapshot. It prints only counts;
+set `PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT=2` for the reviewed initial cutover.
+The Worker exposes only a count at a GET-only, assignment-token-gated health
+route. The live check also verifies that unsigned requests are refused. Confirm
+the saved source itself is fresh after the next scheduled run; a working binding
+or a fresh dashboard timestamp alone is not cutover proof.
 
 The serialized history source key `airtable` and `--no-airtable` flag remain
 compatibility aliases only. The preferred flag is `--no-assignments`. New
