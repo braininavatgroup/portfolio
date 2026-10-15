@@ -11,13 +11,13 @@ const page = `
   <section id="assigned-links">
     <p>Link activity covers the last 90 days (since 2026-07-07).</p>
     <details class="assignment" data-state="active"><summary>
-      <span class="row-title">Activity from Peter Travers's assigned link</span>
-      <span class="badge">6 link sessions</span>
-      <span class="cell"><span class="cell-label">Link sessions</span><span class="cell-value">6</span></span>
+      <span class="row-title">Activity from Synthetic Recipient's assigned link</span>
+      <span class="badge">137 link sessions</span>
+      <span class="cell"><span class="cell-label">Link sessions</span><span class="cell-value">137</span></span>
     </summary></details>
   </section>`;
-const zeroSessions = page.replace("6 link sessions", "No activity yet").replace('class="cell-value">6', 'class="cell-value">0');
-const manySessions = page.replace("6 link sessions", "1,000 link sessions").replace('class="cell-value">6', 'class="cell-value">1,000');
+const zeroSessions = page.replace("137 link sessions", "No activity yet").replace('class="cell-value">137', 'class="cell-value">0');
+const manySessions = page.replace("137 link sessions", "1,000 link sessions").replace('class="cell-value">137', 'class="cell-value">1,000');
 
 describe("scheduled insights proof", () => {
   it("accepts a fresh saved page with consistent assigned-link activity", () => {
