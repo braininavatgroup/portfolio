@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { verifyScheduledDashboard, verifyStoredDashboard } from "./verify-scheduled-insights.mjs";
+import { verifyScheduledDashboard, verifyStoredDashboard, verifyAssignmentSnapshot } from "./verify-scheduled-insights.mjs";
 
 const now = new Date("2026-10-04T11:40:00.000Z");
 const modified = "Sun, 04 Oct 2026 11:12:00 GMT";
@@ -49,5 +49,32 @@ describe("scheduled insights proof", () => {
       url: `https://api.cloudflare.com/client/v4/accounts/${"a".repeat(32)}/r2/buckets/biv-portfolio-insights/objects/runs/dashboard.html`,
       authorization: "Bearer private-token",
     }]);
+  });
+
+  it("requires the current scheduled source to contain the preserved assignments without configuration errors", () => {
+    const snapshot: { capturedAt: string; value: { actionRecordId: string }[] | null; configurationErrors?: string[] } = {
+      capturedAt: "2026-10-04T11:12:00.000Z", value: [{ actionRecordId: "first" }, { actionRecordId: "second" }],
+    };
+    expect(() => verifyAssignmentSnapshot(snapshot, ["first", "second"], now)).not.toThrow();
+    expect(() => verifyAssignmentSnapshot({ ...snapshot, capturedAt: "2026-10-03T11:12:00.000Z" }, ["first"], now)).toThrow(/recent/u);
+    expect(() => verifyAssignmentSnapshot({ ...snapshot, configurationErrors: ["invalid"] }, ["first"], now)).toThrow(/invalid/u);
+    expect(() => verifyAssignmentSnapshot({ ...snapshot, value: null }, ["first"], now)).toThrow(/unavailable/u);
+    expect(() => verifyAssignmentSnapshot(snapshot, ["third"], now)).toThrow(/preserved/u);
+    expect(() => verifyAssignmentSnapshot(snapshot, ["first"], now, true)).toThrow(/differs/u);
+    expect(() => verifyAssignmentSnapshot(snapshot, ["first", "second"], now, true)).not.toThrow();
+  });
+
+  it("checks the private source only when preserved Action IDs were supplied", async () => {
+    const requests: string[] = [];
+    await verifyStoredDashboard({
+      accountId: "a".repeat(32), token: "private-token", expectedActionIds: ["first"], now,
+      fetcher: async (input) => {
+        requests.push(String(input));
+        return String(input).endsWith("source-assignments.json")
+          ? Response.json({ capturedAt: "2026-10-04T11:12:00.000Z", value: [{ actionRecordId: "first" }] })
+          : new Response(page, { headers: { "last-modified": modified } });
+      },
+    });
+    expect(requests.map((url) => url.split("/").at(-1))).toEqual(["dashboard.html", "source-assignments.json"]);
   });
 });

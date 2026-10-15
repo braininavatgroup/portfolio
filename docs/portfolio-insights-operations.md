@@ -350,6 +350,17 @@ its own pass or fail line, never the page or the API's errors. If the Worker's
 cron moves, move this workflow's cron and the 11:10 the script checks against
 with it.
 
+For a cutover that must prove particular assignments survived, dispatch
+`verify-scheduled-insights.yml` after the 11:10 UTC cron with
+`expected_action_ids` set to the preserved Supabase Action UUIDs. The check
+reads private `runs/source-assignments.json` in memory and requires its
+`capturedAt` to be from that scheduled run, both UUIDs in the assignment array,
+and no configuration errors. It prints no source contents. After reviewing
+that proof and the credential retirement, the same dispatch can set
+`retire_legacy_credential` to delete only the unused
+`PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN` Worker secret. Keep the old Airtable records
+recoverable; this step does not alter assignments or their state.
+
 Read the result at **<https://insights.braininavat.dance>**, behind Cloudflare
 Access. The Worker verifies the Access assertion itself — signature, audience,
 expiry, and identity — rather than trusting that the edge applied the gate,

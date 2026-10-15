@@ -4,7 +4,17 @@ on:
   schedule:
     # The Worker runs at 11:10 UTC. Read its saved page after it has finished.
     - cron: '40 11 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      expected_action_ids:
+        description: 'Comma-separated preserved Action UUIDs for a private source check'
+        required: false
+        type: string
+      retire_legacy_credential:
+        description: 'After private source proof, delete only the obsolete Worker Airtable secret'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -26,3 +36,13 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EXPECTED_ACTION_IDS: ${{ inputs.expected_action_ids }}
+          RETIRE_LEGACY_CREDENTIAL: ${{ inputs.retire_legacy_credential }}
+      - name: Retire obsolete Worker Airtable credential
+        if: ${{ inputs.retire_legacy_credential }}
+        run: |
+          test -n "$EXPECTED_ACTION_IDS"
+          npx wrangler secret delete PORTFOLIO_INSIGHTS_AIRTABLE_TOKEN --config wrangler.main-preview.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EXPECTED_ACTION_IDS: ${{ inputs.expected_action_ids }}
