@@ -12,6 +12,7 @@
   ],
   "controls": [
     { "id": "private-activity-projection", "source": "worker/portfolio-activity.ts", "marker": "export async function handlePortfolioActivity" },
+    { "id": "assignment-binding-health", "source": "worker/portfolio-assignment-health.ts", "marker": "export async function handlePortfolioAssignmentHealth" },
     { "id": "world-record-selection", "source": "components/PortfolioWorld.tsx", "marker": "aria-pressed={selectedId === node.id}" },
     { "id": "contents-selection", "source": "components/PortfolioReadingRoom.tsx", "marker": "onSelect={selectFromContents}" },
     { "id": "panel-resize", "source": "scripts/check-reading-room-interactions.mjs", "marker": "checkReadingRoomResize" },

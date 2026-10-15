@@ -87,8 +87,8 @@ const worker = {
     if (activity) return activity;
     const assignmentHealth = await handlePortfolioAssignmentHealth(request, env);
     if (assignmentHealth) return assignmentHealth;
-    // The feedback digest authenticates with its own bearer token; every other
-    // route is public.
+    // The internal reads above and the feedback digest each authenticate with
+    // their own token; every other route is public.
     const admin = await handlePortfolioFeedbackAdmin(request, env);
     if (admin) return admin;
     return withPortfolioFeedback(request, env, () =>
