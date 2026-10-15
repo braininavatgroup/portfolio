@@ -118,6 +118,22 @@ test("the built activity route is a separate, fail-closed read capability", asyn
   assert.equal((await fetchBuiltWorker(new Request("https://insights.braininavat.dance/internal/portfolio-activity", { headers }), { ...env, PORTFOLIO_INSIGHTS_HOST: "insights.braininavat.dance" })).status, 403);
 });
 
+test("the built assignment-health route is a separate, fail-closed read capability", async () => {
+  const url = "https://bradleyberkman.com/internal/portfolio-assignment-health";
+  const secret = "b".repeat(64);
+  const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: secret, PORTFOLIO_ACTIVITY_READ_TOKEN: "a".repeat(64) };
+  assert.equal((await fetchBuiltWorker(new Request(url), env)).status, 403);
+  assert.equal((await fetchBuiltWorker(new Request(url, { headers: { "x-portfolio-activity-token": "a".repeat(64) } }), env)).status, 403);
+  assert.equal((await fetchBuiltWorker(new Request(url, { headers: { "x-portfolio-assignments-token": "a".repeat(64) } }), env)).status, 403);
+  const headers = { "x-portfolio-assignments-token": secret };
+  const response = await fetchBuiltWorker(new Request(url, { headers }), env);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), { version: 1, status: "unavailable", reason: "binding" });
+  assert.equal((await fetchBuiltWorker(new Request(url + "?raw=true", { headers }), env)).status, 400);
+  assert.equal((await fetchBuiltWorker(new Request(url, { method: "POST", headers }), env)).status, 405);
+});
+
 const deployedEnvironment = {
   PORTFOLIO_MAIN_PREVIEW_SESSION_SECRET:
     "a-long-independent-session-signing-secret-for-preview-only",
