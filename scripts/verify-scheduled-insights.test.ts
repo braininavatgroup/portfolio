@@ -11,7 +11,7 @@ const page = `
   <section id="assigned-links">
     <p>Link activity covers the last 90 days (since 2026-07-07).</p>
     <details class="assignment" data-state="active"><summary>
-      <span class="row-title">Activity from Peter Travers's assigned link</span>
+      <span class="row-title">Activity from Synthetic Recipient's assigned link</span>
       <span class="badge">6 link sessions</span>
       <span class="cell"><span class="cell-label">Link sessions</span><span class="cell-value">6</span></span>
     </summary></details>

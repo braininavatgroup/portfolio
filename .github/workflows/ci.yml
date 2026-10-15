@@ -16,6 +16,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+      - name: Public-tree denylist
+        uses: braininavatgroup/agent-operating-policy/.github/actions/public-tree-check@ae63f1fd82c5a198cbbb51aee51491407505fd2a
+        with:
+          denylist: ${{ vars.PUBLIC_TREE_DENYLIST }}
       - uses: actions/setup-node@v6
         with:
           node-version: 22.23.1
