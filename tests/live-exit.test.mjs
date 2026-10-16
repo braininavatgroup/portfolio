@@ -30,7 +30,7 @@ function record(key) {
 }
 function page(context) {
   const events = {};
-  let width = 1440, mouse = {x:0,y:0}, delta = 0, down = false, position = 100, opacity = '0.75';
+  let width = 1440, mouse = {x:0,y:0}, delta = 0, down = false, position = 100, opacity = '0.75', currentUrl = 'about:blank';
   const emit = (name, value) => events[name]?.(value);
   const link = { first() { opacity = '0.75'; return this; }, filter() { return this; }, locator() { return this; },
     async evaluate(fn) {
@@ -39,11 +39,15 @@ function page(context) {
     }, async hover() { opacity = '1'; }, async focus() { opacity = '1'; } };
   return {
     on(name, fn) { events[name] = fn; },
+    url() { return currentUrl; },
     async goto(url) {
       record(url);
       if (mode === 'browser-down') throw new Error('browser disconnected');
       if (mode === 'navigation-timeout') throw new TimeoutError('navigation did not answer');
+      const before = currentUrl;
+      currentUrl = url;
       if (mode === 'no-response') return null;
+      if (mode === 'hash-null' && before !== 'about:blank' && before.split('#')[0] === url.split('#')[0]) return null;
       if (mode === 'browser-http') emit('response', {status:()=>503});
       return { status: () => 200 };
     },
@@ -173,7 +177,7 @@ test("actual full CLI keeps browser startup unavailable and known wrong preceden
 });
 
 test("actual managed browser path classifies transport, responses, late events and locator waits", () => {
-  for (const [mode, exit] of [["browser-pass", 0], ["browser-down", 3], ["navigation-timeout", 3], ["no-response", 3], ["browser-http", 1], ["late-down", 3], ["late-js", 1], ["locator-timeout", 1], ["late-disconnect", 3]]) {
+  for (const [mode, exit] of [["browser-pass", 0], ["hash-null", 0], ["browser-down", 3], ["navigation-timeout", 3], ["no-response", 3], ["browser-http", 1], ["late-down", 3], ["late-js", 1], ["locator-timeout", 1], ["late-disconnect", 3]]) {
     const result = runLive(mode, []);
     assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
     assert.equal(result.counts.sleeps.filter(ms => ms === 15000).length, ["browser-http", "late-js", "locator-timeout"].includes(mode) ? 1 : 0, mode);

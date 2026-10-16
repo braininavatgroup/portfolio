@@ -232,10 +232,21 @@ async function main() {
           page.on("response", response => { if (response.status() >= 400) wrong.push(`HTTP ${response.status()}`); });
           const goto = page.goto.bind(page);
           page.goto = async (...args) => {
+            const before = page.url();
+            const hadResponse = loaded;
             loaded = false;
             const response = await goto(...args);
-            requireInput(response, "navigation returned no response");
-            expect(response.status() === 200, `status ${response.status()}`);
+            if (!response) {
+              const target = new URL(args[0], before);
+              const after = new URL(page.url());
+              const previous = new URL(before);
+              const sameDocument = hadResponse && after.href === target.href
+                && after.origin === previous.origin && after.pathname === previous.pathname
+                && after.search === previous.search;
+              requireInput(sameDocument, "navigation returned no response");
+            } else {
+              expect(response.status() === 200, `status ${response.status()}`);
+            }
             loaded = true;
             return response;
           };
