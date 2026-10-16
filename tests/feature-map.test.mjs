@@ -4,7 +4,6 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import "./live-exit.test.mjs";
 
 test("a stale control marker fails before the browser or production starts", () => {
   const directory = mkdtempSync(path.join(os.tmpdir(), "portfolio-feature-map-"));

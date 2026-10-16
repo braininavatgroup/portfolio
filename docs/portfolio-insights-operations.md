@@ -239,7 +239,10 @@ now covers only Cloudflare and Clarity.
 Worker's service binding without recording a snapshot. It prints only counts;
 set `PORTFOLIO_ASSIGNMENTS_EXPECTED_COUNT=2` for the reviewed initial cutover.
 The Worker exposes only a count at a GET-only, assignment-token-gated health
-route. The live check also verifies that unsigned requests are refused. Confirm
+route; on failure it adds only the upstream HTTP status, a transport class, and
+whether the source answered wrongly or could not be reached, which the live
+check reports as a failure (exit 1) or as unavailable (exit 3). The live check
+also verifies that unsigned requests are refused. Confirm
 the saved source itself is fresh after the next scheduled run; a working binding
 or a fresh dashboard timestamp alone is not cutover proof.
 
