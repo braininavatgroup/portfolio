@@ -4,7 +4,7 @@
  *
  *   npm run live [-- --dist <dir>] [-- --base <url>]
  *
- * Exits0 on pass,1 only after one fresh wrong-answer retry,3 when unable to
+ * Exits 0 on pass, 1 only after one fresh wrong-answer retry, 3 when unable to
  * observe or missing a required input. One settling wait per invocation.
  *
  * HTTP checks every deployed surface (bradleyberkman.com, www, the Access-gated
@@ -136,33 +136,28 @@ async function main() {
 
   let homeHtml = "";
   await check("GET / is 200 with the home page", async () => {
-    const { response, body } = await get(`${base}/`);
-    expect(response.status === 200, `status ${response.status}`);
+    const { body } = await get(`${base}/`);
     expect(body.includes("<title>Bradley Berkman"), "no Bradley Berkman title");
     if (args["expect-text"]) expect(body.includes(args["expect-text"]), `missing "${args["expect-text"]}"`);
     homeHtml = body;
   });
   await check("GET www / is 200", async () => {
-    const { response } = await get(`${base.replace("://", "://www.")}/`, { readBody: false });
-    expect(response.status === 200, `status ${response.status}`);
+    await get(`${base.replace("://", "://www.")}/`, { readBody: false });
   });
   for (const [id, record] of records) {
     await check(`GET /index/${id} is 200 with its label`, async () => {
-      const { response, body } = await get(`${base}/index/${id}`);
-      expect(response.status === 200, `status ${response.status}`);
+      const { body } = await get(`${base}/index/${id}`);
       expect(body.includes(html(record.label)), `label "${record.label}" not rendered`);
     });
   }
   for (const { path: route, contains: text } of featureMap.routes) {
     await check(`GET ${route} is 200`, async () => {
-      const { response, body } = await get(`${base}${route}`);
-      expect(response.status === 200, `status ${response.status}`);
+      const { body } = await get(`${base}${route}`);
       expect(body.includes(text), `missing ${text}`);
     });
   }
   await check("GET /sitemap.xml lists every record", async () => {
-    const { response, body } = await get(`${base}/sitemap.xml`);
-    expect(response.status === 200, `status ${response.status}`);
+    const { body } = await get(`${base}/sitemap.xml`);
     const missing = records.filter(([id]) => !body.includes(`/index/${id}<`)).map(([id]) => id);
     expect(missing.length === 0, `missing ${missing.join(", ")}`);
   });
@@ -176,18 +171,16 @@ async function main() {
     return `${bytes.length} bytes, matching the approved PDF`;
   });
   await check("GET /index/not-a-project is 404", async () => {
-    const { response } = await get(`${base}/index/not-a-project`, { expectedStatus: 404, readBody: false });
-    expect(response.status === 404, `status ${response.status}`);
+    await get(`${base}/index/not-a-project`, { expectedStatus: 404, readBody: false });
   });
   await check("chat session endpoint is configured", async () => {
-    const { response, body } = await get(`${base}/api/portfolio-chat/session`);
-    expect(response.status === 200, `status ${response.status}: ${body.slice(0, 120)}`);
+    const { body } = await get(`${base}/api/portfolio-chat/session`);
     expect((await subjectJson(new Response(body)))?.required === true, `unexpected ${body.slice(0, 120)}`);
   });
   await check("insights.braininavat.dance is behind Cloudflare Access", async () => {
     const { response } = await get("https://insights.braininavat.dance/", { expectedStatus: 302, readBody: false });
     const location = response.headers.get("location") ?? "";
-    expect(response.status === 302 && location.includes(".cloudflareaccess.com/"), `status ${response.status} -> ${location}`);
+    expect(location.includes(".cloudflareaccess.com/"), `redirects to ${location}`);
   });
 
   // --- Build identity: production serves the artifact ci tested ---------------

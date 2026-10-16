@@ -7,6 +7,13 @@ import { JSDOM } from "jsdom";
 const OBJECT_URL = (accountId, name) =>
   `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/biv-portfolio-insights/objects/runs/${name}`;
 
+function readObject(fetcher, accountId, token, name) {
+  return fetcher(OBJECT_URL(accountId, name), {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(20_000),
+  });
+}
+
 function scheduledAt(now) {
   const scheduled = new Date(now);
   scheduled.setUTCHours(11, 10, 0, 0);
@@ -67,19 +74,13 @@ export function verifyAssignmentSnapshot(snapshot, expectedActionIds, now = new 
 /** @param {{accountId: string, token: string, expectedActionIds?: string[], requireExactSet?: boolean, fetcher?: typeof fetch, now?: Date}} options */
 export async function verifyStoredDashboard({ accountId, token, expectedActionIds = [], requireExactSet = false, fetcher = fetch, now = new Date() }) {
   if (!/^[a-f0-9]{32}$/iu.test(accountId ?? "") || !token) throw new Error("Cloudflare proof credentials are missing");
-  const response = await fetcher(OBJECT_URL(accountId, 'dashboard.html'), {
-    headers: { authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(20_000),
-  });
+  const response = await readObject(fetcher, accountId, token, 'dashboard.html');
   if (!response.ok) throw new Error(`The saved dashboard read returned HTTP ${response.status}`);
   const modifiedAt = response.headers.get("last-modified");
   const html = await response.text();
   verifyScheduledDashboard(html, modifiedAt, now);
   if (expectedActionIds.length) {
-    const source = await fetcher(OBJECT_URL(accountId, 'source-assignments.json'), {
-      headers: { authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(20_000),
-    });
+    const source = await readObject(fetcher, accountId, token, 'source-assignments.json');
     if (!source.ok) throw new Error(`The assignment source read returned HTTP ${source.status}`);
     let snapshot;
     try { snapshot = await source.json(); }
