@@ -1,5 +1,6 @@
 import { handleInternalRead, internalJson } from './internal-read';
 import { fetchBoundPortfolioAssignments } from './portfolio-assignment-binding';
+import { AssignmentConfigurationError, AssignmentResponseError } from '../scripts/portfolio-insights-assignments.mjs';
 
 type AssignmentHealthEnv = {
   JOB_SEARCH_ASSIGNMENTS?: Fetcher;
@@ -19,7 +20,7 @@ export async function handlePortfolioAssignmentHealth(request: Request, env: Ass
       const assignments = await fetchBoundPortfolioAssignments(env.JOB_SEARCH_ASSIGNMENTS, secret,
         status => { upstreamStatus = status; }, error => { transportError = error; });
       return internalJson({ version: 1, status: 'fresh', count: assignments.length });
-    } catch {
+    } catch (error) {
       // The projection contains private identities and codes; expose only the
       // transport class, never the exception message or upstream response body.
       const message = transportError instanceof Error ? transportError.message.toLowerCase() : '';
@@ -30,7 +31,8 @@ export async function handlePortfolioAssignmentHealth(request: Request, env: Ass
         : message.includes('network') ? 'network'
         : message.includes('url') ? 'url'
         : 'other';
-      return internalJson({ version: 1, status: 'unavailable', upstreamStatus, transportCategory }, 503);
+      const observation = error instanceof AssignmentConfigurationError || error instanceof AssignmentResponseError ? 'wrong' : 'unavailable';
+      return internalJson({ version: 1, status: 'unavailable', upstreamStatus, transportCategory, observation }, 503);
     }
   });
 }

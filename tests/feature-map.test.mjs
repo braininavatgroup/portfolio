@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import "./live-exit.test.mjs";
 
 test("a stale control marker fails before the browser or production starts", () => {
   const directory = mkdtempSync(path.join(os.tmpdir(), "portfolio-feature-map-"));
@@ -18,6 +19,6 @@ test("a stale control marker fails before the browser or production starts", () 
     env: { ...process.env, PORTFOLIO_FEATURE_MAP: manifest },
     encoding: "utf8",
   });
-  assert.notEqual(result.status, 0);
-  assert.match(result.stdout, /FAIL map control stale/);
+  assert.equal(result.status, 3);
+  assert.match(result.stdout, /DOWN map control stale/);
 });

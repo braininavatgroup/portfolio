@@ -12,6 +12,7 @@ export class AssignmentConfigurationError extends Error {
 export class AssignmentRequestError extends Error {
   constructor(/** @type {string} */ message) { super(message); this.name = 'AssignmentRequestError'; }
 }
+export class AssignmentResponseError extends AssignmentRequestError {}
 
 /** @param {{env?: Record<string, string | undefined>, readKeychain?: (service: string, account: string) => Promise<string>}} options */
 export async function resolveAssignmentToken({ env = {}, readKeychain } = {}) {
@@ -27,10 +28,16 @@ export async function fetchPortfolioAssignments({ token, fetchImpl = globalThis.
   try {
     response = await fetchImpl(ASSIGNMENTS_URL, { method: 'GET', redirect: 'error', headers: { ...accessHeaders, 'x-portfolio-assignments-token': token } });
   } catch { throw new AssignmentRequestError('Assignment request failed'); }
-  if (!response.ok) throw new AssignmentRequestError(`Assignment request failed: HTTP ${response.status}`);
+  if (!response.ok) {
+    const Failure = [401, 403].includes(response.status) ? AssignmentRequestError : AssignmentResponseError;
+    throw new Failure(`Assignment request failed: HTTP ${response.status}`);
+  }
   let body;
   try { body = await response.json(); }
-  catch { throw new AssignmentRequestError('Assignment response is not JSON'); }
+  catch (error) {
+    if (error instanceof SyntaxError) throw new AssignmentResponseError('Assignment response is not JSON');
+    throw new AssignmentRequestError('Assignment response could not be read');
+  }
   if (body?.version !== 1 || !Array.isArray(body.assignments)) throw new AssignmentConfigurationError(['Unsupported assignment projection']);
   const codes = new Set();
   for (const row of body.assignments) {
