@@ -33,7 +33,10 @@ function page(context) {
   let width = 1440, mouse = {x:0,y:0}, delta = 0, down = false, position = 100, opacity = '0.75';
   const emit = (name, value) => events[name]?.(value);
   const link = { first() { opacity = '0.75'; return this; }, filter() { return this; }, locator() { return this; },
-    async evaluate() { return opacity; }, async hover() { opacity = '1'; }, async focus() { opacity = '1'; } };
+    async evaluate(fn) {
+      global.getComputedStyle = () => ({opacity});
+      return fn({closest:()=>mode === 'carousel-parent-missing' ? null : {querySelector:()=>mode === 'carousel-button-missing' ? null : {focus(){}}}});
+    }, async hover() { opacity = '1'; }, async focus() { opacity = '1'; } };
   return {
     on(name, fn) { events[name] = fn; },
     async goto(url) {
@@ -56,7 +59,10 @@ function page(context) {
       if (selector === '.reader-carousel-card a') return link;
       if (selector.includes('avatar-overlay')) return { async waitFor(){}, async getAttribute(){return String(position);} };
       if (selector.includes('portfolio-world')) return { async boundingBox(){return {x:0,y:0,width:390,height:844};} };
-      return { async evaluateAll() {
+      return { async evaluateAll(fn) {
+        if (mode.startsWith('toolbar-')) return fn([{getBoundingClientRect:()=>({width:100,height:40,x:0,y:0}),
+          querySelector:()=>mode === 'toolbar-art-missing' ? null : {querySelector:()=>({getBoundingClientRect:()=>({x:24,y:11,width:18,height:18})})},
+          closest:()=>null}]);
         if (mode === 'late-down') emit('requestfailed', {failure:()=>({errorText:'ERR_CONNECTION_RESET'})});
         if (mode === 'late-js') emit('pageerror', new Error('render failed'));
         if (mode === 'locator-timeout') throw new TimeoutError('toolbar not painted');
@@ -108,6 +114,8 @@ globalThis.fetch = async (url) => {
   }
   if (u.pathname === '/internal/portfolio-assignment-health') {
     if (n % 2) return reply('', 403);
+    if (mode.startsWith('health-source-')) return reply(JSON.stringify({version:1,status:'unavailable',upstreamStatus:mode === 'health-source-auth' ? 403 : mode === 'health-source-auth401' ? 401 : null,transportCategory:mode === 'health-source-network' ? 'network' : 'other'}), 503);
+    if (mode === 'health-binding') return reply('{"version":1,"status":"unavailable","reason":"binding"}', 503);
     return reply(mode === 'health-null' ? 'null' : '{"version":1,"status":"fresh","count":0}');
   }
   if (u.hostname === 'insights.braininavat.dance') return reply('', 302, {location: 'https://example.cloudflareaccess.com/login'});
@@ -194,4 +202,21 @@ test("deployed build identity uses two fresh reads and one existing60s settling 
   const result = runLive("browser-pass", ["--dist", "/nonexistent/portfolio-artifact"]);
   assert.equal(result.status, 3, result.stdout + result.stderr);
   assert.deepEqual(result.counts.sleeps, []);
+});
+
+test("structured upstream auth and transport are unavailable, but absent production binding stays wrong", () => {
+  for (const [mode, exit] of [["health-source-auth", 3], ["health-source-auth401", 3], ["health-source-network", 3], ["health-source-other", 3], ["health-binding", 1]]) {
+    const result = runLive(mode, ["--assignments"]);
+    assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.equal(result.counts.requests["bradley-job-board.bradley-d45.workers.dev/internal/portfolio-assignments"], exit === 1 ? 2 : 1, mode);
+    assert.deepEqual(result.counts.sleeps, exit === 1 ? [15000] : [], mode);
+  }
+});
+
+test("actual browser callbacks classify absent required DOM as wrong after a fresh retry", () => {
+  for (const mode of ["toolbar-parent-missing", "toolbar-art-missing", "carousel-parent-missing", "carousel-button-missing"]) {
+    const result = runLive(mode, []);
+    assert.equal(result.status, 1, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.deepEqual(result.counts.sleeps, [15000], mode);
+  }
 });

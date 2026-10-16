@@ -13,6 +13,7 @@ export async function checkToolbarGeometry(page) {
       if (!art) return { missingArtwork: true };
       const artwork = art.getBoundingClientRect();
       const pane = bar.closest('.portfolio-reading-room-pane');
+      if (!pane) return { missingPane: true };
       const actions = [...pane.querySelectorAll(':scope > .portfolio-reading-room-view-controls svg')]
         .map(svg => {
           const rect = svg.getBoundingClientRect();
@@ -29,7 +30,7 @@ export async function checkToolbarGeometry(page) {
     }));
   const near = (a, b) => Math.abs(a - b) < 0.02;
   for (const row of rows) {
-    if (row.missingArtwork || !near(row.height, 40) || !near(row.centerY, row.artCenterY) || !near(row.artInset, 33)) {
+    if (row.missingArtwork || row.missingPane || !near(row.height, 40) || !near(row.centerY, row.artCenterY) || !near(row.artInset, 33)) {
       throw new WrongAnswer(`Toolbar artwork drift: ${JSON.stringify(row)}`);
     }
     for (const action of row.actions) {

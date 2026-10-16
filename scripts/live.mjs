@@ -99,6 +99,10 @@ async function main() {
       });
       requireInput(![401, 403].includes(health.status), 'assignment health credential was refused');
       const status = await subjectJson(health);
+      const sourceUnavailable = health.status === 503 && status?.version === 1 && status.status === 'unavailable'
+        && (status.upstreamStatus === 401 || status.upstreamStatus === 403
+          || status.upstreamStatus === null && ['redirect', 'request-context', 'subrequest', 'service-binding', 'network', 'url', 'other'].includes(status.transportCategory));
+      requireInput(!sourceUnavailable, 'scheduled assignment source authentication or transport unavailable');
       expect(health.ok && status?.version === 1 && status.status === 'fresh' && status.count === rows.length,
         `scheduled Worker binding unavailable (HTTP ${health.status}; upstream ${status?.upstreamStatus ?? 'unknown'}; transport ${status?.transportCategory ?? 'unknown'})`);
       return `${rows.length} valid assignments through local and scheduled Worker readers; codes and identities omitted`;

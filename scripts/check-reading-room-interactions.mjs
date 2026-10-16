@@ -43,7 +43,13 @@ export async function checkCarouselLinkFeedback(page, url) {
     for (const platform of ['Spotify', 'Beatport']) {
       const link = links.filter({has: page.locator(`[data-contact="${platform.toLowerCase()}"]`)}).first();
       // Focus reveals the card and pauses automatic scrolling, without navigation.
-      await link.evaluate(el => el.closest('.reader-carousel-item').querySelector('button').focus());
+      const focusedCard = await link.evaluate(el => {
+        const button = el.closest('.reader-carousel-item')?.querySelector('button');
+        if (!button) return false;
+        button.focus();
+        return true;
+      });
+      if (!focusedCard) throw new WrongAnswer(`${record} ${platform}: carousel card or focus button missing`);
       const mark = link.locator('.portfolio-node-mark');
       const resting = await mark.evaluate(el => getComputedStyle(el).opacity);
       await link.hover();
