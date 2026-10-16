@@ -30,6 +30,7 @@ function record(key) {
 }
 function page(context) {
   const events = {};
+  let currentUrl = 'about:blank';
   let width = 1440, mouse = {x:0,y:0}, delta = 0, down = false, position = 100, opacity = '0.75';
   const emit = (name, value) => events[name]?.(value);
   const link = { first() { opacity = '0.75'; return this; }, filter() { return this; }, locator() { return this; },
@@ -39,8 +40,23 @@ function page(context) {
     }, async hover() { opacity = '1'; }, async focus() { opacity = '1'; } };
   return {
     on(name, fn) { events[name] = fn; },
+    url() { return currentUrl; },
     async goto(url) {
       record(url);
+      const previous = currentUrl;
+      currentUrl = url;
+      if (mode.startsWith('browser-null-') && url.endsWith('#infamous')) {
+        const changed = new URL(url);
+        if (mode === 'browser-null-origin') changed.hostname = 'fixture.invalid';
+        if (mode === 'browser-null-path') changed.pathname = '/unverified';
+        if (mode === 'browser-null-query') changed.search = '?unverified';
+        currentUrl = mode === 'browser-null-unchanged' ? previous : changed.href;
+        return null;
+      }
+      if (mode === 'browser-hash' && previous !== 'about:blank') {
+        const before = new URL(previous), after = new URL(url);
+        if (before.origin === after.origin && before.pathname === after.pathname && before.search === after.search && before.hash !== after.hash) return null;
+      }
       if (mode === 'browser-down') throw new Error('browser disconnected');
       if (mode === 'navigation-timeout') throw new TimeoutError('navigation did not answer');
       if (mode === 'no-response') return null;
@@ -257,5 +273,23 @@ test("actual Worker adapter and actual CLI retain body-read versus received-JSON
     assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
     assert.equal(result.counts.requests["bradley-job-board.bradley-d45.workers.dev/internal/portfolio-assignments"], exit === 1 ? 2 : 1, mode);
     assert.deepEqual(result.counts.sleeps, exit === 1 ? [15000] : [], mode);
+  }
+});
+
+test("same-document hash navigation retains a previously observed200 without inventing a missing response", () => {
+  const result = runLive("browser-hash", []);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.deepEqual(result.counts.sleeps, []);
+  assert.equal(result.counts.browser["https://bradleyberkman.com/#infamous"], 1);
+  const absent = runLive("no-response", []);
+  assert.equal(absent.status, 3, absent.stdout + absent.stderr);
+  assert.deepEqual(absent.counts.sleeps, []);
+});
+
+test("a null navigation cannot carry a200 receipt across origin, path, query or an unchanged URL", () => {
+  for (const mode of ["browser-null-origin", "browser-null-path", "browser-null-query", "browser-null-unchanged"]) {
+    const result = runLive(mode, []);
+    assert.equal(result.status, 3, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.deepEqual(result.counts.sleeps, []);
   }
 });

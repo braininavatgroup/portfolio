@@ -232,8 +232,17 @@ async function main() {
           page.on("response", response => { if (response.status() >= 400) wrong.push(`HTTP ${response.status()}`); });
           const goto = page.goto.bind(page);
           page.goto = async (...args) => {
+            const previouslyLoaded = loaded;
+            const previousUrl = page.url();
             loaded = false;
             const response = await goto(...args);
+            if (response === null && previouslyLoaded) {
+              const previous = new URL(previousUrl), current = new URL(page.url());
+              loaded = previous.origin === current.origin && previous.pathname === current.pathname
+                && previous.search === current.search && previous.hash !== current.hash;
+              requireInput(loaded, "navigation returned no response for an unverified document");
+              return response;
+            }
             requireInput(response, "navigation returned no response");
             expect(response.status() === 200, `status ${response.status()}`);
             loaded = true;
