@@ -32,10 +32,23 @@ describe('scheduled assignment reader health', () => {
 
   it('keeps failures private and distinguishes a response from a transport failure', async () => {
     const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: token, JOB_SEARCH_ASSIGNMENTS: { fetch: async () => new Response('private response', { status: 403 }) } as unknown as Fetcher };
-    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: 403, transportCategory: 'other' });
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: 403, transportCategory: 'other', observation: 'unavailable' });
     env.JOB_SEARCH_ASSIGNMENTS = { fetch: async () => { throw new Error('private error with code'); } } as unknown as Fetcher;
-    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'other' });
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'other', observation: 'unavailable' });
     env.JOB_SEARCH_ASSIGNMENTS = { fetch: async () => { throw new TypeError('Redirect mode blocked'); } } as unknown as Fetcher;
-    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'redirect' });
+    expect(await (await handlePortfolioAssignmentHealth(authorized(), env))?.json()).toEqual({ version: 1, status: 'unavailable', upstreamStatus: null, transportCategory: 'redirect', observation: 'unavailable' });
   });
+  it('preserves completed wrong JSON versus interrupted response bodies without private diagnostics', async () => {
+    for (const [response, observation] of [
+      [new Response('{'), 'wrong'],
+      [new Response('null'), 'wrong'],
+      [new Response(new ReadableStream({ start(controller) { controller.error(new Error('private interrupted body')); } })), 'unavailable'],
+    ] as const) {
+      const env = { PORTFOLIO_ASSIGNMENTS_READ_TOKEN: token, JOB_SEARCH_ASSIGNMENTS: { fetch: async () => response } as unknown as Fetcher };
+      const result = await handlePortfolioAssignmentHealth(authorized(), env);
+      expect(result?.status).toBe(503);
+      expect(await result?.json()).toEqual({version: 1, status: 'unavailable', upstreamStatus: 200, transportCategory: 'other', observation});
+    }
+  });
+
 });

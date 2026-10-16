@@ -100,8 +100,8 @@ async function main() {
       requireInput(![401, 403].includes(health.status), 'assignment health credential was refused');
       const status = await subjectJson(health);
       const sourceUnavailable = health.status === 503 && status?.version === 1 && status.status === 'unavailable'
-        && (status.upstreamStatus === 401 || status.upstreamStatus === 403
-          || status.upstreamStatus === null && ['redirect', 'request-context', 'subrequest', 'service-binding', 'network', 'url', 'other'].includes(status.transportCategory));
+        && (status.observation === 'unavailable' || status.observation === undefined && (status.upstreamStatus === 401 || status.upstreamStatus === 403
+          || status.upstreamStatus === null && ['redirect', 'request-context', 'subrequest', 'service-binding', 'network', 'url', 'other'].includes(status.transportCategory)));
       requireInput(!sourceUnavailable, 'scheduled assignment source authentication or transport unavailable');
       expect(health.ok && status?.version === 1 && status.status === 'fresh' && status.count === rows.length,
         `scheduled Worker binding unavailable (HTTP ${health.status}; upstream ${status?.upstreamStatus ?? 'unknown'}; transport ${status?.transportCategory ?? 'unknown'})`);
@@ -125,9 +125,10 @@ async function main() {
     }, { retry: false });
   }
   if (args["map-only"] || exitCode()) return;
-  async function get(url, init = {}) {
+  async function get(url, { expectedStatus = 200, readBody = true, ...init } = {}) {
     const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(20_000), ...init });
-    return { response, body: await response.text() };
+    expect(response.status === expectedStatus, `status ${response.status}`);
+    return { response, body: readBody ? await response.text() : "" };
   }
   const html = (text) => text.replaceAll("&", "&amp;");
 
@@ -142,7 +143,7 @@ async function main() {
     homeHtml = body;
   });
   await check("GET www / is 200", async () => {
-    const { response } = await get(`${base.replace("://", "://www.")}/`);
+    const { response } = await get(`${base.replace("://", "://www.")}/`, { readBody: false });
     expect(response.status === 200, `status ${response.status}`);
   });
   for (const [id, record] of records) {
@@ -168,14 +169,14 @@ async function main() {
   await check("GET /cv/bradley-berkman-cv.pdf is a PDF", async () => {
     const expected = readFileSync(new URL("../public/cv/bradley-berkman-cv.pdf", import.meta.url));
     const response = await fetch(`${base}/cv/bradley-berkman-cv.pdf`, { signal: AbortSignal.timeout(20_000) });
-    const bytes = Buffer.from(await response.arrayBuffer());
     expect(response.status === 200, `status ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
     expect(bytes.subarray(0, 5).toString() === "%PDF-", "not a PDF");
     expect(bytes.equals(expected), "live CV differs from the approved PDF in this revision");
     return `${bytes.length} bytes, matching the approved PDF`;
   });
   await check("GET /index/not-a-project is 404", async () => {
-    const { response } = await get(`${base}/index/not-a-project`);
+    const { response } = await get(`${base}/index/not-a-project`, { expectedStatus: 404, readBody: false });
     expect(response.status === 404, `status ${response.status}`);
   });
   await check("chat session endpoint is configured", async () => {
@@ -184,7 +185,7 @@ async function main() {
     expect((await subjectJson(new Response(body)))?.required === true, `unexpected ${body.slice(0, 120)}`);
   });
   await check("insights.braininavat.dance is behind Cloudflare Access", async () => {
-    const { response } = await get("https://insights.braininavat.dance/");
+    const { response } = await get("https://insights.braininavat.dance/", { expectedStatus: 302, readBody: false });
     const location = response.headers.get("location") ?? "";
     expect(response.status === 302 && location.includes(".cloudflareaccess.com/"), `status ${response.status} -> ${location}`);
   });

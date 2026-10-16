@@ -79,6 +79,7 @@ module.exports = { errors: { TimeoutError }, chromium: { launch: async () => {
 `);
   writeFileSync(preload, `
 import { readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 const counts = { requests: {}, sleeps: [] };
 const mode = ${JSON.stringify(mode)};
 const root = ${JSON.stringify(root)};
@@ -113,13 +114,24 @@ globalThis.fetch = async (url) => {
     return reply('{"version":1,"assignments":[]}');
   }
   if (u.pathname === '/internal/portfolio-assignment-health') {
+    if (mode.startsWith('health-producer-') && n % 2 === 0) {
+      const { handlePortfolioAssignmentHealth } = await import(pathToFileURL(root + '/worker/portfolio-assignment-health.ts').href);
+      const binding = { fetch: async () => mode === 'health-producer-down'
+        ? new Response(new ReadableStream({start(controller){controller.error(new Error('fixture source body interrupted'));}}))
+        : new Response(mode === 'health-producer-invalid' ? '{' : 'null') };
+      return handlePortfolioAssignmentHealth(new Request(url, {headers:{'x-portfolio-assignments-token':'b'.repeat(64)}}),
+        {PORTFOLIO_ASSIGNMENTS_READ_TOKEN:'b'.repeat(64),JOB_SEARCH_ASSIGNMENTS:binding});
+    }
     if (n % 2) return reply('', 403);
     if (mode.startsWith('health-source-')) return reply(JSON.stringify({version:1,status:'unavailable',upstreamStatus:mode === 'health-source-auth' ? 403 : mode === 'health-source-auth401' ? 401 : null,transportCategory:mode === 'health-source-network' ? 'network' : 'other'}), 503);
+    if (mode === 'health-typed-body-down' || mode === 'health-typed-invalid') return reply(JSON.stringify({version:1,status:'unavailable',upstreamStatus:200,transportCategory:'other',observation:mode === 'health-typed-body-down' ? 'unavailable' : 'wrong'}), 503);
     if (mode === 'health-binding') return reply('{"version":1,"status":"unavailable","reason":"binding"}', 503);
     return reply(mode === 'health-null' ? 'null' : '{"version":1,"status":"fresh","count":0}');
   }
   if (u.hostname === 'insights.braininavat.dance') return reply('', 302, {location: 'https://example.cloudflareaccess.com/login'});
-  if (u.pathname === '/cv/bradley-berkman-cv.pdf') return reply(readFileSync(root + '/public/cv/bradley-berkman-cv.pdf'));
+  const interrupted = status => new Response(new ReadableStream({start(controller){controller.error(new Error('fixture interrupted body'));}}), {status});
+  if (u.pathname === '/cv/bradley-berkman-cv.pdf') return mode.startsWith('pdf-body-') ? interrupted(mode === 'pdf-body-wrong' ? 503 : 200) : reply(readFileSync(root + '/public/cv/bradley-berkman-cv.pdf'));
+  if (u.pathname === '/' && u.hostname === 'bradleyberkman.com' && mode.startsWith('http-body-')) return interrupted(mode === 'http-body-wrong' ? 503 : 200);
   if (u.pathname === '/index/not-a-project') return reply('', 404);
   if (u.pathname === '/api/portfolio-chat/session') return reply(mode === 'chat-null' ? 'null' : '{"required":true}');
   const content = JSON.parse(readFileSync(root + '/content/portfolio-content.json'));
@@ -131,7 +143,7 @@ globalThis.fetch = async (url) => {
 };
 `);
   try {
-    const result = spawnSync(process.execPath, ["--import", preload, "scripts/live.mjs", ...args], {
+    const result = spawnSync(process.execPath, [...(mode.startsWith("health-producer-") ? ["--import", "tsx"] : []), "--import", preload, "scripts/live.mjs", ...args], {
       encoding: "utf8", timeout: 10000,
       env: { ...process.env, PORTFOLIO_ACTIVITY_READ_TOKEN: "a".repeat(64), PORTFOLIO_ASSIGNMENTS_READ_TOKEN: "b".repeat(64), BOARD_ACCESS_CLIENT_ID: "fixture-client", BOARD_ACCESS_CLIENT_SECRET: "fixture-secret", PLAYWRIGHT_MODULE: browser, ...extra },
     });
@@ -218,5 +230,32 @@ test("actual browser callbacks classify absent required DOM as wrong after a fre
     const result = runLive(mode, []);
     assert.equal(result.status, 1, `${mode}: ${result.stdout}${result.stderr}`);
     assert.deepEqual(result.counts.sleeps, [15000], mode);
+  }
+});
+
+test("HTTP status remains known wrong before reading a failed body; successful status alone proves no body", () => {
+  for (const [mode, exit, request] of [["http-body-wrong", 1, "bradleyberkman.com/"], ["http-body-down", 3, "bradleyberkman.com/"], ["pdf-body-wrong", 1, "bradleyberkman.com/cv/bradley-berkman-cv.pdf"], ["pdf-body-down", 3, "bradleyberkman.com/cv/bradley-berkman-cv.pdf"]]) {
+    const result = runLive(mode, []);
+    assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.equal(result.counts.requests[request], exit === 1 ? 2 : 1, mode);
+    assert.deepEqual(result.counts.sleeps, exit === 1 ? [15000] : [], mode);
+  }
+});
+
+test("scheduled health preserves typed interrupted body versus delivered malformed JSON", () => {
+  for (const [mode, exit] of [["health-typed-body-down", 3], ["health-typed-invalid", 1]]) {
+    const result = runLive(mode, ["--assignments"]);
+    assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.equal(result.counts.requests["bradley-job-board.bradley-d45.workers.dev/internal/portfolio-assignments"], exit === 1 ? 2 : 1, mode);
+    assert.deepEqual(result.counts.sleeps, exit === 1 ? [15000] : [], mode);
+  }
+});
+
+test("actual Worker adapter and actual CLI retain body-read versus received-JSON evidence end to end", () => {
+  for (const [mode, exit] of [["health-producer-down", 3], ["health-producer-invalid", 1], ["health-producer-null", 1]]) {
+    const result = runLive(mode, ["--assignments"]);
+    assert.equal(result.status, exit, `${mode}: ${result.stdout}${result.stderr}`);
+    assert.equal(result.counts.requests["bradley-job-board.bradley-d45.workers.dev/internal/portfolio-assignments"], exit === 1 ? 2 : 1, mode);
+    assert.deepEqual(result.counts.sleeps, exit === 1 ? [15000] : [], mode);
   }
 });
