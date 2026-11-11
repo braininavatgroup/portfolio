@@ -27,7 +27,9 @@ import { WrongAnswer, requireInput, subjectJson, liveResults } from "./live-resu
 
 import { checkCarouselLinkFeedback, checkReadingRoomResize } from "./check-reading-room-interactions.mjs";
 import { checkToolbarGeometry } from "./check-toolbar-geometry.mjs";
-import { cachedBrowser, loadPlaywright } from "./clip-studio/tools.mjs";
+import { createBrowserCheck } from "./live-browser.mjs";
+import { launchReadOnlyBrowser } from "./read-only-browser.mjs";
+import { loadPlaywright } from "./clip-studio/tools.mjs";
 
 const { check, exitCode } = liveResults({ settleMs: process.argv.some(arg => arg === "--dist" || arg.startsWith("--dist=")) ? 60000 : 15000 });
 async function main() {
@@ -206,59 +208,9 @@ async function main() {
   // --- Browser: pages load clean, and the reading room still works -------------
 
   const playwright = loadPlaywright();
-  const browser = await playwright.chromium.launch({ executablePath: cachedBrowser() ?? undefined });
+  const browser = await launchReadOnlyBrowser(playwright.chromium);
   try {
-    async function browserCheck(name, run, options = {}) {
-      await check(name, async () => {
-        const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options });
-        try {
-          await context.route(/\/api\/portfolio-insight|\/cdn-cgi\/rum|clarity\.ms/, route => route.fulfill({ status: 204, body: "" }));
-          const page = await context.newPage();
-          const wrong = [], unavailable = [];
-          let loaded = false;
-          page.on("console", message => { if (message.type() === "error") wrong.push(`console: ${message.text()}`); });
-          page.on("pageerror", error => wrong.push(`page error: ${error.message}`));
-          page.on("requestfailed", request => {
-            const reason = request.failure()?.errorText ?? "";
-            if (!reason.includes("ERR_ABORTED")) unavailable.push(`request failed: ${reason}`);
-          });
-          page.on("response", response => { if (response.status() >= 400) wrong.push(`HTTP ${response.status()}`); });
-          const goto = page.goto.bind(page);
-          page.goto = async (...args) => {
-            const previouslyLoaded = loaded;
-            const previousUrl = page.url();
-            loaded = false;
-            const response = await goto(...args);
-            if (response === null && previouslyLoaded) {
-              const previous = new URL(previousUrl), current = new URL(page.url());
-              loaded = previous.origin === current.origin && previous.pathname === current.pathname
-                && previous.search === current.search && previous.hash !== current.hash;
-              requireInput(loaded, "navigation returned no response for an unverified document");
-              return response;
-            }
-            requireInput(response, "navigation returned no response");
-            expect(response.status() === 200, `status ${response.status()}`);
-            loaded = true;
-            return response;
-          };
-          let result, error;
-          try { result = await run(page, context); } catch (caught) { error = caught; }
-          // Inspect events after interaction, including failed locator waits; a
-          // reachable HTTP/JS error is stronger evidence than a separate outage.
-          if (wrong.length) throw new WrongAnswer(wrong.slice(0, 3).join("; "));
-          if (error instanceof WrongAnswer) throw error;
-          if (unavailable.length) throw new Error(unavailable.slice(0, 3).join("; "));
-          if (error) {
-            if (loaded && playwright.errors?.TimeoutError && error instanceof playwright.errors.TimeoutError) throw new WrongAnswer(error.message);
-            throw error;
-          }
-          return result;
-        } finally {
-          try { await context.close(); }
-          catch (error) { await check("browser cleanup", async () => { throw error; }, { retry: false }); }
-        }
-      });
-    }
+    const browserCheck = createBrowserCheck({browser, playwright, base, check});
     const pages = ["/", ...records.map(([id]) => `/index/${id}`),
       ...featureMap.routes.filter((route) => route.browser).map((route) => route.path)];
     for (const route of pages) {

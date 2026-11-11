@@ -41,6 +41,8 @@ function page(context) {
   return {
     on(name, fn) { events[name] = fn; },
     url() { return currentUrl; },
+    context() { return context; },
+    async screenshot() {},
     async goto(url) {
       record(url);
       const previous = currentUrl;
@@ -75,7 +77,7 @@ function page(context) {
       if (selector === '.reader-carousel-card a') return link;
       if (selector.includes('avatar-overlay')) return { async waitFor(){}, async getAttribute(){return String(position);} };
       if (selector.includes('portfolio-world')) return { async boundingBox(){return {x:0,y:0,width:390,height:844};} };
-      return { async evaluateAll(fn) {
+      return { async evaluate(){return mode !== 'browser-hidden';}, async evaluateAll(fn) {
         if (mode.startsWith('toolbar-')) return fn([{getBoundingClientRect:()=>({width:100,height:40,x:0,y:0}),
           querySelector:()=>mode === 'toolbar-art-missing' ? null : {querySelector:()=>({getBoundingClientRect:()=>({x:24,y:11,width:18,height:18})})},
           closest:()=>null}]);
@@ -90,7 +92,7 @@ function page(context) {
 }
 module.exports = { errors: { TimeoutError }, chromium: { launch: async () => {
   if (['pass','chat-null'].includes(mode)) throw new Error('isolated browser unavailable');
-  return { async newContext(){ const context={async route(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {async send(){}};}}; return context; }, async close(){} };
+  return { async newContext(){ const context={async route(){throw new Error("Broad request routing masks native CORS");},async addInitScript(){},async exposeBinding(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {on(){},async send(){}};}}; return context; }, async close(){} };
 } } };
 `);
   writeFileSync(preload, `

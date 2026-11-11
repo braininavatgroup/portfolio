@@ -107,3 +107,13 @@ jobs:
         run: npx --yes playwright@1.64.1 install --with-deps chromium
       - name: Live check against production
         run: npm run live -- --dist dist
+
+      - name: Retain deployed browser proof
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-portfolio-${{ github.sha }}
+          path: .context/verification/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
