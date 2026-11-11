@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import {once} from 'node:events';
 import test from 'node:test';
-import {cachedBrowser, loadPlaywright} from '../scripts/clip-studio/tools.mjs';
+import {loadPlaywright} from '../scripts/clip-studio/tools.mjs';
 import {installReadOnlyBrowser, installNativeWriteGuard, probeTelemetry, launchReadOnlyBrowser} from '../scripts/read-only-browser.mjs';
 
 test('native browser reads, navigation and telemetry containment preserve real CORS and refuse writes', async () => {
@@ -47,7 +47,7 @@ test('native browser reads, navigation and telemetry containment preserve real C
   try {
     server.listen(0,'127.0.0.1'); await once(server,'listening'); origin=`http://127.0.0.1:${server.address().port}`;
     other.listen(0,'127.0.0.1'); await once(other,'listening'); otherOrigin=`http://127.0.0.1:${other.address().port}`;
-    browser=await launchReadOnlyBrowser(loadPlaywright().chromium,{headless:true,executablePath:cachedBrowser()??undefined});
+    browser=await launchReadOnlyBrowser(loadPlaywright().chromium);
     for (const mode of Object.keys(pages)) {
       scenario=mode; requests.length=0;
       const context=await browser.newContext({serviceWorkers:'block'}), violations=[];
@@ -81,4 +81,14 @@ test('native browser reads, navigation and telemetry containment preserve real C
       } finally { await context.close(); }
     }
   } finally { await browser?.close(); await new Promise(resolve=>server.close(resolve)); await new Promise(resolve=>other.close(resolve)); }
+});
+
+
+test('the read-only launcher refuses studio or personal browser overrides before launch', () => {
+  let launched = false;
+  const chromium = { launch() { launched = true; } };
+  for (const options of [{ executablePath: '/unmanaged/full-chrome' }, { channel: 'chrome' }, { headless: false }]) {
+    assert.throws(() => launchReadOnlyBrowser(chromium, options), /bundled headless shell/);
+  }
+  assert.equal(launched, false);
 });

@@ -7,7 +7,7 @@ import test from 'node:test';
 import {createBrowserCheck} from '../scripts/live-browser.mjs';
 import {WrongAnswer} from '../scripts/live-result.mjs';
 import {launchReadOnlyBrowser} from '../scripts/read-only-browser.mjs';
-import {loadPlaywright,cachedBrowser} from '../scripts/clip-studio/tools.mjs';
+import {loadPlaywright} from '../scripts/clip-studio/tools.mjs';
 
 test('actual browser observation keeps explicit unsupported capability3 separate from induced JS wrong1', async () => {
   let mode, writes = 0;
@@ -24,7 +24,7 @@ test('actual browser observation keeps explicit unsupported capability3 separate
   try {
     server.listen(0,'127.0.0.1');await once(server,'listening');
     const base=`http://127.0.0.1:${server.address().port}`;
-    const playwright=loadPlaywright();browser=await launchReadOnlyBrowser(playwright.chromium,{headless:true,executablePath:cachedBrowser()??undefined});
+    const playwright=loadPlaywright();browser=await launchReadOnlyBrowser(playwright.chromium);
     const observe=createBrowserCheck({browser,playwright,base,check:(_name,run)=>run()});
     for(const [scenario,expected] of [['healthy',0],['worker',3],['popup',3],['write',1],['script',1],['hidden',1],['opacity',1]]){
       mode=scenario;

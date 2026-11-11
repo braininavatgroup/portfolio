@@ -90,8 +90,9 @@ function probeTelemetry(origin) {
   ];
 }
 
-function launchReadOnlyBrowser(chromium, options = {}) {
-  return chromium.launch({ ...options, args: [...(options.args || []), '--block-new-web-contents'] });
+function launchReadOnlyBrowser(chromium, ...unsupported) {
+  if (unsupported.length) throw new Error('Read-only proof requires the bundled headless shell; browser overrides are unavailable');
+  return chromium.launch({ headless: true, args: ['--block-new-web-contents'] });
 }
 
 export { installReadOnlyBrowser, installNativeWriteGuard, probeTelemetry, launchReadOnlyBrowser };

@@ -29,7 +29,7 @@ import { checkCarouselLinkFeedback, checkReadingRoomResize } from "./check-readi
 import { checkToolbarGeometry } from "./check-toolbar-geometry.mjs";
 import { createBrowserCheck } from "./live-browser.mjs";
 import { launchReadOnlyBrowser } from "./read-only-browser.mjs";
-import { cachedBrowser, loadPlaywright } from "./clip-studio/tools.mjs";
+import { loadPlaywright } from "./clip-studio/tools.mjs";
 
 const { check, exitCode } = liveResults({ settleMs: process.argv.some(arg => arg === "--dist" || arg.startsWith("--dist=")) ? 60000 : 15000 });
 async function main() {
@@ -208,7 +208,7 @@ async function main() {
   // --- Browser: pages load clean, and the reading room still works -------------
 
   const playwright = loadPlaywright();
-  const browser = await launchReadOnlyBrowser(playwright.chromium, { executablePath: cachedBrowser() ?? undefined });
+  const browser = await launchReadOnlyBrowser(playwright.chromium);
   try {
     const browserCheck = createBrowserCheck({browser, playwright, base, check});
     const pages = ["/", ...records.map(([id]) => `/index/${id}`),
