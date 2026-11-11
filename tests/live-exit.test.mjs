@@ -77,7 +77,7 @@ function page(context) {
       if (selector === '.reader-carousel-card a') return link;
       if (selector.includes('avatar-overlay')) return { async waitFor(){}, async getAttribute(){return String(position);} };
       if (selector.includes('portfolio-world')) return { async boundingBox(){return {x:0,y:0,width:390,height:844};} };
-      return { async evaluateAll(fn) {
+      return { async evaluate(){return mode !== 'browser-hidden';}, async evaluateAll(fn) {
         if (mode.startsWith('toolbar-')) return fn([{getBoundingClientRect:()=>({width:100,height:40,x:0,y:0}),
           querySelector:()=>mode === 'toolbar-art-missing' ? null : {querySelector:()=>({getBoundingClientRect:()=>({x:24,y:11,width:18,height:18})})},
           closest:()=>null}]);

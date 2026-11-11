@@ -19,7 +19,7 @@
  * answered locally so a check run never lands in Bradley's visitor data, and
  * the chat is never sent a message. Any new live check belongs in this file.
  */
-import { existsSync, readdirSync, readFileSync, mkdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
@@ -27,7 +27,8 @@ import { WrongAnswer, requireInput, subjectJson, liveResults } from "./live-resu
 
 import { checkCarouselLinkFeedback, checkReadingRoomResize } from "./check-reading-room-interactions.mjs";
 import { checkToolbarGeometry } from "./check-toolbar-geometry.mjs";
-import { installReadOnlyBrowser, installNativeWriteGuard, probeTelemetry, launchReadOnlyBrowser } from "./read-only-browser.mjs";
+import { createBrowserCheck } from "./live-browser.mjs";
+import { launchReadOnlyBrowser } from "./read-only-browser.mjs";
 import { cachedBrowser, loadPlaywright } from "./clip-studio/tools.mjs";
 
 const { check, exitCode } = liveResults({ settleMs: process.argv.some(arg => arg === "--dist" || arg.startsWith("--dist=")) ? 60000 : 15000 });
@@ -209,68 +210,7 @@ async function main() {
   const playwright = loadPlaywright();
   const browser = await launchReadOnlyBrowser(playwright.chromium, { executablePath: cachedBrowser() ?? undefined });
   try {
-    async function browserCheck(name, run, options = {}) {
-      await check(name, async () => {
-        const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options, serviceWorkers: "block" });
-        let page;
-        const wrong = [], unavailable = [];
-        const onViolation = record => (record.unavailable ? unavailable : wrong).push(`Refused ${record.api} ${record.path}`);
-        try {
-          const telemetry = probeTelemetry(new URL(base).origin);
-          await context.exposeBinding("bivReadOnlyViolation", (_source, record) => onViolation(record));
-          await context.addInitScript(installReadOnlyBrowser, { reportName: "bivReadOnlyViolation", telemetry });
-          page = await context.newPage();
-          await installNativeWriteGuard(page, onViolation, telemetry);
-          let loaded = false;
-          page.on("console", message => { if (message.type() === "error") wrong.push(`console: ${message.text()}`); });
-          page.on("pageerror", error => wrong.push(`page error: ${error.message}`));
-          page.on("requestfailed", request => {
-            const reason = request.failure()?.errorText ?? "";
-            if (!reason.includes("ERR_ABORTED")) unavailable.push(`request failed: ${reason}`);
-          });
-          page.on("response", response => { if (response.status() >= 400) wrong.push(`HTTP ${response.status()}`); });
-          const goto = page.goto.bind(page);
-          page.goto = async (...args) => {
-            const previouslyLoaded = loaded;
-            const previousUrl = page.url();
-            loaded = false;
-            const response = await goto(...args);
-            if (response === null && previouslyLoaded) {
-              const previous = new URL(previousUrl), current = new URL(page.url());
-              loaded = previous.origin === current.origin && previous.pathname === current.pathname
-                && previous.search === current.search && previous.hash !== current.hash;
-              requireInput(loaded, "navigation returned no response for an unverified document");
-              return response;
-            }
-            requireInput(response, "navigation returned no response");
-            expect(response.status() === 200, `status ${response.status()}`);
-            loaded = true;
-            return response;
-          };
-          let result, error;
-          try { result = await run(page, context); } catch (caught) { error = caught; }
-          // Inspect events after interaction, including failed locator waits; a
-          // reachable HTTP/JS error is stronger evidence than a separate outage.
-          if (wrong.length) throw new WrongAnswer(wrong.slice(0, 3).join("; "));
-          if (error instanceof WrongAnswer) throw error;
-          if (unavailable.length) throw new Error(unavailable.slice(0, 3).join("; "));
-          if (error) {
-            if (loaded && playwright.errors?.TimeoutError && error instanceof playwright.errors.TimeoutError) throw new WrongAnswer(error.message);
-            throw error;
-          }
-          return result;
-        } finally {
-          if (page) {
-            const directory = path.join(process.cwd(), ".context/verification");
-            mkdirSync(directory, { recursive: true });
-            try { await page.screenshot({ path: path.join(directory, `${name.replace(/[^a-z0-9-]/gi, "_")}.png`), fullPage: true }); }
-            catch { await check("browser screenshot", async () => { throw new Error("Required browser screenshot unavailable"); }, { retry: false }); }
-          }
-          try { await context.close(); }
-          catch (error) { await check("browser cleanup", async () => { throw error; }, { retry: false }); }
-        }
-      });
-    }
+    const browserCheck = createBrowserCheck({browser, playwright, base, check});
     const pages = ["/", ...records.map(([id]) => `/index/${id}`),
       ...featureMap.routes.filter((route) => route.browser).map((route) => route.path)];
     for (const route of pages) {
