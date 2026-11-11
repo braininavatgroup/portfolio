@@ -19,7 +19,7 @@
  * answered locally so a check run never lands in Bradley's visitor data, and
  * the chat is never sent a message. Any new live check belongs in this file.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
@@ -27,6 +27,7 @@ import { WrongAnswer, requireInput, subjectJson, liveResults } from "./live-resu
 
 import { checkCarouselLinkFeedback, checkReadingRoomResize } from "./check-reading-room-interactions.mjs";
 import { checkToolbarGeometry } from "./check-toolbar-geometry.mjs";
+import { installReadOnlyBrowser, installNativeWriteGuard, probeTelemetry, launchReadOnlyBrowser } from "./read-only-browser.mjs";
 import { cachedBrowser, loadPlaywright } from "./clip-studio/tools.mjs";
 
 const { check, exitCode } = liveResults({ settleMs: process.argv.some(arg => arg === "--dist" || arg.startsWith("--dist=")) ? 60000 : 15000 });
@@ -206,15 +207,20 @@ async function main() {
   // --- Browser: pages load clean, and the reading room still works -------------
 
   const playwright = loadPlaywright();
-  const browser = await playwright.chromium.launch({ executablePath: cachedBrowser() ?? undefined });
+  const browser = await launchReadOnlyBrowser(playwright.chromium, { executablePath: cachedBrowser() ?? undefined });
   try {
     async function browserCheck(name, run, options = {}) {
       await check(name, async () => {
-        const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options });
+        const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options, serviceWorkers: "block" });
+        let page;
+        const wrong = [], unavailable = [];
+        const onViolation = record => (record.unavailable ? unavailable : wrong).push(`Refused ${record.api} ${record.path}`);
         try {
-          await context.route(/\/api\/portfolio-insight|\/cdn-cgi\/rum|clarity\.ms/, route => route.fulfill({ status: 204, body: "" }));
-          const page = await context.newPage();
-          const wrong = [], unavailable = [];
+          const telemetry = probeTelemetry(new URL(base).origin);
+          await context.exposeBinding("bivReadOnlyViolation", (_source, record) => onViolation(record));
+          await context.addInitScript(installReadOnlyBrowser, { reportName: "bivReadOnlyViolation", telemetry });
+          page = await context.newPage();
+          await installNativeWriteGuard(page, onViolation, telemetry);
           let loaded = false;
           page.on("console", message => { if (message.type() === "error") wrong.push(`console: ${message.text()}`); });
           page.on("pageerror", error => wrong.push(`page error: ${error.message}`));
@@ -254,6 +260,12 @@ async function main() {
           }
           return result;
         } finally {
+          if (page) {
+            const directory = path.join(process.cwd(), ".context/verification");
+            mkdirSync(directory, { recursive: true });
+            try { await page.screenshot({ path: path.join(directory, `${name.replace(/[^a-z0-9-]/gi, "_")}.png`), fullPage: true }); }
+            catch { await check("browser screenshot", async () => { throw new Error("Required browser screenshot unavailable"); }, { retry: false }); }
+          }
           try { await context.close(); }
           catch (error) { await check("browser cleanup", async () => { throw error; }, { retry: false }); }
         }

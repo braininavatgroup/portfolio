@@ -25,6 +25,8 @@ jobs:
           node-version: 22.23.1
           cache: npm
       - run: npm ci
+      - name: Exercise the deployed browser install before native verification
+        run: npx --yes playwright@1.64.1 install --with-deps chromium
       # npm test ends with test:rendered, whose build is the dist the deploy
       # job ships. The Turnstile site key is public and compiled into the
       # client bundle, so it has to be present at build time.

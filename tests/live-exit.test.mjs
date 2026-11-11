@@ -41,6 +41,8 @@ function page(context) {
   return {
     on(name, fn) { events[name] = fn; },
     url() { return currentUrl; },
+    context() { return context; },
+    async screenshot() {},
     async goto(url) {
       record(url);
       const previous = currentUrl;
@@ -90,7 +92,7 @@ function page(context) {
 }
 module.exports = { errors: { TimeoutError }, chromium: { launch: async () => {
   if (['pass','chat-null'].includes(mode)) throw new Error('isolated browser unavailable');
-  return { async newContext(){ const context={async route(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {async send(){}};}}; return context; }, async close(){} };
+  return { async newContext(){ const context={async route(){throw new Error("Broad request routing masks native CORS");},async addInitScript(){},async exposeBinding(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {on(){},async send(){}};}}; return context; }, async close(){} };
 } } };
 `);
   writeFileSync(preload, `
