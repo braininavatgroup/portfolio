@@ -340,8 +340,8 @@ its three read-only tokens as Worker secrets. Cron triggers are UTC only, so
 the run drifts an hour against local clocks across daylight saving; nothing
 downstream reads the hour.
 
-Half an hour later, at 11:40 UTC, the GitHub workflow `verify scheduled
-insights` (`.github/workflows/verify-scheduled-insights.yml`) runs
+At 12:07 UTC, infra's BIV scheduler dispatches the GitHub workflow `verify
+scheduled insights` (`.github/workflows/verify-scheduled-insights.yml`), which runs
 `scripts/verify-scheduled-insights.mjs`. It reads `runs/dashboard.html` from
 the bucket through the Cloudflare API with the `portfolio-main-preview`
 environment's `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` and fails
@@ -350,8 +350,8 @@ fresh, the assigned links show the 90-day lookback, and each displayed link's
 activity state agrees with its session count. An empty or idle link is valid
 when no sessions fall in the rolling window. It prints only
 its own pass or fail line, never the page or the API's errors. If the Worker's
-cron moves, move this workflow's cron and the 11:10 the script checks against
-with it.
+cron moves, update the verification hour in infra's `HOURLY_JOBS` table and the
+11:10 the script checks against with it, keeping verification after the producer.
 
 For a cutover that must prove particular assignments survived, dispatch
 `verify-scheduled-insights.yml` after the 11:10 UTC cron with
