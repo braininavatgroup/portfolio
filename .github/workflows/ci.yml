@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Public-tree denylist
-        uses: braininavatgroup/agent-operating-policy/.github/actions/public-tree-check@b8c552c8c595504eb3090042422b0e617c4c726b
+        uses: braininavatgroup/portfolio/.github/actions/public-tree-check@587f84391e665ceaf869d20c925e542d49ae5ef7
         with:
           denylist: ${{ vars.PUBLIC_TREE_DENYLIST }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
