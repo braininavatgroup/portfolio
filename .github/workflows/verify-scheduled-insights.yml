@@ -1,9 +1,6 @@
 name: verify scheduled insights
 
 on:
-  schedule:
-    # The Worker runs at 11:10 UTC. Read its saved page after it has finished.
-    - cron: '40 11 * * *'
   workflow_dispatch:
     inputs:
       expected_action_ids:
