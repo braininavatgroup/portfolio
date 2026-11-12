@@ -1,6 +1,6 @@
 {
   "repository": "braininavatgroup/infra",
-  "revision": "cf742aa01a6212a708003454278142fe6f61bada",
+  "revision": "0897b78ac88b87eb7871655aad303ff4f779a67a",
   "path": ".github/actions/public-tree-check",
   "files": {
     "action.yml": "ac85624616df0b3069845e020908b0753d825975aa9bd40f7dc0a169a1666da6",
