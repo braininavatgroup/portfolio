@@ -1,5 +1,3 @@
-// The public repository keeps the fingerprint, not the unlisted directory or its assets.
-const PREFIX_DIGEST = "2902b0f5c48ac3aaccd38e6cf7ab39c99d96e5e6a854f90b02bad6b868eb9005";
 const PRIVACY_HEADERS = {
   "x-robots-tag": "noindex, nofollow, noarchive",
   "referrer-policy": "no-referrer",
@@ -9,19 +7,14 @@ type AssetBinding = { fetch(request: Request): Promise<Response> };
 export async function handleFamilyWalkthrough(
   request: Request,
   origin: AssetBinding | undefined,
-  expectedDigest = PREFIX_DIGEST,
 ): Promise<Response | null> {
   const url = new URL(request.url);
-  const match = /^\/([0-9a-f]{32})(?=\/|$)/.exec(url.pathname);
-  if (!match) return null;
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(match[1]));
-  const digest = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
-  if (digest !== expectedDigest) return null;
+  if (url.pathname !== "/honeyhill" && !url.pathname.startsWith("/honeyhill/")) return null;
   if (url.origin !== "https://bradleyberkman.com") return new Response(null, { status: 404, headers: PRIVACY_HEADERS });
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(null, { status: 405, headers: { ...PRIVACY_HEADERS, allow: "GET, HEAD" } });
   }
-  if (url.pathname === match[0]) {
+  if (url.pathname === "/honeyhill") {
     return new Response(null, { status: 308, headers: { ...PRIVACY_HEADERS, location: url.pathname + "/" } });
   }
   const asset = new URL("https://walkthrough.internal");

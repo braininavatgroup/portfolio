@@ -101,10 +101,6 @@ module.exports = { errors: { TimeoutError }, chromium: { launch: async () => {
   return { async newContext(){ const context={async route(){throw new Error("Broad request routing masks native CORS");},async addInitScript(){},async exposeBinding(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {on(){},async send(){}};}}; return context; }, async close(){} };
 } } };
 `);
-  if (mode.startsWith("walkthrough-")) {
-    mkdirSync(path.join(directory, ".context"));
-    writeFileSync(path.join(directory, ".context/family-prefix"), "af".repeat(16));
-  }
   writeFileSync(preload, `
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -126,7 +122,7 @@ globalThis.fetch = async (url) => {
   if (mode === 'down' || (mode === 'flip' && n === 4)) throw new TypeError('fixture network unavailable');
   const reply = (body, status = 200, headers = {'cache-control': 'no-store'}) => new Response(body, { status, headers });
   if (mode.startsWith('walkthrough-')) {
-    const folder = '/' + 'af'.repeat(16);
+    const folder = '/honeyhill';
     const headers = { 'referrer-policy': 'no-referrer', 'x-robots-tag': 'noindex, nofollow' };
     if (!u.pathname.startsWith(folder)) throw new Error('unexpected fixture path');
     if (mode === 'walkthrough-down') throw new Error('network failure for ' + u);
@@ -325,11 +321,11 @@ test("a null navigation cannot carry a200 receipt across origin, path, query or 
 });
 
 
-test("operator walkthrough proof distinguishes missing assets and network failures without printing its path", () => {
+test("operator walkthrough proof distinguishes missing assets and network failures without printing asset URLs", () => {
   for (const [mode, code] of [["walkthrough-pass", 0], ["walkthrough-wrong", 1], ["walkthrough-down", 3], ["walkthrough-render-error", 1], ["walkthrough-missing-species", 1]]) {
     const result = runLive(mode, ["--walkthrough"]);
     assert.equal(result.status, code, result.stdout + result.stderr);
-    assert.ok(!(result.stdout + result.stderr).includes("af".repeat(16)));
+    assert.ok(!(result.stdout + result.stderr).includes("/honeyhill"));
   }
   const otherHost = runLive("walkthrough-pass", ["--walkthrough", "--base", "https://example.invalid"]);
   assert.equal(otherHost.status, 3);

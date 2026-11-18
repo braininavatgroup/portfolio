@@ -56,16 +56,9 @@ async function main() {
   }
 
   if (args.walkthrough) {
-    let entry;
+    const directory = "/honeyhill/";
     await check("unlisted walkthrough pages and assets", async () => {
-      // Never send an operator's path to a --base override or echo it in a URL/error.
       requireInput(base === "https://bradleyberkman.com", "walkthrough check requires the canonical host");
-      let prefix;
-      try { prefix = readFileSync(".context/family-prefix", "utf8").trim(); }
-      catch { throw new Error("walkthrough path file unavailable"); }
-      requireInput(/^[0-9a-f]{32}$/.test(prefix), "invalid walkthrough path file");
-      const directory = "/" + prefix + "/";
-      entry = base + directory;
       const request = async (resource, init = {}) => {
         try {
           const response = await fetch(base + resource, { ...init, redirect: "manual", signal: AbortSignal.timeout(20000) });
@@ -77,7 +70,7 @@ async function main() {
           throw new Error("walkthrough transport unavailable");
         }
       };
-      const redirect = await request("/" + prefix, { method: "HEAD" });
+      const redirect = await request("/honeyhill", { method: "HEAD" });
       expect(redirect.status === 308 && redirect.headers.get("location") === directory, "invalid directory redirect");
       for (const [resource, marker] of [["", 'id="startbtn"'], ["lookbook.html", 'id="grid"']]) {
         const page = await request(directory + resource);
@@ -122,7 +115,7 @@ async function main() {
     });
     if (!exitCode()) {
       const { renderWalkthrough } = await import("./live-walkthrough.mjs");
-      await renderWalkthrough(entry, check);
+      await renderWalkthrough(base + directory, check);
     }
     return;
   }
@@ -214,6 +207,7 @@ async function main() {
     const { body } = await get(`${base}/`);
     expect(body.includes("<title>Bradley Berkman"), "no Bradley Berkman title");
     if (args["expect-text"]) expect(body.includes(args["expect-text"]), `missing "${args["expect-text"]}"`);
+    expect(!body.includes("/honeyhill"), "unlisted walkthrough appeared on the homepage");
     homeHtml = body;
   });
   await check("GET www / is 200", async () => {
@@ -233,6 +227,7 @@ async function main() {
   }
   await check("GET /sitemap.xml lists every record", async () => {
     const { body } = await get(`${base}/sitemap.xml`);
+    expect(!body.includes("/honeyhill"), "unlisted walkthrough appeared in the sitemap");
     const missing = records.filter(([id]) => !body.includes(`/index/${id}<`)).map(([id]) => id);
     expect(missing.length === 0, `missing ${missing.join(", ")}`);
   });
