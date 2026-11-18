@@ -20,7 +20,10 @@
       "zone_name": "braininavat.dance"
     }
   ],
-  "services": [{ "binding": "JOB_SEARCH_ASSIGNMENTS", "service": "bradley-job-board" }],
+  "services": [
+    { "binding": "JOB_SEARCH_ASSIGNMENTS", "service": "bradley-job-board" },
+    { "binding": "FAMILY_WALKTHROUGH", "service": "portfolio-family-walkthrough" }
+  ],
   "triggers": {
     "crons": ["10 11 * * *"]
   },

@@ -4,7 +4,7 @@ import {WrongAnswer, requireInput} from './live-result.mjs';
 import {installReadOnlyBrowser, installNativeWriteGuard, probeTelemetry} from './read-only-browser.mjs';
 
 // The production walk and its real-browser adverse tests use the same observation.
-export function createBrowserCheck({browser, playwright, base, check}) {
+export function createBrowserCheck({browser, playwright, base, check, retainScreenshots = true}) {
   return async function browserCheck(name, run, options = {}) {
       await check(name, async () => {
         const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options, serviceWorkers: "block" });
@@ -64,7 +64,7 @@ export function createBrowserCheck({browser, playwright, base, check}) {
           }
           return result;
         } finally {
-          if (page) {
+          if (page && retainScreenshots) {
             const directory = path.join(process.cwd(), ".context/verification");
             mkdirSync(directory, { recursive: true });
             try { await page.screenshot({ path: path.join(directory, `${name.replace(/[^a-z0-9-]/gi, "_")}.png`), fullPage: true }); }

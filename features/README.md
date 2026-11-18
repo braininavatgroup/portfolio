@@ -8,4 +8,6 @@ The mapped controls cover world and contents selection, resizable reading-room p
 
 The mapped standalone routes are Tour Advancing, Quarterly Dashboard, Privacy and robots.txt. The check also verifies the home page, www, sitemap, PDF CV, 404, chat-session configuration and the Access-gated insights surface.
 
+An unlisted static walkthrough is served only on the apex through a service binding. Its path and files do not belong in this map, the public repository, the sitemap or logs. After a release, run `npm run live -- --walkthrough` with the directory name in the operator's ignored `.context/family-prefix` file. This checks both entry pages, modules, nested assets and privacy headers, opens a visible plant photo in the rendered world, and scrolls all 42 real lookbook models into view. It saves no private screenshots or URLs. The ordinary map run checks its implementation marker without needing the private directory name.
+
 Update both map files with any route, record or control change. `npm run live -- --map-only` distinguishes stale inventory from a browser, credential or production failure.

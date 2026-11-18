@@ -38,6 +38,7 @@ async function main() {
       base: { type: "string", default: "https://bradleyberkman.com" },
       dist: { type: "string" },
       "expect-text": { type: "string" },
+      walkthrough: { type: "boolean", default: false },
       assignments: { type: "boolean", default: false },
       activity: { type: "boolean", default: false },
       "map-only": { type: "boolean", default: false },
@@ -52,6 +53,78 @@ async function main() {
 
   function expect(condition, message) {
     if (!condition) throw new WrongAnswer(message);
+  }
+
+  if (args.walkthrough) {
+    let entry;
+    await check("unlisted walkthrough pages and assets", async () => {
+      // Never send an operator's path to a --base override or echo it in a URL/error.
+      requireInput(base === "https://bradleyberkman.com", "walkthrough check requires the canonical host");
+      let prefix;
+      try { prefix = readFileSync(".context/family-prefix", "utf8").trim(); }
+      catch { throw new Error("walkthrough path file unavailable"); }
+      requireInput(/^[0-9a-f]{32}$/.test(prefix), "invalid walkthrough path file");
+      const directory = "/" + prefix + "/";
+      entry = base + directory;
+      const request = async (resource, init = {}) => {
+        try {
+          const response = await fetch(base + resource, { ...init, redirect: "manual", signal: AbortSignal.timeout(20000) });
+          expect(response.headers.get("x-robots-tag")?.split(/,\s*/).includes("noindex"), "missing crawler exclusion");
+          expect(response.headers.get("referrer-policy") === "no-referrer", "missing referrer protection");
+          return response;
+        } catch (error) {
+          if (error instanceof WrongAnswer) throw error;
+          throw new Error("walkthrough transport unavailable");
+        }
+      };
+      const redirect = await request("/" + prefix, { method: "HEAD" });
+      expect(redirect.status === 308 && redirect.headers.get("location") === directory, "invalid directory redirect");
+      for (const [resource, marker] of [["", 'id="startbtn"'], ["lookbook.html", 'id="grid"']]) {
+        const page = await request(directory + resource);
+        expect(page.ok && page.headers.get("content-type")?.includes("text/html"), "entry page not served as HTML");
+        let html;
+        try { html = await page.text(); } catch { throw new Error("walkthrough document read interrupted"); }
+        expect(html.includes(marker), "entry document missing its application");
+        const script = html.match(/<script\b[^>]*\bsrc="(?:\.\/)?(assets\/[\w.-]+\.js)"/i)?.[1];
+        expect(script, "missing directory-relative module");
+        const scriptResponse = await request(directory + script, { method: "HEAD" });
+        expect(scriptResponse.ok && /javascript/.test(scriptResponse.headers.get("content-type") || ""), "entry module unavailable");
+      }
+      const model = await request(directory + "world/site.glb", { headers: { Range: "bytes=0-3" } });
+      expect((model.status === 200 || model.status === 206) && model.body, "model unavailable");
+      const reader = model.body.getReader();
+      let magic = "";
+      try {
+        while (magic.length < 4) {
+          const part = await reader.read();
+          if (part.done) break;
+          magic += String.fromCharCode(...part.value.subarray(0, 4 - magic.length));
+        }
+      } catch { throw new Error("walkthrough model read interrupted"); }
+      finally { await reader.cancel().catch(() => {}); }
+      expect(magic === "glTF", "model missing its binary signature");
+      const cards = await request(directory + "world/plantinfo.json");
+      expect(cards.ok && cards.headers.get("content-type")?.includes("json"), "card data unavailable");
+      let catalog;
+      try { catalog = await subjectJson(cards); }
+      catch (error) {
+        if (error instanceof WrongAnswer) throw error;
+        throw new Error("walkthrough card data read interrupted");
+      }
+      const photo = Object.values(catalog || {}).map(card => card?.pm?.gallery?.[0]?.src)
+        .find(src => typeof src === "string" && /^plantinfo\/[\w.-]+\.webp$/.test(src));
+      expect(photo, "card data has no local gallery image");
+      const image = await request(directory + "world/" + photo, { method: "HEAD" });
+      expect(image.ok && image.headers.get("content-type")?.includes("image/webp"), "card image unavailable");
+      const missing = await request(directory + "missing-asset-probe.txt", { method: "HEAD" });
+      expect(missing.status === 404, "missing asset did not return 404");
+      return "entry pages, modules, binary model, card image and missing asset verified";
+    });
+    if (!exitCode()) {
+      const { renderWalkthrough } = await import("./live-walkthrough.mjs");
+      await renderWalkthrough(entry, check);
+    }
+    return;
   }
 
   if (args.activity) {

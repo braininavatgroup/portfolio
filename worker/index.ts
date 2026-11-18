@@ -2,6 +2,7 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { throwIfErrorProbe, type ErrorProbeEnv } from "./error-probe";
+import { handleFamilyWalkthrough } from "./family-walkthrough";
 import { withoutPhantomBody } from "./inbound-request";
 import { withPublicPortfolio } from "./public-portfolio";
 import {
@@ -83,6 +84,8 @@ const worker = {
     // so none of them can route around that gate.
     const insights = await handlePortfolioInsights(request, env);
     if (insights) return insights;
+    const walkthrough = await handleFamilyWalkthrough(request, env.FAMILY_WALKTHROUGH);
+    if (walkthrough) return walkthrough;
     const activity = await handlePortfolioActivity(request, env);
     if (activity) return activity;
     const assignmentHealth = await handlePortfolioAssignmentHealth(request, env);

@@ -34,6 +34,9 @@ test("the public candidate serves the apex and www routes without a login", asyn
   ]);
   assert.equal(config.domains, undefined);
   assert.equal(config.no_bundle, true);
+  assert.deepEqual(config.services.filter(({ binding }) => binding === "FAMILY_WALKTHROUGH"), [
+    { binding: "FAMILY_WALKTHROUGH", service: "portfolio-family-walkthrough" },
+  ]);
 
   assert.deepEqual(config.vars, {
     PORTFOLIO_CHAT_SESSION_REQUIRED: "true",

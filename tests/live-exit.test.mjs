@@ -42,7 +42,8 @@ function page(context) {
     on(name, fn) { events[name] = fn; },
     url() { return currentUrl; },
     context() { return context; },
-    async screenshot() {},
+    async screenshot() { if (mode.startsWith('walkthrough-')) throw new Error('private screenshots must not be written'); },
+    async evaluate() { return { x: 100, y: 100, name: 'fixture' }; },
     async goto(url) {
       record(url);
       const previous = currentUrl;
@@ -62,18 +63,23 @@ function page(context) {
       if (mode === 'browser-down') throw new Error('browser disconnected');
       if (mode === 'navigation-timeout') throw new TimeoutError('navigation did not answer');
       if (mode === 'no-response') return null;
+      if (mode === 'walkthrough-render-error') emit('console', {type:()=> 'error',text:()=> 'fixture private URL: '+url});
       if (mode === 'browser-http') emit('response', {status:()=>503});
       return { status: () => 200 };
     },
     async waitForTimeout() {},
     async setViewportSize(view) { width = view.width; },
     async waitForFunction() { position = 110; },
-    mouse: { async move(x,y) { if (down) delta += x-mouse.x; mouse={x,y}; }, async down(){down=true;}, async up(){down=false;} },
+    mouse: { async click(){}, async move(x,y) { if (down) delta += x-mouse.x; mouse={x,y}; }, async down(){down=true;}, async up(){down=false;} },
     getByRole(role, {name}) {
       if (role !== 'separator') return { async click(){}, async waitFor(){} };
       return { async boundingBox() { return {x: (name==='Resize Contents' ? (width===1440?320:240) : (width===1440?1041:width-321))+delta,y:0,width:10,height:10}; }, async getAttribute(){return 'vertical';} };
     },
     locator(selector) {
+      if (selector === '#startbtn') return { async click(){} };
+      if (selector === '#plantcard.open') return { getByRole() { return { async click(){} }; } };
+      if (selector === '#plantcard') return { async waitFor(){} };
+      if (selector === '#grid .cell') return { async count(){return mode === 'walkthrough-missing-species' ? 41 : 42;}, nth() {return {async scrollIntoViewIfNeeded(){}};} };
       if (selector === '.reader-carousel-card a') return link;
       if (selector.includes('avatar-overlay')) return { async waitFor(){}, async getAttribute(){return String(position);} };
       if (selector.includes('portfolio-world')) return { async boundingBox(){return {x:0,y:0,width:390,height:844};} };
@@ -95,12 +101,17 @@ module.exports = { errors: { TimeoutError }, chromium: { launch: async () => {
   return { async newContext(){ const context={async route(){throw new Error("Broad request routing masks native CORS");},async addInitScript(){},async exposeBinding(){},async close(){},async newPage(){return page(context);},async newCDPSession(){return {on(){},async send(){}};}}; return context; }, async close(){} };
 } } };
 `);
+  if (mode.startsWith("walkthrough-")) {
+    mkdirSync(path.join(directory, ".context"));
+    writeFileSync(path.join(directory, ".context/family-prefix"), "af".repeat(16));
+  }
   writeFileSync(preload, `
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 const counts = { requests: {}, sleeps: [] };
 const mode = ${JSON.stringify(mode)};
 const root = ${JSON.stringify(root)};
+if (mode.startsWith('walkthrough-')) process.chdir(${JSON.stringify(directory)});
 const save = () => {
   try { counts.browser = JSON.parse(readFileSync(${JSON.stringify(counts)})).browser; } catch {}
   writeFileSync(${JSON.stringify(counts)}, JSON.stringify(counts));
@@ -114,6 +125,23 @@ globalThis.fetch = async (url) => {
   save();
   if (mode === 'down' || (mode === 'flip' && n === 4)) throw new TypeError('fixture network unavailable');
   const reply = (body, status = 200, headers = {'cache-control': 'no-store'}) => new Response(body, { status, headers });
+  if (mode.startsWith('walkthrough-')) {
+    const folder = '/' + 'af'.repeat(16);
+    const headers = { 'referrer-policy': 'no-referrer', 'x-robots-tag': 'noindex, nofollow' };
+    if (!u.pathname.startsWith(folder)) throw new Error('unexpected fixture path');
+    if (mode === 'walkthrough-down') throw new Error('network failure for ' + u);
+    const rest = u.pathname.slice(folder.length);
+    if (!rest) return reply(null, 308, {...headers, location: folder + '/'});
+    if (rest === '/' || rest === '/lookbook.html') {
+      const marker = rest === '/' ? 'startbtn' : 'grid';
+      return reply('<div id="' + marker + '"></div><script type="module" src="./assets/fixture.js"></script>', 200, {...headers, 'content-type': 'text/html'});
+    }
+    if (rest === '/assets/fixture.js') return reply(null, 200, {...headers, 'content-type': 'text/javascript'});
+    if (rest === '/world/plantinfo.json') return reply(JSON.stringify({ sample: { pm: { gallery: [{ src: 'plantinfo/sample.webp' }] } } }), 200, {...headers, 'content-type': 'application/json'});
+    if (rest === '/world/plantinfo/sample.webp') return reply(null, 200, {...headers, 'content-type': 'image/webp'});
+    if (rest === '/world/site.glb') return reply(mode === 'walkthrough-wrong' ? 'nope' : 'glTF', 206, headers);
+    return reply(null, 404, headers);
+  }
   if (u.pathname === '/internal/portfolio-activity') {
     if (n % 2) return reply('', 403);
     if (mode === 'auth') return reply('', 403);
@@ -294,4 +322,16 @@ test("a null navigation cannot carry a200 receipt across origin, path, query or 
     assert.equal(result.status, 3, `${mode}: ${result.stdout}${result.stderr}`);
     assert.deepEqual(result.counts.sleeps, []);
   }
+});
+
+
+test("operator walkthrough proof distinguishes missing assets and network failures without printing its path", () => {
+  for (const [mode, code] of [["walkthrough-pass", 0], ["walkthrough-wrong", 1], ["walkthrough-down", 3], ["walkthrough-render-error", 1], ["walkthrough-missing-species", 1]]) {
+    const result = runLive(mode, ["--walkthrough"]);
+    assert.equal(result.status, code, result.stdout + result.stderr);
+    assert.ok(!(result.stdout + result.stderr).includes("af".repeat(16)));
+  }
+  const otherHost = runLive("walkthrough-pass", ["--walkthrough", "--base", "https://example.invalid"]);
+  assert.equal(otherHost.status, 3);
+  assert.deepEqual(otherHost.counts.requests, {});
 });

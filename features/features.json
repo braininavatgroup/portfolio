@@ -11,6 +11,7 @@
     { "path": "/robots.txt", "contains": "Sitemap:", "browser": false }
   ],
   "controls": [
+    { "id": "unlisted-static-walkthrough", "source": "worker/family-walkthrough.ts", "marker": "export async function handleFamilyWalkthrough" },
     { "id": "private-activity-projection", "source": "worker/portfolio-activity.ts", "marker": "export async function handlePortfolioActivity" },
     { "id": "assignment-binding-health", "source": "worker/portfolio-assignment-health.ts", "marker": "export async function handlePortfolioAssignmentHealth" },
     { "id": "world-record-selection", "source": "components/PortfolioWorld.tsx", "marker": "aria-pressed={selectedId === node.id}" },
