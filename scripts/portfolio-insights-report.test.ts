@@ -550,23 +550,6 @@ describe("mergeDayGroups", () => {
   });
 });
 
-it("keeps individual walkthrough assets out of edge, RUM and page reports without losing counts", () => {
-  const directory = "/honeyhill";
-  const errorPaths = new Map([[directory + "/world/site.glb", 3], [directory, 2], ["/about", 2]]);
-  const detail = summarizeEdgeDetail({
-    userAgents: new Map(), paths: new Map(), statuses: new Map([["502", 7]]), serverErrorPaths: errorPaths,
-  });
-  expect(detail.serverErrorPaths).toEqual([{ value: "/honeyhill", requests: 5 }, { value: "/about", requests: 2 }]);
-  expect(formatEdgeDetail(detail).join(" ")).not.toContain("world/site.glb");
-  const pages = rankDimension([{ dimensions: { requestPath: directory + "/world/card.webp" }, count: 2 }], "requestPath");
-  expect(pages[0]).toMatchObject({ value: "/honeyhill", pageloads: 2 });
-  const clarity = summarizeClarity([[{ metricName: "Traffic", information: [{ Url: "https://bradleyberkman.com" + directory + "/assets/app.js", count: "2" }] }]]);
-  expect(clarity.Traffic).toEqual([{ Url: "https://bradleyberkman.com/honeyhill", count: 2 }]);
-  for (const url of ["/honeyhill-side/photo", "https://example.com/honeyhill/photo"]) {
-    expect(rankDimension([{ dimensions: { requestPath: url }, count: 1 }], "requestPath")[0].value).toBe(url);
-  }
-});
-
 describe("summarizeEdgeDetail", () => {
   const detail = summarizeEdgeDetail({
     userAgents: new Map([

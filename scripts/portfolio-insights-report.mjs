@@ -78,11 +78,6 @@ export function windowForDays(days, now = new Date()) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-// Group walkthrough assets without copying individual file paths into analytics exports.
-function reportPath(value) {
-  return value.replace(/^(https:\/\/bradleyberkman\.com)?\/honeyhill(?=[/?#]|$).*$/, "$1/honeyhill");
-}
-
 function rumCount(group) {
   return Number(group?.count ?? 0);
 }
@@ -115,7 +110,7 @@ export function rankDimension(groups = [], dimension, limit = 10) {
   const total = groups.reduce((sum, group) => sum + rumCount(group), 0);
   return groups
     .map((group) => ({
-      value: reportPath(String(group?.dimensions?.[dimension] ?? "").trim()) || "(none)",
+      value: String(group?.dimensions?.[dimension] ?? "").trim() || "(none)",
       pageloads: rumCount(group),
       visits: rumVisits(group),
       share: total > 0 ? rumCount(group) / total : 0,
@@ -253,7 +248,7 @@ function coerceNumbers(row) {
       typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))
         ? Number(value)
         : value;
-    output[key] = typeof numeric === "string" && key.toLowerCase() === "url" ? reportPath(numeric) : numeric;
+    output[key] = numeric;
   }
   return output;
 }
@@ -834,14 +829,7 @@ export function summarizeEdgeDetail(merged) {
   for (const [path, count] of merged.paths) {
     if (!isProbePath(path)) continue;
     probeRequests += count;
-    const label = reportPath(path);
-    probePaths.set(label, (probePaths.get(label) ?? 0) + count);
-  }
-
-  const serverErrorPaths = new Map();
-  for (const [path, count] of merged.serverErrorPaths) {
-    const label = reportPath(path);
-    serverErrorPaths.set(label, (serverErrorPaths.get(label) ?? 0) + count);
+    probePaths.set(path, count);
   }
 
   const statuses = [...merged.statuses.entries()]
@@ -868,7 +856,7 @@ export function summarizeEdgeDetail(merged) {
     statusRequests,
     statusClasses: classes,
     serverErrors: classes["5xx"],
-    serverErrorPaths: ranked(serverErrorPaths, 6),
+    serverErrorPaths: ranked(merged.serverErrorPaths, 6),
   };
 }
 
