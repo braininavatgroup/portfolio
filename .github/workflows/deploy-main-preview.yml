@@ -107,6 +107,8 @@ jobs:
         run: npx --yes playwright@1.64.1 install --with-deps chromium
       - name: Live check against production
         run: npm run live -- --dist dist
+      - name: Verify the unlisted walkthrough on the same deployment
+        run: npm run live -- --walkthrough
 
       - name: Retain deployed browser proof
         if: always()

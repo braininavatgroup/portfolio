@@ -8,4 +8,6 @@ The mapped controls cover world and contents selection, resizable reading-room p
 
 The mapped standalone routes are Tour Advancing, Quarterly Dashboard, Privacy and robots.txt. The check also verifies the home page, www, sitemap, PDF CV, 404, chat-session configuration and the Access-gated insights surface.
 
+The unlisted walkthrough at `/honeyhill/` is served only on the apex through a private static service binding. It is not authenticated: anyone with the URL can visit or share it. It is excluded from the homepage and sitemap, not from the hosting account’s normal private access logs. Its files stay out of public Git. Normal hosting-account request reporting is unchanged. Production deploys run the normal portfolio check and then `npm run live -- --walkthrough` against the fixed URL, without credentials. This verifies nested assets and privacy headers, opens a plant photo, and scrolls all 42 lookbook models into view. It saves no walkthrough screenshots or asset URLs.
+
 Update both map files with any route, record or control change. `npm run live -- --map-only` distinguishes stale inventory from a browser, credential or production failure.

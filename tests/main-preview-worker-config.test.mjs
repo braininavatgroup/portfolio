@@ -34,6 +34,9 @@ test("the public candidate serves the apex and www routes without a login", asyn
   ]);
   assert.equal(config.domains, undefined);
   assert.equal(config.no_bundle, true);
+  assert.deepEqual(config.services.filter(({ binding }) => binding === "FAMILY_WALKTHROUGH"), [
+    { binding: "FAMILY_WALKTHROUGH", service: "portfolio-family-walkthrough" },
+  ]);
 
   assert.deepEqual(config.vars, {
     PORTFOLIO_CHAT_SESSION_REQUIRED: "true",
@@ -137,6 +140,12 @@ test("the public candidate serves the apex and www routes without a login", asyn
   const deploy = await readFile(deployUrl, "utf8");
   assert.match(deploy, /secrets\.ERROR_INTAKE_SECRET/);
   assert.match(deploy, /wrangler secret put ERROR_INTAKE_SECRET --config wrangler\.main-preview\.jsonc/);
+});
+
+test("deployment verifies the normal portfolio and the private walkthrough without separate credentials", async () => {
+  const deploy = await readFile(deployUrl, "utf8");
+  assert.match(deploy, /run: npm run live -- --dist dist/);
+  assert.match(deploy, /- name: Verify the unlisted walkthrough on the same deployment\n\s+run: npm run live -- --walkthrough/);
 });
 
 test("Wrangler accepts the built permanent main-preview contract", async () => {
