@@ -72,7 +72,7 @@ async function main() {
       };
       const redirect = await request("/honeyhill", { method: "HEAD" });
       expect(redirect.status === 308 && redirect.headers.get("location") === directory, "invalid directory redirect");
-      for (const [resource, marker] of [["", 'id="startbtn"'], ["lookbook.html", 'id="grid"']]) {
+      for (const [resource, marker] of [["", 'id="garden-nav"'], ["lookbook.html", 'id="grid"']]) {
         const page = await request(directory + resource);
         expect(page.ok && page.headers.get("content-type")?.includes("text/html"), "entry page not served as HTML");
         let html;
