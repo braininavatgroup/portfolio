@@ -76,7 +76,6 @@ function page(context) {
       return { async boundingBox() { return {x: (name==='Resize Contents' ? (width===1440?320:240) : (width===1440?1041:width-321))+delta,y:0,width:10,height:10}; }, async getAttribute(){return 'vertical';} };
     },
     locator(selector) {
-      if (selector === '#startbtn') return { async click(){} };
       if (selector === '#plantcard.open') return { getByRole() { return { async click(){} }; } };
       if (selector === '#plantcard') return { async waitFor(){} };
       if (selector === '#grid .cell') return { async count(){return mode === 'walkthrough-missing-species' ? 41 : 42;}, nth() {return {async scrollIntoViewIfNeeded(){}};} };
@@ -129,7 +128,7 @@ globalThis.fetch = async (url) => {
     const rest = u.pathname.slice(folder.length);
     if (!rest) return reply(null, 308, {...headers, location: folder + '/'});
     if (rest === '/' || rest === '/lookbook.html') {
-      const marker = rest === '/' ? 'startbtn' : 'grid';
+      const marker = rest === '/' ? 'garden-nav' : 'grid';
       return reply('<div id="' + marker + '"></div><script type="module" src="./assets/fixture.js"></script>', 200, {...headers, 'content-type': 'text/html'});
     }
     if (rest === '/assets/fixture.js') return reply(null, 200, {...headers, 'content-type': 'text/javascript'});

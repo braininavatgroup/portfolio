@@ -24,13 +24,13 @@ export async function renderWalkthrough(directory, check) {
   try {
     await observe("walkthrough renders the real world and opens a plant photo", async page => {
       stage = "world load";
-      await page.goto(directory + "?quality=low&webgl&spawn=1", { waitUntil: "commit", timeout: 60_000 });
-      await page.locator("#startbtn").click(wait);
+      await page.goto(directory + "?quality=low&webgl&spawn=1&tex=webp", { waitUntil: "commit", timeout: 60_000 });
       await page.waitForFunction(() => {
         const yard = window.__yard;
         if (!yard?.pickCenter || !yard.card?.info) return false;
         const stats = yard.stats();
-        return stats.plants.instances === 2933 && stats.plants.drawn > 0 && stats.triangles > 0 &&
+        return stats.plants.instances === 3022 && // 2,933 planted plus the 89 proposed phase-2 plants
+          stats.plants.drawn > 0 && stats.triangles > 0 &&
           yard.plants.species.size === 42 && [...yard.plants.species.values()].every(s =>
             new URL(s.url, document.baseURI).href.startsWith(new URL("world/", document.baseURI).href)) &&
           !document.getElementById("about").textContent.includes("Stand-in data");
@@ -57,11 +57,11 @@ export async function renderWalkthrough(directory, check) {
       }, target.name, wait);
       await page.locator("#plantcard.open").getByRole("button", { name: "Close" }).click();
       await page.locator("#plantcard").waitFor({ state: "hidden" });
-      return "2,933 instances, 42 real plant models, visible photo card";
+      return "3,022 instances, 42 real plant models, visible photo card";
     }, { viewport });
     await observe("walkthrough renders each of the 42 lookbook plants", async page => {
       stage = "lookbook load";
-      await page.goto(directory + "lookbook.html?webgl&quality=low", { waitUntil: "commit", timeout: 60_000 });
+      await page.goto(directory + "lookbook.html?webgl&quality=low&tex=webp", { waitUntil: "commit", timeout: 60_000 });
       await page.waitForFunction(() => window.__lookbook?.ready, null, wait);
       const cells = page.locator("#grid .cell");
       if (await cells.count() !== 42) throw new WrongAnswer("unexpected lookbook count");
