@@ -325,6 +325,7 @@ test("operator walkthrough proof distinguishes missing assets and network failur
     const result = runLive(mode, ["--walkthrough"]);
     assert.equal(result.status, code, result.stdout + result.stderr);
     assert.ok(!(result.stdout + result.stderr).includes("/honeyhill"));
+    if (mode === "walkthrough-render-error") assert.match(result.stdout + result.stderr, /did not pass: console: fixture private URL: <url>/);
   }
   const otherHost = runLive("walkthrough-pass", ["--walkthrough", "--base", "https://example.invalid"]);
   assert.equal(otherHost.status, 3);

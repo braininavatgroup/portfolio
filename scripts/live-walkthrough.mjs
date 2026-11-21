@@ -3,6 +3,9 @@ import { WrongAnswer } from "./live-result.mjs";
 import { launchReadOnlyBrowser } from "./read-only-browser.mjs";
 import { loadPlaywright } from "./clip-studio/tools.mjs";
 
+export const redact = text => String(text ?? "")
+  .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, "<url>").replace(/\/?honeyhill\S*/gi, "<path>").slice(0, 240);
+
 export async function renderWalkthrough(directory, check) {
   // Playwright protocol/API traces include the full URL. This verifier does not retain them or screenshots.
   delete process.env.DEBUG;
@@ -13,8 +16,9 @@ export async function renderWalkthrough(directory, check) {
   const privateCheck = (name, run, options) => check(name, async () => {
     try { return await run(); }
     catch (error) {
-      // Console text, failed request messages and locator call logs can all contain the private URL.
-      if (error instanceof WrongAnswer) throw new WrongAnswer(stage + " did not pass");
+      // Console text, failed request messages and locator call logs can all contain the private URL. A wrong answer
+      // keeps its reason with every URL and walkthrough path removed, so a hosted run can be diagnosed (PER-236).
+      if (error instanceof WrongAnswer) throw new WrongAnswer(stage + " did not pass: " + redact(error.message));
       throw new Error(stage + " unavailable");
     }
   }, options);
