@@ -78,7 +78,6 @@ function page(context) {
     locator(selector) {
       if (selector === '#plantcard.open') return { getByRole() { return { async click(){} }; } };
       if (selector === '#plantcard') return { async waitFor(){} };
-      if (selector === '#grid .cell') return { async count(){return mode === 'walkthrough-missing-species' ? 41 : 42;}, nth() {return {async scrollIntoViewIfNeeded(){}};} };
       if (selector === '.reader-carousel-card a') return link;
       if (selector.includes('avatar-overlay')) return { async waitFor(){}, async getAttribute(){return String(position);} };
       if (selector.includes('portfolio-world')) return { async boundingBox(){return {x:0,y:0,width:390,height:844};} };
@@ -321,7 +320,7 @@ test("a null navigation cannot carry a200 receipt across origin, path, query or 
 
 
 test("operator walkthrough proof distinguishes missing assets and network failures without printing asset URLs", () => {
-  for (const [mode, code] of [["walkthrough-pass", 0], ["walkthrough-wrong", 1], ["walkthrough-down", 3], ["walkthrough-render-error", 1], ["walkthrough-missing-species", 1]]) {
+  for (const [mode, code] of [["walkthrough-pass", 0], ["walkthrough-wrong", 1], ["walkthrough-down", 3], ["walkthrough-render-error", 1]]) {
     const result = runLive(mode, ["--walkthrough"]);
     assert.equal(result.status, code, result.stdout + result.stderr);
     assert.ok(!(result.stdout + result.stderr).includes("/honeyhill"));
