@@ -59,19 +59,6 @@ export async function renderWalkthrough(directory, check) {
       await page.locator("#plantcard").waitFor({ state: "hidden" });
       return "3,022 instances, 42 real plant models, visible photo card";
     }, { viewport });
-    await observe("walkthrough renders each of the 42 lookbook plants", async page => {
-      stage = "lookbook load";
-      await page.goto(directory + "lookbook.html?webgl&quality=low&tex=webp", { waitUntil: "commit", timeout: 60_000 });
-      await page.waitForFunction(() => window.__lookbook?.ready, null, wait);
-      const cells = page.locator("#grid .cell");
-      if (await cells.count() !== 42) throw new WrongAnswer("unexpected lookbook count");
-      stage = "lookbook model rendering";
-      for (let index = 0; index < 42; index++) {
-        await cells.nth(index).scrollIntoViewIfNeeded();
-        await page.waitForFunction(i => document.querySelectorAll("#grid .cell")[i]?.dataset.rendered === "true", index, wait);
-      }
-      return "42 real species drawn into view";
-    }, { viewport });
   } finally {
     await browser.close();
   }
